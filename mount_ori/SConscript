@@ -1,0 +1,12 @@
+Import('env')
+
+src = [
+    "ori_fuse.c",
+]
+
+env.Program("mount_ori", src,
+            LIBPATH = [ "$LIBPATH" ],
+            LIBS = [ "fuse",
+                     "rt" ],
+            CPPPATH = [ "$CPPPATH", "#include", "#" ])
+

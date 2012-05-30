@@ -1,0 +1,14 @@
+Import('env')
+
+src = [
+    "main.cc",
+    "repo.cc",
+    "scan.cc",
+    "util.cc",
+]
+
+env.Program("ori", src,
+            LIBPATH = [ "$LIBPATH" ],
+	    LIBS = [ "crypto", "stdc++", "rt" ],
+            CPPPATH = [ "$CPPPATH", "#include", "#" ])
+
