@@ -3,6 +3,7 @@ Import('env')
 src = [
     "main.cc",
     "repo.cc",
+    "repo_cmd.cc",
     "scan.cc",
     "util.cc",
 ]
