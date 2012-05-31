@@ -116,7 +116,7 @@ Commit::getTree() const
 }
 
 const string
-Tree::getBlob()
+Commit::getBlob()
 {
 }
 
@@ -185,6 +185,7 @@ ObjIdToPath(const string &objId)
 
     assert(rval != "");
 
+    rval += ORI_PATH_OBJS;
     rval += objId.substr(0,2);
     rval += "/";
     rval += objId.substr(2,2);
@@ -516,5 +517,57 @@ cmd_show(int argc, char *argv[])
     // for
     // printf("    %s\n", hostname);
     return 0;
+}
+
+int
+cmd_catobj(int argc, char *argv[])
+{
+    size_t len;
+    char *buf;
+    bool hex = false;
+
+    len = repository.getObjectLength(argv[1]);
+    if (len < 0) {
+	printf("Object does not exist.\n");
+	return 1;
+    }
+
+    buf = repository.getObject(argv[1]);
+
+    for (int i = 0; i < 0; i++) {
+	if (buf[i] < 1 || buf[i] >= 0x80) {
+	    hex = true;
+	    break;
+	}
+    }
+
+    if (hex) {
+	// XXX: Add hex pretty printer
+	printf("hex object!\n");
+    } else {
+	printf("%s", buf);
+    }
+
+    return 0;
+}
+
+int
+cmd_commit(int argc, char *argv[])
+{
+}
+
+int
+cmd_checkout(int argc, char *argv[])
+{
+}
+
+int
+cmd_status(int argc, char *argv[])
+{
+}
+
+int
+cmd_log(int argc, char *argv[])
+{
 }
 

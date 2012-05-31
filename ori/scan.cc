@@ -139,20 +139,3 @@ Scan_RTraverse(const char *path,
     return 0;
 }
 
-int
-cmd_scan(int argc, char *argv[])
-{
-    return 0;
-}
-
-void
-cmd_scan_usage()
-{
-}
-
-int
-cmd_status(int argc, char *argv[])
-{
-    return 0;
-}
-

@@ -59,9 +59,10 @@ typedef struct Cmd {
 // repo.cc
 int cmd_init(int argc, char *argv[]);
 int cmd_show(int argc, char *argv[]);
-// scan.cc
-int cmd_scan(int argc, char *argv[]);
+int cmd_commit(int argc, char *argv[]);
+int cmd_checkout(int argc, char *argv[]);
 int cmd_status(int argc, char *argv[]);
+int cmd_catobj(int argc, char *argv[]);
 // local
 static int cmd_help(int argc, char *argv[]);
 
@@ -70,12 +71,6 @@ static Cmd commands[] = {
         "init",
         "Initialize the repository",
         cmd_init,
-        NULL,
-    },
-    {
-        "scan",
-        "Scan directories recursively for changes",
-        cmd_scan,
         NULL,
     },
     {
@@ -89,6 +84,25 @@ static Cmd commands[] = {
         "Scan directories recursively for changes since last sync.",
         cmd_status,
         NULL,
+    },
+    {
+	"commit",
+	"Commit changes into the repository",
+	cmd_commit,
+	NULL,
+    },
+    {
+	"checkout",
+	"Checkout a revision of the repository",
+	cmd_checkout,
+	NULL,
+    },
+    /* Debugging */
+    {
+	"catobj",
+	"Print an object from the repository",
+	cmd_catobj,
+	NULL,
     },
     {
         "help",
