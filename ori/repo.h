@@ -53,6 +53,7 @@ public:
     ~Tree();
     void addObject(const char *path, const std::string &objId);
     const std::string getBlob();
+    void fromBlob(const std::string &blob);
 private:
     std::map<std::string, TreeEntry> tree;
 };
@@ -69,13 +70,14 @@ public:
     void setTree(std::string &tree);
     std::string getTree() const;
     const std::string getBlob();
+    void fromBlob(const std::string &blob);
 private:
 };
 
 class Repo
 {
 public:
-    Repo();
+    Repo(const std::string &root = "");
     ~Repo();
     bool open();
     void close();
@@ -93,10 +95,16 @@ public:
     // General Operations
     std::string getUUID();
     std::string getVersion();
+    // Static operations
     static std::string getRootPath();
     static std::string getLogPath();
     static std::string getTmpFile();
 private:
+    // Helper Functions
+    void createObjDirs(const std::string &objId);
+    std::string objIdToPath(const std::string &objId);
+    // Variables
+    std::string rootPath;
     std::string id;
     std::string version;
 };
