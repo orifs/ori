@@ -141,36 +141,54 @@ Commit::~Commit()
 void
 Commit::setParents(std::string p1, std::string p2)
 {
+    parents.first = p1;
+    parents.second = p2;
 }
 
-set<string>
+pair<string, string>
 Commit::getParents()
 {
+    return parents;
 }
 
 void
-Commit::setMessage(string msg)
+Commit::setMessage(const string &msg)
 {
+    message = msg;
 }
 
 string
 Commit::getMessage() const
 {
+    return message;
 }
 
 void
-Commit::setTree(string &tree)
+Commit::setTree(const string &tree)
 {
+    treeObjId = tree;
 }
 
 string
 Commit::getTree() const
 {
+    return treeObjId;
 }
 
 const string
 Commit::getBlob()
 {
+    string blob;
+    
+    blob = "tree " + treeObjId + "\n";
+    blob += "parent " + parents.first;
+    if (parents.second != "") {
+	blob += " " + parents.second;
+    }
+    blob += "\n\n";
+    blob += message;
+
+    return blob;
 }
 
 void
@@ -335,9 +353,11 @@ Repo::addTree(/* const */ Tree &tree)
  * Add a commit to the repository.
  */
 string
-Repo::addCommit(const string &commit)
+Repo::addCommit(/* const */ Commit &commit)
 {
-    return addBlob(commit);
+    string blob = commit.getBlob();
+
+    return addBlob(blob);
 }
 
 /*
@@ -656,8 +676,9 @@ int
 cmd_commit(int argc, char *argv[])
 {
     string blob;
-    string treeHash;
+    string treeHash, commitHash;
     Tree tree = Tree();
+    Commit commit = Commit();
     string root = Repo::getRootPath();
 
     Scan_Traverse(root.c_str(), &tree, commitHelper);
@@ -665,10 +686,19 @@ cmd_commit(int argc, char *argv[])
     blob = tree.getBlob();
     treeHash = repository.addBlob(blob);
 
-    // XXX: Write commit blob
+    // XXX: Get parents
+    commit.setParents("1234");
+    commit.setMessage("");
+    commit.setTree(treeHash);
+
+    commitHash = repository.addCommit(commit);
+
     // XXX: Update .ori/tip
 
-    printf("Hash: %s\n%s", treeHash.c_str(), blob.c_str());
+    printf("Commit Hash: %s\nTree Hash: %s\n%s",
+	   commitHash.c_str(),
+	   treeHash.c_str(),
+	   blob.c_str());
 }
 
 int

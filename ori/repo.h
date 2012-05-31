@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 
+#include <utility>
 #include <string>
 #include <map>
 #include <set>
@@ -64,14 +65,17 @@ public:
     Commit();
     ~Commit();
     void setParents(std::string p1, std::string p2 = "");
-    std::set<std::string> getParents();
-    void setMessage(std::string msg);
+    std::pair<std::string, std::string> getParents();
+    void setMessage(const std::string &msg);
     std::string getMessage() const;
-    void setTree(std::string &tree);
+    void setTree(const std::string &tree);
     std::string getTree() const;
     const std::string getBlob();
     void fromBlob(const std::string &blob);
 private:
+    std::pair<std::string, std::string> parents;
+    std::string message;
+    std::string treeObjId;
 };
 
 class Repo
@@ -86,7 +90,7 @@ public:
     std::string addFile(const std::string &path);
     std::string addBlob(const std::string &blob);
     std::string addTree(/* const */ Tree &tree);
-    std::string addCommit(const std::string &commit);
+    std::string addCommit(/* const */ Commit &commit);
     char *getObject(const std::string &objId);
     size_t getObjectLength(const char *objId);
     size_t sendObject(const char *objId);
