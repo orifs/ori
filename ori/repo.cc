@@ -400,11 +400,19 @@ Repo::copyObject(const char *objId, const char *path)
 int
 Repo_GetObjectsCB(void *arg, const char *path)
 {
+    string hash;
     set<string> *objs = (set<string> *)arg;
 
     // XXX: Only add the hash
+    if (Util_IsDirectory(path)) {
+	return 0;
+    }
 
-    objs->insert(path);
+    hash = path;
+    hash = hash.substr(hash.rfind("/") + 1);
+    objs->insert(hash);
+
+    return 0;
 }
 
 /*

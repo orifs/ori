@@ -176,6 +176,20 @@ cmd_catobj(int argc, char *argv[])
 }
 
 int
+cmd_listobj(int argc, char *argv[])
+{
+    set<string> objects = repository.getObjects();
+    set<string>::iterator it;
+
+    for (it = objects.begin(); it != objects.end(); it++)
+    {
+	printf("%s\n", (*it).c_str());
+    }
+
+    return 0;
+}
+
+int
 commitHelper(void *arg, const char *path)
 {
     string hash;

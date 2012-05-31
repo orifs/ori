@@ -63,6 +63,7 @@ int cmd_commit(int argc, char *argv[]);
 int cmd_checkout(int argc, char *argv[]);
 int cmd_status(int argc, char *argv[]);
 int cmd_catobj(int argc, char *argv[]);
+int cmd_listobj(int argc, char *argv[]);
 // local
 static int cmd_help(int argc, char *argv[]);
 
@@ -102,6 +103,12 @@ static Cmd commands[] = {
 	"catobj",
 	"Print an object from the repository",
 	cmd_catobj,
+	NULL,
+    },
+    {
+	"listobj",
+	"List objects",
+	cmd_listobj,
 	NULL,
     },
     {
