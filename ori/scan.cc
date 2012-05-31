@@ -48,7 +48,6 @@ Scan_Traverse(const char *path,
         dir = opendir(path);
     }
 
-    entry = readdir(dir);
     while ((entry = readdir(dir)) != NULL) {
         if (path != NULL) {
             strcpy(fullpath, path);
@@ -99,7 +98,6 @@ Scan_RTraverse(const char *path,
         dir = opendir(path);
     }
 
-    entry = readdir(dir);
     while ((entry = readdir(dir)) != NULL) {
         if (path != NULL) {
             strcpy(fullpath, path);

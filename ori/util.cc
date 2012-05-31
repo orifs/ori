@@ -58,6 +58,25 @@ Util_FileExists(const char *path)
 }
 
 /*
+ * Check if a file is a directory.
+ */
+bool
+Util_IsDirectory(const char *path)
+{
+    struct stat sb;
+
+    if (stat(path, &sb) < 0) {
+	perror("stat file does not exist");
+	return false;
+    }
+
+    if (sb.st_mode & S_IFDIR)
+	return true;
+    else
+	return false;
+}
+
+/*
  * Read a file containing a text string into memory. There may not be any null 
  * characters in the file.
  */

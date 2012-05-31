@@ -17,11 +17,11 @@
 #ifndef __REPO_H__
 #define __REPO_H__
 
+#include <stdint.h>
+
 #include <string>
 #include <map>
 #include <set>
-
-using namespace std;
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -31,14 +31,30 @@ using namespace std;
 #define ORI_PATH_TMP "/.ori/tmp/"
 #define ORI_PATH_OBJS "/.ori/objs/"
 
+class TreeEntry
+{
+public:
+    TreeEntry();
+    ~TreeEntry();
+    enum EntryType {
+	Null,
+	Blob,
+	Tree
+    };
+    EntryType	type;
+    uint16_t	mode;
+    std::string hash;
+};
+
 class Tree
 {
 public:
     Tree();
     ~Tree();
-    void addObject(const char *path, const char *objid);
+    void addObject(const char *path, const std::string &objId);
     const std::string getBlob();
 private:
+    std::map<std::string, TreeEntry> tree;
 };
 
 class Commit
@@ -65,11 +81,11 @@ public:
     void close();
     void save();
     // Object Operations
-    string addFile(const string &path);
-    string addBlob(const string &blob);
-    string addTree(/* const */ Tree &tree);
-    string addCommit(const string &commit);
-    char *getObject(const string &objId);
+    std::string addFile(const std::string &path);
+    std::string addBlob(const std::string &blob);
+    std::string addTree(/* const */ Tree &tree);
+    std::string addCommit(const std::string &commit);
+    char *getObject(const std::string &objId);
     size_t getObjectLength(const char *objId);
     size_t sendObject(const char *objId);
     bool copyObject(const char *objId, const char *path);
@@ -81,8 +97,8 @@ public:
     static std::string getLogPath();
     static std::string getTmpFile();
 private:
-    string id;
-    string version;
+    std::string id;
+    std::string version;
 };
 
 extern Repo repository;

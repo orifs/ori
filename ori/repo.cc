@@ -46,6 +46,23 @@ Repo repository;
 /********************************************************************
  *
  *
+ * TreeEntry
+ *
+ *
+ ********************************************************************/
+
+TreeEntry::TreeEntry()
+{
+    mode = Null;
+}
+
+TreeEntry::~TreeEntry()
+{
+}
+
+/********************************************************************
+ *
+ *
  * Tree
  *
  *
@@ -60,13 +77,44 @@ Tree::~Tree()
 }
 
 void
-Tree::addObject(const char *path, const char *objId)
+Tree::addObject(const char *path, const string &objId)
 {
+    struct stat sb;
+    TreeEntry entry = TreeEntry();
+
+    if (stat(path, &sb) < 0) {
+	perror("stat failed in Tree::addObject");
+	assert(false);
+    }
+
+    if (sb.st_mode & S_IFDIR) {
+	entry.type = TreeEntry::Tree;
+    } else {
+	entry.type = TreeEntry::Blob;
+    }
+    entry.mode = sb.st_mode & (S_IRWXO | S_IRWXG | S_IRWXU | S_IFDIR);
+    entry.hash = objId;
+    tree[path] = entry;
 }
+
 
 const string
 Tree::getBlob()
 {
+    string blob = "";
+    map<string, TreeEntry>::iterator it;
+
+    for (it = tree.begin(); it != tree.end(); it++)
+    {
+	blob += (*it).second.type == TreeEntry::Tree ? "tree" : "blob";
+	blob += " ";
+	blob += (*it).second.hash;
+	blob += " ";
+	blob += (*it).first;
+	blob += "\n";
+    }
+
+    return blob;
 }
 
 /********************************************************************
@@ -178,6 +226,24 @@ Repo::close()
  * Object Operations
  */
 
+void
+CreateObjDirs(const string &objId)
+{
+    string path = Repo::getRootPath();
+
+    assert(path != "");
+
+    path += ORI_PATH_OBJS;
+    path += objId.substr(0,2);
+
+    mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+
+    path += "/";
+    path += objId.substr(2,2);
+
+    mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+}
+
 static string
 ObjIdToPath(const string &objId)
 {
@@ -213,6 +279,7 @@ Repo::addFile(const string &path)
     // Check if in tree
     if (!Util_FileExists(objPath.c_str())) {
 	// Copy to object tree
+	CreateObjDirs(hash);
 	if (Util_CopyFile(path.c_str(), objPath.c_str()) < 0) {
 	    perror("Unable to copy file");
 	    return "";
@@ -234,6 +301,7 @@ Repo::addBlob(const string &blob)
     // Check if in tree
     if (!Util_FileExists(objPath.c_str())) {
 	// Copy to object tree
+	CreateObjDirs(hash);
 	if (Util_WriteFile(blob.c_str(), blob.length(), objPath.c_str()) < 0) {
 	    perror("Unable to write blob to disk");
 	    return "";
@@ -552,8 +620,40 @@ cmd_catobj(int argc, char *argv[])
 }
 
 int
+commitHelper(void *arg, const char *path)
+{
+    string hash;
+    Tree *tree = (Tree *)arg;
+
+    if (Util_IsDirectory(path)) {
+	string blob;
+	Tree subTree = Tree();
+
+	Scan_Traverse(path, &subTree, commitHelper);
+
+	blob = subTree.getBlob();
+	hash = repository.addBlob(blob);
+    } else {
+	hash = repository.addFile(path);
+    }
+    tree->addObject(path, hash);
+
+    return 0;
+}
+
+int
 cmd_commit(int argc, char *argv[])
 {
+    string blob;
+    string treeHash;
+    Tree tree = Tree();
+    string root = Repo::getRootPath();
+
+    Scan_Traverse(root.c_str(), &tree, commitHelper);
+
+    blob = tree.getBlob();
+    treeHash = repository.addBlob(blob);
+    printf("Hash: %s\n%s", treeHash.c_str(), blob.c_str());
 }
 
 int

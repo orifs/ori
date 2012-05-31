@@ -20,6 +20,7 @@
 #include <string>
 
 bool Util_FileExists(const char *path);
+bool Util_IsDirectory(const char *path);
 char *Util_ReadFile(const char *path, size_t *flen);
 bool Util_WriteFile(const char *blob, size_t len, const char *path);
 int Util_CopyFile(const char *origPath, const char *newPath);
