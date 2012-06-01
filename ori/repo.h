@@ -33,6 +33,8 @@
 #define ORI_PATH_TMP "/.ori/tmp/"
 #define ORI_PATH_OBJS "/.ori/objs/"
 
+#define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
+
 class TreeEntry
 {
 public:

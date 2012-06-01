@@ -485,7 +485,7 @@ Repo::getHead()
     // XXX: Leak!
 
     if (commitId == NULL) {
-	return "0000000000000000000000000000000000000000000000000000000000000000";
+	return EMPTY_COMMIT;
     }
 
     return commitId;

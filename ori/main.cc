@@ -62,6 +62,7 @@ int cmd_show(int argc, char *argv[]);
 int cmd_commit(int argc, char *argv[]);
 int cmd_checkout(int argc, char *argv[]);
 int cmd_status(int argc, char *argv[]);
+int cmd_log(int argc, char *argv[]);
 int cmd_catobj(int argc, char *argv[]);
 int cmd_listobj(int argc, char *argv[]);
 // local
@@ -96,6 +97,12 @@ static Cmd commands[] = {
 	"checkout",
 	"Checkout a revision of the repository",
 	cmd_checkout,
+	NULL,
+    },
+    {
+	"log",
+	"Display a log of commits to the repository",
+	cmd_log,
 	NULL,
     },
     /* Debugging */

@@ -253,5 +253,19 @@ cmd_status(int argc, char *argv[])
 int
 cmd_log(int argc, char *argv[])
 {
+    string commit = repository.getHead();
+
+    while (commit != EMPTY_COMMIT) {
+	Commit c = Commit();
+	string blob = repository.getObject(commit);
+
+	c.fromBlob(blob);
+
+	printf("commit %s\n", commit.c_str());
+	printf("%s\n", c.getMessage().c_str());
+
+	commit = c.getParents().first;
+    }
+
 }
 
