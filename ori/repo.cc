@@ -433,6 +433,38 @@ Repo::getObjects()
 }
 
 /*
+ * Working Directory Operations
+ */
+
+/*
+ * Get the working repository version.
+ */
+string
+Repo::getHead()
+{
+    string headPath = rootPath + ORI_PATH_HEAD;
+    char *commitId = Util_ReadFile(headPath.c_str(), NULL);
+    // XXX: Leak!
+
+    if (commitId == NULL) {
+	return "0000000000000000000000000000000000000000000000000000000000000000";
+    }
+
+    return commitId;
+}
+
+/*
+ * Update the working directory revision.
+ */
+void
+Repo::updateHead(const string &commitId)
+{
+    string headPath = rootPath + ORI_PATH_HEAD;
+
+    Util_WriteFile(commitId.c_str(), commitId.size(), headPath.c_str());
+}
+
+/*
  * General Operations
  */
 

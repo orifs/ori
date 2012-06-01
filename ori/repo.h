@@ -28,6 +28,7 @@
 #define ORI_PATH_VERSION "/.ori/version"
 #define ORI_PATH_UUID "/.ori/id"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
+#define ORI_PATH_HEAD "/.ori/HEAD"
 #define ORI_PATH_LOG "/.ori/ori.log"
 #define ORI_PATH_TMP "/.ori/tmp/"
 #define ORI_PATH_OBJS "/.ori/objs/"
@@ -96,6 +97,9 @@ public:
     size_t sendObject(const char *objId);
     bool copyObject(const char *objId, const char *path);
     std::set<std::string> getObjects();
+    // Working Directory Operations
+    std::string getHead();
+    void updateHead(const std::string &commitId);
     // General Operations
     std::string getUUID();
     std::string getVersion();

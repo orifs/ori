@@ -227,12 +227,13 @@ cmd_commit(int argc, char *argv[])
 
     // XXX: Get parents
     commit.setTree(treeHash);
-    commit.setParents("1234");
+    commit.setParents(repository.getHead());
     commit.setMessage("");
 
     commitHash = repository.addCommit(commit);
 
-    // XXX: Update .ori/tip
+    // Update .ori/HEAD
+    repository.updateHead(commitHash);
 
     printf("Commit Hash: %s\nTree Hash: %s\n%s",
 	   commitHash.c_str(),
