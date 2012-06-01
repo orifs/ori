@@ -227,7 +227,7 @@ cmd_commit(int argc, char *argv[])
     // XXX: Get parents
     commit.setTree(treeHash);
     commit.setParents(repository.getHead());
-    commit.setMessage("");
+    commit.setMessage("test");
 
     commitHash = repository.addCommit(commit);
 

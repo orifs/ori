@@ -209,6 +209,25 @@ Commit::getBlob()
 void
 Commit::fromBlob(const string &blob)
 {
+    string line;
+    stringstream ss(blob);
+
+    while (getline(ss, line, '\n')) {
+	if (line.substr(0, 5) == "tree ") {
+	    treeObjId = line.substr(5);
+	} else if (line.substr(0, 7) == "parent ") {
+	    // XXX: Handle the merge case
+	    parents.first = line.substr(7);
+	} else if (line.substr(0, 1) == "") {
+	    message = blob.substr(ss.tellg());
+	    break;
+	} else{
+	    printf("Unsupported commit parameter!\n");
+	    assert(false);
+	}
+    }
+
+    // Verify that everything is set!
 }
 
 /********************************************************************
