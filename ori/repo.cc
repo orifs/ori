@@ -28,7 +28,10 @@
 #include <sys/stat.h>
 //#include <uuid.h>
 
+#include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "debug.h"
 #include "scan.h"
@@ -116,6 +119,22 @@ Tree::getBlob()
 void
 Tree::fromBlob(const string &blob)
 {
+    string line;
+    stringstream ss(blob);
+
+    while (getline(ss, line, '\n')) {
+	TreeEntry entry = TreeEntry();
+	if (line.substr(0, 5) == "tree ") {
+	    entry.type = TreeEntry::Tree;
+	} else if (line.substr(0, 5) == "blob ") {
+	    entry.type = TreeEntry::Blob;
+	} else {
+	    assert(false);
+	}
+	// XXX: entry.mode
+	entry.hash = line.substr(5, 64);
+	tree[line.substr(69)] = entry;
+    }
 }
 
 /********************************************************************

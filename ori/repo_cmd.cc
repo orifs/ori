@@ -222,8 +222,7 @@ cmd_commit(int argc, char *argv[])
 
     Scan_Traverse(root.c_str(), &tree, commitHelper);
 
-    blob = tree.getBlob();
-    treeHash = repository.addBlob(blob);
+    treeHash = repository.addTree(tree);
 
     // XXX: Get parents
     commit.setTree(treeHash);
