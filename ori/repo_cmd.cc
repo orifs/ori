@@ -327,7 +327,6 @@ cmd_status(int argc, const char *argv[])
 	} else if ((*k).second != (*it).second) {
 	    printf("M	%s\n", (*it).first.c_str());
 	}
-	//printf("%s %s\n", (*it).first.c_str(), (*it).second.c_str());
     }
 
     for (it = tipState.begin(); it != tipState.end(); it++) {
@@ -335,7 +334,6 @@ cmd_status(int argc, const char *argv[])
 	if (k == dirState.end()) {
 	    printf("D	%s\n", (*it).first.c_str());
 	}
-	//printf("%s %s\n", (*it).first.c_str(), (*it).second.c_str());
     }
 }
 
