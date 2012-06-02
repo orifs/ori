@@ -445,3 +445,35 @@ cmd_clone(int argc, const char *argv[])
     return 0;
 }
 
+int
+cmd_pull(int argc, const char *argv[])
+{
+    string srcRoot;
+
+    if (argc != 2) {
+	printf("Specify a repository to pull.\n");
+	printf("usage: ori pull <repo>\n");
+	return 1;
+    }
+
+    srcRoot = argv[1];
+
+    printf("Pulling from %s\n", srcRoot.c_str());
+
+    Repo srcRepo(srcRoot);
+    set<string> objects = srcRepo.getObjects();
+    set<string>::iterator it;
+
+    for (it = objects.begin(); it != objects.end(); it++)
+    {
+	// XXX: Leak!
+	string hash = repository.addBlob(srcRepo.getObject(*it));
+    }
+
+    // XXX: Need to rely on sync log.
+    repository.updateHead(srcRepo.getHead());
+
+    return 0;
+}
+
+

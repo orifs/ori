@@ -62,6 +62,7 @@ int cmd_show(int argc, const char *argv[]);
 int cmd_clone(int argc, const char *argv[]);
 int cmd_commit(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
+int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]);
@@ -104,6 +105,12 @@ static Cmd commands[] = {
 	"checkout",
 	"Checkout a revision of the repository",
 	cmd_checkout,
+	NULL,
+    },
+    {
+	"pull",
+	"Pull changes from a repository",
+	cmd_pull,
 	NULL,
     },
     {
