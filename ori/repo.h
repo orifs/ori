@@ -94,9 +94,9 @@ public:
     std::string addTree(/* const */ Tree &tree);
     std::string addCommit(/* const */ Commit &commit);
     char *getObject(const std::string &objId);
-    size_t getObjectLength(const char *objId);
+    size_t getObjectLength(const std::string &objId);
     size_t sendObject(const char *objId);
-    bool copyObject(const char *objId, const char *path);
+    bool copyObject(const std::string &objId, const std::string &path);
     std::set<std::string> getObjects();
     // Working Directory Operations
     std::string getHead();

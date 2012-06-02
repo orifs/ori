@@ -253,12 +253,6 @@ cmd_commit(int argc, const char *argv[])
 }
 
 int
-cmd_checkout(int argc, const char *argv[])
-{
-    string commit = repository.getHead();
-}
-
-int
 StatusDirectoryCB(void *arg, const char *path)
 {
     string repoRoot = Repo::getRootPath();
@@ -271,6 +265,8 @@ StatusDirectoryCB(void *arg, const char *path)
         objPath = objPath.substr(repoRoot.size());
 
 	dirState->insert(pair<string, string>(objPath, objHash));
+    } else {
+	dirState->insert(pair<string, string>(objPath, "DIR"));
     }
 
     return 0;
@@ -289,6 +285,8 @@ StatusTreeIter(map<string, string> *tipState,
 
     for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
 	if ((*it).second.type == TreeEntry::Tree) {
+	    tipState->insert(pair<string, string>(path + "/" + (*it).first,
+						  "DIR"));
 	    StatusTreeIter(tipState,
 			   path + "/" + (*it).first,
 			   (*it).second.hash);
@@ -319,12 +317,12 @@ cmd_status(int argc, const char *argv[])
 		   (void *)&dirState,
 	           StatusDirectoryCB);
 
-
     for (it = dirState.begin(); it != dirState.end(); it++) {
 	map<string, string>::iterator k = tipState.find((*it).first);
 	if (k == tipState.end()) {
 	    printf("A	%s\n", (*it).first.c_str());
 	} else if ((*k).second != (*it).second) {
+	    // XXX: Handle replace a file <-> directory with same name
 	    printf("M	%s\n", (*it).first.c_str());
 	}
     }
@@ -333,6 +331,55 @@ cmd_status(int argc, const char *argv[])
 	map<string, string>::iterator k = dirState.find((*it).first);
 	if (k == dirState.end()) {
 	    printf("D	%s\n", (*it).first.c_str());
+	}
+    }
+}
+
+int
+cmd_checkout(int argc, const char *argv[])
+{
+    map<string, string> dirState;
+    map<string, string> tipState;
+    map<string, string>::iterator it;
+    Commit c = Commit();
+    string tip = repository.getHead();
+
+    if (argc == 2) {
+	tip = argv[1];
+    }
+
+    if (tip != EMPTY_COMMIT) {
+        c.fromBlob(repository.getObject(tip));
+	StatusTreeIter(&tipState, "", c.getTree());
+    }
+
+    Scan_RTraverse(Repo::getRootPath().c_str(),
+		   (void *)&dirState,
+	           StatusDirectoryCB);
+
+    for (it = dirState.begin(); it != dirState.end(); it++) {
+	map<string, string>::iterator k = tipState.find((*it).first);
+	if (k == tipState.end()) {
+	    printf("A	%s\n", (*it).first.c_str());
+	} else if ((*k).second != (*it).second) {
+	    printf("M	%s\n", (*it).first.c_str());
+	    // XXX: Handle replace a file <-> directory with same name
+	    assert((*it).second != "DIR");
+	    repository.copyObject((*k).second,
+				  Repo::getRootPath()+(*k).first);
+	}
+    }
+
+    for (it = tipState.begin(); it != tipState.end(); it++) {
+	map<string, string>::iterator k = dirState.find((*it).first);
+	if (k == dirState.end()) {
+	    printf("D	%s\n", (*it).first.c_str());
+	    string path = Repo::getRootPath() + (*it).first;
+	    if ((*it).second == "DIR") {
+		mkdir(path.c_str(), 0755);
+	    } else {
+		repository.copyObject((*it).second, path);
+	    }
 	}
     }
 }

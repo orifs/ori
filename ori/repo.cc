@@ -411,7 +411,7 @@ Repo::getObject(const string &objId)
  * Get an object length.
  */
 size_t
-Repo::getObjectLength(const char *objId)
+Repo::getObjectLength(const string &objId)
 {
     string objPath = objIdToPath(objId);
     struct stat sb;
@@ -428,7 +428,7 @@ Repo::getObjectLength(const char *objId)
  * Copy an object to a working directory.
  */
 bool
-Repo::copyObject(const char *objId, const char *path)
+Repo::copyObject(const string &objId, const string &path)
 {
     string objPath = objIdToPath(objId);
 
