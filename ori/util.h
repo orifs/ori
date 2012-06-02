@@ -19,14 +19,14 @@
 
 #include <string>
 
-bool Util_FileExists(const char *path);
-bool Util_IsDirectory(const char *path);
-char *Util_ReadFile(const char *path, size_t *flen);
-bool Util_WriteFile(const char *blob, size_t len, const char *path);
-int Util_CopyFile(const char *origPath, const char *newPath);
-int Util_MoveFile(const char *origPath, const char *newPath);
+bool Util_FileExists(const std::string &path);
+bool Util_IsDirectory(const std::string &path);
+char *Util_ReadFile(const std::string &path, size_t *flen);
+bool Util_WriteFile(const char *blob, size_t len, const std::string &path);
+int Util_CopyFile(const std::string &origPath, const std::string &newPath);
+int Util_MoveFile(const std::string &origPath, const std::string &newPath);
 std::string Util_HashString(const std::string &str);
-std::string Util_HashFile(const char *path);
+std::string Util_HashFile(const std::string &path);
 
 #endif /* __UTIL_H__ */
 

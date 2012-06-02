@@ -47,11 +47,11 @@ using namespace std;
  * Check if a file exists.
  */
 bool
-Util_FileExists(const char *path)
+Util_FileExists(const string &path)
 {
     struct stat sb;
 
-    if (stat(path, &sb) == 0)
+    if (stat(path.c_str(), &sb) == 0)
 	return true;
 
     return false;
@@ -61,11 +61,11 @@ Util_FileExists(const char *path)
  * Check if a file is a directory.
  */
 bool
-Util_IsDirectory(const char *path)
+Util_IsDirectory(const string &path)
 {
     struct stat sb;
 
-    if (stat(path, &sb) < 0) {
+    if (stat(path.c_str(), &sb) < 0) {
 	perror("stat file does not exist");
 	return false;
     }
@@ -81,13 +81,13 @@ Util_IsDirectory(const char *path)
  * characters in the file.
  */
 char *
-Util_ReadFile(const char *path, size_t *flen)
+Util_ReadFile(const string &path, size_t *flen)
 {
     FILE *f;
     char *buf;
     size_t len;
 
-    f = fopen(path, "rb");
+    f = fopen(path.c_str(), "rb");
     if (f == NULL) {
 	return NULL;
     }
@@ -114,12 +114,12 @@ Util_ReadFile(const char *path, size_t *flen)
  * Write an in memory blob to a file.
  */
 bool
-Util_WriteFile(const char *blob, size_t len, const char *path)
+Util_WriteFile(const char *blob, size_t len, const string &path)
 {
     FILE *f;
     size_t bytesWritten;
 
-    f = fopen(path, "w+");
+    f = fopen(path.c_str(), "w+");
     if (f == NULL) {
 	return false;
     }
@@ -136,7 +136,7 @@ Util_WriteFile(const char *blob, size_t len, const char *path)
  * Copy a file.
  */
 int
-Util_CopyFile(const char *origPath, const char *newPath)
+Util_CopyFile(const string &origPath, const string &newPath)
 {
     int srcFd, dstFd;
     char buf[COPYFILE_BUFSZ];
@@ -144,11 +144,11 @@ Util_CopyFile(const char *origPath, const char *newPath)
     size_t bytesLeft;
     size_t bytesRead, bytesWritten;
 
-    srcFd = open(origPath, O_RDONLY);
+    srcFd = open(origPath.c_str(), O_RDONLY);
     if (srcFd < 0)
 	return -errno;
 
-    dstFd = open(newPath, O_WRONLY | O_CREAT,
+    dstFd = open(newPath.c_str(), O_WRONLY | O_CREAT,
 	         S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (dstFd < 0) {
 	close(srcFd);
@@ -157,7 +157,7 @@ Util_CopyFile(const char *origPath, const char *newPath)
 
     if (fstat(srcFd, &sb) < 0) {
 	close(srcFd);
-	unlink(newPath);
+	unlink(newPath.c_str());
 	close(dstFd);
 	return -errno;
     }
@@ -191,7 +191,7 @@ retryWrite:
 
 error:
     close(srcFd);
-    unlink(newPath);
+    unlink(newPath.c_str());
     close(dstFd);
     return -errno;
 }
@@ -200,11 +200,11 @@ error:
  * Safely move a file possibly between file systems.
  */
 int
-Util_MoveFile(const char *origPath, const char *newPath)
+Util_MoveFile(const string &origPath, const string &newPath)
 {
     int status = 0;
 
-    if (rename(origPath, newPath) < 0)
+    if (rename(origPath.c_str(), newPath.c_str()) < 0)
 	status = -errno;
 
     // If the file is on seperate file systems copy it and delete the original.
@@ -213,7 +213,7 @@ Util_MoveFile(const char *origPath, const char *newPath)
 	if (status < 0)
 	    return status;
 
-	if (unlink(origPath) < 0) {
+	if (unlink(origPath.c_str()) < 0) {
 	    status = -errno;
 	    assert(false);
 	}
@@ -251,7 +251,7 @@ Util_HashString(const string &str)
  * Compute SHA 256 hash for a file.
  */
 string
-Util_HashFile(const char *path)
+Util_HashFile(const string &path)
 {
     int fd;
     char buf[COPYFILE_BUFSZ];
@@ -264,7 +264,7 @@ Util_HashFile(const char *path)
 
     SHA256_Init(&state);
 
-    fd = open(path, O_RDONLY);
+    fd = open(path.c_str(), O_RDONLY);
     if (fd < 0) {
 	return "";
     }

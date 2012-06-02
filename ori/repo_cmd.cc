@@ -67,7 +67,7 @@ cmd_init(int argc, const char *argv[])
         free(cwd);
     } else if (argc == 2) {
         rootPath = argv[1];
-	if (!Util_IsDirectory(rootPath.c_str())) {
+	if (!Util_IsDirectory(rootPath)) {
 	    mkdir(rootPath.c_str(), 0755);
 	}
     } else {

@@ -329,7 +329,7 @@ Repo::objIdToPath(const string &objId)
 string
 Repo::addFile(const string &path)
 {
-    string hash = Util_HashFile(path.c_str());
+    string hash = Util_HashFile(path);
     string objPath;
 
     if (hash == "") {
@@ -339,10 +339,10 @@ Repo::addFile(const string &path)
     objPath = objIdToPath(hash);
 
     // Check if in tree
-    if (!Util_FileExists(objPath.c_str())) {
+    if (!Util_FileExists(objPath)) {
 	// Copy to object tree
 	createObjDirs(hash);
-	if (Util_CopyFile(path.c_str(), objPath.c_str()) < 0) {
+	if (Util_CopyFile(path, objPath) < 0) {
 	    perror("Unable to copy file");
 	    return "";
 	}
@@ -361,10 +361,10 @@ Repo::addBlob(const string &blob)
     string objPath = objIdToPath(hash);
 
     // Check if in tree
-    if (!Util_FileExists(objPath.c_str())) {
+    if (!Util_FileExists(objPath)) {
 	// Copy to object tree
 	createObjDirs(hash);
-	if (Util_WriteFile(blob.c_str(), blob.length(), objPath.c_str()) < 0) {
+	if (Util_WriteFile(blob.c_str(), blob.length(), objPath) < 0) {
 	    perror("Unable to write blob to disk");
 	    return "";
 	}
@@ -401,7 +401,7 @@ Repo::getObject(const string &objId)
 {
     string path = objIdToPath(objId);
 
-    return Util_ReadFile(path.c_str(), NULL);
+    return Util_ReadFile(path, NULL);
 }
 
 /*
@@ -429,7 +429,7 @@ Repo::copyObject(const char *objId, const char *path)
 {
     string objPath = objIdToPath(objId);
 
-    if (Util_CopyFile(objPath.c_str(), path) < 0)
+    if (Util_CopyFile(objPath, path) < 0)
 	return false;
     return true;
 }
@@ -480,7 +480,7 @@ string
 Repo::getHead()
 {
     string headPath = rootPath + ORI_PATH_HEAD;
-    char *commitId = Util_ReadFile(headPath.c_str(), NULL);
+    char *commitId = Util_ReadFile(headPath, NULL);
     // XXX: Leak!
 
     if (commitId == NULL) {
@@ -498,7 +498,7 @@ Repo::updateHead(const string &commitId)
 {
     string headPath = rootPath + ORI_PATH_HEAD;
 
-    Util_WriteFile(commitId.c_str(), commitId.size(), headPath.c_str());
+    Util_WriteFile(commitId.c_str(), commitId.size(), headPath);
 }
 
 /*
