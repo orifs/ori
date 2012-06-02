@@ -240,8 +240,7 @@ Commit::fromBlob(const string &blob)
 
 Repo::Repo(const string &root)
 {
-    if (root == "")
-	rootPath = getRootPath();
+    rootPath = (root == "") ? getRootPath() : root;
 }
 
 Repo::~Repo()

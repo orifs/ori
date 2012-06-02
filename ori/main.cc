@@ -52,21 +52,22 @@ using namespace std;
 typedef struct Cmd {
     const char *name;
     const char *desc;
-    int (*cmd)(int argc, char *argv[]);
+    int (*cmd)(int argc, const char *argv[]);
     void (*usage)(void);
 } Cmd;
 
 // repo.cc
-int cmd_init(int argc, char *argv[]);
-int cmd_show(int argc, char *argv[]);
-int cmd_commit(int argc, char *argv[]);
-int cmd_checkout(int argc, char *argv[]);
-int cmd_status(int argc, char *argv[]);
-int cmd_log(int argc, char *argv[]);
-int cmd_catobj(int argc, char *argv[]);
-int cmd_listobj(int argc, char *argv[]);
+int cmd_init(int argc, const char *argv[]);
+int cmd_show(int argc, const char *argv[]);
+int cmd_clone(int argc, const char *argv[]);
+int cmd_commit(int argc, const char *argv[]);
+int cmd_checkout(int argc, const char *argv[]);
+int cmd_status(int argc, const char *argv[]);
+int cmd_log(int argc, const char *argv[]);
+int cmd_catobj(int argc, const char *argv[]);
+int cmd_listobj(int argc, const char *argv[]);
 // local
-static int cmd_help(int argc, char *argv[]);
+static int cmd_help(int argc, const char *argv[]);
 
 static Cmd commands[] = {
     {
@@ -86,6 +87,12 @@ static Cmd commands[] = {
         "Scan directories recursively for changes since last sync.",
         cmd_status,
         NULL,
+    },
+    {
+	"clone",
+	"Clone a repository into the local directory",
+	cmd_clone,
+	NULL,
     },
     {
 	"commit",
@@ -190,7 +197,7 @@ ori_log(const char *fmt, ...)
 }
 
 static int
-cmd_help(int argc, char *argv[])
+cmd_help(int argc, const char *argv[])
 {
     int i = 0;
 
@@ -259,7 +266,7 @@ main(int argc, char *argv[])
     }
 
     LOG("Executing '%s'", argv[1]);
-    commands[idx].cmd(argc-1, argv+1);
+    commands[idx].cmd(argc-1, (const char **)argv+1);
 
     return 0;
 }

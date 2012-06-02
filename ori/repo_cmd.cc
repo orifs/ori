@@ -46,11 +46,12 @@ using namespace std;
 
 
 int
-cmd_init(int argc, char *argv[])
+cmd_init(int argc, const char *argv[])
 {
     string rootPath;
     string oriDir;
     string tmpDir;
+    string objDir;
     string versionFile;
     string uuidFile;
 #ifdef __FreeBSD__
@@ -66,6 +67,9 @@ cmd_init(int argc, char *argv[])
         free(cwd);
     } else if (argc == 2) {
         rootPath = argv[1];
+	if (!Util_IsDirectory(rootPath.c_str())) {
+	    mkdir(rootPath.c_str(), 0755);
+	}
     } else {
         printf("Too many arguments!\n");
         return 1;
@@ -82,6 +86,13 @@ cmd_init(int argc, char *argv[])
     tmpDir = rootPath + ORI_PATH_DIR + "/tmp";
     if (mkdir(tmpDir.c_str(), 0755) < 0) {
         perror("Could not create '.ori/tmp' directory");
+        return 1;
+    }
+
+    // Create objs directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/objs";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/objs' directory");
         return 1;
     }
 
@@ -124,7 +135,7 @@ cmd_init(int argc, char *argv[])
 }
 
 int
-cmd_show(int argc, char *argv[])
+cmd_show(int argc, const char *argv[])
 {
     string rootPath = Repo::getRootPath();
 
@@ -144,7 +155,7 @@ cmd_show(int argc, char *argv[])
 }
 
 int
-cmd_catobj(int argc, char *argv[])
+cmd_catobj(int argc, const char *argv[])
 {
     size_t len;
     char *buf;
@@ -176,7 +187,7 @@ cmd_catobj(int argc, char *argv[])
 }
 
 int
-cmd_listobj(int argc, char *argv[])
+cmd_listobj(int argc, const char *argv[])
 {
     set<string> objects = repository.getObjects();
     set<string>::iterator it;
@@ -212,7 +223,7 @@ commitHelper(void *arg, const char *path)
 }
 
 int
-cmd_commit(int argc, char *argv[])
+cmd_commit(int argc, const char *argv[])
 {
     string blob;
     string treeHash, commitHash;
@@ -241,17 +252,18 @@ cmd_commit(int argc, char *argv[])
 }
 
 int
-cmd_checkout(int argc, char *argv[])
+cmd_checkout(int argc, const char *argv[])
+{
+    string commit = repository.getHead();
+}
+
+int
+cmd_status(int argc, const char *argv[])
 {
 }
 
 int
-cmd_status(int argc, char *argv[])
-{
-}
-
-int
-cmd_log(int argc, char *argv[])
+cmd_log(int argc, const char *argv[])
 {
     string commit = repository.getHead();
 
@@ -267,5 +279,44 @@ cmd_log(int argc, char *argv[])
 	commit = c.getParents().first;
     }
 
+}
+
+int
+cmd_clone(int argc, const char *argv[])
+{
+    string srcRoot;
+    string newRoot;
+    const char *initArgs[2] = { NULL, NULL };
+
+    if (argc != 2 && argc != 3) {
+	printf("Specify a repository to clone.\n");
+	printf("usage: ori clone <repo> [<dir>]\n");
+	return 1;
+    }
+
+    srcRoot = argv[1];
+    if (argc == 2) {
+	newRoot = srcRoot.substr(srcRoot.rfind("/")+1);
+    } else {
+	newRoot = argv[2];
+    }
+    initArgs[1] = newRoot.c_str();
+    cmd_init(2, initArgs);
+
+    printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
+
+    Repo srcRepo(srcRoot);
+    Repo dstRepo(newRoot);
+
+    set<string> objects = srcRepo.getObjects();
+    set<string>::iterator it;
+
+    for (it = objects.begin(); it != objects.end(); it++)
+    {
+	// XXX: Leak!
+	string hash = dstRepo.addBlob(srcRepo.getObject(*it));
+    }
+
+    return 0;
 }
 
