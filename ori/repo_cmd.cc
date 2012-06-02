@@ -203,6 +203,7 @@ cmd_listobj(int argc, const char *argv[])
 int
 commitHelper(void *arg, const char *path)
 {
+    string filePath = path;
     string hash;
     Tree *tree = (Tree *)arg;
 
@@ -217,7 +218,7 @@ commitHelper(void *arg, const char *path)
     } else {
 	hash = repository.addFile(path);
     }
-    tree->addObject(path, hash);
+    tree->addObject(filePath.c_str(), hash);
 
     return 0;
 }
@@ -258,8 +259,84 @@ cmd_checkout(int argc, const char *argv[])
 }
 
 int
+StatusDirectoryCB(void *arg, const char *path)
+{
+    string repoRoot = Repo::getRootPath();
+    string objPath = path;
+    string objHash;
+    map<string, string> *dirState = (map<string, string> *)arg;
+
+    if (!Util_IsDirectory(objPath)) {
+	objHash = Util_HashFile(objPath);
+        objPath = objPath.substr(repoRoot.size());
+
+	dirState->insert(pair<string, string>(objPath, objHash));
+    }
+
+    return 0;
+}
+
+int
+StatusTreeIter(map<string, string> *tipState,
+	       const string &path,
+	       const string &treeId)
+{
+    Tree tree = Tree();
+    map<string, TreeEntry>::iterator it;
+
+    // XXX: Error handling
+    tree.fromBlob(repository.getObject(treeId));
+
+    for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
+	if ((*it).second.type == TreeEntry::Tree) {
+	    StatusTreeIter(tipState,
+			   path + "/" + (*it).first,
+			   (*it).second.hash);
+	} else {
+	    tipState->insert(pair<string, string>(path + "/" + (*it).first,
+				    (*it).second.hash));
+	}
+    }
+
+    return 0;
+}
+
+int
 cmd_status(int argc, const char *argv[])
 {
+    map<string, string> dirState;
+    map<string, string> tipState;
+    map<string, string>::iterator it;
+    Commit c = Commit();
+    string tip = repository.getHead();
+
+    if (tip != EMPTY_COMMIT) {
+        c.fromBlob(repository.getObject(tip));
+	StatusTreeIter(&tipState, "", c.getTree());
+    }
+
+    Scan_RTraverse(Repo::getRootPath().c_str(),
+		   (void *)&dirState,
+	           StatusDirectoryCB);
+
+
+    for (it = dirState.begin(); it != dirState.end(); it++) {
+	map<string, string>::iterator k = tipState.find((*it).first);
+	if (k == tipState.end()) {
+	    printf("A	%s\n", (*it).first.c_str());
+	} else if ((*k).second != (*it).second) {
+	    printf("M	%s\n", (*it).first.c_str());
+	}
+	//printf("%s %s\n", (*it).first.c_str(), (*it).second.c_str());
+    }
+
+    for (it = tipState.begin(); it != tipState.end(); it++) {
+	map<string, string>::iterator k = dirState.find((*it).first);
+	if (k == dirState.end()) {
+	    printf("D	%s\n", (*it).first.c_str());
+	}
+	//printf("%s %s\n", (*it).first.c_str(), (*it).second.c_str());
+    }
 }
 
 int

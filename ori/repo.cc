@@ -78,6 +78,7 @@ Tree::~Tree()
 void
 Tree::addObject(const char *path, const string &objId)
 {
+    string fileName = path;
     struct stat sb;
     TreeEntry entry = TreeEntry();
 
@@ -93,7 +94,9 @@ Tree::addObject(const char *path, const string &objId)
     }
     entry.mode = sb.st_mode & (S_IRWXO | S_IRWXG | S_IRWXU | S_IFDIR);
     entry.hash = objId;
-    tree[path] = entry;
+
+    fileName = fileName.substr(fileName.rfind("/") + 1);
+    tree[fileName] = entry;
 }
 
 
@@ -133,7 +136,7 @@ Tree::fromBlob(const string &blob)
 	}
 	// XXX: entry.mode
 	entry.hash = line.substr(5, 64);
-	tree[line.substr(69)] = entry;
+	tree[line.substr(70)] = entry;
     }
 }
 

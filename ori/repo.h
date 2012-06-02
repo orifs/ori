@@ -58,7 +58,6 @@ public:
     void addObject(const char *path, const std::string &objId);
     const std::string getBlob();
     void fromBlob(const std::string &blob);
-private:
     std::map<std::string, TreeEntry> tree;
 };
 
