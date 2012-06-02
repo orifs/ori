@@ -317,6 +317,9 @@ cmd_clone(int argc, const char *argv[])
 	string hash = dstRepo.addBlob(srcRepo.getObject(*it));
     }
 
+    // XXX: Need to rely on sync log.
+    dstRepo.updateHead(srcRepo.getHead());
+
     return 0;
 }
 
