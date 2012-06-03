@@ -19,10 +19,11 @@
 
 #include <stdint.h>
 
-#include <utility>
 #include <string>
-#include <map>
 #include <set>
+
+#include "tree.h"
+#include "commit.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -34,51 +35,6 @@
 #define ORI_PATH_OBJS "/.ori/objs/"
 
 #define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
-
-class TreeEntry
-{
-public:
-    TreeEntry();
-    ~TreeEntry();
-    enum EntryType {
-	Null,
-	Blob,
-	Tree
-    };
-    EntryType	type;
-    uint16_t	mode;
-    std::string hash;
-};
-
-class Tree
-{
-public:
-    Tree();
-    ~Tree();
-    void addObject(const char *path, const std::string &objId);
-    const std::string getBlob();
-    void fromBlob(const std::string &blob);
-    std::map<std::string, TreeEntry> tree;
-};
-
-class Commit
-{
-public:
-    Commit();
-    ~Commit();
-    void setParents(std::string p1, std::string p2 = "");
-    std::pair<std::string, std::string> getParents();
-    void setMessage(const std::string &msg);
-    std::string getMessage() const;
-    void setTree(const std::string &tree);
-    std::string getTree() const;
-    const std::string getBlob();
-    void fromBlob(const std::string &blob);
-private:
-    std::pair<std::string, std::string> parents;
-    std::string message;
-    std::string treeObjId;
-};
 
 class Repo
 {
