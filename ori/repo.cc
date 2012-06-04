@@ -274,6 +274,16 @@ Repo::getObjects()
     return objs;
 }
 
+Commit
+Repo::getCommit(const std::string &commitId)
+{
+    Commit c = Commit();
+    string blob = getObject(commitId);
+    c.fromBlob(blob);
+
+    return c;
+}
+
 /*
  * Working Directory Operations
  */

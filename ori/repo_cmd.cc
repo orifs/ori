@@ -305,11 +305,11 @@ cmd_status(int argc, const char *argv[])
     map<string, string> dirState;
     map<string, string> tipState;
     map<string, string>::iterator it;
-    Commit c = Commit();
+    Commit c;
     string tip = repository.getHead();
 
     if (tip != EMPTY_COMMIT) {
-        c.fromBlob(repository.getObject(tip));
+        c = repository.getCommit(tip);
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 
@@ -390,17 +390,15 @@ cmd_log(int argc, const char *argv[])
     string commit = repository.getHead();
 
     while (commit != EMPTY_COMMIT) {
-	Commit c = Commit();
-	string blob = repository.getObject(commit);
+	Commit c = repository.getCommit(commit);
 
-	c.fromBlob(blob);
-
-	printf("commit %s\n", commit.c_str());
-	printf("%s\n", c.getMessage().c_str());
+	printf("commit:  %s\n", commit.c_str());
+	printf("parents: %s\n", c.getParents().first.c_str());
+	printf("%s\n\n", c.getMessage().c_str());
 
 	commit = c.getParents().first;
+	// XXX: Handle merge cases
     }
-
 }
 
 int

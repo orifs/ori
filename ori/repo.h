@@ -54,6 +54,7 @@ public:
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
     std::set<std::string> getObjects();
+    Commit getCommit(const std::string &commitId);
     // Working Directory Operations
     std::string getHead();
     void updateHead(const std::string &commitId);
