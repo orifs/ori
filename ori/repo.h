@@ -55,13 +55,16 @@ public:
     bool copyObject(const std::string &objId, const std::string &path);
     std::set<std::string> getObjects();
     Commit getCommit(const std::string &commitId);
+    bool hasObject(const std::string &objId);
     // Working Directory Operations
     std::string getHead();
     void updateHead(const std::string &commitId);
     // General Operations
     std::string getUUID();
     std::string getVersion();
-    // Static operations
+    // High Level Operations
+    void pull(Repo *r);
+    // Static Operations
     static std::string getRootPath();
     static std::string getLogPath();
     static std::string getTmpFile();

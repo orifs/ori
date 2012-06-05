@@ -428,14 +428,7 @@ cmd_clone(int argc, const char *argv[])
     Repo srcRepo(srcRoot);
     Repo dstRepo(newRoot);
 
-    set<string> objects = srcRepo.getObjects();
-    set<string>::iterator it;
-
-    for (it = objects.begin(); it != objects.end(); it++)
-    {
-	// XXX: Leak!
-	string hash = dstRepo.addBlob(srcRepo.getObject(*it));
-    }
+    dstRepo.pull(&srcRepo);
 
     // XXX: Need to rely on sync log.
     dstRepo.updateHead(srcRepo.getHead());
@@ -459,14 +452,7 @@ cmd_pull(int argc, const char *argv[])
     printf("Pulling from %s\n", srcRoot.c_str());
 
     Repo srcRepo(srcRoot);
-    set<string> objects = srcRepo.getObjects();
-    set<string>::iterator it;
-
-    for (it = objects.begin(); it != objects.end(); it++)
-    {
-	// XXX: Leak!
-	string hash = repository.addBlob(srcRepo.getObject(*it));
-    }
+    repository.pull(&srcRepo);
 
     // XXX: Need to rely on sync log.
     repository.updateHead(srcRepo.getHead());

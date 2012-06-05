@@ -285,6 +285,17 @@ Repo::getCommit(const std::string &commitId)
 }
 
 /*
+ * Return true if the repository has the object.
+ */
+bool
+Repo::hasObject(const string &objId)
+{
+    string path = objIdToPath(objId);
+
+    return Util_FileExists(path);
+}
+
+/*
  * Working Directory Operations
  */
 
@@ -331,6 +342,30 @@ Repo::getVersion()
 {
     return version;
 }
+
+/*
+ * High Level Operations
+ */
+
+/*
+ * Pull changes from the source repository.
+ */
+void
+Repo::pull(Repo *r)
+{
+    set<string> objects = r->getObjects();
+    set<string>::iterator it;
+
+    for (it = objects.begin(); it != objects.end(); it++)
+    {
+	if (!hasObject(*it))
+	    addBlob(r->getObject(*it));
+    }
+}
+
+/*
+ * Static Operations
+ */
 
 string
 Repo::getRootPath()
