@@ -196,7 +196,23 @@ cmd_listobj(int argc, const char *argv[])
 
     for (it = objects.begin(); it != objects.end(); it++)
     {
-	printf("%s\n", (*it).c_str());
+	const char *type;
+	switch (repository.getObjectType(*it))
+	{
+	    case Object::Commit:
+		type = "Commit";
+		break;
+	    case Object::Tree:
+		type = "Tree";
+		break;
+	    case Object::Blob:
+		type = "Blob";
+		break;
+	    default:
+		printf("Unknown object type!\n");
+		assert(false);
+	}
+	printf("%s # %s\n", (*it).c_str(), type);
     }
 
     return 0;
