@@ -3,6 +3,7 @@ Import('env')
 src = [
     "commit.cc",
     "main.cc",
+    "object.cc",
     "repo.cc",
     "repo_cmd.cc",
     "scan.cc",
