@@ -64,7 +64,8 @@ Object::create(const string &path, Type type)
 {
     int status;
 
-    fd = ::open(path.c_str(), O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    fd = ::open(path.c_str(), O_CREAT | O_RDWR,
+	        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fd < 0)
 	return -errno;
 
@@ -82,6 +83,7 @@ Object::create(const string &path, Type type)
 	    t = Blob;
 	    break;
 	default:
+	    printf("Unknown object type!\n");
 	    assert(false);
 	    break;
     }
@@ -116,13 +118,14 @@ Object::open(const string &path)
 
     assert(status == 4);
 
-    if (strcmp(buf, "cmmp") == 0) {
+    if (strcmp(buf, "CMMT") == 0) {
 	t = Commit;
-    } else if (strcmp(buf, "tree") == 0) {
+    } else if (strcmp(buf, "TREE") == 0) {
 	t = Tree;
-    } else if (strcmp(buf, "blob") == 0) {
+    } else if (strcmp(buf, "BLOB") == 0) {
 	t = Blob;
     } else {
+	printf("Unknown object type!\n");
 	assert(false);
     }
 
@@ -317,7 +320,7 @@ Object::extractBlob()
     char *buf;
     string rval;
 
-    assert(length > 0);
+    assert(length >= 0);
 
     buf = new char[length];
     status = read(fd, buf, length);

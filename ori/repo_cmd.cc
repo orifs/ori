@@ -158,7 +158,8 @@ int
 cmd_catobj(int argc, const char *argv[])
 {
     size_t len;
-    char *buf;
+    const char *rawBuf;
+    std::string buf;
     bool hex = false;
 
     len = repository.getObjectLength(argv[1]);
@@ -168,9 +169,10 @@ cmd_catobj(int argc, const char *argv[])
     }
 
     buf = repository.getObject(argv[1]);
+    rawBuf = buf.data();
 
     for (int i = 0; i < 0; i++) {
-	if (buf[i] < 1 || buf[i] >= 0x80) {
+	if (rawBuf[i] < 1 || rawBuf[i] >= 0x80) {
 	    hex = true;
 	    break;
 	}
@@ -180,7 +182,7 @@ cmd_catobj(int argc, const char *argv[])
 	// XXX: Add hex pretty printer
 	printf("hex object!\n");
     } else {
-	printf("%s", buf);
+	printf("%s", rawBuf);
     }
 
     return 0;
@@ -208,13 +210,11 @@ commitHelper(void *arg, const char *path)
     Tree *tree = (Tree *)arg;
 
     if (Util_IsDirectory(path)) {
-	string blob;
 	Tree subTree = Tree();
 
 	Scan_Traverse(path, &subTree, commitHelper);
 
-	blob = subTree.getBlob();
-	hash = repository.addBlob(blob);
+	hash = repository.addTree(subTree);
     } else {
 	hash = repository.addFile(path);
     }
@@ -277,11 +277,11 @@ StatusTreeIter(map<string, string> *tipState,
 	       const string &path,
 	       const string &treeId)
 {
-    Tree tree = Tree();
+    Tree tree;
     map<string, TreeEntry>::iterator it;
 
     // XXX: Error handling
-    tree.fromBlob(repository.getObject(treeId));
+    tree = repository.getTree(treeId);
 
     for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
 	if ((*it).second.type == TreeEntry::Tree) {
@@ -341,7 +341,7 @@ cmd_checkout(int argc, const char *argv[])
     map<string, string> dirState;
     map<string, string> tipState;
     map<string, string>::iterator it;
-    Commit c = Commit();
+    Commit c;
     string tip = repository.getHead();
 
     if (argc == 2) {
@@ -349,7 +349,7 @@ cmd_checkout(int argc, const char *argv[])
     }
 
     if (tip != EMPTY_COMMIT) {
-        c.fromBlob(repository.getObject(tip));
+        c = repository.getCommit(tip);
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 

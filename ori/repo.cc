@@ -29,6 +29,7 @@
 #include "debug.h"
 #include "scan.h"
 #include "util.h"
+#include "object.h"
 #include "repo.h"
 
 using namespace std;
@@ -146,8 +147,14 @@ Repo::addFile(const string &path)
     // Check if in tree
     if (!Util_FileExists(objPath)) {
 	// Copy to object tree
+	Object o = Object();
+
 	createObjDirs(hash);
-	if (Util_CopyFile(path, objPath) < 0) {
+	if (o.create(objPath, Object::Blob) < 0) {
+	    perror("Unable to create object");
+	    return "";
+	}
+	if (o.appendFile(path) < 0) {
 	    perror("Unable to copy file");
 	    return "";
 	}
@@ -160,7 +167,7 @@ Repo::addFile(const string &path)
  * Add a blob to the repository. This is a low-level interface.
  */
 string
-Repo::addBlob(const string &blob)
+Repo::addBlob(const string &blob, Object::Type type)
 {
     string hash = Util_HashString(blob);
     string objPath = objIdToPath(hash);
@@ -168,9 +175,15 @@ Repo::addBlob(const string &blob)
     // Check if in tree
     if (!Util_FileExists(objPath)) {
 	// Copy to object tree
+	Object o = Object();
+
 	createObjDirs(hash);
-	if (Util_WriteFile(blob.c_str(), blob.length(), objPath) < 0) {
-	    perror("Unable to write blob to disk");
+	if (o.create(objPath, type) < 0) {
+	    perror("Unable to create object");
+	    return "";
+	}
+	if (o.appendBlob(blob) < 0) {
+	    perror("Unable to copy file");
 	    return "";
 	}
     }
@@ -184,7 +197,7 @@ Repo::addBlob(const string &blob)
 string
 Repo::addTree(/* const */ Tree &tree)
 {
-    return addBlob(tree.getBlob());
+    return addBlob(tree.getBlob(), Object::Tree);
 }
 
 /*
@@ -195,18 +208,23 @@ Repo::addCommit(/* const */ Commit &commit)
 {
     string blob = commit.getBlob();
 
-    return addBlob(blob);
+    return addBlob(blob, Object::Commit);
 }
 
 /*
  * Read an object into memory and return it as a string.
  */
-char *
+std::string
 Repo::getObject(const string &objId)
 {
     string path = objIdToPath(objId);
+    Object o = Object();
 
-    return Util_ReadFile(path, NULL);
+    // XXX: Add better error handling
+    if (o.open(path) < 0)
+	return "";
+
+    return o.extractBlob();
 }
 
 /*
@@ -216,14 +234,29 @@ size_t
 Repo::getObjectLength(const string &objId)
 {
     string objPath = objIdToPath(objId);
-    struct stat sb;
+    Object o = Object();
 
-    if (stat(objPath.c_str(), &sb) < 0) {
-	perror("Cannot get object length");
-	return -1;
-    }
+    // XXX: Add better error handling
+    if (o.open(objPath) < 0)
+	return false;
 
-    return sb.st_size;
+    return o.getObjectSize();
+}
+
+/*
+ * Get the object type.
+ */
+Object::Type
+Repo::getObjectType(const string &objId)
+{
+    string objPath = objIdToPath(objId);
+    Object o = Object();
+
+    // XXX: Add better error handling
+    if (o.open(objPath) < 0)
+	return Object::Null;
+
+    return o.getType();
 }
 
 /*
@@ -233,8 +266,13 @@ bool
 Repo::copyObject(const string &objId, const string &path)
 {
     string objPath = objIdToPath(objId);
+    Object o = Object();
 
-    if (Util_CopyFile(objPath, path) < 0)
+    // XXX: Add better error handling
+    if (o.open(objPath) < 0)
+	return false;
+
+    if (o.extractFile(path) < 0)
 	return false;
     return true;
 }
@@ -282,6 +320,16 @@ Repo::getCommit(const std::string &commitId)
     c.fromBlob(blob);
 
     return c;
+}
+
+Tree
+Repo::getTree(const std::string &treeId)
+{
+    Tree t = Tree();
+    string blob = getObject(treeId);
+    t.fromBlob(blob);
+
+    return t;
 }
 
 /*
@@ -358,8 +406,9 @@ Repo::pull(Repo *r)
 
     for (it = objects.begin(); it != objects.end(); it++)
     {
-	if (!hasObject(*it))
-	    addBlob(r->getObject(*it));
+	if (!hasObject(*it)) {
+	    addBlob(r->getObject(*it), r->getObjectType(*it));
+	}
     }
 }
 

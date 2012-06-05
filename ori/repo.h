@@ -24,6 +24,7 @@
 
 #include "tree.h"
 #include "commit.h"
+#include "object.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -46,15 +47,17 @@ public:
     void save();
     // Object Operations
     std::string addFile(const std::string &path);
-    std::string addBlob(const std::string &blob);
+    std::string addBlob(const std::string &blob, Object::Type type);
     std::string addTree(/* const */ Tree &tree);
     std::string addCommit(/* const */ Commit &commit);
-    char *getObject(const std::string &objId);
+    std::string getObject(const std::string &objId);
     size_t getObjectLength(const std::string &objId);
+    Object::Type getObjectType(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
     std::set<std::string> getObjects();
     Commit getCommit(const std::string &commitId);
+    Tree getTree(const std::string &treeId);
     bool hasObject(const std::string &objId);
     // Working Directory Operations
     std::string getHead();
