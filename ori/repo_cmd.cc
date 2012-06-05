@@ -476,4 +476,28 @@ cmd_pull(int argc, const char *argv[])
     return 0;
 }
 
+/*
+ * Verify the repository.
+ */
+int
+cmd_verify(int argc, const char *argv[])
+{
+    int status = 0;
+    string error;
+    set<string> objects = repository.getObjects();
+    set<string>::iterator it;
+
+    for (it = objects.begin(); it != objects.end(); it++)
+    {
+	error = repository.verifyObject(*it);
+	if (error != "") {
+	    printf("Object %s\n%s\n", error.c_str());
+	    status = 1;
+	}
+    }
+
+    return status;
+}
+
+
 

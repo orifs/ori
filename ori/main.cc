@@ -65,6 +65,7 @@ int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
+int cmd_verify(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]);
 int cmd_listobj(int argc, const char *argv[]);
 // local
@@ -117,6 +118,12 @@ static Cmd commands[] = {
 	"log",
 	"Display a log of commits to the repository",
 	cmd_log,
+	NULL,
+    },
+    {
+	"verify",
+	"Verify the repository",
+	cmd_verify,
 	NULL,
     },
     /* Debugging */

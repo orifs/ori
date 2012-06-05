@@ -244,6 +244,44 @@ Repo::getObjectLength(const string &objId)
 }
 
 /*
+ * Verify object
+ */
+string
+Repo::verifyObject(const string &objId)
+{
+    string objPath = objIdToPath(objId);
+    Object o = Object();
+    Object::Type type;
+
+    if (!hasObject(objId))
+	return "Object not found!";
+
+    // XXX: Add better error handling
+    if (o.open(objPath) < 0)
+	return "Cannot open object!";
+
+    if (o.computeHash() != objId)
+	return "Object hash mismatch!"; 
+
+    type = o.getType();
+    switch(type) {
+	case Object::Null:
+	    return "Object with Null type!";
+	case Object::Commit:
+	    // XXX: Verify tree and parents exist
+	    break;
+	case Object::Tree:
+	    // XXX: Verify subtrees and blobs exist
+	case Object::Blob:
+	    break;
+	default:
+	    return "Object with unknown type!";
+    }
+
+    return "";
+}
+
+/*
  * Get the object type.
  */
 Object::Type
