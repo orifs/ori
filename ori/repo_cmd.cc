@@ -393,11 +393,12 @@ cmd_checkout(int argc, const char *argv[])
     for (it = tipState.begin(); it != tipState.end(); it++) {
 	map<string, string>::iterator k = dirState.find((*it).first);
 	if (k == dirState.end()) {
-	    printf("D	%s\n", (*it).first.c_str());
 	    string path = Repo::getRootPath() + (*it).first;
 	    if ((*it).second == "DIR") {
+		printf("N	%s\n", (*it).first.c_str());
 		mkdir(path.c_str(), 0755);
 	    } else {
+		printf("U	%s\n", (*it).first.c_str());
 		repository.copyObject((*it).second, path);
 	    }
 	}
