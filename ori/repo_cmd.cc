@@ -27,6 +27,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#ifdef __FreeBSD__
+#include <uuid.h>
+#endif /* __FreeBSD__ */
+
 #include <string>
 
 #include "debug.h"
@@ -158,7 +162,7 @@ int
 cmd_catobj(int argc, const char *argv[])
 {
     size_t len;
-    const char *rawBuf;
+    const unsigned char *rawBuf;
     std::string buf;
     bool hex = false;
 
@@ -169,13 +173,13 @@ cmd_catobj(int argc, const char *argv[])
     }
 
     buf = repository.getObject(argv[1]);
-    rawBuf = buf.data();
+    rawBuf = (const unsigned char *)buf.data();
 
-    for (int i = 0; i < 0; i++) {
-	if (rawBuf[i] < 1 || rawBuf[i] >= 0x80) {
-	    hex = true;
-	    break;
-	}
+    for (int i = 0; i < len; i++) {
+        if (rawBuf[i] < 1 || rawBuf[i] >= 0x80) {
+            hex = true;
+            break;
+        }
     }
 
     if (hex) {
