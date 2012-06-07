@@ -32,6 +32,7 @@
 #endif /* __FreeBSD__ */
 
 #include <string>
+#include <iostream>
 
 #include "debug.h"
 #include "scan.h"
@@ -167,7 +168,7 @@ cmd_catobj(int argc, const char *argv[])
     bool hex = false;
 
     len = repository.getObjectLength(argv[1]);
-    if (len < 0) {
+    if (len == -1) {
 	printf("Object does not exist.\n");
 	return 1;
     }
@@ -270,6 +271,8 @@ cmd_commit(int argc, const char *argv[])
 	   commitHash.c_str(),
 	   treeHash.c_str(),
 	   blob.c_str());
+
+    return 0;
 }
 
 int
@@ -353,6 +356,8 @@ cmd_status(int argc, const char *argv[])
 	    printf("D	%s\n", (*it).first.c_str());
 	}
     }
+
+    return 0;
 }
 
 int
@@ -403,6 +408,8 @@ cmd_checkout(int argc, const char *argv[])
 	    }
 	}
     }
+
+    return 0;
 }
 
 int
@@ -420,6 +427,8 @@ cmd_log(int argc, const char *argv[])
 	commit = c.getParents().first;
 	// XXX: Handle merge cases
     }
+
+    return 0;
 }
 
 int
@@ -496,7 +505,7 @@ cmd_verify(int argc, const char *argv[])
     {
 	error = repository.verifyObject(*it);
 	if (error != "") {
-	    printf("Object %s\n%s\n", error.c_str());
+	    printf("Object %s\n%s\n", (*it).c_str(), error.c_str());
 	    status = 1;
 	}
     }
@@ -504,5 +513,65 @@ cmd_verify(int argc, const char *argv[])
     return status;
 }
 
+/*
+ * Graft help
+ */
+void
+usage_graft(void)
+{
+    cout << "ori graft <Source Path> <Destination Directory>" << endl;
+    cout << endl;
+    cout << "Graft a subtree from a repository." << endl;
+    cout << endl;
+}
 
+/*
+ * Graft a subtree into a new tree with a patched history.
+ *
+ * XXX: Eventually we need to implement a POSIX compliant copy command.
+ */
+int
+cmd_graft(int argc, const char *argv[])
+{
+    string srcRoot, dstRoot, srcRelPath, dstRelPath;
+    Repo srcRepo, dstRepo;
+
+    if (argc != 3) {
+        cout << "Error in correct number of arguments." << endl;
+        cout << "ori graft <Source Path> <Destination Path>" << endl;
+        return 1;
+    }
+
+    // XXX: Handle relative paths
+    if (argv[1][0] != '/' || argv[2][0] != '/') {
+        cout << "Both paths must be absolute paths!" << endl;
+        return 1;
+    }
+
+    srcRoot = Repo::findRootPath(argv[1]);
+    dstRoot = Repo::findRootPath(argv[2]);
+
+    if (srcRoot == "") {
+        cout << "Error: source path is not a repository." << endl;
+        return 1;
+    }
+
+    if (dstRoot == "") {
+        cout << "Error: destination path is not a repository." << endl;
+        return 1;
+    }
+
+    srcRepo.open(srcRoot);
+    dstRepo.open(dstRoot);
+
+    srcRelPath = argv[1] + srcRoot.length();
+    dstRelPath = argv[2] + dstRoot.length();
+
+    cout << srcRelPath << endl;
+    cout << dstRelPath << endl;
+
+    dstRepo.graftSubtree(&srcRepo, srcRelPath, dstRelPath);
+
+    return 0;
+}
 

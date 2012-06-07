@@ -37,12 +37,18 @@
 
 #define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
 
+class Repo;
+typedef std::string (*WalkHistoryCB)(Repo *r /* Repository */,
+                                     const std::string& /* Commit Hash */,
+                                     Commit * /* Commit */,
+                                     const std::string& /* Argument */);
+
 class Repo
 {
 public:
     Repo(const std::string &root = "");
     ~Repo();
-    bool open();
+    bool open(const std::string &root = "");
     void close();
     void save();
     // Object Operations
@@ -60,6 +66,18 @@ public:
     Commit getCommit(const std::string &commitId);
     Tree getTree(const std::string &treeId);
     bool hasObject(const std::string &objId);
+    // Statistics Operations
+    // std::map<std::string, int> getRefCounts();
+    // Pruning Operations
+    // void pruneObject(const std::string &objId);
+    // Grafting Operations
+    std::set<std::string> getSubtreeObjects(const std::string &treeId);
+    std::set<std::string> walkHistory(WalkHistoryCB cb,
+                                      const std::string &arg);
+    std::string lookup(const Commit &c, const std::string &path);
+    std::string graftSubtree(Repo *r,
+                             const std::string &srcPath,
+                             const std::string &dstPath);
     // Working Directory Operations
     std::string getHead();
     void updateHead(const std::string &commitId);
@@ -69,6 +87,7 @@ public:
     // High Level Operations
     void pull(Repo *r);
     // Static Operations
+    static std::string findRootPath(const std::string &path);
     static std::string getRootPath();
     static std::string getLogPath();
     static std::string getTmpFile();

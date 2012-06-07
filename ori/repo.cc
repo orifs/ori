@@ -25,6 +25,9 @@
 //#include <uuid.h>
 
 #include <string>
+#include <set>
+#include <queue>
+#include <iostream>
 
 #include "debug.h"
 #include "scan.h"
@@ -54,10 +57,14 @@ Repo::~Repo()
 }
 
 bool
-Repo::open()
+Repo::open(const string &root)
 {
     // FileStream f;
     //char buf[37];
+
+    if (root != "") {
+        rootPath = root;
+    }
 
     if (rootPath.compare("") == 0)
         return false;
@@ -238,7 +245,7 @@ Repo::getObjectLength(const string &objId)
 
     // XXX: Add better error handling
     if (o.open(objPath) < 0)
-	return false;
+	return -1;
 
     return o.getObjectSize();
 }
@@ -316,6 +323,7 @@ Repo::copyObject(const string &objId, const string &path)
 }
 
 int
+
 Repo_GetObjectsCB(void *arg, const char *path)
 {
     string hash;
@@ -382,6 +390,149 @@ Repo::hasObject(const string &objId)
 }
 
 /*
+ * Grafting Operations
+ */
+
+/*
+ * Return a set of all objects references by a tree.
+ */
+set<string>
+Repo::getSubtreeObjects(const string &treeId)
+{
+    queue<string> treeQ;
+    set<string> rval;
+
+    treeQ.push(treeId);
+
+    while (!treeQ.empty()) {
+	map<string, TreeEntry>::iterator it;
+	Tree t = getTree(treeQ.front());
+	treeQ.pop();
+
+	for (it = t.tree.begin(); it != t.tree.end(); it++) {
+	    TreeEntry e = (*it).second;
+	    set<string>::iterator p = rval.find((*it).first);
+
+	    if (p != rval.end()) {
+		if (e.type == TreeEntry::Tree) {
+		    treeQ.push(e.hash);
+		}
+		rval.insert(e.hash);
+	    }
+	}
+    }
+
+    return rval;
+}
+
+/*
+ * Walk the repository history.
+ * XXX: Make this a template function
+ */
+set<string>
+Repo::walkHistory(WalkHistoryCB cb)
+{
+    set<string> rval;
+    set<string> curLevel;
+    set<string> nextLevel;
+    set<string>::iterator it;
+
+    if (getHead() == EMPTY_COMMIT)
+        return rval;
+
+    nextLevel.insert(getHead());
+
+    while (!nextLevel.empty()) {
+	curLevel = nextLevel;
+	nextLevel.clear();
+
+	for (it = curLevel.begin(); it != curLevel.end(); it++) {
+	    Commit c = getCommit(*it);
+	    pair<string, string> p = c.getParents();
+            string val;
+
+	    val = cb(this, *it, &c);
+            if (val != "")
+                rval.insert(val);
+
+            if (p.first != EMPTY_COMMIT) {
+	        nextLevel.insert(p.first);
+	        if (p.second != "")
+		    nextLevel.insert(p.second);
+            }
+	}
+    }
+
+    return rval;
+}
+
+/*
+ * Lookup a path given a Commit and return the object ID.
+ */
+string
+Repo::lookup(const Commit &c, const string &path)
+{
+    vector<string> pv = Util_PathToVector(path);
+    vector<string>::iterator it;
+    string objId = c.getTree();
+
+    for (it = pv.begin(); it != pv.end(); it++) {
+        Tree t = getTree(objId);
+        objId = t.tree[*it].hash;
+    }
+
+    return objId;
+}
+
+string
+graftCB(Repo *r, const std::string &commitId, Commit *c, const string &arg)
+{
+    string treeId = r->lookup(*c, arg);
+    set<string> objects;
+    set<string>::iterator it;
+
+    if (treeId == "")
+        return "";
+
+    cout << commitId << endl;
+    cout << "DEF = " << treeId << endl;
+
+    // Copy objects
+    objects = getSubtreeObjects(treeId);
+    /*
+     * XXX: Fix me
+    for (it = objects.begin(); it != objects.end(); it++)
+    {
+	if (!dst.hasObject(*it)) {
+	    // XXX: Copy object without loading it all into memory!
+	    dst.addBlob(r->getObject(*it), r->getObjectType(*it));
+	}
+    }
+     */
+
+    // XXX: Create merge commit
+
+    // XXX: Copy files and mark in working state.
+
+    return "";
+}
+
+/*
+ * Graft a subtree from Repo 'r' to this repository.
+ */
+string
+Repo::graftSubtree(Repo *r,
+                   const std::string &srcPath,
+                   const std::string &dstPath)
+{
+    set<string> changes;
+
+    cout << "Hello!" << endl;
+    changes = r->walkHistory(graftCB, srcPath);
+    // XXX: TODO
+}
+
+/*
  * Working Directory Operations
  */
 
@@ -445,6 +596,7 @@ Repo::pull(Repo *r)
     for (it = objects.begin(); it != objects.end(); it++)
     {
 	if (!hasObject(*it)) {
+	    // XXX: Copy object without loading it all into memory!
 	    addBlob(r->getObject(*it), r->getObjectType(*it));
 	}
     }
@@ -453,6 +605,30 @@ Repo::pull(Repo *r)
 /*
  * Static Operations
  */
+
+string
+Repo::findRootPath(const string &path)
+{
+    string root = path;
+    string uuidfile;
+    struct stat dbstat;
+
+    root = path;
+
+    // look for the UUID file
+    while (1) {
+        uuidfile = root + ORI_PATH_UUID;
+        if (stat(uuidfile.c_str(), &dbstat) == 0)
+            return root;
+
+        size_t slash = root.rfind('/');
+        if (slash == 0)
+            return "";
+        root.erase(slash);
+    }
+
+    return root;
+}
 
 string
 Repo::getRootPath()

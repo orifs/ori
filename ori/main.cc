@@ -68,6 +68,8 @@ int cmd_log(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]);
 int cmd_listobj(int argc, const char *argv[]);
+void usage_graft(void);
+int cmd_graft(int argc, const char *argv[]);
 // local
 static int cmd_help(int argc, const char *argv[]);
 
@@ -86,7 +88,7 @@ static Cmd commands[] = {
     },
     {
         "status",
-        "Scan directories recursively for changes since last sync.",
+        "Scan for changes since last commit",
         cmd_status,
         NULL,
     },
@@ -125,6 +127,12 @@ static Cmd commands[] = {
 	"Verify the repository",
 	cmd_verify,
 	NULL,
+    },
+    {
+	"graft",
+	"Graft a subtree from a repository into the local repository",
+	cmd_graft,
+	usage_graft,
     },
     /* Debugging */
     {
