@@ -430,7 +430,7 @@ Repo::getSubtreeObjects(const string &treeId)
  * XXX: Make this a template function
  */
 set<string>
-Repo::walkHistory(WalkHistoryCB cb)
+Repo::walkHistory(WalkHistoryCB cb, const string &arg)
 {
     set<string> rval;
     set<string> curLevel;
@@ -451,7 +451,7 @@ Repo::walkHistory(WalkHistoryCB cb)
 	    pair<string, string> p = c.getParents();
             string val;
 
-	    val = cb(this, *it, &c);
+	    val = cb(this, *it, &c, arg);
             if (val != "")
                 rval.insert(val);
 
@@ -498,7 +498,7 @@ graftCB(Repo *r, const std::string &commitId, Commit *c, const string &arg)
     cout << "DEF = " << treeId << endl;
 
     // Copy objects
-    objects = getSubtreeObjects(treeId);
+    objects = r->getSubtreeObjects(treeId);
     /*
      * XXX: Fix me
     for (it = objects.begin(); it != objects.end(); it++)
