@@ -31,7 +31,8 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <string.h>
+#include <vector>
+#include <string>
 
 #include <openssl/sha.h>
 
@@ -141,8 +142,8 @@ Util_CopyFile(const string &origPath, const string &newPath)
     int srcFd, dstFd;
     char buf[COPYFILE_BUFSZ];
     struct stat sb;
-    size_t bytesLeft;
-    size_t bytesRead, bytesWritten;
+    int64_t bytesLeft;
+    int64_t bytesRead, bytesWritten;
 
     srcFd = open(origPath.c_str(), O_RDONLY);
     if (srcFd < 0)
@@ -256,8 +257,8 @@ Util_HashFile(const string &path)
     int fd;
     char buf[COPYFILE_BUFSZ];
     struct stat sb;
-    size_t bytesLeft;
-    size_t bytesRead;
+    int64_t bytesLeft;
+    int64_t bytesRead;
     SHA256_CTX state;
     unsigned char hash[SHA256_DIGEST_LENGTH];
     stringstream rval;
@@ -298,6 +299,29 @@ Util_HashFile(const string &path)
 
     close(fd);
     return rval.str();
+}
+
+vector<string>
+Util_PathToVector(const string &path)
+{
+    int pos = 0;
+    vector<string> rval;
+
+    if (path[0] == '/')
+        pos = 1;
+
+    while (pos < path.length()) {
+        int end = path.find('/', pos);
+        if (end == path.npos) {
+            rval.push_back(path.substr(pos));
+            break;
+        }
+
+        rval.push_back(path.substr(pos, end - 1));
+        pos = end + 1;
+    }
+
+    return rval;
 }
 
 #ifdef TEST
@@ -351,6 +375,12 @@ main(int argc, char *argv[])
 	printf("Hash mismatch!\n");
 	assert(false);
     }
+
+    vector<string> tv;
+    tv = Util_PathToVector("/abc/def");
+    assert(tv.size() == 2);
+    assert(tv[0] == "abc");
+    assert(tv[1] == "def");
 
     printf("Test Succeeded!\n");
 }

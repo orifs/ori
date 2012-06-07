@@ -18,6 +18,7 @@
 #define __UTIL_H__
 
 #include <string>
+#include <vector>
 
 bool Util_FileExists(const std::string &path);
 bool Util_IsDirectory(const std::string &path);
@@ -27,6 +28,7 @@ int Util_CopyFile(const std::string &origPath, const std::string &newPath);
 int Util_MoveFile(const std::string &origPath, const std::string &newPath);
 std::string Util_HashString(const std::string &str);
 std::string Util_HashFile(const std::string &path);
+std::vector<std::string> Util_PathToVector(const std::string &path);
 
 #endif /* __UTIL_H__ */
 
