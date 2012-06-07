@@ -193,8 +193,8 @@ Object::appendFile(const string &path)
     int srcFd;
     char buf[COPYFILE_BUFSZ];
     struct stat sb;
-    size_t bytesLeft;
-    size_t bytesRead, bytesWritten;
+    int64_t bytesLeft;
+    int64_t bytesRead, bytesWritten;
 
     srcFd = ::open(path.c_str(), O_RDONLY);
     if (srcFd < 0)
@@ -245,8 +245,8 @@ Object::extractFile(const string &path)
     int dstFd;
     char buf[COPYFILE_BUFSZ];
     struct stat sb;
-    size_t bytesLeft;
-    size_t bytesRead, bytesWritten;
+    int64_t bytesLeft;
+    int64_t bytesRead, bytesWritten;
 
     dstFd = ::open(path.c_str(), O_WRONLY | O_CREAT,
 		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -341,8 +341,8 @@ string
 Object::computeHash()
 {
     char buf[COPYFILE_BUFSZ];
-    size_t bytesLeft;
-    size_t bytesRead;
+    int64_t bytesLeft;
+    int64_t bytesRead;
     SHA256_CTX state;
     unsigned char hash[SHA256_DIGEST_LENGTH];
     stringstream rval;
