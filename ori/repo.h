@@ -37,11 +37,12 @@
 
 #define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
 
-class Repo;
-typedef std::string (*WalkHistoryCB)(Repo *r /* Repository */,
-                                     const std::string& /* Commit Hash */,
-                                     Commit * /* Commit */,
-                                     const std::string& /* Argument */);
+class HistoryCB
+{
+public:
+    virtual ~HistoryCB() { };
+    virtual std::string cb(const std::string &commitId, Commit *c) = 0;
+};
 
 class Repo
 {
@@ -72,8 +73,7 @@ public:
     // void pruneObject(const std::string &objId);
     // Grafting Operations
     std::set<std::string> getSubtreeObjects(const std::string &treeId);
-    std::set<std::string> walkHistory(WalkHistoryCB cb,
-                                      const std::string &arg);
+    std::set<std::string> walkHistory(HistoryCB &cb);
     std::string lookup(const Commit &c, const std::string &path);
     std::string graftSubtree(Repo *r,
                              const std::string &srcPath,

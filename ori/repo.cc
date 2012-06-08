@@ -430,7 +430,7 @@ Repo::getSubtreeObjects(const string &treeId)
  * XXX: Make this a template function
  */
 set<string>
-Repo::walkHistory(WalkHistoryCB cb, const string &arg)
+Repo::walkHistory(HistoryCB &cb)
 {
     set<string> rval;
     set<string> curLevel;
@@ -451,7 +451,7 @@ Repo::walkHistory(WalkHistoryCB cb, const string &arg)
 	    pair<string, string> p = c.getParents();
             string val;
 
-	    val = cb(this, *it, &c, arg);
+	    val = cb.cb(*it, &c);
             if (val != "")
                 rval.insert(val);
 
@@ -484,38 +484,51 @@ Repo::lookup(const Commit &c, const string &path)
     return objId;
 }
 
-string
-graftCB(Repo *r, const std::string &commitId, Commit *c, const string &arg)
+class GraftCB : public HistoryCB
 {
-    string treeId = r->lookup(*c, arg);
-    set<string> objects;
-    set<string>::iterator it;
-
-    if (treeId == "")
-        return "";
-
-    cout << commitId << endl;
-    cout << "DEF = " << treeId << endl;
-
-    // Copy objects
-    objects = r->getSubtreeObjects(treeId);
-    /*
-     * XXX: Fix me
-    for (it = objects.begin(); it != objects.end(); it++)
+public:
+    GraftCB(Repo *dstRepo, Repo *srcRepo, const string &path)
     {
-	if (!dst.hasObject(*it)) {
-	    // XXX: Copy object without loading it all into memory!
-	    dst.addBlob(r->getObject(*it), r->getObjectType(*it));
-	}
+        dst = dstRepo;
+        src = srcRepo;
+        srcPath = path;
     }
-     */
+    virtual ~GraftCB()
+    {
+    }
+    virtual string cb(const string &commitId, Commit *c)
+    {
+        string treeId = src->lookup(*c, srcPath);
+        set<string> objects;
+        set<string>::iterator it;
 
-    // XXX: Create merge commit
+        if (treeId == "")
+            return "";
 
-    // XXX: Copy files and mark in working state.
+        cout << commitId << endl;
+        cout << "DEF = " << treeId << endl;
 
-    return "";
-}
+        // Copy objects
+        objects = src->getSubtreeObjects(treeId);
+        for (it = objects.begin(); it != objects.end(); it++)
+        {
+	    if (!dst->hasObject(*it)) {
+                // XXX: Copy object without loading it all into memory!
+	        dst->addBlob(src->getObject(*it), src->getObjectType(*it));
+	    }
+        }
+
+        // XXX: Create merge commit
+
+        // XXX: Copy files and mark in working state.
+
+        return "";
+    }
+private:
+    string srcPath;
+    Repo *src;
+    Repo *dst;
+};
 
 /*
  * Graft a subtree from Repo 'r' to this repository.
@@ -525,10 +538,11 @@ Repo::graftSubtree(Repo *r,
                    const std::string &srcPath,
                    const std::string &dstPath)
 {
+    GraftCB cb = GraftCB(this, r, srcPath);
     set<string> changes;
 
     cout << "Hello!" << endl;
-    changes = r->walkHistory(graftCB, srcPath);
+    changes = r->walkHistory(cb);
     // XXX: TODO
 }
 
