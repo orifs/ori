@@ -72,6 +72,7 @@ void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
 // local
 static int cmd_help(int argc, const char *argv[]);
+static int cmd_selftest(int argc, const char *argv[]);
 
 static Cmd commands[] = {
     {
@@ -153,6 +154,12 @@ static Cmd commands[] = {
         cmd_help,
         NULL
     },
+    {
+        "selftest",
+        "Built-in unit tests",
+        cmd_selftest,
+        NULL
+    },
     { NULL, NULL, NULL, NULL }
 };
 
@@ -218,6 +225,16 @@ ori_log(const char *fmt, ...)
     fsync(logfd);
 }
 
+int util_selftest(void);
+
+static int
+cmd_selftest(int argc, const char *argv[])
+{
+    util_selftest();
+
+    return 0;
+}
+
 static int
 cmd_help(int argc, const char *argv[])
 {
@@ -272,6 +289,7 @@ main(int argc, char *argv[])
     if (strcmp(argv[1], "clone") != 0 &&
         strcmp(argv[1], "help") != 0 &&
         strcmp(argv[1], "init") != 0 &&
+        strcmp(argv[1], "selftest") != 0 &&
         strcmp(argv[1], "sshserver"))
     {
         if (!repository.open()) {

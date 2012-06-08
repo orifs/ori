@@ -324,12 +324,12 @@ Util_PathToVector(const string &path)
     return rval;
 }
 
-#ifdef TEST
+// XXX: Debug Only
 
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)
 
 int
-main(int argc, char *argv[])
+util_selftest(void)
 {
     int status;
     char *buf = new char[TESTFILE_SIZE + 1];
@@ -383,7 +383,6 @@ main(int argc, char *argv[])
     assert(tv[1] == "def");
 
     printf("Test Succeeded!\n");
+    return 0;
 }
-
-#endif /* TEST */
 
