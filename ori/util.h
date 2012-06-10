@@ -22,6 +22,7 @@
 
 bool Util_FileExists(const std::string &path);
 bool Util_IsDirectory(const std::string &path);
+std::string Util_RealPath(const std::string &path);
 char *Util_ReadFile(const std::string &path, size_t *flen);
 bool Util_WriteFile(const char *blob, size_t len, const std::string &path);
 int Util_CopyFile(const std::string &origPath, const std::string &newPath);

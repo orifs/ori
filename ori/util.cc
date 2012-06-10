@@ -78,6 +78,25 @@ Util_IsDirectory(const string &path)
 }
 
 /*
+ * Return the full path given a relative path.
+ * XXX: According to FreeBSD man pages this may be broken on Solaris.
+ */
+string
+Util_RealPath(const string &path)
+{
+    char *tmp;
+    string rval = "";
+
+    tmp = realpath(path.c_str(), NULL);
+    if (tmp) {
+        rval = tmp;
+        free(tmp);
+    }
+
+    return rval;
+}
+
+/*
  * Read a file containing a text string into memory. There may not be any null 
  * characters in the file.
  */

@@ -542,14 +542,17 @@ cmd_graft(int argc, const char *argv[])
         return 1;
     }
 
-    // XXX: Handle relative paths
-    if (argv[1][0] != '/' || argv[2][0] != '/') {
-        cout << "Both paths must be absolute paths!" << endl;
+    // Convert relative paths to full paths.
+    srcRelPath = Util_RealPath(argv[1]);
+    dstRelPath = Util_RealPath(argv[2]);
+
+    if (srcRelPath == "" || dstRelPath == "") {
+        cout << "Error: Unable to resolve relative paths." << endl;
         return 1;
     }
 
-    srcRoot = Repo::findRootPath(argv[1]);
-    dstRoot = Repo::findRootPath(argv[2]);
+    srcRoot = Repo::findRootPath(srcRelPath);
+    dstRoot = Repo::findRootPath(dstRelPath);
 
     if (srcRoot == "") {
         cout << "Error: source path is not a repository." << endl;
@@ -564,8 +567,9 @@ cmd_graft(int argc, const char *argv[])
     srcRepo.open(srcRoot);
     dstRepo.open(dstRoot);
 
-    srcRelPath = argv[1] + srcRoot.length();
-    dstRelPath = argv[2] + dstRoot.length();
+    // Transform the paths to be relative to repository root.
+    srcRelPath = srcRelPath.substr(srcRoot.length());
+    dstRelPath = dstRelPath.substr(dstRoot.length());
 
     cout << srcRelPath << endl;
     cout << dstRelPath << endl;

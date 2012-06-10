@@ -505,8 +505,8 @@ public:
         if (treeId == "")
             return "";
 
-        cout << commitId << endl;
-        cout << "DEF = " << treeId << endl;
+        cout << "Commit: " << commitId << endl;
+        cout << "Tree: " << treeId << endl;
 
         // Copy objects
         objects = src->getSubtreeObjects(treeId);
