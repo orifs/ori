@@ -59,35 +59,18 @@ Repo::~Repo()
 bool
 Repo::open(const string &root)
 {
-    // FileStream f;
-    //char buf[37];
-
     if (root != "") {
         rootPath = root;
     }
 
     if (rootPath.compare("") == 0)
         return false;
-/*
+
     // Read UUID
-    fd = open(getRootPath() + ORI_PATH_UUID, O_RDONLY);
-    if (f.getLength() != 36)
-        return false;
-    memset(buf, 0, sizeof(buf));
-    f.read(buf, 36);
-    id = buf;
-    f.close();
+    id = Util_ReadFile(getRootPath() + ORI_PATH_UUID, NULL);
 
     // Read Version
-    f.open(getRootPath() + ORI_PATH_VERSION, O_RDONLY);
-    if (f.getLength() > 30)
-        return false;
-    memset(buf, 0, sizeof(buf));
-    f.read(buf, f.getLength());
-    version = buf;
-
-    f.close();
-*/
+    version = Util_ReadFile(getRootPath() + ORI_PATH_VERSION, NULL);
 
     return true;
 }
