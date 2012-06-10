@@ -67,8 +67,8 @@ public:
     Commit getCommit(const std::string &commitId);
     Tree getTree(const std::string &treeId);
     bool hasObject(const std::string &objId);
-    // Statistics Operations
-    // std::map<std::string, int> getRefCounts();
+    // Reference Counting Operations
+    std::map<std::string, std::set<std::string> > getRefCounts();
     // Pruning Operations
     // void pruneObject(const std::string &objId);
     // Grafting Operations

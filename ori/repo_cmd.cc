@@ -33,6 +33,7 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
 
 #include "debug.h"
 #include "scan.h"
@@ -153,6 +154,7 @@ cmd_show(int argc, const char *argv[])
     printf("Root: %s\n", rootPath.c_str());
     printf("UUID: %s\n", repository.getUUID().c_str());
     printf("Version: %s\n", repository.getVersion().c_str());
+    printf("HEAD: %s\n", repository.getHead().c_str());
     //printf("Peers:\n");
     // for
     // printf("    %s\n", hostname);
@@ -244,14 +246,31 @@ commitHelper(void *arg, const char *path)
     return 0;
 }
 
+void
+usage_commit(void)
+{
+    cout << "ori commit [MESSAGE]" << endl;
+    cout << endl;
+    cout << "Commit any outstanding changes into the repository." << endl;
+    cout << endl;
+    cout << "An optional message can be added to the commit." << endl;
+}
+
 int
 cmd_commit(int argc, const char *argv[])
 {
     string blob;
     string treeHash, commitHash;
+    string msg;
     Tree tree = Tree();
     Commit commit = Commit();
     string root = Repo::getRootPath();
+
+    if (argc == 1) {
+        msg = "No message.";
+    } else if (argc == 2) {
+        msg = argv[1];
+    }
 
     Scan_Traverse(root.c_str(), &tree, commitHelper);
 
@@ -260,7 +279,7 @@ cmd_commit(int argc, const char *argv[])
     // XXX: Get parents
     commit.setTree(treeHash);
     commit.setParents(repository.getHead());
-    commit.setMessage("test");
+    commit.setMessage(msg);
 
     commitHash = repository.addCommit(commit);
 
@@ -511,6 +530,42 @@ cmd_verify(int argc, const char *argv[])
     }
 
     return status;
+}
+
+/*
+ * Reference Counting Operations
+ */
+int
+cmd_refcount(int argc, const char *argv[])
+{
+    map<string, set<string> > refs = repository.getRefCounts();
+    map<string, set<string> >::iterator it;
+
+    if (argc == 1) {
+        cout << left << setw(64) << "Object" << " Count" << endl;
+        for (it = refs.begin(); it != refs.end(); it++) {
+            cout << (*it).first << " " << (*it).second.size() << endl;
+        }
+    } else if (argc == 2) {
+        set<string> r;
+        set<string>::iterator i;
+
+        it = refs.find(argv[1]);
+        if (it == refs.end()) {
+            cout << "Cannot find object!" << endl;
+            return 1;
+        }
+
+        r = (*it).second;
+        for (i = r.begin(); i != r.end(); i++) {
+            cout << (*i) << endl;
+        }
+    } else {
+        cout << "Invalid number of arguements." << endl;
+        cout << "ori refcount [OBJID]" << endl;
+    }
+
+    return 0;
 }
 
 /*

@@ -390,6 +390,72 @@ Repo::hasObject(const string &objId)
 }
 
 /*
+ * Reference Counting Operations
+ */
+
+map<string, set<string> >
+Repo::getRefCounts()
+{
+    set<string> obj = getObjects();
+    set<string>::iterator it;
+    map<string, set<string> > rval;
+    map<string, set<string> >::iterator key;
+
+    for (it = obj.begin(); it != obj.end(); it++) {
+        key = rval.find(*it);
+        if (key == rval.end())
+            rval[*it] = set<string>();
+        switch (getObjectType(*it)) {
+            case Object::Commit:
+            {
+                Commit c = getCommit(*it);
+                
+                key = rval.find(c.getTree());
+                if (key == rval.end())
+                    rval[c.getTree()] = set<string>();
+                rval[c.getTree()].insert(*it);
+                
+                key = rval.find(c.getParents().first);
+                if (key == rval.end())
+                    rval[c.getParents().first] = set<string>();
+                rval[c.getParents().first].insert(*it);
+                
+                if (c.getParents().second != "") {
+                    key = rval.find(c.getParents().second);
+                    if (key == rval.end())
+                        rval[c.getTree()] = set<string>();
+                    rval[c.getParents().second].insert(*it);
+                }
+                
+                break;
+            }
+            case Object::Tree:
+            {
+                Tree t = getTree(*it);
+                map<string, TreeEntry>::iterator tt;
+
+                for  (tt = t.tree.begin(); tt != t.tree.end(); tt++) {
+                    string h = (*tt).second.hash;
+                    key = rval.find(h);
+                    if (key == rval.end())
+                        rval[h] = set<string>();
+                    rval[h].insert(*it);
+                }
+                break;
+            }
+            case Object::Blob:
+                break;
+            default:
+                cout << "Unsupported object type!" << endl;
+                assert(false);
+                break;
+        }
+    }
+
+    return rval;
+}
+
+/*
  * Grafting Operations
  */
 

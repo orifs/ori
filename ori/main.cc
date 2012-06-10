@@ -60,6 +60,7 @@ typedef struct Cmd {
 int cmd_init(int argc, const char *argv[]);
 int cmd_show(int argc, const char *argv[]);
 int cmd_clone(int argc, const char *argv[]);
+void usage_commit(void);
 int cmd_commit(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
@@ -68,6 +69,7 @@ int cmd_log(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]);
 int cmd_listobj(int argc, const char *argv[]);
+int cmd_refcount(int argc, const char *argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
 // local
@@ -103,7 +105,7 @@ static Cmd commands[] = {
 	"commit",
 	"Commit changes into the repository",
 	cmd_commit,
-	NULL,
+	usage_commit,
     },
     {
 	"checkout",
@@ -146,6 +148,12 @@ static Cmd commands[] = {
 	"listobj",
 	"List objects",
 	cmd_listobj,
+	NULL,
+    },
+    {
+	"refcount",
+	"Print the reference count for all objects",
+	cmd_refcount,
 	NULL,
     },
     {
