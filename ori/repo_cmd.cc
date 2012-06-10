@@ -308,6 +308,7 @@ StatusDirectoryCB(void *arg, const char *path)
 
 	dirState->insert(pair<string, string>(objPath, objHash));
     } else {
+	objPath = objPath.substr(repoRoot.size());
 	dirState->insert(pair<string, string>(objPath, "DIR"));
     }
 
