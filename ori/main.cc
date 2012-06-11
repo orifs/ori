@@ -67,12 +67,12 @@ int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
+void usage_graft(void);
+int cmd_graft(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]); // Debug
 int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
-void usage_graft(void);
-int cmd_graft(int argc, const char *argv[]);
 // local
 static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
@@ -164,15 +164,15 @@ static Cmd commands[] = {
 	NULL,
     },
     {
-        "help",
-        "Show help for a given topic",
-        cmd_help,
-        NULL
-    },
-    {
         "selftest",
         "Built-in unit tests (DEBUG)",
         cmd_selftest,
+        NULL
+    },
+    {
+        "help",
+        "Show help for a given topic",
+        cmd_help,
         NULL
     },
     { NULL, NULL, NULL, NULL }
