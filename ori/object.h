@@ -27,7 +27,7 @@
 class Object
 {
 public:
-    enum Type { Null, Commit, Tree, Blob };
+    enum Type { Null, Commit, Tree, Blob, Purged };
     Object();
     ~Object();
     int create(const std::string &path, Type type);
@@ -36,6 +36,7 @@ public:
     Type getType();
     size_t getDiskSize();
     size_t getObjectSize();
+    int purge();
     int appendFile(const std::string &path);
     int extractFile(const std::string &path);
     int appendBlob(const std::string &blob);
@@ -44,6 +45,7 @@ public:
 private:
     int fd;
     Type t;
+    std::string objPath;
 };
 
 #endif /* __OBJECT_H__ */

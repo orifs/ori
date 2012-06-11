@@ -215,11 +215,36 @@ cmd_listobj(int argc, const char *argv[])
 	    case Object::Blob:
 		type = "Blob";
 		break;
+	    case Object::Purged:
+		type = "Purged";
+		break;
 	    default:
 		printf("Unknown object type!\n");
 		assert(false);
 	}
 	printf("%s # %s\n", (*it).c_str(), type);
+    }
+
+    return 0;
+}
+
+int
+cmd_purgeobj(int argc, const char *argv[])
+{
+    if (argc != 2) {
+	cout << "Error: Incorrect number of arguements." << endl;
+	cout << "ori purgeobj <OBJID>" << endl;
+	return 1;
+    }
+
+    if (repository.getObjectType(argv[1]) != Object::Blob) {
+	cout << "Error: You can only purge an object with type Blob." << endl;
+	return 1;
+    }
+
+    if (!repository.purgeObject(argv[1])) {
+	cout << "Error: Failed to purge object." << endl;
+	return 1;
     }
 
     return 0;
@@ -424,7 +449,10 @@ cmd_checkout(int argc, const char *argv[])
 		mkdir(path.c_str(), 0755);
 	    } else {
 		printf("U	%s\n", (*it).first.c_str());
-		repository.copyObject((*it).second, path);
+		if (repository.getObjectType((*it).second) != Object::Purged)
+		    repository.copyObject((*it).second, path);
+		else
+		    cout << "Object has been purged." << endl;
 	    }
 	}
     }

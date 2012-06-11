@@ -250,25 +250,51 @@ Repo::verifyObject(const string &objId)
     if (o.open(objPath) < 0)
 	return "Cannot open object!";
 
-    if (o.computeHash() != objId)
-	return "Object hash mismatch!"; 
-
     type = o.getType();
     switch(type) {
 	case Object::Null:
 	    return "Object with Null type!";
 	case Object::Commit:
+	    if (o.computeHash() != objId)
+		return "Object hash mismatch!"; 
+
 	    // XXX: Verify tree and parents exist
 	    break;
 	case Object::Tree:
+	    if (o.computeHash() != objId)
+		return "Object hash mismatch!"; 
+
 	    // XXX: Verify subtrees and blobs exist
 	case Object::Blob:
+	    if (o.computeHash() != objId)
+		return "Object hash mismatch!"; 
+
+	    break;
+	case Object::Purged:
 	    break;
 	default:
 	    return "Object with unknown type!";
     }
 
     return "";
+}
+
+/*
+ * Purge object
+ */
+bool
+Repo::purgeObject(const string &objId)
+{
+    string objPath = objIdToPath(objId);
+    Object o = Object();
+
+    if (o.open(objPath) < 0)
+	return false;
+
+    if (o.purge() < 0)
+	return false;
+
+    return true;
 }
 
 /*
@@ -427,6 +453,7 @@ Repo::getRefCounts()
                 break;
             }
             case Object::Blob:
+	    case Object::Purged:
                 break;
             default:
                 cout << "Unsupported object type!" << endl;

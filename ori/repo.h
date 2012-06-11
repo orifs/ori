@@ -61,6 +61,7 @@ public:
     size_t getObjectLength(const std::string &objId);
     Object::Type getObjectType(const std::string &objId);
     std::string verifyObject(const std::string &objId);
+    bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
     std::set<std::string> getObjects();

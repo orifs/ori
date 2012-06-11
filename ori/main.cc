@@ -67,9 +67,10 @@ int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
-int cmd_catobj(int argc, const char *argv[]);
-int cmd_listobj(int argc, const char *argv[]);
-int cmd_refcount(int argc, const char *argv[]);
+int cmd_catobj(int argc, const char *argv[]); // Debug
+int cmd_listobj(int argc, const char *argv[]); // Debug
+int cmd_refcount(int argc, const char *argv[]); // Debug
+int cmd_purgeobj(int argc, const char *argv[]); // Debug
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
 // local
@@ -140,20 +141,26 @@ static Cmd commands[] = {
     /* Debugging */
     {
 	"catobj",
-	"Print an object from the repository",
+	"Print an object from the repository (DEBUG)",
 	cmd_catobj,
 	NULL,
     },
     {
 	"listobj",
-	"List objects",
+	"List objects (DEBUG)",
 	cmd_listobj,
 	NULL,
     },
     {
 	"refcount",
-	"Print the reference count for all objects",
+	"Print the reference count for all objects (DEBUG)",
 	cmd_refcount,
+	NULL,
+    },
+    {
+	"purgeobj",
+	"Purge object (DEBUG)",
+	cmd_purgeobj,
 	NULL,
     },
     {
@@ -164,7 +171,7 @@ static Cmd commands[] = {
     },
     {
         "selftest",
-        "Built-in unit tests",
+        "Built-in unit tests (DEBUG)",
         cmd_selftest,
         NULL
     },

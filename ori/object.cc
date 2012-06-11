@@ -64,6 +64,8 @@ Object::create(const string &path, Type type)
 {
     int status;
 
+    objPath = path;
+
     fd = ::open(path.c_str(), O_CREAT | O_RDWR,
 	        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fd < 0)
@@ -81,6 +83,10 @@ Object::create(const string &path, Type type)
 	case Blob:
 	    status = write(fd, "BLOB", 4);
 	    t = Blob;
+	    break;
+	case Purged:
+	    status = write(fd, "PURG", 4);
+	    t = Purged;
 	    break;
 	default:
 	    printf("Unknown object type!\n");
@@ -104,6 +110,8 @@ Object::open(const string &path)
     int status;
     char buf[5];
 
+    objPath = path;
+
     fd = ::open(path.c_str(), O_RDONLY);
     if (fd < 0)
 	return -errno;
@@ -124,6 +132,8 @@ Object::open(const string &path)
 	t = Tree;
     } else if (strcmp(buf, "BLOB") == 0) {
 	t = Blob;
+    } else if (strcmp(buf, "PURG") == 0) {
+	t = Purged;
     } else {
 	printf("Unknown object type!\n");
 	assert(false);
@@ -140,7 +150,9 @@ Object::close()
 {
     if (fd != -1)
         ::close(fd);
+
     fd = -1;
+    objPath = "";
 }
 
 /*
@@ -183,6 +195,31 @@ Object::getObjectSize()
 }
 
 #define COPYFILE_BUFSZ	4096
+
+/*
+ * Purge object.
+ */
+int
+Object::purge()
+{
+    int status;
+
+    ::close(fd);
+    fd = ::open(objPath.c_str(), O_RDWR);
+    if (fd < 0)
+	return -errno;
+
+    status = write(fd, "PURG", 4);
+    t = Purged;
+    if (status < 0)
+	return -errno;
+
+    status = ftruncate(fd, 4);
+    if (status < 0)
+	return -errno;
+
+    return 0;
+}
 
 /*
  * Append the specified file into the object.
