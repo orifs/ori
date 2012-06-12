@@ -255,21 +255,28 @@ Repo::verifyObject(const string &objId)
 	case Object::Null:
 	    return "Object with Null type!";
 	case Object::Commit:
+	{
 	    if (o.computeHash() != objId)
 		return "Object hash mismatch!"; 
 
 	    // XXX: Verify tree and parents exist
 	    break;
+	}
 	case Object::Tree:
+	{
 	    if (o.computeHash() != objId)
 		return "Object hash mismatch!"; 
 
 	    // XXX: Verify subtrees and blobs exist
+	    break;
+	}
 	case Object::Blob:
+	{
 	    if (o.computeHash() != objId)
 		return "Object hash mismatch!"; 
 
 	    break;
+	}
 	case Object::Purged:
 	    break;
 	default:
