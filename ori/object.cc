@@ -229,6 +229,8 @@ Object::purge()
     if (status < 0)
 	return -errno;
 
+    // XXX: Support for backrefs
+
     return 0;
 }
 
@@ -447,17 +449,61 @@ Object::computeHash()
 void
 Object::addBackref(const string &objId, Object::BRState state)
 {
+    size_t status;
+    size_t fileLen = getDiskSize();
+    string buf = objId;
+
+    assert(objId.length() == SHA256_DIGEST_LENGTH);
+    assert(state == BRRef || state == BRPurged);
+
+    if (state == BRRef) {
+	buf += "R";
+    }
+    if (state == BRPurged) {
+	buf += "P";
+    }
+
+    status = pwrite(fd, buf.data(), buf.length(), fileLen);
+    assert(status  == buf.length());
 }
 
 void
 Object::updateBackref(const string &objId, Object::BRState state)
 {
+    int status;
+    map<string, BRState> backrefs;
+    map<string, BRState>::iterator it;
+
+    assert(objId.length() == SHA256_DIGEST_LENGTH);
+    assert(state == BRRef || state == BRPurged);
+
+    backrefs = getBackref();
+    backrefs[objId] = state;
+
+    /*
+     * XXX: Crash Recovery
+     *
+     * Either we can log here to make crash recovery easier, otherwise
+     * we should just write the single modified byte.  That should always
+     * translate to a single sector write, which is atomic.
+     */
+
+    status = ftruncate(fd, ORI_OBJECT_HDRSIZE + len);
+    assert(status == 0);
+
+    for (it = backrefs.begin(); it != backrefs.end(); it++) {
+	addBackref((*it).first, (*it).second);
+    }
 }
 
-set<pair<string, Object::BRState> >
+map<string, Object::BRState>
 Object::getBackref()
 {
-    set<pair<string, Object::BRState> > rval;
+    size_t backrefSize;
+    string blob;
+    map<string, BRState> rval;
+
+    assert(false);
 
     return rval;
 }

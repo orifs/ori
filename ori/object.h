@@ -21,7 +21,7 @@
 
 #include <utility>
 #include <string>
-#include <set>
+#include <map>
 
 #define ORI_OBJECT_TYPESIZE	4
 #define ORI_OBJECT_PADDING	4
@@ -51,7 +51,7 @@ public:
     // Backreferences
     void addBackref(const std::string &objId, BRState state);
     void updateBackref(const std::string &objId, BRState state);
-    std::set<std::pair<std::string, BRState> > getBackref();
+    std::map<std::string, BRState> getBackref();
 private:
     int fd;
     Type t;
