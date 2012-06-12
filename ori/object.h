@@ -21,6 +21,7 @@
 
 #include <utility>
 #include <string>
+#include <set>
 
 #define ORI_OBJECT_HDRSIZE	4
 
@@ -28,6 +29,7 @@ class Object
 {
 public:
     enum Type { Null, Commit, Tree, Blob, Purged };
+    enum BRState { BRNull, BRRef, BRPurged };
     Object();
     ~Object();
     int create(const std::string &path, Type type);
@@ -36,12 +38,17 @@ public:
     Type getType();
     size_t getDiskSize();
     size_t getObjectSize();
+    // Payload Operations
     int purge();
     int appendFile(const std::string &path);
     int extractFile(const std::string &path);
     int appendBlob(const std::string &blob);
     std::string extractBlob();
     std::string computeHash();
+    // Backreferences
+    void addBackref(const std::string &objId, BRState state);
+    void updateBackref(const std::string &objId, BRState state);
+    std::set<std::pair<std::string, BRState> > getBackref();
 private:
     int fd;
     Type t;

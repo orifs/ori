@@ -410,3 +410,21 @@ Object::computeHash()
     return rval.str();
 }
 
+void
+Object::addBackref(const string &objId, BRState state)
+{
+}
+
+void
+Object::updateBackref(const string &objId, BRState state)
+{
+}
+
+set<pair<string, BRState> >
+Object::getBackref()
+{
+    set<pair<string, BRState> > rval;
+
+    return rval;
+}
+
