@@ -411,19 +411,19 @@ Object::computeHash()
 }
 
 void
-Object::addBackref(const string &objId, BRState state)
+Object::addBackref(const string &objId, Object::BRState state)
 {
 }
 
 void
-Object::updateBackref(const string &objId, BRState state)
+Object::updateBackref(const string &objId, Object::BRState state)
 {
 }
 
-set<pair<string, BRState> >
+set<pair<string, Object::BRState> >
 Object::getBackref()
 {
-    set<pair<string, BRState> > rval;
+    set<pair<string, Object::BRState> > rval;
 
     return rval;
 }
