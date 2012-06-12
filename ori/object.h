@@ -23,7 +23,10 @@
 #include <string>
 #include <set>
 
-#define ORI_OBJECT_HDRSIZE	4
+#define ORI_OBJECT_TYPESIZE	4
+#define ORI_OBJECT_PADDING	4
+#define ORI_OBJECT_SIZE		8
+#define ORI_OBJECT_HDRSIZE	16
 
 class Object
 {
@@ -52,6 +55,7 @@ public:
 private:
     int fd;
     Type t;
+    int64_t len;
     std::string objPath;
 };
 

@@ -73,19 +73,19 @@ Object::create(const string &path, Type type)
 
     switch (type) {
 	case Commit:
-	    status = write(fd, "CMMT", 4);
+	    status = pwrite(fd, "CMMT", ORI_OBJECT_TYPESIZE, 0);
 	    t = Commit;
 	    break;
 	case Tree:
-	    status = write(fd, "TREE", 4);
+	    status = pwrite(fd, "TREE", ORI_OBJECT_TYPESIZE, 0);
 	    t = Tree;
 	    break;
 	case Blob:
-	    status = write(fd, "BLOB", 4);
+	    status = pwrite(fd, "BLOB", ORI_OBJECT_TYPESIZE, 0);
 	    t = Blob;
 	    break;
 	case Purged:
-	    status = write(fd, "PURG", 4);
+	    status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
 	    t = Purged;
 	    break;
 	default:
@@ -97,6 +97,13 @@ Object::create(const string &path, Type type)
 	return -errno;
 
     assert(status == 4);
+
+    status = pwrite(fd, "\0\0\0\0\0\0\0\0\0\0\0\0",
+		    ORI_OBJECT_PADDING + ORI_OBJECT_SIZE, 4);
+    if (status < 0)
+	return -errno;
+
+    assert(status == (ORI_OBJECT_PADDING + ORI_OBJECT_SIZE));
 
     return 0;
 }
@@ -117,14 +124,14 @@ Object::open(const string &path)
 	return -errno;
 
     buf[4] = '\0';
-    status = read(fd, buf, 4);
+    status = pread(fd, buf, ORI_OBJECT_TYPESIZE, 0);
     if (status < 0) {
 	::close(fd);
 	fd = -1;
 	return -errno;
     }
 
-    assert(status == 4);
+    assert(status == ORI_OBJECT_TYPESIZE);
 
     if (strcmp(buf, "CMMT") == 0) {
 	t = Commit;
@@ -137,6 +144,14 @@ Object::open(const string &path)
     } else {
 	printf("Unknown object type!\n");
 	assert(false);
+    }
+
+    status = pread(fd, (void *)&len, ORI_OBJECT_SIZE, 8);
+    if (status < 0) {
+	::close(fd);
+	fd = -1;
+	t = Null;
+	return -errno;
     }
 
     return 0;
@@ -152,6 +167,8 @@ Object::close()
         ::close(fd);
 
     fd = -1;
+    t = Null;
+    len = -1;
     objPath = "";
 }
 
@@ -185,13 +202,7 @@ Object::getDiskSize()
 size_t
 Object::getObjectSize()
 {
-    struct stat sb;
-
-    if (fstat(fd, &sb) < 0) {
-	return -errno;
-    }
-
-    return sb.st_size - ORI_OBJECT_HDRSIZE;
+    return len;
 }
 
 #define COPYFILE_BUFSZ	4096
@@ -209,12 +220,12 @@ Object::purge()
     if (fd < 0)
 	return -errno;
 
-    status = write(fd, "PURG", 4);
+    status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
     t = Purged;
     if (status < 0)
 	return -errno;
 
-    status = ftruncate(fd, 4);
+    status = ftruncate(fd, ORI_OBJECT_HDRSIZE);
     if (status < 0)
 	return -errno;
 
@@ -233,11 +244,21 @@ Object::appendFile(const string &path)
     int64_t bytesLeft;
     int64_t bytesRead, bytesWritten;
 
+    if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
+	return -errno;
+    }
+
     srcFd = ::open(path.c_str(), O_RDONLY);
     if (srcFd < 0)
 	return -errno;
 
     if (fstat(srcFd, &sb) < 0) {
+	::close(srcFd);
+	return -errno;
+    }
+
+    len = sb.st_size;
+    if (pwrite(fd, (void *)&len, ORI_OBJECT_SIZE, 8) != ORI_OBJECT_SIZE) {
 	::close(srcFd);
 	return -errno;
     }
@@ -284,6 +305,10 @@ Object::extractFile(const string &path)
     struct stat sb;
     int64_t bytesLeft;
     int64_t bytesRead, bytesWritten;
+
+    if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
+	return -errno;
+    }
 
     dstFd = ::open(path.c_str(), O_WRONLY | O_CREAT,
 		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -337,7 +362,12 @@ Object::appendBlob(const string &blob)
 {
     int status;
 
-    status = write(fd, blob.data(), blob.length());
+    len = blob.length();
+    if (pwrite(fd, (void *)&len, ORI_OBJECT_SIZE, 8) != ORI_OBJECT_SIZE) {
+	return -errno;
+    }
+
+    status = pwrite(fd, blob.data(), blob.length(), ORI_OBJECT_HDRSIZE);
     if (status < 0)
 	return -errno;
 
@@ -360,7 +390,7 @@ Object::extractBlob()
     assert(length >= 0);
 
     buf = new char[length];
-    status = read(fd, buf, length);
+    status = pread(fd, buf, length, ORI_OBJECT_HDRSIZE);
     if (status < 0)
 	return "";
 
@@ -383,6 +413,10 @@ Object::computeHash()
     SHA256_CTX state;
     unsigned char hash[SHA256_DIGEST_LENGTH];
     stringstream rval;
+
+    if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
+	return "";
+    }
 
     SHA256_Init(&state);
 
