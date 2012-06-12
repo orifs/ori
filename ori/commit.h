@@ -33,12 +33,23 @@ public:
     std::string getMessage() const;
     void setTree(const std::string &tree);
     std::string getTree() const;
-    const std::string getBlob();
+    void setUser(const std::string &user);
+    std::string getUser() const;
+    void setGraft(const std::string &repo,
+		  const std::string &path,
+		  const std::string &commidId);
+    std::pair<std::string, std::string> getGraftRepo() const;
+    std::string getGraftCommit() const;
+    std::string getBlob() const;
     void fromBlob(const std::string &blob);
 private:
     std::pair<std::string, std::string> parents;
     std::string message;
     std::string treeObjId;
+    std::string user;
+    std::string graftRepo;
+    std::string graftPath;
+    std::string graftCommitId;
 };
 
 #endif /* __COMMIT_H__ */

@@ -80,8 +80,42 @@ Commit::getTree() const
     return treeObjId;
 }
 
-const string
-Commit::getBlob()
+void
+Commit::setUser(const string &user)
+{
+    this->user = user;
+}
+
+string
+Commit::getUser() const
+{
+    return user;
+}
+
+void
+Commit::setGraft(const string &repo,
+		 const string &path,
+		 const string &commitId)
+{
+    graftRepo = repo;
+    graftPath = path;
+    graftCommitId = commitId;
+}
+
+pair<string, string>
+Commit::getGraftRepo() const
+{
+    return make_pair(graftRepo, graftPath);
+}
+
+string
+Commit::getGraftCommit() const
+{
+    return graftCommitId;
+}
+
+string
+Commit::getBlob() const
 {
     string blob;
     
@@ -89,6 +123,17 @@ Commit::getBlob()
     blob += "parent " + parents.first;
     if (parents.second != "") {
 	blob += " " + parents.second;
+    }
+    if (user != "") {
+	blob += "user " + user;
+    }
+    if (graftRepo != "") {
+	assert(graftPath != "");
+	assert(graftCommitId != "");
+
+	blob += "graft-repo " + graftRepo;
+	blob += "graft-path " + graftPath;
+	blob += "graft-commit " + graftCommitId;
     }
     blob += "\n\n";
     blob += message;
@@ -108,6 +153,14 @@ Commit::fromBlob(const string &blob)
 	} else if (line.substr(0, 7) == "parent ") {
 	    // XXX: Handle the merge case
 	    parents.first = line.substr(7);
+	} else if (line.substr(0, 5) == "user ") {
+	    user = line.substr(5);
+	} else if (line.substr(0, 11) == "graft-repo ") {
+	    graftRepo = line.substr(11);
+	} else if (line.substr(0, 11) == "graft-path ") {
+	    graftPath = line.substr(11);
+	} else if (line.substr(0, 13) == "graft-commit ") {
+	    graftCommitId = line.substr(13);
 	} else if (line.substr(0, 1) == "") {
 	    message = blob.substr(ss.tellg());
 	    break;
