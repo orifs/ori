@@ -22,6 +22,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include <pwd.h>
+
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
@@ -341,6 +343,20 @@ Util_PathToVector(const string &path)
     }
 
     return rval;
+}
+
+string
+Util_GetFullname()
+{
+    struct passwd *pw = getpwuid(getuid());
+
+    // XXX: Error handling
+    assert(pw != NULL);
+
+    if (pw->pw_gecos != NULL)
+        return string(pw->pw_gecos);
+    else
+        return "";
 }
 
 // XXX: Debug Only

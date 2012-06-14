@@ -124,18 +124,19 @@ Commit::getBlob() const
     if (parents.second != "") {
 	blob += " " + parents.second;
     }
+    blob += "\n";
     if (user != "") {
-	blob += "user " + user;
+	blob += "user " + user + "\n";
     }
     if (graftRepo != "") {
 	assert(graftPath != "");
 	assert(graftCommitId != "");
 
-	blob += "graft-repo " + graftRepo;
-	blob += "graft-path " + graftPath;
-	blob += "graft-commit " + graftCommitId;
+	blob += "graft-repo " + graftRepo + "\n";
+	blob += "graft-path " + graftPath + "\n";
+	blob += "graft-commit " + graftCommitId + "\n";
     }
-    blob += "\n\n";
+    blob += "\n";
     blob += message;
 
     return blob;

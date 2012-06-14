@@ -30,6 +30,7 @@ int Util_MoveFile(const std::string &origPath, const std::string &newPath);
 std::string Util_HashString(const std::string &str);
 std::string Util_HashFile(const std::string &path);
 std::vector<std::string> Util_PathToVector(const std::string &path);
+std::string Util_GetFullname();
 
 #endif /* __UTIL_H__ */
 

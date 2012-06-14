@@ -287,6 +287,7 @@ cmd_commit(int argc, const char *argv[])
     string blob;
     string treeHash, commitHash;
     string msg;
+    string user;
     Tree tree = Tree();
     Commit commit = Commit();
     string root = Repo::getRootPath();
@@ -305,6 +306,10 @@ cmd_commit(int argc, const char *argv[])
     commit.setTree(treeHash);
     commit.setParents(repository.getHead());
     commit.setMessage(msg);
+
+    user = Util_GetFullname();
+    if (user != "")
+        commit.setUser(user);
 
     commitHash = repository.addCommit(commit);
 
