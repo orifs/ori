@@ -17,6 +17,10 @@
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 void ori_log(const char *fmt, ...);
 
 #ifdef DEBUG
@@ -24,6 +28,11 @@ void ori_log(const char *fmt, ...);
 #else
 #define LOG(fmt, ...)
 #endif
+
+#define ASSERT(_x) assert(_x)
+#define NOT_IMPLEMENTED(_x) if (!_x) { printf("NOT_IMPLEMENTED: (" #_x "), " \
+                                "function %s, file %s, line %d\n", \
+                                __func__, __FILE__, __LINE__); abort(); }
 
 #endif /* __DEBUG_H__ */
 

@@ -42,6 +42,7 @@
 #error "SHA256 not supported!"
 #endif
 
+#include "debug.h"
 #include "object.h"
 
 using namespace std;
@@ -216,7 +217,7 @@ Object::purge()
     int status;
 
     // XXX: Support for backrefs
-    assert(ORI_OBJECT_HDRSIZE + len == getDiskSize());
+    NOT_IMPLEMENTED(ORI_OBJECT_HDRSIZE + len == getDiskSize());
 
     status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
     t = Purged;
