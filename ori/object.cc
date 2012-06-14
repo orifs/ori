@@ -119,7 +119,7 @@ Object::open(const string &path)
 
     objPath = path;
 
-    fd = ::open(path.c_str(), O_RDONLY);
+    fd = ::open(path.c_str(), O_RDWR);
     if (fd < 0)
 	return -errno;
 
@@ -215,10 +215,8 @@ Object::purge()
 {
     int status;
 
-    ::close(fd);
-    fd = ::open(objPath.c_str(), O_RDWR);
-    if (fd < 0)
-	return -errno;
+    // XXX: Support for backrefs
+    assert(ORI_OBJECT_HDRSIZE + len == getDiskSize());
 
     status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
     t = Purged;
@@ -228,8 +226,6 @@ Object::purge()
     status = ftruncate(fd, ORI_OBJECT_HDRSIZE);
     if (status < 0)
 	return -errno;
-
-    // XXX: Support for backrefs
 
     return 0;
 }
@@ -453,7 +449,7 @@ Object::addBackref(const string &objId, Object::BRState state)
     size_t fileLen = getDiskSize();
     string buf = objId;
 
-    assert(objId.length() == SHA256_DIGEST_LENGTH);
+    assert(objId.length() == 2 * SHA256_DIGEST_LENGTH);
     assert(state == BRRef || state == BRPurged);
 
     if (state == BRRef) {
@@ -499,11 +495,31 @@ Object::updateBackref(const string &objId, Object::BRState state)
 map<string, Object::BRState>
 Object::getBackref()
 {
+    int status;
     size_t backrefSize;
-    string blob;
+    int off;
+    char *buf;
     map<string, BRState> rval;
 
-    assert(false);
+    backrefSize = getDiskSize() - ORI_OBJECT_HDRSIZE - len;
+    buf = new char[backrefSize];
+    status = pread(fd, buf, backrefSize, ORI_OBJECT_HDRSIZE + len);
+    assert(status == backrefSize);
+
+    for (off = 0; off < backrefSize; off++) {
+        string objId;
+
+        objId.assign(buf[off], SHA256_DIGEST_LENGTH);
+        off += SHA256_DIGEST_LENGTH;
+
+        if (buf[off] == 'R') {
+            rval[objId] = BRRef;
+        } else if (buf[off] == 'P') {
+            rval[objId] = BRPurged;
+        } else {
+            assert(false);
+        }
+    }
 
     return rval;
 }

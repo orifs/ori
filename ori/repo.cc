@@ -107,6 +107,7 @@ Repo::objIdToPath(const string &objId)
 {
     string rval = rootPath;
 
+    assert(objId.length() == 64);
     assert(rval != "");
 
     rval += ORI_PATH_OBJS;
@@ -164,7 +165,7 @@ Repo::addBlob(const string &blob, Object::Type type)
 
     // Check if in tree
     if (!Util_FileExists(objPath)) {
-	// Copy to object tree
+        // Copy to object tree
 	Object o = Object();
 
 	createObjDirs(hash);
@@ -187,7 +188,27 @@ Repo::addBlob(const string &blob, Object::Type type)
 string
 Repo::addTree(/* const */ Tree &tree)
 {
-    return addBlob(tree.getBlob(), Object::Tree);
+    string blob = tree.getBlob();
+    string hash = Util_HashString(blob);
+    map<string, TreeEntry>::iterator it;
+
+    if (hasObject(hash)) {
+        return hash;
+    }
+
+    for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
+        Object o = Object();
+        string refPath = objIdToPath((*it).second.hash);
+
+        if (o.open(refPath) != 0) {
+            perror("Cannot open object");
+            assert(false);
+        }
+        o.addBackref(hash, Object::BRRef);
+        o.close();
+    }
+
+    return addBlob(blob, Object::Tree);
 }
 
 /*
@@ -197,6 +218,41 @@ string
 Repo::addCommit(/* const */ Commit &commit)
 {
     string blob = commit.getBlob();
+    string hash = Util_HashString(blob);
+    Object o = Object();
+    string refPath;
+
+    if (hasObject(hash)) {
+        return hash;
+    }
+
+    refPath = objIdToPath(commit.getTree());
+    if (o.open(refPath) != 0) {
+        perror("Cannot open object");
+    }
+    o.addBackref(hash, Object::BRRef);
+    o.close();
+
+    refPath = commit.getParents().first;
+    if (refPath != EMPTY_COMMIT) {
+        refPath = objIdToPath(refPath);
+        if (o.open(refPath) != 0) {
+            cout << refPath << endl;;
+            perror("Cannot open object");
+        }
+        o.addBackref(hash, Object::BRRef);
+        o.close();
+    }
+
+    refPath = commit.getParents().second;
+    if (refPath != "") {
+        refPath = objIdToPath(refPath);
+        if (o.open(refPath) != 0) {
+            perror("Cannot open object");
+        }
+        o.addBackref(hash, Object::BRRef);
+        o.close();
+    }
 
     return addBlob(blob, Object::Commit);
 }
