@@ -569,10 +569,29 @@ cmd_verify(int argc, const char *argv[])
 /*
  * Reference Counting Operations
  */
+
+/*
+ * Rebuild the reference counts.
+ */
+int
+cmd_rebuildrefs(int argc, const char *argv[])
+{
+    if (argc != 1) {
+        cout << "rebuildrefs takes no arguements!" << endl;
+        cout << "Usage: ori rebuildrefs" << endl;
+    }
+
+    NOT_IMPLEMENTED(false);
+}
+
+/*
+ * Print the reference counts for all objects, or show the references
+ * to a particular object.
+ */
 int
 cmd_refcount(int argc, const char *argv[])
 {
-    map<string, set<string> > refs = repository.getRefCounts();
+    map<string, set<string> > refs = repository.computeRefCounts();
     map<string, set<string> >::iterator it;
 
     if (argc == 1) {

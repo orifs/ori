@@ -71,6 +71,7 @@ void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]); // Debug
 int cmd_listobj(int argc, const char *argv[]); // Debug
+int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
 // local
@@ -137,6 +138,12 @@ static Cmd commands[] = {
 	"Graft a subtree from a repository into the local repository",
 	cmd_graft,
 	usage_graft,
+    },
+    {
+        "rebuildrefs",
+        "Rebuild references",
+        cmd_rebuildrefs,
+        NULL,
     },
     /* Debugging */
     {

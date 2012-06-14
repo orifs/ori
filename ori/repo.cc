@@ -465,8 +465,47 @@ Repo::hasObject(const string &objId)
  * Reference Counting Operations
  */
 
-map<string, set<string> >
+/*
+ * Return the references for a given object.
+ */
+map<string, Object::BRState>
+Repo::getRefs(const string &objId)
+{
+    string objPath = objIdToPath(objId);
+    Object o = Object();
+    map<string, Object::BRState> rval;
+
+    if (o.open(objPath) != 0)
+        return rval;
+    rval = o.getBackref();
+    o.close();
+
+    return rval;
+}
+
+/*
+ * Return reference counts for all objects.
+ */
+set<map<string, Object::BRState> >
 Repo::getRefCounts()
+{
+    set<string> obj = getObjects();
+    set<string>::iterator it;
+    set<map<string, Object::BRState> > rval;
+
+    for (it = obj.begin(); it != obj.end(); it++) {
+        rval.insert(getRefs(*it));
+    }
+
+    return rval;
+}
+
+/*
+ * Construct a raw set of references. This is the slow path and should only
+ * be used as part of recovery.
+ */
+map<string, set<string> >
+Repo::computeRefCounts()
 {
     set<string> obj = getObjects();
     set<string>::iterator it;
