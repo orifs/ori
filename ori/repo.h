@@ -98,7 +98,9 @@ public:
 private:
     // Helper Functions
     void createObjDirs(const std::string &objId);
+public: // Hack to enable rebuild operations
     std::string objIdToPath(const std::string &objId);
+private:
     // Variables
     std::string rootPath;
     std::string id;

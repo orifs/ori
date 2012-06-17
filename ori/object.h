@@ -51,6 +51,7 @@ public:
     // Backreferences
     void addBackref(const std::string &objId, BRState state);
     void updateBackref(const std::string &objId, BRState state);
+    void clearBackref();
     std::map<std::string, BRState> getBackref();
 private:
     int fd;

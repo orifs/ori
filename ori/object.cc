@@ -493,6 +493,15 @@ Object::updateBackref(const string &objId, Object::BRState state)
     }
 }
 
+void
+Object::clearBackref()
+{
+    int status;
+
+    status = ftruncate(fd, ORI_OBJECT_HDRSIZE + len);
+    assert(status == 0);
+}
+
 map<string, Object::BRState>
 Object::getBackref()
 {
