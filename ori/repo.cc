@@ -486,15 +486,15 @@ Repo::getRefs(const string &objId)
 /*
  * Return reference counts for all objects.
  */
-set<map<string, Object::BRState> >
+map<string, map<string, Object::BRState> >
 Repo::getRefCounts()
 {
     set<string> obj = getObjects();
     set<string>::iterator it;
-    set<map<string, Object::BRState> > rval;
+    map<string, map<string, Object::BRState> > rval;
 
     for (it = obj.begin(); it != obj.end(); it++) {
-        rval.insert(getRefs(*it));
+        rval[*it] = getRefs(*it);
     }
 
     return rval;

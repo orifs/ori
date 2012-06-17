@@ -576,10 +576,15 @@ cmd_verify(int argc, const char *argv[])
 int
 cmd_rebuildrefs(int argc, const char *argv[])
 {
+    map<string, set<string> > refs;
+    map<string, set<string> >::iterator it;
+
     if (argc != 1) {
         cout << "rebuildrefs takes no arguements!" << endl;
         cout << "Usage: ori rebuildrefs" << endl;
     }
+
+    refs = repository.computeRefCounts();
 
     NOT_IMPLEMENTED(false);
 }
@@ -591,27 +596,24 @@ cmd_rebuildrefs(int argc, const char *argv[])
 int
 cmd_refcount(int argc, const char *argv[])
 {
-    map<string, set<string> > refs = repository.computeRefCounts();
-    map<string, set<string> >::iterator it;
-
     if (argc == 1) {
+        map<string, map<string, Object::BRState> > refs;
+        map<string, map<string, Object::BRState> >::iterator it;
+
+        refs = repository.getRefCounts();
+
         cout << left << setw(64) << "Object" << " Count" << endl;
         for (it = refs.begin(); it != refs.end(); it++) {
             cout << (*it).first << " " << (*it).second.size() << endl;
         }
     } else if (argc == 2) {
-        set<string> r;
-        set<string>::iterator i;
+        map<string, Object::BRState> refs;
+        map<string, Object::BRState>::iterator it;
 
-        it = refs.find(argv[1]);
-        if (it == refs.end()) {
-            cout << "Cannot find object!" << endl;
-            return 1;
-        }
+        refs = repository.getRefs(argv[1]);
 
-        r = (*it).second;
-        for (i = r.begin(); i != r.end(); i++) {
-            cout << (*i) << endl;
+        for (it = refs.begin(); it != refs.end(); it++) {
+            cout << (*it).first << endl;
         }
     } else {
         cout << "Invalid number of arguements." << endl;

@@ -70,7 +70,8 @@ public:
     bool hasObject(const std::string &objId);
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
-    std::set<std::map<std::string, Object::BRState> > getRefCounts();
+    std::map<std::string, std::map<std::string, Object::BRState> >
+        getRefCounts();
     std::map<std::string, std::set<std::string> > computeRefCounts();
     // Pruning Operations
     // void pruneObject(const std::string &objId);

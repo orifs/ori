@@ -510,8 +510,8 @@ Object::getBackref()
     for (off = 0; off < backrefSize; off++) {
         string objId;
 
-        objId.assign(buf[off], SHA256_DIGEST_LENGTH);
-        off += SHA256_DIGEST_LENGTH;
+        objId.assign(buf+off, 2 * SHA256_DIGEST_LENGTH);
+        off += 2 * SHA256_DIGEST_LENGTH;
 
         if (buf[off] == 'R') {
             rval[objId] = BRRef;
