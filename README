@@ -24,7 +24,7 @@ The ori binary is located in build/ori/ori.
 
 To clean the build directory run the following command:
 
-# scons --clean
+# scons -c
 
 To install the binary run the following:
 
