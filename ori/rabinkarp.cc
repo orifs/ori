@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <time.h>
 #include <sys/time.h>
@@ -37,7 +38,6 @@ template<int target, int min, int max>
 Chunker<target, min, max>::Chunker()
 {
     uint64_t bTon = 1;
-    this->cb = NULL;
 
     //hashLen = 32;
     b = 31;
@@ -59,23 +59,24 @@ Chunker<target, min, max>::~Chunker()
 }
 
 template<int target, int min, int max>
-void Chunker<target, min, max>::setCB(ChunkerCB *cb)
+void Chunker<target, min, max>::chunk(ChunkerCB *cb)
 {
-    this->cb = cb;
-}
-
-template<int target, int min, int max>
-void Chunker<target, min, max>::chunk(char *buf, uint64_t len)
-{
-    uint8_t *in = (uint8_t *)buf;
+    uint8_t *in;
+    uint64_t len;
     register uint64_t hash = 0;
     register uint64_t off = 0;
     register uint64_t start = 0;
+
+    if (cb->load(&in, &len, &off) == 0) {
+	assert(false);
+	return;
+    }
 
     for (off = 0; off < hashLen; off++) {
         hash = hash * b + in[off];
     }
 
+fastPath:
     /*
      * Fast-path avoiding the length tests.off
      */
@@ -92,6 +93,9 @@ void Chunker<target, min, max>::chunk(char *buf, uint64_t len)
         cb->match(in + start, off - start);
         start = off + 1;
     }
+
+    if (cb->load(&in, &len, &off) == 1)
+	goto fastPath;
 
     for (; off < len; off++) {
         hash = (hash - lut[in[off-hashLen]]) * b + in[off];
@@ -114,41 +118,71 @@ void Chunker<target, min, max>::chunk(char *buf, uint64_t len)
 class TestCB : public ChunkerCB
 {
 public:
-    virtual void match(const uint8_t *buf, uint32_t len)
+    TestCB(uint64_t testLen)
+    {
+	chunks = 0;
+	chunkLen = 0;
+	buf = new uint8_t[testLen];
+	len = testLen;
+    }
+    ~TestCB()
+    {
+	delete buf;
+	buf = NULL;
+    }
+    void fill()
+    {
+#ifdef __FreeBSD__
+	sranddev();
+#endif /* __FreeBSD__ */
+
+	for (int i = 0; i < len; i++)
+	{
+	    buf[i] = rand() % 256;
+	}
+    }
+    virtual void match(const uint8_t *b, uint32_t l)
     {
         SHA256_CTX state;
         unsigned char hash[SHA256_DIGEST_LENGTH];
 
         chunks++;
-        chunkLen += len;
+        chunkLen += l;
 
         SHA256_Init(&state);
-        SHA256_Update(&state, buf, len);
+        SHA256_Update(&state, b, l);
         SHA256_Final(hash, &state);
+    }
+    virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
+    {
+	if (len != 0) {
+	    *b = buf;
+	    *l = len;
+	    *o = 0;
+	    len = 0;
+	    return 1;
+	} else {
+	    return 0;
+	}
     }
     uint64_t chunks;
     uint64_t chunkLen;
+    uint8_t *buf;
+    uint64_t len;
 };
 
 #define TEST_LEN (1024 * 1024 * 1024)
 
 int main(int argc, char *argv[])
 {
-    TestCB cb = TestCB();
+    TestCB cb = TestCB(TEST_LEN);
     Chunker<4096, 2048, 8192> c = Chunker<4096, 2048, 8192>();
-    char *buf = new char[TEST_LEN];
 
-    sranddev();
-
-    for (int i = 0; i < TEST_LEN; i++)
-    {
-        buf[i] = rand() % 256;
-    }
+    cb.fill();
 
     struct timeval start, end;
     gettimeofday(&start, 0);
-    c.setCB(&cb);
-    c.chunk(buf, TEST_LEN);
+    c.chunk(&cb);
     gettimeofday(&end, 0);
 
     float tDiff = end.tv_sec - start.tv_sec;

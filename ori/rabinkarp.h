@@ -20,7 +20,14 @@
 class ChunkerCB
 {
 public:
+    // Report a match
     virtual void match(const uint8_t *buf, uint32_t len) = 0;
+    /*
+     * Request more data from the buffer. This method should return 1 when 
+     * there is more data available and zero when done. Offset should always be 
+     * set to point to at least hashLen bytes.
+     */
+    virtual int load(uint8_t **buf, uint64_t *len, uint64_t *off) = 0;
 };
 
 template<int target, int min, int max>
@@ -29,14 +36,12 @@ class Chunker
 public:
     Chunker();
     ~Chunker();
-    void setCB(ChunkerCB *cb);
-    void chunk(char *buf, uint64_t len);
+    void chunk(ChunkerCB *cb);
 private:
     //uint64_t hashLen;
     uint64_t b;
     uint64_t bTok;
     uint8_t lut[256];
-    ChunkerCB *cb;
 };
 
 #endif /* __RABINKARP_H__ */
