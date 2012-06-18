@@ -163,6 +163,8 @@ Repo::addBlob(const string &blob, Object::Type type)
     string hash = Util_HashString(blob);
     string objPath = objIdToPath(hash);
 
+    ASSERT(type != Object::Blob);
+
     // Check if in tree
     if (!Util_FileExists(objPath)) {
         // Copy to object tree
@@ -721,7 +723,9 @@ Repo::graftSubtree(Repo *r,
 
     cout << "Hello!" << endl;
     changes = r->walkHistory(cb);
+
     // XXX: TODO
+    NOT_IMPLEMENTED(false);
 }
 
 /*

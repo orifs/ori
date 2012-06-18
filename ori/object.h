@@ -31,7 +31,7 @@
 class Object
 {
 public:
-    enum Type { Null, Commit, Tree, Blob, Purged };
+    enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
     enum BRState { BRNull, BRRef, BRPurged };
     Object();
     ~Object();

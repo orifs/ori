@@ -85,6 +85,10 @@ Object::create(const string &path, Type type)
 	    status = pwrite(fd, "BLOB", ORI_OBJECT_TYPESIZE, 0);
 	    t = Blob;
 	    break;
+        case LargeBlob:
+	    status = pwrite(fd, "LGBL", ORI_OBJECT_TYPESIZE, 0);
+	    t = LargeBlob;
+	    break;
 	case Purged:
 	    status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
 	    t = Purged;
@@ -140,6 +144,8 @@ Object::open(const string &path)
 	t = Tree;
     } else if (strcmp(buf, "BLOB") == 0) {
 	t = Blob;
+    } else if (strcmp(buf, "LGBL") == 0) {
+        t = LargeBlob;
     } else if (strcmp(buf, "PURG") == 0) {
 	t = Purged;
     } else {
@@ -216,8 +222,9 @@ Object::purge()
 {
     int status;
 
-    // XXX: Support for backrefs
+    // XXX: Support for backrefs and large blobs
     NOT_IMPLEMENTED(ORI_OBJECT_HDRSIZE + len == getDiskSize());
+    NOT_IMPLEMENTED(t == Blob);
 
     status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
     t = Purged;
