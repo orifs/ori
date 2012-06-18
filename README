@@ -26,6 +26,14 @@ To clean the build directory run the following command:
 
 # scons --clean
 
+To install the binary run the following:
+
+# scons install
+
+Optionally, an installation directory can be specified as follows:
+
+# scons PREFIX=<install directory> install
+
 Unit tests to verify core functionality of the binary can be tested by running 
 the following command in a clean directory.
 

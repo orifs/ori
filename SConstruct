@@ -11,7 +11,8 @@ opts.AddVariables(
     ("BUILDTYPE", "Build type (RELEASE or DEBUG)", "RELEASE"),
     ("VERBOSE", "Show full build information (0 or 1)", "0"),
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto).", "0"),
-    ("WITH_FUSE", "Include FUSE file system (0 or 1).", "1")
+    ("WITH_FUSE", "Include FUSE file system (0 or 1).", "1"),
+    ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
 
 env = Environment(options = opts,
@@ -64,4 +65,7 @@ Export('env')
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
 SConscript('ori/SConscript', variant_dir='build/ori')
+
+env.Install('$PREFIX','build/ori/ori')
+env.Alias('install','$PREFIX')
 
