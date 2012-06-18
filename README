@@ -1,0 +1,33 @@
+Overview
+========
+
+Ori is a decentralized file store.  It is designed to generically allow one or 
+more users to store files in a repository and provide many sophisticate file 
+system operations in a platform independent way.
+
+Installation
+============
+
+Dependences:
+ - scons 2.0+
+ - openssl
+
+Build flags can be added to 'Local.sc' in the root directory, or through the 
+command line.  The available options can be displayed by typing 'scons --help'.  
+To disable the fuse module, add WITH_FUSE="0" to the Local.sc file.
+
+To build the binary run the follow:
+
+# scons
+
+The ori binary is located in build/ori/ori.
+
+To clean the build directory run the following command:
+
+# scons --clean
+
+Unit tests to verify core functionality of the binary can be tested by running 
+the following command in a clean directory.
+
+# ori selftest
+
