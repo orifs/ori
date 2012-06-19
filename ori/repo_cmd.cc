@@ -567,6 +567,36 @@ cmd_verify(int argc, const char *argv[])
 }
 
 /*
+ * Find lost Heads
+ */
+int
+cmd_findheads(int argc, const char *argv[])
+{
+    map<string, set<string> > refs;
+    map<string, set<string> >::iterator it;
+
+    refs = repository.computeRefCounts();
+
+    for (it = refs.begin(); it != refs.end(); it++) {
+        if ((*it).first == EMPTY_COMMIT)
+            continue;
+
+        if ((*it).second.size() == 0
+            && repository.getObjectType((*it).first)) {
+            Commit c = repository.getCommit((*it).first);
+
+            // XXX: Check for existing branch names
+
+            cout << "commit:  " << (*it).first << endl;
+            cout << "parents: " << c.getParents().first << endl;
+            cout << c.getMessage() << endl;
+        }
+    }
+
+    return 0;
+}
+
+/*
  * Reference Counting Operations
  */
 
