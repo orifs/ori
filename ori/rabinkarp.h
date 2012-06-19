@@ -44,5 +44,88 @@ private:
     uint8_t lut[256];
 };
 
+//#define b (31)
+//#define bTok (3671467063254694913L)
+#define hashLen (32)
+
+template<int target, int min, int max>
+Chunker<target, min, max>::Chunker()
+{
+    uint64_t bTon = 1;
+
+    //hashLen = 32;
+    b = 31;
+
+    for (int i = 0; i < hashLen; i++) {
+        bTon *= b;
+    }
+
+    bTok = bTon;
+
+    for (int i = 0; i < 256; i++) {
+        lut[i] = i * bTok;
+    }
+}
+
+template<int target, int min, int max>
+Chunker<target, min, max>::~Chunker()
+{
+}
+
+template<int target, int min, int max>
+void Chunker<target, min, max>::chunk(ChunkerCB *cb)
+{
+    uint8_t *in;
+    uint64_t len;
+    register uint64_t hash = 0;
+    register uint64_t off = 0;
+    register uint64_t start = 0;
+
+    if (cb->load(&in, &len, &off) == 0) {
+	assert(false);
+	return;
+    }
+
+    for (off = 0; off < hashLen; off++) {
+        hash = hash * b + in[off];
+    }
+
+fastPath:
+    /*
+     * Fast-path avoiding the length tests.off
+     */
+    for (; off < len - max; off++) {
+        for (; off < start + min; off++)
+            hash = (hash - lut[in[off-hashLen]]) * b + in[off];
+
+        for (; off < start + max; off++) {
+            hash = (hash - lut[in[off-hashLen]]) * b + in[off];
+            if (hash % target == 1)
+                break;
+        }
+
+        cb->match(in + start, off - start);
+        start = off + 1;
+    }
+
+    if (cb->load(&in, &len, &off) == 1)
+	goto fastPath;
+
+    for (; off < len; off++) {
+        hash = (hash - lut[in[off-hashLen]]) * b + in[off];
+        if (((off - start > min) && (hash % target == 1))
+                || (off - start >= max)) {
+            cb->match(in + start, off - start);
+            start = off + 1;
+        }
+    }
+
+    if (start < off) {
+        cb->match(in + start, off - start);
+    }
+
+    return;
+}
+
 #endif /* __RABINKARP_H__ */
 
