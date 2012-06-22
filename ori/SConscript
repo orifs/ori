@@ -1,3 +1,5 @@
+import sys
+
 Import('env')
 
 src = [
@@ -13,8 +15,19 @@ src = [
     "util.cc",
 ]
 
+libs = [
+        "crypto",
+        "stdc++",
+        "lzma",
+       ]
+if sys.platform == "darwin":
+    # TODO
+    libs += []
+else:
+    libs += ['rt']
+
 env.Program("ori", src,
             LIBPATH = [ "$LIBPATH" ],
-	    LIBS = [ "crypto", "stdc++", "rt" ],
+	    LIBS = libs,
             CPPPATH = [ "$CPPPATH", "#include", "#" ])
 

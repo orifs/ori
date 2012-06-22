@@ -50,6 +50,7 @@ using namespace std;
 Object::Object()
 {
     fd = -1;
+    flags = 0;
 }
 
 Object::~Object()
@@ -61,7 +62,7 @@ Object::~Object()
  * Create a new object.
  */
 int
-Object::create(const string &path, Type type)
+Object::create(const string &path, Type type, uint32_t flags)
 {
     int status;
 
@@ -85,7 +86,7 @@ Object::create(const string &path, Type type)
 	    status = pwrite(fd, "BLOB", ORI_OBJECT_TYPESIZE, 0);
 	    t = Blob;
 	    break;
-        case LargeBlob:
+    case LargeBlob:
 	    status = pwrite(fd, "LGBL", ORI_OBJECT_TYPESIZE, 0);
 	    t = LargeBlob;
 	    break;
@@ -103,12 +104,20 @@ Object::create(const string &path, Type type)
 
     assert(status == 4);
 
-    status = pwrite(fd, "\0\0\0\0\0\0\0\0\0\0\0\0",
-		    ORI_OBJECT_PADDING + ORI_OBJECT_SIZE, 4);
+    this->flags = flags;
+    checkFlags();
+    status = pwrite(fd, &flags,
+		    ORI_OBJECT_FLAGSSIZE, 4);
     if (status < 0)
-	return -errno;
+        return -errno;
 
-    assert(status == (ORI_OBJECT_PADDING + ORI_OBJECT_SIZE));
+    for (int i = 1; i <= 2; i++) {
+        status = pwrite(fd, "\0\0\0\0\0\0\0\0",
+                ORI_OBJECT_SIZE, 8*i);
+        if (status < 0)
+            return -errno;
+        assert(status == ORI_OBJECT_SIZE);
+    }
 
     return 0;
 }
@@ -139,19 +148,26 @@ Object::open(const string &path)
     assert(status == ORI_OBJECT_TYPESIZE);
 
     if (strcmp(buf, "CMMT") == 0) {
-	t = Commit;
+        t = Commit;
     } else if (strcmp(buf, "TREE") == 0) {
-	t = Tree;
+        t = Tree;
     } else if (strcmp(buf, "BLOB") == 0) {
-	t = Blob;
+        t = Blob;
     } else if (strcmp(buf, "LGBL") == 0) {
         t = LargeBlob;
     } else if (strcmp(buf, "PURG") == 0) {
-	t = Purged;
+        t = Purged;
     } else {
-	printf("Unknown object type!\n");
-	assert(false);
+        printf("Unknown object type!\n");
+        assert(false);
     }
+
+    status = pread(fd, (void *)&flags, ORI_OBJECT_FLAGSSIZE, 4);
+    if (status < 0) {
+        close();
+        return -errno;
+    }
+    checkFlags();
 
     status = pread(fd, (void *)&len, ORI_OBJECT_SIZE, 8);
     if (status < 0) {
@@ -159,6 +175,12 @@ Object::open(const string &path)
 	fd = -1;
 	t = Null;
 	return -errno;
+    }
+
+    status = pread(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16);
+    if (status < 0) {
+        close();
+        return -errno;
     }
 
     return 0;
@@ -176,6 +198,7 @@ Object::close()
     fd = -1;
     t = Null;
     len = -1;
+    storedLen = -1;
     objPath = "";
 }
 
@@ -212,7 +235,32 @@ Object::getObjectSize()
     return len;
 }
 
+size_t
+Object::getObjectStoredSize() {
+    return storedLen;
+}
+
+/* Flags */
+
+/** Check if passed flags are compatible with compile flags */
+void Object::checkFlags() {
+#if !ORI_USE_COMPRESSION
+    NOT_IMPLEMENTED(!getCompressed());
+    /* TODO
+    if (flags & ORI_FLAG_COMPRESSED) {
+        LOG("Compression not supported in this build\n");
+        // If creating object, set the flag to 0
+    }
+    */
+#endif
+}
+
+bool Object::getCompressed() {
+    return flags & ORI_FLAG_COMPRESSED;
+}
+
 #define COPYFILE_BUFSZ	4096
+#define COPYFILE_XZ_BUFSZ (COPYFILE_BUFSZ + (COPYFILE_BUFSZ + 9) / 10 + 12)
 
 /*
  * Purge object.
@@ -370,14 +418,40 @@ Object::appendBlob(const string &blob)
 
     len = blob.length();
     if (pwrite(fd, (void *)&len, ORI_OBJECT_SIZE, 8) != ORI_OBJECT_SIZE) {
-	return -errno;
+        return -errno;
     }
+
+#if ORI_USE_COMPRESSION
+    if (getCompressed()) {
+        if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE)
+            return -errno;
+
+        lzma_stream strm = LZMA_STREAM_INIT;
+        setupLzma(&strm);
+
+        strm.next_in = (const uint8_t *)blob.data();
+        strm.avail_in = blob.length();
+        appendLzma(&strm, LZMA_RUN);
+        appendLzma(&strm, LZMA_FINISH);
+
+        storedLen = strm.total_out; // TODO
+        status = pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16);
+        if (status < 0)
+            return -errno;
+    }
+    else
+#endif
+    {
+    status = pwrite(fd, (void *)&len, ORI_OBJECT_SIZE, 16);
+    if (status < 0)
+        return -errno;
 
     status = pwrite(fd, blob.data(), blob.length(), ORI_OBJECT_HDRSIZE);
     if (status < 0)
-	return -errno;
+        return -errno;
 
     assert(status == blob.length());
+    }
 
     return 0;
 }
@@ -540,4 +614,43 @@ Object::getBackref()
 
     return rval;
 }
+
+
+
+/*
+ * Private methods
+ */
+
+#if ORI_USE_COMPRESSION
+// Code from xz_pipe_comp.c in xz examples
+
+void Object::setupLzma(lzma_stream *strm) {
+    lzma_ret ret_xz = lzma_easy_encoder(strm, 2, LZMA_CHECK_NONE);
+    assert(ret_xz == LZMA_OK);
+}
+
+bool Object::appendLzma(lzma_stream *strm, lzma_action action) {
+    uint8_t outbuf[COPYFILE_BUFSZ];
+    do {
+        strm->next_out = outbuf;
+        strm->avail_out = COPYFILE_BUFSZ;
+
+        lzma_ret ret_xz = lzma_code(strm, action);
+        if (ret_xz == LZMA_OK || ret_xz == LZMA_STREAM_END) {
+            size_t bytes_to_write = COPYFILE_BUFSZ - strm->avail_out;
+            int err = write(fd, outbuf, bytes_to_write);
+            if (err < 0) {
+                // TODO: retry write if interrupted?
+                return false;
+            }
+        }
+        else {
+            ori_log("lzma_code error: %d\n", (int)ret_xz);
+            return false;
+        }
+    } while (strm->avail_out == 0); // i.e. output isn't finished
+
+    return true;
+}
+#endif
 

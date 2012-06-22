@@ -259,7 +259,11 @@ int util_selftest(void);
 static int
 cmd_selftest(int argc, const char *argv[])
 {
-    util_selftest();
+    // TODO util_selftest();
+
+    Object o;
+    o.create("test.obj", Object::Blob, ORI_FLAG_COMPRESSED);
+    o.appendBlob("hello, world!");
 
     return 0;
 }

@@ -23,10 +23,23 @@
 #include <string>
 #include <map>
 
-#define ORI_OBJECT_TYPESIZE	4
-#define ORI_OBJECT_PADDING	4
-#define ORI_OBJECT_SIZE		8
-#define ORI_OBJECT_HDRSIZE	16
+#ifndef ORI_USE_COMPRESSION
+#define ORI_USE_COMPRESSION 1
+#endif
+
+#if ORI_USE_COMPRESSION
+#include <lzma.h>
+#endif
+
+
+#define ORI_OBJECT_TYPESIZE	    4
+#define ORI_OBJECT_FLAGSSIZE	4
+#define ORI_OBJECT_SIZE		    8
+#define ORI_OBJECT_HDRSIZE	    24
+
+#define ORI_FLAG_COMPRESSED 0x0001
+
+#define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
 
 class Object
 {
@@ -35,12 +48,16 @@ public:
     enum BRState { BRNull, BRRef, BRPurged };
     Object();
     ~Object();
-    int create(const std::string &path, Type type);
+    int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
     int open(const std::string &path);
     void close();
     Type getType();
     size_t getDiskSize();
     size_t getObjectSize();
+    size_t getObjectStoredSize();
+    // Flags operations (TODO)
+    void checkFlags();
+    bool getCompressed();
     // Payload Operations
     int purge();
     int appendFile(const std::string &path);
@@ -55,9 +72,16 @@ public:
     std::map<std::string, BRState> getBackref();
 private:
     int fd;
+    int flags;
     Type t;
     int64_t len;
+    int64_t storedLen;
     std::string objPath;
+
+#if ORI_USE_COMPRESSION
+    void setupLzma(lzma_stream *strm);
+    bool appendLzma(lzma_stream *strm, lzma_action action);
+#endif
 };
 
 #endif /* __OBJECT_H__ */
