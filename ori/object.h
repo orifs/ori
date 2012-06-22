@@ -79,7 +79,7 @@ private:
     std::string objPath;
 
 #if ORI_USE_COMPRESSION
-    void setupLzma(lzma_stream *strm);
+    void setupLzma(lzma_stream *strm, bool encode);
     bool appendLzma(lzma_stream *strm, lzma_action action);
 #endif
 };

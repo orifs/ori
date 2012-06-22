@@ -260,7 +260,7 @@ bool Object::getCompressed() {
 }
 
 #define COPYFILE_BUFSZ	4096
-#define COPYFILE_XZ_BUFSZ (COPYFILE_BUFSZ + (COPYFILE_BUFSZ + 9) / 10 + 12)
+//#define COPYFILE_XZ_BUFSZ (COPYFILE_BUFSZ + (COPYFILE_BUFSZ + 9) / 10 + 12)
 
 /*
  * Purge object.
@@ -427,7 +427,7 @@ Object::appendBlob(const string &blob)
             return -errno;
 
         lzma_stream strm = LZMA_STREAM_INIT;
-        setupLzma(&strm);
+        setupLzma(&strm, true);
 
         strm.next_in = (const uint8_t *)blob.data();
         strm.avail_in = blob.length();
@@ -470,11 +470,50 @@ Object::extractBlob()
     assert(length >= 0);
 
     buf = new char[length];
+
+#if ORI_USE_COMPRESSION
+    if (getCompressed()) {
+        if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE)
+            return "";
+
+        lzma_stream strm = LZMA_STREAM_INIT;
+        setupLzma(&strm, false);
+        strm.next_out = (uint8_t*)buf;
+        strm.avail_out = length;
+
+        uint8_t in_buf[COPYFILE_BUFSZ];
+
+        off_t curr_off = 0;
+        while (curr_off < storedLen) {
+            ssize_t read_bytes = read(fd, in_buf, MIN(COPYFILE_BUFSZ, storedLen - curr_off));
+            if (read_bytes < 1) {
+                return "";
+            }
+
+            strm.next_in = in_buf;
+            strm.avail_in = read_bytes;
+
+            // TODO is this loop necessary?
+            while (strm.avail_in > 0) {
+                lzma_ret ret_xz = lzma_code(&strm, LZMA_RUN);
+                if (ret_xz == LZMA_STREAM_END) break;
+            }
+
+            curr_off += read_bytes;
+        }
+
+        lzma_ret ret_xz = lzma_code(&strm, LZMA_FINISH);
+        if (ret_xz != LZMA_STREAM_END)
+            return "";
+    }
+    else
+#endif
+    {
     status = pread(fd, buf, length, ORI_OBJECT_HDRSIZE);
     if (status < 0)
-	return "";
-
+        return "";
     assert(status == length);
+    }
 
     rval.assign(buf, length);
 
@@ -624,8 +663,14 @@ Object::getBackref()
 #if ORI_USE_COMPRESSION
 // Code from xz_pipe_comp.c in xz examples
 
-void Object::setupLzma(lzma_stream *strm) {
-    lzma_ret ret_xz = lzma_easy_encoder(strm, 2, LZMA_CHECK_NONE);
+void Object::setupLzma(lzma_stream *strm, bool encode) {
+    lzma_ret ret_xz;
+    if (encode) {
+        ret_xz = lzma_easy_encoder(strm, 2, LZMA_CHECK_NONE);
+    }
+    else {
+        ret_xz = lzma_stream_decoder(strm, UINT64_MAX, 0);
+    }
     assert(ret_xz == LZMA_OK);
 }
 
