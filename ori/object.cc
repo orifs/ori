@@ -298,13 +298,18 @@ Object::appendFile(const string &path)
     int64_t bytesLeft;
     int64_t bytesRead, bytesWritten;
 
+#if ORI_USE_COMPRESSION
+    lzma_stream strm = LZMA_STREAM_INIT;
+    if (getCompressed()) setupLzma(&strm, true);
+#endif
+
     if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
-	return -errno;
+        return -errno;
     }
 
     srcFd = ::open(path.c_str(), O_RDONLY);
     if (srcFd < 0)
-	return -errno;
+        return -errno;
 
     if (fstat(srcFd, &sb) < 0) {
 	::close(srcFd);
@@ -319,26 +324,51 @@ Object::appendFile(const string &path)
 
     bytesLeft = sb.st_size;
     while(bytesLeft > 0) {
-	bytesRead = read(srcFd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
-	if (bytesRead < 0) {
-	    if (errno == EINTR)
-		continue;
-	    goto error;
-	}
+        bytesRead = read(srcFd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
+        if (bytesRead < 0) {
+            if (errno == EINTR)
+            continue;
+            goto error;
+        }
 
+#if ORI_USE_COMPRESSION
+        if (getCompressed()) {
+            strm.next_in = (uint8_t*)buf;
+            strm.avail_in = bytesRead;
+            appendLzma(fd, &strm, LZMA_RUN);
+        }
+        else
+#endif
+        {
 retryWrite:
-	bytesWritten = write(fd, buf, bytesRead);
-	if (bytesWritten < 0) {
-	    if (errno == EINTR)
-		goto retryWrite;
-	    goto error;
-	}
+        bytesWritten = write(fd, buf, bytesRead);
+        if (bytesWritten < 0) {
+            if (errno == EINTR)
+            goto retryWrite;
+            goto error;
+        }
 
-	// XXX: Need to handle this case!
-	assert(bytesRead == bytesWritten);
+        // XXX: Need to handle this case!
+        assert(bytesRead == bytesWritten);
+        }
 
-	bytesLeft -= bytesRead;
+        bytesLeft -= bytesRead;
     }
+
+    // Write final (post-compression) size
+#if ORI_USE_COMPRESSION
+    if (getCompressed()) {
+        appendLzma(fd, &strm, LZMA_FINISH);
+        storedLen = strm.total_out;
+    }
+    else
+#endif
+    {
+        storedLen = len;
+    }
+
+    if (pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16) != ORI_OBJECT_SIZE)
+        return -errno;
 
     ::close(srcFd);
     return sb.st_size;
@@ -431,8 +461,8 @@ Object::appendBlob(const string &blob)
 
         strm.next_in = (const uint8_t *)blob.data();
         strm.avail_in = blob.length();
-        appendLzma(&strm, LZMA_RUN);
-        appendLzma(&strm, LZMA_FINISH);
+        appendLzma(fd, &strm, LZMA_RUN);
+        appendLzma(fd, &strm, LZMA_FINISH);
 
         storedLen = strm.total_out; // TODO
         status = pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16);
@@ -674,7 +704,7 @@ void Object::setupLzma(lzma_stream *strm, bool encode) {
     assert(ret_xz == LZMA_OK);
 }
 
-bool Object::appendLzma(lzma_stream *strm, lzma_action action) {
+bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
     uint8_t outbuf[COPYFILE_BUFSZ];
     do {
         strm->next_out = outbuf;
@@ -683,7 +713,7 @@ bool Object::appendLzma(lzma_stream *strm, lzma_action action) {
         lzma_ret ret_xz = lzma_code(strm, action);
         if (ret_xz == LZMA_OK || ret_xz == LZMA_STREAM_END) {
             size_t bytes_to_write = COPYFILE_BUFSZ - strm->avail_out;
-            int err = write(fd, outbuf, bytes_to_write);
+            int err = write(dstFd, outbuf, bytes_to_write);
             if (err < 0) {
                 // TODO: retry write if interrupted?
                 return false;

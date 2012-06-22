@@ -80,7 +80,7 @@ private:
 
 #if ORI_USE_COMPRESSION
     void setupLzma(lzma_stream *strm, bool encode);
-    bool appendLzma(lzma_stream *strm, lzma_action action);
+    bool appendLzma(int dstFd, lzma_stream *strm, lzma_action action);
 #endif
 };
 

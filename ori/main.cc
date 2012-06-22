@@ -263,11 +263,13 @@ cmd_selftest(int argc, const char *argv[])
 
     Object o;
     o.create("test.obj", Object::Blob, ORI_FLAG_COMPRESSED);
-    o.appendBlob("hello, world!");
+    int e = o.appendFile("./test.txt");
+    if (e < 0) {
+        printf("%s\n", strerror(-e));
+    }
     o.close();
     o.open("test.obj");
-    std::string res = o.extractBlob();
-    printf("%s\n", res.c_str());
+    o.extractFile("test2.txt");
 
     return 0;
 }
