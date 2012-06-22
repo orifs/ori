@@ -259,17 +259,7 @@ int util_selftest(void);
 static int
 cmd_selftest(int argc, const char *argv[])
 {
-    // TODO util_selftest();
-
-    Object o;
-    o.create("test.obj", Object::Blob, ORI_FLAG_COMPRESSED);
-    int e = o.appendFile("./test.txt");
-    if (e < 0) {
-        printf("%s\n", strerror(-e));
-    }
-    o.close();
-    o.open("test.obj");
-    o.extractFile("test2.txt");
+    util_selftest();
 
     return 0;
 }
