@@ -412,7 +412,7 @@ retryWrite:
 
     if (getCompressed()) {
         appendLzma(dstFd, &strm, LZMA_FINISH);
-        assert(strm.total_out == len);
+        assert(strm.total_out == (size_t)len);
     }
 
     ::close(dstFd);
@@ -518,10 +518,10 @@ Object::extractBlob()
             return "";
     }
     else {
-    status = pread(fd, buf, length, ORI_OBJECT_HDRSIZE);
-    if (status < 0)
-        return "";
-    assert(status == length);
+        status = pread(fd, buf, length, ORI_OBJECT_HDRSIZE);
+        if (status < 0)
+            return "";
+        assert(status == length);
     }
 
     rval.assign(buf, length);
@@ -587,7 +587,7 @@ void Object::addMetadataEntry(MdType type, const std::string &data) {
     err = pwrite(fd, &len, 4, offset + 2);
     assert(err = 4);
     err = pwrite(fd, data.data(), data.length(), offset + 6);
-    assert(err == data.length());
+    assert((size_t)err == data.length());
     fsync(fd);
 
     std::string hash = computeMetadataHash();
@@ -635,18 +635,16 @@ std::string Object::computeMetadataHash() {
 void
 Object::addBackref(const string &objId, Object::BRState state)
 {
-    size_t status;
-    size_t fileLen = getDiskSize();
     string buf = objId;
 
     assert(objId.length() == 2 * SHA256_DIGEST_LENGTH);
     assert(state == BRRef || state == BRPurged);
 
     if (state == BRRef) {
-	buf += "R";
+        buf += "R";
     }
     if (state == BRPurged) {
-	buf += "P";
+        buf += "P";
     }
 
     addMetadataEntry(MdBackref, buf);
