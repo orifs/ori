@@ -615,16 +615,18 @@ Object::computeHash()
 #define OFF_MD_HASH (ORI_OBJECT_HDRSIZE + getObjectStoredSize())
 
 void Object::addMetadataEntry(MdType type, const std::string &data) {
-    int err = pwrite(fd, _getIdForMdType(type), 2, getDiskSize());
+    off_t offset = getDiskSize();
+    int err = pwrite(fd, _getIdForMdType(type), 2, offset);
     assert(err == 2);
     uint32_t len = data.length();
-    err = pwrite(fd, &len, 4, getDiskSize());
+    err = pwrite(fd, &len, 4, offset + 2);
     assert(err = 4);
-    err = pwrite(fd, data.data(), data.length(), getDiskSize());
+    err = pwrite(fd, data.data(), data.length(), offset + 6);
     assert(err == data.length());
+    fsync(fd);
 
     std::string hash = computeMetadataHash();
-    assert(hash == "");
+    assert(hash != "");
     err = pwrite(fd, hash.data(), ORI_MD_HASHSIZE, OFF_MD_HASH);
     assert(err == ORI_MD_HASHSIZE);
 }
@@ -637,6 +639,9 @@ std::string Object::computeMetadataHash() {
 
     SHA256_CTX state;
     SHA256_Init(&state);
+
+    if (getDiskSize() < offset)
+        return "";
 
     size_t bytesLeft = getDiskSize() - offset;
     while(bytesLeft > 0) {

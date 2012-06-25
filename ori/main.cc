@@ -259,7 +259,12 @@ int util_selftest(void);
 static int
 cmd_selftest(int argc, const char *argv[])
 {
-    util_selftest();
+    //util_selftest();
+
+    Object o;
+    o.create("test.obj", Object::Blob, 0);
+    o.appendBlob("hello, world!");
+    o.addMetadataEntry(Object::MdBackref, "12345");
 
     return 0;
 }
