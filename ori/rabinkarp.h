@@ -75,8 +75,8 @@ Chunker<target, min, max>::~Chunker()
 template<int target, int min, int max>
 void Chunker<target, min, max>::chunk(ChunkerCB *cb)
 {
-    uint8_t *in;
-    uint64_t len;
+    uint8_t *in = NULL;
+    uint64_t len = 0;
     register uint64_t hash = 0;
     register uint64_t off = 0;
     register uint64_t start = 0;

@@ -22,6 +22,7 @@
 
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -107,6 +108,7 @@ public:
 	    return -errno;
 	}
 	fileLen = sb.st_size;
+        fileOff = 0;
 
 	return 0;
     }
@@ -132,7 +134,38 @@ public:
     }
     virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
     {
-	return 0;
+        if (*b == NULL)
+            *b = buf;
+
+        if (fileOff == fileLen)
+            return 0;
+
+        // Sanity checking
+        assert(*b == buf);
+        assert(*l <= bufLen);
+        assert(*o <= bufLen);
+
+        if (*o != 0 || *o != *l) {
+            memcpy(buf, buf + *o, *l - *o);
+            *l = *l - *o;
+            *o = 0;
+        }
+
+        uint64_t toRead = MIN(bufLen - *l, fileLen - fileOff);
+        int status;
+
+        status = read(srcFd, buf + *l, toRead);
+        if (status < 0) {
+            perror("Cannot read large file");
+            assert(false);
+            return -1;
+        }
+
+        fileOff += status;
+        *l += fileOff;
+        *o = 0;
+
+	return 1;
     }
 private:
     // Output large blob
@@ -141,6 +174,7 @@ private:
     // Input file
     int srcFd;
     uint64_t fileLen;
+    uint64_t fileOff;
     // RK buffer
     uint8_t *buf;
     uint64_t bufLen;
