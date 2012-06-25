@@ -38,7 +38,7 @@
 #endif
 
 #include "largeblob.h"
-#include "rabinkarp.h"
+#include "chunker.h"
 
 using namespace std;
 

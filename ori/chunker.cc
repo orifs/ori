@@ -28,7 +28,7 @@
 #include <string>
 #include <iostream>
 
-#include "rabinkarp.h"
+#include "chunker.h"
 
 #ifdef RK_TEST
 

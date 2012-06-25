@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __RABINKARP_H__
-#define __RABINKARP_H__
+#ifndef __CHUNKER_H__
+#define __CHUNKER_H__
 
 class ChunkerCB
 {
@@ -127,5 +127,5 @@ fastPath:
     return;
 }
 
-#endif /* __RABINKARP_H__ */
+#endif /* __CHUNKER_H__ */
 
