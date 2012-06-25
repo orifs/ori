@@ -362,7 +362,7 @@ error:
 int
 Object::extractFile(const string &path)
 {
-    int dstFd;
+/*    int dstFd;
     char buf[COPYFILE_BUFSZ];
     int64_t bytesLeft;
     int64_t bytesRead, bytesWritten;
@@ -417,6 +417,33 @@ retryWrite:
 
     ::close(dstFd);
     return len; // TODO
+
+error:
+    unlink(path.c_str());
+    ::close(dstFd);
+    return -errno;*/
+
+    std::auto_ptr<bytestream> bs(getPayloadStream());
+
+    int dstFd = ::open(path.c_str(), O_WRONLY | O_CREAT,
+		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (dstFd < 0)
+        return -errno;
+
+    uint8_t buf[COPYFILE_BUFSZ];
+    while (!bs->ended()) {
+        size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
+retryWrite:
+        ssize_t bytesWritten = write(dstFd, buf, bytesRead);
+        if (bytesWritten < 0) {
+            if (errno == EINTR)
+                goto retryWrite;
+            goto error;
+        }
+    }
+
+    ::close(dstFd);
+    return len;
 
 error:
     unlink(path.c_str());
@@ -535,30 +562,22 @@ Object::extractBlob()
 string
 Object::computeHash()
 {
-    char buf[COPYFILE_BUFSZ];
-    int64_t bytesLeft;
-    int64_t bytesRead;
-    SHA256_CTX state;
+    std::auto_ptr<bytestream> bs(getPayloadStream());
+
+    uint8_t buf[COPYFILE_BUFSZ];
     unsigned char hash[SHA256_DIGEST_LENGTH];
     stringstream rval;
 
-    if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
-	return "";
-    }
-
+    SHA256_CTX state;
     SHA256_Init(&state);
 
-    bytesLeft = getObjectSize();
-    while(bytesLeft > 0) {
-	bytesRead = read(fd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
-	if (bytesRead < 0) {
-	    if (errno == EINTR)
-		continue;
-	    return "";
-	}
+    while(!bs->ended()) {
+        size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
+        if (bs->error()) {
+            return "";
+        }
 
-	SHA256_Update(&state, buf, bytesRead);
-	bytesLeft -= bytesRead;
+        SHA256_Update(&state, buf, bytesRead);
     }
 
     SHA256_Final(hash, &state);
@@ -570,6 +589,15 @@ Object::computeHash()
     }
 
     return rval.str();
+}
+
+bytestream *Object::getPayloadStream() {
+    if (getCompressed()) {
+        return new lzmastream(new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
+    }
+    else {
+        return new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen);
+    }
 }
 
 void
@@ -674,7 +702,7 @@ Object::getBackref()
 void Object::setupLzma(lzma_stream *strm, bool encode) {
     lzma_ret ret_xz;
     if (encode) {
-        ret_xz = lzma_easy_encoder(strm, 2, LZMA_CHECK_NONE);
+        ret_xz = lzma_easy_encoder(strm, 0, LZMA_CHECK_NONE);
     }
     else {
         ret_xz = lzma_stream_decoder(strm, UINT64_MAX, 0);
@@ -705,4 +733,3 @@ bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
 
     return true;
 }
-

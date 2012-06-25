@@ -23,7 +23,7 @@
 #include <string>
 #include <map>
 
-#include <lzma.h>
+#include "stream.h"
 
 
 #define ORI_OBJECT_TYPESIZE	    4
@@ -58,6 +58,7 @@ public:
     int appendBlob(const std::string &blob);
     std::string extractBlob();
     std::string computeHash();
+    bytestream *getPayloadStream();
     // Backreferences
     void addBackref(const std::string &objId, BRState state);
     void updateBackref(const std::string &objId, BRState state);

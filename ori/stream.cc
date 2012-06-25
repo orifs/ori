@@ -3,7 +3,9 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
+#include "debug.h"
 #include "stream.h"
 
 /*
@@ -24,12 +26,16 @@ bool diskstream::ended() {
 
 size_t diskstream::read(uint8_t *buf, size_t n) {
     size_t final_size = MIN(n, left);
+retry_read:
     ssize_t read_bytes = ::read(fd, buf, final_size);
     if (read_bytes < 0) {
+        if (errno == EINTR)
+            goto retry_read;
         // TODO error
         return 0;
     }
     left -= read_bytes;
+    return read_bytes;
 }
 
 /*
@@ -46,53 +52,43 @@ lzmastream::lzmastream(bytestream *source)
     lzma_stream_decoder(&strm, UINT64_MAX, 0);
 }
 
+lzmastream::~lzmastream() {
+    delete source;
+}
+
 bool lzmastream::ended() {
-    return source->ended();
+    return output_ended;
 }
 
 size_t lzmastream::read(uint8_t *buf, size_t n) {
-    while (buffer.size() < n) {
-        if (!_readMore()) break;
-    }
+    if (output_ended) return 0;
 
-    size_t read_n = MIN(n, buffer.size());
-    memcpy(buf, &buffer[0], read_n);
-    return read_n;
-}
+    lzma_action action = source->ended() ? LZMA_FINISH : LZMA_RUN;
+    size_t begin_total = strm.total_out;
 
-#define READ_BY 4096
+    strm.next_out = buf;
+    strm.avail_out = n;
+    while (strm.avail_out > 0) {
+        if (output_ended) break;
 
-bool lzmastream::_readMore() {
-    if (output_ended) return false;
+        if (strm.avail_in == 0) {
+            size_t read_bytes = source->read(in_buf, XZ_READ_BY);
+            action = read_bytes == 0 ? LZMA_FINISH : LZMA_RUN;
 
-    uint8_t buf[READ_BY];
-    size_t read_n = source->read(buf, READ_BY);
-    lzma_action action = read_n == 0 ? LZMA_FINISH : LZMA_RUN;
-
-    strm.next_in = buf;
-    strm.avail_in = read_n;
-
-    do {
-        off_t last = buffer.size();
-        buffer.resize(last + READ_BY);
-        strm.next_out = &buffer[last];
-        strm.avail_out = READ_BY;
+            strm.next_in = in_buf;
+            strm.avail_in = read_bytes;
+        }
 
         lzma_ret ret = lzma_code(&strm, action);
         if (ret == LZMA_STREAM_END) {
             output_ended = true;
-            break;
+            lzma_end(&strm);
         }
-    } while(strm.avail_out == 0);
-
-    if (strm.avail_out > 0) {
-        buffer.resize(buffer.size() - strm.avail_out);
+        else if (ret != LZMA_OK) {
+            printf("lzma_code: %d\n", ret);
+            return 0;
+        }
     }
 
-    if (output_ended) {
-        lzma_end(&strm);
-        return false;
-    }
-
-    return true;
+    return strm.total_out - begin_total;
 }

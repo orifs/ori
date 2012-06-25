@@ -43,6 +43,7 @@
 #endif
 
 #include "util.h"
+#include "stream.h"
 
 using namespace std;
 
@@ -416,6 +417,17 @@ util_selftest(void)
     assert(tv.size() == 2);
     assert(tv[0] == "abc");
     assert(tv[1] == "def");
+
+
+    // Tests for stream classes
+    int test_fd = open("test.a", O_RDWR | O_CREAT);
+    write(test_fd, "hello, world!", 13);
+    fsync(test_fd);
+    bytestream *bs = new diskstream(test_fd, 1, 3);
+    uint8_t b;
+    bs->read(&b, 1);
+    assert(b == 'e');
+    delete bs;
 
     printf("Test Succeeded!\n");
     return 0;
