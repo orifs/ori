@@ -80,6 +80,21 @@ Util_IsDirectory(const string &path)
 }
 
 /*
+ * Get the file size.
+ */
+size_t Util_FileSize(const std::string &path)
+{
+    struct stat sb;
+
+    if (stat(path.c_str(), &sb) < 0) {
+	perror("stat file does not exist");
+	return -errno;
+    }
+
+    return sb.st_size;
+}
+
+/*
  * Return the full path given a relative path.
  * XXX: According to FreeBSD man pages this may be broken on Solaris.
  */

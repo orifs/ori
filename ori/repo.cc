@@ -33,6 +33,7 @@
 #include "scan.h"
 #include "util.h"
 #include "object.h"
+#include "largeblob.h"
 #include "repo.h"
 
 using namespace std;
@@ -124,7 +125,7 @@ Repo::objIdToPath(const string &objId)
  * Add a file to the repository. This is a low-level interface.
  */
 string
-Repo::addFile(const string &path)
+Repo::addSmallFile(const string &path)
 {
     string hash = Util_HashFile(path);
     string objPath;
@@ -152,6 +153,36 @@ Repo::addFile(const string &path)
     }
 
     return hash;
+}
+
+/*
+ * Add a file to the repository. This is a low-level interface.
+ */
+string
+Repo::addLargeFile(const string &path)
+{
+    string blob;
+    LargeBlob lb = LargeBlob();
+
+    lb.chunkFile(path);
+    blob = lb.getBlob();
+
+    return addBlob(blob, Object::LargeBlob);
+}
+
+/*
+ * Add a file to the repository. This is an internal interface that pusheds the
+ * work to addLargeFile or addSmallFile based on our size threshold.
+ */
+string
+Repo::addFile(const string &path)
+{
+    size_t sz = Util_FileSize(path);
+
+    if (sz > LARGEFILE_MINIMUM)
+        return addLargeFile(path);
+    else
+        return addSmallFile(path);
 }
 
 /*

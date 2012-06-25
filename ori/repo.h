@@ -37,6 +37,8 @@
 
 #define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
 
+#define LARGEFILE_MINIMUM (1024 * 1024)
+
 class HistoryCB
 {
 public:
@@ -53,6 +55,8 @@ public:
     void close();
     void save();
     // Object Operations
+    std::string addSmallFile(const std::string &path);
+    std::string addLargeFile(const std::string &path);
     std::string addFile(const std::string &path);
     std::string addBlob(const std::string &blob, Object::Type type);
     std::string addTree(/* const */ Tree &tree);

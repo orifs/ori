@@ -3,11 +3,11 @@ import sys
 Import('env')
 
 src = [
+    "chunker.cc",
     "commit.cc",
     "largeblob.cc",
     "main.cc",
     "object.cc",
-    "rabinkarp.cc",
     "repo.cc",
     "repo_cmd.cc",
     "scan.cc",

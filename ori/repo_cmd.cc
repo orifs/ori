@@ -215,6 +215,9 @@ cmd_listobj(int argc, const char *argv[])
 	    case Object::Blob:
 		type = "Blob";
 		break;
+            case Object::LargeBlob:
+                type = "LargeBlob";
+                break;
 	    case Object::Purged:
 		type = "Purged";
 		break;
