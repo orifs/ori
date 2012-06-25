@@ -23,13 +23,7 @@
 #include <string>
 #include <map>
 
-#ifndef ORI_USE_COMPRESSION
-#define ORI_USE_COMPRESSION 1
-#endif
-
-#if ORI_USE_COMPRESSION
 #include <lzma.h>
-#endif
 
 
 #define ORI_OBJECT_TYPESIZE	    4
@@ -56,7 +50,6 @@ public:
     size_t getObjectSize();
     size_t getObjectStoredSize();
     // Flags operations (TODO)
-    void checkFlags();
     bool getCompressed();
     // Payload Operations
     int purge();
@@ -78,10 +71,8 @@ private:
     int64_t storedLen;
     std::string objPath;
 
-#if ORI_USE_COMPRESSION
     void setupLzma(lzma_stream *strm, bool encode);
     bool appendLzma(int dstFd, lzma_stream *strm, lzma_action action);
-#endif
 };
 
 #endif /* __OBJECT_H__ */

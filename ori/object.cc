@@ -242,25 +242,11 @@ Object::getObjectStoredSize() {
 
 /* Flags */
 
-/** Check if passed flags are compatible with compile flags */
-void Object::checkFlags() {
-#if !ORI_USE_COMPRESSION
-    NOT_IMPLEMENTED(!getCompressed());
-    /* TODO
-    if (flags & ORI_FLAG_COMPRESSED) {
-        LOG("Compression not supported in this build\n");
-        // If creating object, set the flag to 0
-    }
-    */
-#endif
-}
-
 bool Object::getCompressed() {
     return flags & ORI_FLAG_COMPRESSED;
 }
 
 #define COPYFILE_BUFSZ	4096
-//#define COPYFILE_XZ_BUFSZ (COPYFILE_BUFSZ + (COPYFILE_BUFSZ + 9) / 10 + 12)
 
 /*
  * Purge object.
@@ -298,10 +284,8 @@ Object::appendFile(const string &path)
     int64_t bytesLeft;
     int64_t bytesRead, bytesWritten;
 
-#if ORI_USE_COMPRESSION
     lzma_stream strm = LZMA_STREAM_INIT;
     if (getCompressed()) setupLzma(&strm, true);
-#endif
 
     if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
         return -errno;
@@ -331,39 +315,33 @@ Object::appendFile(const string &path)
             goto error;
         }
 
-#if ORI_USE_COMPRESSION
         if (getCompressed()) {
             strm.next_in = (uint8_t*)buf;
             strm.avail_in = bytesRead;
             appendLzma(fd, &strm, LZMA_RUN);
         }
-        else
-#endif
-        {
+        else {
 retryWrite:
-        bytesWritten = write(fd, buf, bytesRead);
-        if (bytesWritten < 0) {
-            if (errno == EINTR)
-            goto retryWrite;
-            goto error;
-        }
+            bytesWritten = write(fd, buf, bytesRead);
+            if (bytesWritten < 0) {
+                if (errno == EINTR)
+                    goto retryWrite;
+                goto error;
+            }
 
-        // XXX: Need to handle this case!
-        assert(bytesRead == bytesWritten);
+            // XXX: Need to handle this case!
+            assert(bytesRead == bytesWritten);
         }
 
         bytesLeft -= bytesRead;
     }
 
     // Write final (post-compression) size
-#if ORI_USE_COMPRESSION
     if (getCompressed()) {
         appendLzma(fd, &strm, LZMA_FINISH);
         storedLen = strm.total_out;
     }
-    else
-#endif
-    {
+    else {
         storedLen = len;
     }
 
@@ -389,10 +367,8 @@ Object::extractFile(const string &path)
     int64_t bytesLeft;
     int64_t bytesRead, bytesWritten;
 
-#if ORI_USE_COMPRESSION
     lzma_stream strm = LZMA_STREAM_INIT;
     if (getCompressed()) setupLzma(&strm, false);
-#endif
 
     if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
         return -errno;
@@ -413,36 +389,31 @@ Object::extractFile(const string &path)
             goto error;
         }
 
-#if ORI_USE_COMPRESSION
         if (getCompressed()) {
             strm.next_in = (uint8_t*)buf;
             strm.avail_in = bytesRead;
             appendLzma(dstFd, &strm, LZMA_RUN);
         }
-        else
-#endif
-        {
+        else {
 retryWrite:
-        bytesWritten = write(dstFd, buf, bytesRead);
-        if (bytesWritten < 0) {
-            if (errno == EINTR)
-            goto retryWrite;
-            goto error;
-        }
+            bytesWritten = write(dstFd, buf, bytesRead);
+            if (bytesWritten < 0) {
+                if (errno == EINTR)
+                goto retryWrite;
+                goto error;
+            }
 
-        // XXX: Need to handle this case!
-        assert(bytesRead == bytesWritten);
+            // XXX: Need to handle this case!
+            assert(bytesRead == bytesWritten);
         }
 
         bytesLeft -= bytesRead;
     }
 
-#if ORI_USE_COMPRESSION
     if (getCompressed()) {
         appendLzma(dstFd, &strm, LZMA_FINISH);
         assert(strm.total_out == len);
     }
-#endif
 
     ::close(dstFd);
     return len; // TODO
@@ -466,7 +437,6 @@ Object::appendBlob(const string &blob)
         return -errno;
     }
 
-#if ORI_USE_COMPRESSION
     if (getCompressed()) {
         if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE)
             return -errno;
@@ -479,18 +449,16 @@ Object::appendBlob(const string &blob)
         appendLzma(fd, &strm, LZMA_RUN);
         appendLzma(fd, &strm, LZMA_FINISH);
 
-        storedLen = strm.total_out; // TODO
+        storedLen = strm.total_out;
     }
-    else
-#endif
-    {
-    status = pwrite(fd, blob.data(), blob.length(), ORI_OBJECT_HDRSIZE);
-    if (status < 0)
-        return -errno;
+    else {
+        status = pwrite(fd, blob.data(), blob.length(), ORI_OBJECT_HDRSIZE);
+        if (status < 0)
+            return -errno;
 
-    assert(status == blob.length());
+        assert(status == blob.length());
 
-    storedLen = blob.length();
+        storedLen = blob.length();
     }
 
     status = pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16);
@@ -515,7 +483,6 @@ Object::extractBlob()
 
     buf = new char[length];
 
-#if ORI_USE_COMPRESSION
     if (getCompressed()) {
         if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE)
             return "";
@@ -550,9 +517,7 @@ Object::extractBlob()
         if (ret_xz != LZMA_STREAM_END)
             return "";
     }
-    else
-#endif
-    {
+    else {
     status = pread(fd, buf, length, ORI_OBJECT_HDRSIZE);
     if (status < 0)
         return "";
@@ -704,7 +669,6 @@ Object::getBackref()
  * Private methods
  */
 
-#if ORI_USE_COMPRESSION
 // Code from xz_pipe_comp.c in xz examples
 
 void Object::setupLzma(lzma_stream *strm, bool encode) {
@@ -741,5 +705,4 @@ bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
 
     return true;
 }
-#endif
 
