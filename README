@@ -11,6 +11,7 @@ Installation
 Dependences:
  - scons 2.0+
  - openssl
+ - liblzma (XZ Utils)
 
 Build flags can be added to 'Local.sc' in the root directory, or through the 
 command line.  The available options can be displayed by typing 'scons --help'.  
