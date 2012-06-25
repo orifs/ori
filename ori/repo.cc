@@ -131,7 +131,7 @@ Repo::addFile(const string &path)
 
     if (hash == "") {
 	perror("Unable to hash file");
-	return 0;
+	return "";
     }
     objPath = objIdToPath(hash);
 

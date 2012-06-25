@@ -31,6 +31,8 @@
 #define ORI_OBJECT_SIZE		    8
 #define ORI_OBJECT_HDRSIZE	    24
 
+#define ORI_MD_HASHSIZE SHA256_DIGEST_LENGTH
+
 #define ORI_FLAG_COMPRESSED 0x0001
 
 #define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
@@ -39,7 +41,9 @@ class Object
 {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
+    enum MdType { MdBackref };
     enum BRState { BRNull, BRRef, BRPurged };
+
     Object();
     ~Object();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
@@ -58,6 +62,10 @@ public:
     int appendBlob(const std::string &blob);
     std::string extractBlob();
     std::string computeHash();
+    // Metadata
+    void addMetadataEntry(MdType type, const std::string &data);
+    std::string computeMetadataHash();
+    void checkMetadata();
     // Backreferences
     void addBackref(const std::string &objId, BRState state);
     void updateBackref(const std::string &objId, BRState state);
@@ -73,6 +81,8 @@ private:
 
     void setupLzma(lzma_stream *strm, bool encode);
     bool appendLzma(int dstFd, lzma_stream *strm, lzma_action action);
+
+    const char *_getIdForMdType(MdType);
 };
 
 #endif /* __OBJECT_H__ */

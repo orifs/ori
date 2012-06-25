@@ -572,6 +572,66 @@ Object::computeHash()
     return rval.str();
 }
 
+
+/*
+ * Metadata operations
+ */
+
+#define OFF_MD_HASH (ORI_OBJECT_HDRSIZE + getObjectStoredSize())
+
+void Object::addMetadataEntry(MdType type, const std::string &data) {
+    off_t offset = getDiskSize();
+    int err = pwrite(fd, _getIdForMdType(type), 2, offset);
+    assert(err == 2);
+    uint32_t len = data.length();
+    err = pwrite(fd, &len, 4, offset + 2);
+    assert(err = 4);
+    err = pwrite(fd, data.data(), data.length(), offset + 6);
+    assert(err == data.length());
+    fsync(fd);
+
+    std::string hash = computeMetadataHash();
+    assert(hash != "");
+    err = pwrite(fd, hash.data(), ORI_MD_HASHSIZE, OFF_MD_HASH);
+    assert(err == ORI_MD_HASHSIZE);
+}
+
+std::string Object::computeMetadataHash() {
+    off_t offset = OFF_MD_HASH + ORI_MD_HASHSIZE;
+    if (lseek(fd, offset, SEEK_SET) != offset) {
+        return "";
+    }
+
+    SHA256_CTX state;
+    SHA256_Init(&state);
+
+    if (getDiskSize() < offset)
+        return "";
+
+    size_t bytesLeft = getDiskSize() - offset;
+    while(bytesLeft > 0) {
+        uint8_t buf[COPYFILE_BUFSZ];
+        int bytesRead = read(fd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
+        if (bytesRead < 0) {
+            if (errno == EINTR)
+                continue;
+            return "";
+        }
+
+        SHA256_Update(&state, buf, bytesRead);
+        bytesLeft -= bytesRead;
+    }
+
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256_Final(hash, &state);
+
+    std::string rval;
+    rval.assign((char *)hash, SHA256_DIGEST_LENGTH);
+    return rval;
+}
+
+
+
 void
 Object::addBackref(const string &objId, Object::BRState state)
 {
@@ -589,8 +649,7 @@ Object::addBackref(const string &objId, Object::BRState state)
 	buf += "P";
     }
 
-    status = pwrite(fd, buf.data(), buf.length(), fileLen);
-    assert(status  == buf.length());
+    addMetadataEntry(MdBackref, buf);
 }
 
 void
@@ -706,3 +765,11 @@ bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
     return true;
 }
 
+const char *Object::_getIdForMdType(MdType type) {
+    switch (type) {
+    case MdBackref:
+        return "BR";
+    }
+
+    return NULL;
+}
