@@ -105,7 +105,7 @@ Object::create(const string &path, Type type, uint32_t flags)
     assert(status == 4);
 
     this->flags = flags;
-    checkFlags();
+    //checkFlags();
     status = pwrite(fd, &flags,
 		    ORI_OBJECT_FLAGSSIZE, 4);
     if (status < 0)
@@ -167,7 +167,7 @@ Object::open(const string &path)
         close();
         return -errno;
     }
-    checkFlags();
+    //checkFlags();
 
     status = pread(fd, (void *)&len, ORI_OBJECT_SIZE, 8);
     if (status < 0) {
