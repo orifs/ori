@@ -13,12 +13,14 @@ src = [
     "scan.cc",
     "tree.cc",
     "util.cc",
+    "server.cc",
 ]
 
 libs = [
         "crypto",
         "stdc++",
         "lzma",
+        "microhttpd",
        ]
 if sys.platform == "darwin":
     # TODO

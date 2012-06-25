@@ -40,6 +40,7 @@ using namespace std;
 
 #include "debug.h"
 #include "repo.h"
+#include "server.h"
 
 /********************************************************************
  *
@@ -76,6 +77,7 @@ int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
 // local
+static int cmd_serve(int argc, const char *argv[]);
 static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
 
@@ -178,6 +180,12 @@ static Cmd commands[] = {
 	NULL,
     },
     {
+        "serve",
+        "Run a simple HTTP server",
+        cmd_serve,
+        NULL
+    },
+    {
         "selftest",
         "Built-in unit tests (DEBUG)",
         cmd_selftest,
@@ -254,6 +262,16 @@ ori_log(const char *fmt, ...)
     fsync(logfd);
 }
 
+static int
+cmd_serve(int argc, const char *argv[]) {
+    // TODO
+    HttpServer server(8080);
+    server.start(NULL);
+    getchar();
+    server.stop();
+    return 0;
+}
+
 int util_selftest(void);
 
 static int
@@ -324,7 +342,7 @@ main(int argc, char *argv[])
         strcmp(argv[1], "help") != 0 &&
         strcmp(argv[1], "init") != 0 &&
         strcmp(argv[1], "selftest") != 0 &&
-        strcmp(argv[1], "sshserver"))
+        strcmp(argv[1], "serve") != 0)
     {
         if (!repository.open()) {
             printf("No repository found!\n");
