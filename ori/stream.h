@@ -2,6 +2,7 @@
 #define __STREAM_H__
 
 #include <vector>
+#include <string>
 
 #include <lzma.h>
 
@@ -13,9 +14,11 @@ public:
 
     virtual bool ended() = 0;
     virtual size_t read(uint8_t *buf, size_t n) = 0;
-    virtual const char *error() { return last_error; };
+    virtual const char *error() { return last_error.size() > 0 ? last_error.c_str() : NULL; };
 protected:
-    const char *last_error;
+    std::string last_error;
+    void setErrno(const char *msg);
+    bool inheritError(bytestream *bs);
 };
 
 class diskstream : public bytestream
@@ -47,6 +50,8 @@ private:
     bool output_ended;
     lzma_stream strm;
     uint8_t in_buf[XZ_READ_BY];
+
+    void setLzmaErr(const char *msg, lzma_ret ret);
 };
 
 #endif

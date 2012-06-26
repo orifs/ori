@@ -8,6 +8,21 @@
 #include "debug.h"
 #include "stream.h"
 
+
+void bytestream::setErrno(const char *msg) {
+    char buf[512];
+    snprintf(buf, 512, "%s: %s (%d)\n", msg, strerror(errno), errno);
+    last_error.assign(buf);
+}
+
+bool bytestream::inheritError(bytestream *bs) {
+    if (bs->error()) {
+        last_error.assign(bs->error());
+        return true;
+    }
+    return false;
+}
+
 /*
  * diskstream
  */
@@ -17,7 +32,9 @@
 diskstream::diskstream(int fd, off_t offset, size_t length)
     : fd(fd), offset(offset), length(length), left(length)
 {
-    lseek(fd, offset, SEEK_SET);
+    if (lseek(fd, offset, SEEK_SET) != offset) {
+        setErrno("lseek");
+    }
 }
 
 bool diskstream::ended() {
@@ -31,7 +48,7 @@ retry_read:
     if (read_bytes < 0) {
         if (errno == EINTR)
             goto retry_read;
-        // TODO error
+        setErrno("read");
         return 0;
     }
     left -= read_bytes;
@@ -49,7 +66,10 @@ lzmastream::lzmastream(bytestream *source)
 
     lzma_stream strm2 = LZMA_STREAM_INIT;
     memcpy(&strm, &strm2, sizeof(lzma_stream));
-    lzma_stream_decoder(&strm, UINT64_MAX, 0);
+
+    lzma_ret ret = lzma_stream_decoder(&strm, UINT64_MAX, 0);
+    if (ret != LZMA_OK)
+        setLzmaErr("lzma_stream_decoder", ret);
 }
 
 lzmastream::~lzmastream() {
@@ -73,6 +93,7 @@ size_t lzmastream::read(uint8_t *buf, size_t n) {
 
         if (strm.avail_in == 0) {
             size_t read_bytes = source->read(in_buf, XZ_READ_BY);
+            if (inheritError(source)) return 0;
             action = read_bytes == 0 ? LZMA_FINISH : LZMA_RUN;
 
             strm.next_in = in_buf;
@@ -85,10 +106,45 @@ size_t lzmastream::read(uint8_t *buf, size_t n) {
             lzma_end(&strm);
         }
         else if (ret != LZMA_OK) {
-            printf("lzma_code: %d\n", ret);
+            setLzmaErr("lzma_code", ret);
             return 0;
         }
     }
 
     return strm.total_out - begin_total;
+}
+
+const char *lzma_ret_str(lzma_ret ret) {
+    switch (ret) {
+    case LZMA_STREAM_END:
+        return "end of stream";
+    case LZMA_NO_CHECK:
+        return "input stream has no integrity check";
+    case LZMA_UNSUPPORTED_CHECK:
+        return "cannot calculate the integrity check";
+    case LZMA_GET_CHECK:
+        return "integrity check available";
+    case LZMA_MEM_ERROR:
+        return "cannot allocate memory";
+    case LZMA_MEMLIMIT_ERROR:
+        return "memory usage limit exceeded";
+    case LZMA_FORMAT_ERROR:
+        return "file format not recognized";
+    case LZMA_OPTIONS_ERROR:
+        return "invalid or unsupported options";
+    case LZMA_DATA_ERROR:
+        return "data is corrupt";
+    case LZMA_BUF_ERROR:
+        return "no progress is possible";
+    case LZMA_PROG_ERROR:
+        return "programming error";
+    }
+    return "unknown";
+}
+
+void lzmastream::setLzmaErr(const char *msg, lzma_ret ret)
+{
+    char buf[512];
+    snprintf(buf, 512, "lzmastream %s: %s (%d)\n", msg, lzma_ret_str(ret), ret);
+    last_error.assign(buf);
 }
