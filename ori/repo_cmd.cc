@@ -186,10 +186,11 @@ cmd_catobj(int argc, const char *argv[])
     }
 
     if (hex) {
-	// XXX: Add hex pretty printer
-	printf("hex object!\n");
+        printf("hex object! first 256 bytes:\n");
+        Util_PrintHex(buf, 0, 256);
+        printf("\n");
     } else {
-	printf("%s", rawBuf);
+        printf("%s", rawBuf);
     }
 
     return 0;

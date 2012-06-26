@@ -374,6 +374,48 @@ Util_GetFullname()
         return "";
 }
 
+
+/*
+ * Pretty print hex data
+ */
+void
+Util_PrintHex(const std::string &data, off_t off, size_t limit)
+{
+    const int row_size = 16;
+    bool stop = false;
+
+    //size_t num_printed = 0;
+    for (size_t row = 0; !stop; row++) {
+        printf("\n");
+        for (size_t col = 0; col < row_size; col++) { 
+            size_t ix = row * row_size + col;
+            if ((limit != 0 && ix >= limit) || ix >= data.length()) {
+                stop = true;
+                break;
+            }
+            ix += off;
+
+            printf("%02X ", (unsigned char)data[ix]);
+        }
+        printf("  ");
+
+        for (size_t col = 0; col < row_size; col++) { 
+            size_t ix = row * row_size + col;
+            if ((limit != 0 && ix >= limit) || ix >= data.length()) {
+                stop = true;
+                break;
+            }
+            ix += off;
+
+            unsigned char c = (unsigned char)data[ix];
+            if (c >= 0x20 && c <= 0x7F)
+                printf("%c", c);
+            else
+                putchar('.');
+        }
+    }
+}
+
 // XXX: Debug Only
 
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)
