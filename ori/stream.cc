@@ -40,7 +40,7 @@ diskstream::diskstream(int fd, off_t offset, size_t length)
 }
 
 bool diskstream::ended() {
-    return left == 0;
+    return left == 0 || error();
 }
 
 size_t diskstream::read(uint8_t *buf, size_t n) {
@@ -79,7 +79,7 @@ lzmastream::~lzmastream() {
 }
 
 bool lzmastream::ended() {
-    return output_ended;
+    return output_ended || error();
 }
 
 size_t lzmastream::read(uint8_t *buf, size_t n) {

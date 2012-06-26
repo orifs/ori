@@ -261,6 +261,12 @@ cmd_selftest(int argc, const char *argv[])
 {
     util_selftest();
 
+    Object o;
+    o.create("test.obj", Object::Blob);
+    o.appendFile("short.txt");
+    std::string blob = o.extractBlob();
+    printf("%s\n", blob.c_str());
+
     return 0;
 }
 
