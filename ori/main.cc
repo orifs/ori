@@ -76,8 +76,10 @@ int cmd_findheads(int argc, const char *argv[]);
 int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
+// server.cc
+int cmd_sshserver(int argc, const char *argv[]);
 // local
-static int cmd_serve(int argc, const char *argv[]);
+int cmd_sshclient(int argc, const char *argv[]); // Debug
 static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
 
@@ -180,9 +182,15 @@ static Cmd commands[] = {
 	NULL,
     },
     {
-        "serve",
-        "Run a simple HTTP server",
-        cmd_serve,
+        "sshserver",
+        "Run a simple stdin/out server, intended for SSH access",
+        cmd_sshserver,
+        NULL
+    },
+    {
+        "sshclient",
+        "Connect to a server via SSH (DEBUG)",
+        cmd_sshclient,
         NULL
     },
     {
@@ -262,16 +270,6 @@ ori_log(const char *fmt, ...)
     fsync(logfd);
 }
 
-static int
-cmd_serve(int argc, const char *argv[]) {
-    HttpServer server(8080);
-    server.start(NULL);
-    printf("Server started, press ENTER to quit\n");
-    getchar(); // TODO
-    server.stop();
-    return 0;
-}
-
 int util_selftest(void);
 
 static int
@@ -342,7 +340,7 @@ main(int argc, char *argv[])
         strcmp(argv[1], "help") != 0 &&
         strcmp(argv[1], "init") != 0 &&
         strcmp(argv[1], "selftest") != 0 &&
-        strcmp(argv[1], "serve") != 0)
+        strcmp(argv[1], "sshserver") != 0)
     {
         if (!repository.open()) {
             printf("No repository found!\n");

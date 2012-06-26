@@ -32,6 +32,7 @@ std::string Util_HashString(const std::string &str);
 std::string Util_HashFile(const std::string &path);
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
+int Util_SetBlocking(int fd, bool block);
 
 #endif /* __UTIL_H__ */
 

@@ -1,6 +1,11 @@
 #include <map>
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
 #include "server.h"
+#include "util.h"
 
 typedef std::map<std::string, std::string> ArgsMap;
 
@@ -59,4 +64,39 @@ void HttpServer::start(Repo *repo) {
 
 void HttpServer::stop() {
     MHD_stop_daemon(daemon);
+}
+
+
+
+SshServer::SshServer()
+{
+}
+
+void SshServer::serve(Repo *repo) {
+    while (true) {
+        char line[256];
+        //char c = fgetc(stdin);
+        char *status = fgets(line, 256, stdin);
+        if (status == NULL) {
+            printf("No line\n");
+            sleep(1);
+        }
+        else {
+            fputs("Test message", stdout);
+            //printf("%c\n", c);
+            fputs(line, stdout);
+        }
+        fflush(stdout);
+    }
+}
+
+int cmd_sshserver(int argc, const char *argv[])
+{
+    Util_SetBlocking(STDIN_FILENO, true);
+    // TODO: necessary?
+    Util_SetBlocking(STDOUT_FILENO, false);
+
+    SshServer server;
+    server.serve(NULL); // TODO
+    return 0;
 }

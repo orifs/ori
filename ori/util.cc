@@ -374,6 +374,24 @@ Util_GetFullname()
         return "";
 }
 
+int Util_SetBlocking(int fd, bool block) {
+    int old_flags = fcntl(fd, F_GETFL);
+    if (old_flags < 0) return old_flags;
+
+    if (block) {
+        if (old_flags & O_NONBLOCK) {
+            fcntl(fd, F_SETFL, old_flags & ~O_NONBLOCK);
+        }
+    }
+    else {
+        if (!(old_flags & O_NONBLOCK)) {
+            fcntl(fd, F_SETFL, old_flags | O_NONBLOCK);
+        }
+    }
+
+    return 0;
+}
+
 // XXX: Debug Only
 
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)

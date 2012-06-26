@@ -22,6 +22,8 @@ class SshServer
 {
 public:
     SshServer();
+
+    void serve(Repo *repo);
 };
 
 #endif
