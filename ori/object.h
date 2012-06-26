@@ -23,7 +23,7 @@
 #include <string>
 #include <map>
 
-#include <lzma.h>
+#include "stream.h"
 
 
 #define ORI_OBJECT_TYPESIZE	    4
@@ -66,6 +66,7 @@ public:
     void addMetadataEntry(MdType type, const std::string &data);
     std::string computeMetadataHash();
     void checkMetadata();
+    bytestream *getPayloadStream();
     // Backreferences
     void addBackref(const std::string &objId, BRState state);
     void updateBackref(const std::string &objId, BRState state);

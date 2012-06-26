@@ -14,11 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/*
- * TODO:
- *  - Object Compression
- */
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -167,7 +162,6 @@ Object::open(const string &path)
         close();
         return -errno;
     }
-    //checkFlags();
 
     status = pread(fd, (void *)&len, ORI_OBJECT_SIZE, 8);
     if (status < 0) {
@@ -362,62 +356,34 @@ error:
 int
 Object::extractFile(const string &path)
 {
-    int dstFd;
-    char buf[COPYFILE_BUFSZ];
-    int64_t bytesLeft;
-    int64_t bytesRead, bytesWritten;
+    std::auto_ptr<bytestream> bs(getPayloadStream());
+    if (bs->error()) return -bs->errnum();
 
-    lzma_stream strm = LZMA_STREAM_INIT;
-    if (getCompressed()) setupLzma(&strm, false);
-
-    if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
-        return -errno;
-    }
-
-    dstFd = ::open(path.c_str(), O_WRONLY | O_CREAT,
+    int dstFd = ::open(path.c_str(), O_WRONLY | O_CREAT,
 		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    if (dstFd < 0) {
-	return -errno;
-    }
+    if (dstFd < 0)
+        return -errno;
 
-    bytesLeft = storedLen;
-    while(bytesLeft > 0) {
-        bytesRead = read(fd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
-        if (bytesRead < 0) {
+    uint8_t buf[COPYFILE_BUFSZ];
+    while (!bs->ended()) {
+        size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
+        if (bs->error()) goto bs_error;
+retryWrite:
+        ssize_t bytesWritten = write(dstFd, buf, bytesRead);
+        if (bytesWritten < 0) {
             if (errno == EINTR)
-            continue;
+                goto retryWrite;
             goto error;
         }
-
-        if (getCompressed()) {
-            strm.next_in = (uint8_t*)buf;
-            strm.avail_in = bytesRead;
-            appendLzma(dstFd, &strm, LZMA_RUN);
-        }
-        else {
-retryWrite:
-            bytesWritten = write(dstFd, buf, bytesRead);
-            if (bytesWritten < 0) {
-                if (errno == EINTR)
-                goto retryWrite;
-                goto error;
-            }
-
-            // XXX: Need to handle this case!
-            assert(bytesRead == bytesWritten);
-        }
-
-        bytesLeft -= bytesRead;
-    }
-
-    if (getCompressed()) {
-        appendLzma(dstFd, &strm, LZMA_FINISH);
-        assert(strm.total_out == (size_t)len);
     }
 
     ::close(dstFd);
-    return len; // TODO
+    return len;
 
+bs_error:
+    unlink(path.c_str());
+    ::close(dstFd);
+    return -bs->errnum();
 error:
     unlink(path.c_str());
     ::close(dstFd);
@@ -474,57 +440,13 @@ Object::appendBlob(const string &blob)
 string
 Object::extractBlob()
 {
-    int status;
-    size_t length = getObjectSize();
-    char *buf;
-    string rval;
+    std::auto_ptr<bytestream> bs(getPayloadStream());
+    if (bs->error()) return "";
 
-    assert(length >= 0);
-
-    buf = new char[length];
-
-    if (getCompressed()) {
-        if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE)
-            return "";
-
-        lzma_stream strm = LZMA_STREAM_INIT;
-        setupLzma(&strm, false);
-        strm.next_out = (uint8_t*)buf;
-        strm.avail_out = length;
-
-        uint8_t in_buf[COPYFILE_BUFSZ];
-
-        off_t curr_off = 0;
-        while (curr_off < storedLen) {
-            ssize_t read_bytes = read(fd, in_buf, MIN(COPYFILE_BUFSZ, storedLen - curr_off));
-            if (read_bytes < 1) {
-                return "";
-            }
-
-            strm.next_in = in_buf;
-            strm.avail_in = read_bytes;
-
-            // TODO is this loop necessary?
-            while (strm.avail_in > 0) {
-                lzma_ret ret_xz = lzma_code(&strm, LZMA_RUN);
-                if (ret_xz == LZMA_STREAM_END) break;
-            }
-
-            curr_off += read_bytes;
-        }
-
-        lzma_ret ret_xz = lzma_code(&strm, LZMA_FINISH);
-        if (ret_xz != LZMA_STREAM_END)
-            return "";
-    }
-    else {
-        status = pread(fd, buf, length, ORI_OBJECT_HDRSIZE);
-        if (status < 0)
-            return "";
-        assert(status == length);
-    }
-
-    rval.assign(buf, length);
+    std::string rval;
+    rval.resize(len);
+    bs->read((uint8_t*)rval.data(), len);
+    if (bs->error()) return "";
 
     return rval;
 }
@@ -535,30 +457,23 @@ Object::extractBlob()
 string
 Object::computeHash()
 {
-    char buf[COPYFILE_BUFSZ];
-    int64_t bytesLeft;
-    int64_t bytesRead;
-    SHA256_CTX state;
+    std::auto_ptr<bytestream> bs(getPayloadStream());
+    if (bs->error()) return "";
+
+    uint8_t buf[COPYFILE_BUFSZ];
     unsigned char hash[SHA256_DIGEST_LENGTH];
     stringstream rval;
 
-    if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
-	return "";
-    }
-
+    SHA256_CTX state;
     SHA256_Init(&state);
 
-    bytesLeft = getObjectSize();
-    while(bytesLeft > 0) {
-	bytesRead = read(fd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
-	if (bytesRead < 0) {
-	    if (errno == EINTR)
-		continue;
-	    return "";
-	}
+    while(!bs->ended()) {
+        size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
+        if (bs->error()) {
+            return "";
+        }
 
-	SHA256_Update(&state, buf, bytesRead);
-	bytesLeft -= bytesRead;
+        SHA256_Update(&state, buf, bytesRead);
     }
 
     SHA256_Final(hash, &state);
@@ -571,7 +486,6 @@ Object::computeHash()
 
     return rval.str();
 }
-
 
 /*
  * Metadata operations
@@ -631,6 +545,15 @@ std::string Object::computeMetadataHash() {
 }
 
 
+
+bytestream *Object::getPayloadStream() {
+    if (getCompressed()) {
+        return new lzmastream(new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
+    }
+    else {
+        return new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen);
+    }
+}
 
 void
 Object::addBackref(const string &objId, Object::BRState state)
@@ -731,7 +654,7 @@ Object::getBackref()
 void Object::setupLzma(lzma_stream *strm, bool encode) {
     lzma_ret ret_xz;
     if (encode) {
-        ret_xz = lzma_easy_encoder(strm, 2, LZMA_CHECK_NONE);
+        ret_xz = lzma_easy_encoder(strm, 0, LZMA_CHECK_NONE);
     }
     else {
         ret_xz = lzma_stream_decoder(strm, UINT64_MAX, 0);
@@ -762,7 +685,6 @@ bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
 
     return true;
 }
-
 const char *Object::_getIdForMdType(MdType type) {
     switch (type) {
     case MdBackref:
