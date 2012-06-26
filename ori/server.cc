@@ -1,4 +1,18 @@
+#include <map>
+
 #include "server.h"
+
+typedef std::map<std::string, std::string> ArgsMap;
+
+int print_keys(void *cls,
+               enum MHD_ValueKind kind,
+               const char *key,
+               const char *value)
+{
+    ArgsMap &args = *(ArgsMap*)cls;
+    args[key] = value;
+    return MHD_YES;
+}
 
 int handle_conn(void *cls,
                 struct MHD_Connection *conn,
@@ -9,17 +23,29 @@ int handle_conn(void *cls,
                 void **con_cls) {
 
     printf("url: %s\n", url);
+    std::string command = url+1;
 
-    const char *page = "Hello, world!";
+    ArgsMap args;
+    MHD_get_connection_values(conn, MHD_GET_ARGUMENT_KIND, &print_keys, &args);
+
+
+    if (command == "get_object") {
+        ArgsMap::iterator it = args.find("hash");
+        if (it == args.end()) {
+            // TODO queue 400 response
+        }
+    }
+
+    /*const char *page = "Hello, world!";
     struct MHD_Response *response = MHD_create_response_from_buffer(
             strlen(page),
             (void *)page,
             MHD_RESPMEM_PERSISTENT);
 
     int ret = MHD_queue_response(conn, MHD_HTTP_OK, response);
-    MHD_destroy_response(response);
+    MHD_destroy_response(response);*/
 
-    return ret;
+    return MHD_NO;
 }
 
 HttpServer::HttpServer(int port)

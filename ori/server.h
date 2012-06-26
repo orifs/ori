@@ -18,4 +18,10 @@ private:
     struct MHD_Daemon *daemon;
 };
 
+class SshServer
+{
+public:
+    SshServer();
+};
+
 #endif

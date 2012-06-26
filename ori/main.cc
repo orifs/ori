@@ -264,10 +264,10 @@ ori_log(const char *fmt, ...)
 
 static int
 cmd_serve(int argc, const char *argv[]) {
-    // TODO
     HttpServer server(8080);
     server.start(NULL);
-    getchar();
+    printf("Server started, press ENTER to quit\n");
+    getchar(); // TODO
     server.stop();
     return 0;
 }
