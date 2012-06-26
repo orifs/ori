@@ -9,14 +9,17 @@
 class bytestream
 {
 public:
-    bytestream() : last_error(NULL) {}
+    bytestream() : last_errnum(0) {}
     virtual ~bytestream() {};
 
     virtual bool ended() = 0;
     virtual size_t read(uint8_t *buf, size_t n) = 0;
-    virtual const char *error() { return last_error.size() > 0 ? last_error.c_str() : NULL; };
+    virtual const char *error() { return last_error.size() > 0 ? last_error.c_str() : NULL; }
+    virtual int errnum() { return last_errnum; }
 protected:
     std::string last_error;
+    int last_errnum;
+
     void setErrno(const char *msg);
     bool inheritError(bytestream *bs);
 };

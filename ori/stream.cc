@@ -13,11 +13,13 @@ void bytestream::setErrno(const char *msg) {
     char buf[512];
     snprintf(buf, 512, "%s: %s (%d)\n", msg, strerror(errno), errno);
     last_error.assign(buf);
+    last_errnum = errno;
 }
 
 bool bytestream::inheritError(bytestream *bs) {
     if (bs->error()) {
         last_error.assign(bs->error());
+        last_errnum = bs->errnum();
         return true;
     }
     return false;
@@ -147,4 +149,5 @@ void lzmastream::setLzmaErr(const char *msg, lzma_ret ret)
     char buf[512];
     snprintf(buf, 512, "lzmastream %s: %s (%d)\n", msg, lzma_ret_str(ret), ret);
     last_error.assign(buf);
+    last_errnum = ret;
 }
