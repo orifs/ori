@@ -487,20 +487,43 @@ Object::computeHash()
     return rval.str();
 }
 
+bytestream *Object::getPayloadStream() {
+    if (getCompressed()) {
+        return new lzmastream(new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
+    }
+    else {
+        return new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen);
+    }
+}
+
+
 /*
  * Metadata operations
  */
 
 #define OFF_MD_HASH (ORI_OBJECT_HDRSIZE + getObjectStoredSize())
 
+/* Organization of metadata on disk: immediately following the stored data, the
+ * SHA256 checksum of all the metadata (size ORI_MD_HASHSIZE); following that, a
+ * plain unpadded array of metadata entries. Each entry begins with a 2-byte
+ * identifier followed by 2 bytes denoting the length in bytes of the entry
+ * followed by the entry itself.
+ */
 void Object::addMetadataEntry(MdType type, const std::string &data) {
+    assert(checkMetadata());
+
     off_t offset = getDiskSize();
+    if (offset == ORI_OBJECT_HDRSIZE + getObjectStoredSize()) {
+        offset += ORI_MD_HASHSIZE;
+    }
+
     int err = pwrite(fd, _getIdForMdType(type), 2, offset);
     assert(err == 2);
-    uint32_t len = data.length();
-    err = pwrite(fd, &len, 4, offset + 2);
-    assert(err = 4);
-    err = pwrite(fd, data.data(), data.length(), offset + 6);
+    uint16_t len = data.length();
+    err = pwrite(fd, &len, 2, offset + 2);
+    assert(err == 2);
+
+    err = pwrite(fd, data.data(), data.length(), offset + 4);
     assert((size_t)err == data.length());
     fsync(fd);
 
@@ -519,7 +542,7 @@ std::string Object::computeMetadataHash() {
     SHA256_CTX state;
     SHA256_Init(&state);
 
-    if (getDiskSize() < offset)
+    if ((off_t)getDiskSize() < offset)
         return "";
 
     size_t bytesLeft = getDiskSize() - offset;
@@ -544,16 +567,34 @@ std::string Object::computeMetadataHash() {
     return rval;
 }
 
-
-
-bytestream *Object::getPayloadStream() {
-    if (getCompressed()) {
-        return new lzmastream(new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
+bool
+Object::checkMetadata()
+{
+    if (getDiskSize() <= OFF_MD_HASH) {
+        // No metadata to check
+        return true;
     }
-    else {
-        return new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen);
-    }
+
+    char disk_hash[ORI_MD_HASHSIZE+1];
+    int status = pread(fd, disk_hash, ORI_MD_HASHSIZE, OFF_MD_HASH);
+    disk_hash[ORI_MD_HASHSIZE] = '\0';
+
+    std::string computed_hash = computeMetadataHash();
+
+    if (strcmp(computed_hash.c_str(), disk_hash) == 0)
+        return true;
+    return false;
 }
+
+void
+Object::clearMetadata()
+{
+    int status;
+
+    status = ftruncate(fd, OFF_MD_HASH);
+    assert(status == 0);
+}
+
 
 void
 Object::addBackref(const string &objId, Object::BRState state)
@@ -576,7 +617,6 @@ Object::addBackref(const string &objId, Object::BRState state)
 void
 Object::updateBackref(const string &objId, Object::BRState state)
 {
-    int status;
     map<string, BRState> backrefs;
     map<string, BRState>::iterator it;
 
@@ -594,50 +634,58 @@ Object::updateBackref(const string &objId, Object::BRState state)
      * translate to a single sector write, which is atomic.
      */
 
-    status = ftruncate(fd, ORI_OBJECT_HDRSIZE + len);
-    assert(status == 0);
+    clearMetadata(); // was clearBackref
 
     for (it = backrefs.begin(); it != backrefs.end(); it++) {
 	addBackref((*it).first, (*it).second);
     }
 }
 
-void
-Object::clearBackref()
-{
-    int status;
-
-    status = ftruncate(fd, ORI_OBJECT_HDRSIZE + len);
-    assert(status == 0);
-}
-
 map<string, Object::BRState>
 Object::getBackref()
 {
-    int status;
-    size_t backrefSize;
-    int off;
-    char *buf;
     map<string, BRState> rval;
 
-    backrefSize = getDiskSize() - ORI_OBJECT_HDRSIZE - len;
-    buf = new char[backrefSize];
-    status = pread(fd, buf, backrefSize, ORI_OBJECT_HDRSIZE + len);
+    off_t md_off = OFF_MD_HASH + ORI_MD_HASHSIZE;
+    if ((off_t)getDiskSize() < md_off) {
+        // No metadata
+        return rval;
+    }
+
+    // Load all metadata into memory
+    size_t backrefSize = getDiskSize() - md_off;
+
+    std::vector<uint8_t> buf;
+    buf.resize(backrefSize);
+    int status = pread(fd, &buf[0], backrefSize, md_off);
     assert(status == backrefSize);
 
-    for (off = 0; off < backrefSize; off++) {
-        string objId;
+    // XXX: more generic way to iterate over metadata
+    uint8_t *ptr = &buf[0];
+    while ((ptr - &buf[0]) < backrefSize) {
+        MdType md_type = _getMdTypeForStr((const char *)ptr);
+        size_t md_len = *((uint16_t*)(ptr+2));
 
-        objId.assign(buf+off, 2 * SHA256_DIGEST_LENGTH);
-        off += 2 * SHA256_DIGEST_LENGTH;
+        ptr += 4;
+        assert(ptr + md_len <= &buf[0] + backrefSize);
 
-        if (buf[off] == 'R') {
-            rval[objId] = BRRef;
-        } else if (buf[off] == 'P') {
-            rval[objId] = BRPurged;
-        } else {
-            assert(false);
+        if (md_type == MdBackref) {
+            assert(md_len == 2*SHA256_DIGEST_LENGTH + 1);
+
+            string objId;
+            objId.assign((char *)ptr, 2*SHA256_DIGEST_LENGTH);
+
+            char ref_type = *(ptr + 2*SHA256_DIGEST_LENGTH);
+            if (ref_type == 'R') {
+                rval[objId] = BRRef;
+            } else if (ref_type == 'P') {
+                rval[objId] = BRPurged;
+            } else {
+                assert(false);
+            }
         }
+
+        ptr += md_len;
     }
 
     return rval;
@@ -685,11 +733,21 @@ bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
 
     return true;
 }
+
 const char *Object::_getIdForMdType(MdType type) {
     switch (type) {
     case MdBackref:
         return "BR";
+    default:
+        return NULL;
     }
+}
 
-    return NULL;
+Object::MdType Object::_getMdTypeForStr(const char *str) {
+    if (str[0] == 'B') {
+        if (str[1] == 'R') {
+            return MdBackref;
+        }
+    }
+    return MdNull;
 }

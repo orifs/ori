@@ -619,14 +619,14 @@ cmd_rebuildrefs(int argc, const char *argv[])
             type == Object::Blob) {
             set<string>::iterator i;
 
-            o.clearBackref();
+            o.clearMetadata(); // was clearBackref
             for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
                 o.addBackref((*i), Object::BRRef);
             }
         } else if (type == Object::Purged) {
             set<string>::iterator i;
 
-            o.clearBackref();
+            o.clearMetadata(); // was clearBackref
             for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
                 o.addBackref((*i), Object::BRPurged);
             }
