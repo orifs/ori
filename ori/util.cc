@@ -392,13 +392,11 @@ int Util_SetBlocking(int fd, bool block) {
 
     if (block) {
         if (old_flags & O_NONBLOCK) {
-            printf("Set blocking %d\n", fd);
             fcntl(fd, F_SETFL, (old_flags & ~O_NONBLOCK));
         }
     }
     else {
         if (!(old_flags & O_NONBLOCK)) {
-            printf("Set nonblocking %d\n", fd);
             fcntl(fd, F_SETFL, old_flags | O_NONBLOCK);
         }
     }

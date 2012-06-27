@@ -330,8 +330,6 @@ main(int argc, char *argv[])
         return cmd_help(0, NULL);
     }
 
-    printf("argc: %d, argv1: %s\n", argc, argv[1]);
-
     // Open the repository for all command except the following
     if (strcmp(argv[1], "clone") != 0 &&
         strcmp(argv[1], "help") != 0 &&

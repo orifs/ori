@@ -50,7 +50,7 @@ Repo repository;
 
 Repo::Repo(const string &root)
 {
-    rootPath = (root == "") ? getRootPath() : root;
+    rootPath = (root == "") ? findRootPath() : root;
 }
 
 Repo::~Repo()
