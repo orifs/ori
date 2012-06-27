@@ -379,6 +379,11 @@ Repo::verifyObject(const string &objId)
 	    return "Object with unknown type!";
     }
 
+    // Check object metadata
+    if (!o.checkMetadata()) {
+        return "Object metadata hash mismatch!";
+    }
+
     return "";
 }
 

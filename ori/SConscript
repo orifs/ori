@@ -13,6 +13,7 @@ src = [
     "scan.cc",
     "tree.cc",
     "util.cc",
+    "stream.cc",
     "server.cc",
     "sshclient.cc",
 ]

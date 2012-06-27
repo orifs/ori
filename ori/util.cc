@@ -36,6 +36,14 @@
 #include <vector>
 #include <string>
 
+#ifdef __FreeBSD__
+#include <uuid.h>
+#endif /* __FreeBSD__ */
+
+#if defined(__APPLE__) || defined(__linux__)
+#include <uuid/uuid.h>
+#endif
+
 #include <openssl/sha.h>
 
 #ifdef OPENSSL_NO_SHA256
@@ -43,6 +51,7 @@
 #endif
 
 #include "util.h"
+#include "stream.h"
 
 using namespace std;
 
@@ -397,6 +406,84 @@ int Util_SetBlocking(int fd, bool block) {
     return 0;
 }
 
+/*
+ * Pretty print hex data
+ */
+void
+Util_PrintHex(const std::string &data, off_t off, size_t limit)
+{
+    const int row_size = 16;
+    bool stop = false;
+
+    //size_t num_printed = 0;
+    for (size_t row = 0; !stop; row++) {
+        printf("\n");
+        for (size_t col = 0; col < row_size; col++) { 
+            size_t ix = row * row_size + col;
+            if ((limit != 0 && ix >= limit) || ix >= data.length()) {
+                stop = true;
+                break;
+            }
+            ix += off;
+
+            printf("%02X ", (unsigned char)data[ix]);
+        }
+        printf("  ");
+
+        for (size_t col = 0; col < row_size; col++) { 
+            size_t ix = row * row_size + col;
+            if ((limit != 0 && ix >= limit) || ix >= data.length()) {
+                stop = true;
+                break;
+            }
+            ix += off;
+
+            unsigned char c = (unsigned char)data[ix];
+            if (c >= 0x20 && c <= 0x7F)
+                printf("%c", c);
+            else
+                putchar('.');
+        }
+    }
+}
+
+/*
+ * Generate a UUID
+ */
+std::string
+Util_NewUUID()
+{
+#ifdef __FreeBSD__
+    uint32_t status;
+    uuid_t id;
+    char *uuidBuf;
+
+    uuid_create(&id, &status);
+    if (status != uuid_s_ok) {
+        printf("Failed to construct UUID!\n");
+        return "";
+    }
+    uuid_to_string(&id, &uuidBuf, &status);
+    if (status != uuid_s_ok) {
+        printf("Failed to print UUID!\n");
+        return "";
+    }
+    std::string rval(uuidBuf);
+    free(uuidBuf);
+    return rval;
+#endif /* __FreeBSD__ */
+
+#if defined(__APPLE__) || defined(__linux__)
+    uuid_t id;
+    uuid_generate(id);
+    char id_buf[128];
+    uuid_unparse(id, id_buf);
+    
+    std::string rval(id_buf);
+    return rval;
+#endif /* __APPLE__ || __linux__ */
+}
+
 // XXX: Debug Only
 
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)
@@ -454,6 +541,17 @@ util_selftest(void)
     assert(tv.size() == 2);
     assert(tv[0] == "abc");
     assert(tv[1] == "def");
+
+
+    // Tests for stream classes
+    int test_fd = open("test.a", O_RDWR | O_CREAT);
+    write(test_fd, "hello, world!", 13);
+    fsync(test_fd);
+    bytestream *bs = new diskstream(test_fd, 1, 3);
+    uint8_t b;
+    bs->read(&b, 1);
+    assert(b == 'e');
+    delete bs;
 
     printf("Test Succeeded!\n");
     return 0;
