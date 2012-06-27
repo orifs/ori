@@ -23,7 +23,7 @@ class SshServer
 public:
     SshServer();
 
-    void serve(Repo *repo);
+    void serve();
 };
 
 #endif

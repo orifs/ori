@@ -376,15 +376,20 @@ Util_GetFullname()
 
 int Util_SetBlocking(int fd, bool block) {
     int old_flags = fcntl(fd, F_GETFL);
-    if (old_flags < 0) return old_flags;
+    if (old_flags < 0) {
+        perror("fcntl");
+        return old_flags;
+    }
 
     if (block) {
         if (old_flags & O_NONBLOCK) {
-            fcntl(fd, F_SETFL, old_flags & ~O_NONBLOCK);
+            printf("Set blocking %d\n", fd);
+            fcntl(fd, F_SETFL, (old_flags & ~O_NONBLOCK));
         }
     }
     else {
         if (!(old_flags & O_NONBLOCK)) {
+            printf("Set nonblocking %d\n", fd);
             fcntl(fd, F_SETFL, old_flags | O_NONBLOCK);
         }
     }

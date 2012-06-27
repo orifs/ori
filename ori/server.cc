@@ -72,31 +72,103 @@ SshServer::SshServer()
 {
 }
 
-void SshServer::serve(Repo *repo) {
+typedef std::vector<char *> args_vec;
+args_vec sep_args(char *str) {
+    size_t len = strlen(str);
+    args_vec rval;
+
+    size_t last = 0;
+    for (size_t i = 1; i < len; i++) {
+        if (str[i] == ' ' || str[i] == '\n') {
+            str[i] = '\0';
+            rval.push_back(str+last);
+            last = i+1;
+        }
+    }
+    //rval.push_back(str+last);
+
+    return rval;
+}
+
+void SshServer::serve() {
+    printf("READY\n");
+    fflush(stdout);
+    fsync(STDOUT_FILENO);
+
     while (true) {
-        char line[256];
-        //char c = fgetc(stdin);
-        char *status = fgets(line, 256, stdin);
+        // Get command
+        char command[256];
+        char *status = fgets(command, 256, stdin); // TODO: check for ready to read
         if (status == NULL) {
-            printf("No line\n");
-            sleep(1);
+            if (feof(stdin)) break;
+            if (ferror(stdin) && errno != EAGAIN) {
+                perror("fgets");
+                fflush(stdout);
+                exit(1);
+            }
+            else {
+                //sleep(1);
+            }
         }
         else {
-            fputs("Test message", stdout);
-            //printf("%c\n", c);
-            fputs(line, stdout);
+            // Separate command and arguments
+            args_vec args = sep_args(command);
+            
+            if (strcmp(command, "catobj") == 0) {
+                char *hash = args[1];
+                std::string obj = repository.getObject(hash);
+                printf("hash: %s\ndata-length: %lu\nDATA\n", hash, obj.length());
+                write(STDOUT_FILENO, obj.data(), obj.length());
+                write(STDOUT_FILENO, "\n", 1);
+            }
+            else if (strcmp(command, "show") == 0) {
+                printf("root: %s\nuuid: %s\nversion: %s\nHEAD: %s\nDONE\n",
+                        repository.getRootPath().c_str(),
+                        repository.getUUID().c_str(),
+                        repository.getVersion().c_str(),
+                        repository.getHead().c_str());
+            }
+            else {
+                printf("ERROR unknown command %s\n", command);
+            }
         }
         fflush(stdout);
+        fsync(STDOUT_FILENO);
     }
+
+    fflush(stdout);
+    fsync(STDOUT_FILENO);
+}
+
+void ae_flush() {
+    fflush(stdout);
+    fsync(STDOUT_FILENO);
 }
 
 int cmd_sshserver(int argc, const char *argv[])
 {
+    atexit(ae_flush);
+
     Util_SetBlocking(STDIN_FILENO, true);
     // TODO: necessary?
     Util_SetBlocking(STDOUT_FILENO, false);
 
+    // Disable output buffering
+    setvbuf(stdout, NULL, _IONBF, 0); // libc
+    fcntl(STDOUT_FILENO, F_NOCACHE, 1); // os x
+
+    if (argc < 2) {
+        printf("ERROR need repository name\n");
+        fflush(stdout);
+        exit(1);
+    }
+    if (!repository.open(argv[1])) {
+        printf("ERROR no repo found\n");
+        fflush(stdout);
+        exit(101);
+    }
+
     SshServer server;
-    server.serve(NULL); // TODO
+    server.serve();
     return 0;
 }

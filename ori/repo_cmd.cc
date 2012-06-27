@@ -143,7 +143,7 @@ cmd_init(int argc, const char *argv[])
 int
 cmd_show(int argc, const char *argv[])
 {
-    string rootPath = Repo::getRootPath();
+    string rootPath = Repo::findRootPath();
 
     if (rootPath.compare("") == 0) {
         printf("No repository found!\n");
@@ -293,7 +293,7 @@ cmd_commit(int argc, const char *argv[])
     string user;
     Tree tree = Tree();
     Commit commit = Commit();
-    string root = Repo::getRootPath();
+    string root = Repo::findRootPath();
 
     if (argc == 1) {
         msg = "No message.";
@@ -330,7 +330,7 @@ cmd_commit(int argc, const char *argv[])
 int
 StatusDirectoryCB(void *arg, const char *path)
 {
-    string repoRoot = Repo::getRootPath();
+    string repoRoot = Repo::findRootPath();
     string objPath = path;
     string objHash;
     map<string, string> *dirState = (map<string, string> *)arg;
@@ -389,7 +389,7 @@ cmd_status(int argc, const char *argv[])
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 
-    Scan_RTraverse(Repo::getRootPath().c_str(),
+    Scan_RTraverse(Repo::findRootPath().c_str(),
 		   (void *)&dirState,
 	           StatusDirectoryCB);
 
@@ -431,7 +431,7 @@ cmd_checkout(int argc, const char *argv[])
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 
-    Scan_RTraverse(Repo::getRootPath().c_str(),
+    Scan_RTraverse(Repo::findRootPath().c_str(),
 		   (void *)&dirState,
 	           StatusDirectoryCB);
 
@@ -444,14 +444,14 @@ cmd_checkout(int argc, const char *argv[])
 	    // XXX: Handle replace a file <-> directory with same name
 	    assert((*it).second != "DIR");
 	    repository.copyObject((*k).second,
-				  Repo::getRootPath()+(*k).first);
+				  Repo::findRootPath()+(*k).first);
 	}
     }
 
     for (it = tipState.begin(); it != tipState.end(); it++) {
 	map<string, string>::iterator k = dirState.find((*it).first);
 	if (k == dirState.end()) {
-	    string path = Repo::getRootPath() + (*it).first;
+	    string path = Repo::findRootPath() + (*it).first;
 	    if ((*it).second == "DIR") {
 		printf("N	%s\n", (*it).first.c_str());
 		mkdir(path.c_str(), 0755);

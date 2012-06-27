@@ -60,7 +60,7 @@ Repo::~Repo()
 bool
 Repo::open(const string &root)
 {
-    if (root != "") {
+    if (root.compare("") != 0) {
         rootPath = root;
     }
 
@@ -68,10 +68,17 @@ Repo::open(const string &root)
         return false;
 
     // Read UUID
-    id = Util_ReadFile(getRootPath() + ORI_PATH_UUID, NULL);
+    std::string uuid_path = rootPath + ORI_PATH_UUID;
+    char *id_str = Util_ReadFile(uuid_path, NULL);
+    if (id_str == NULL)
+        return false;
+    id = id_str;
 
     // Read Version
-    version = Util_ReadFile(getRootPath() + ORI_PATH_VERSION, NULL);
+    char *ver_str = Util_ReadFile(rootPath + ORI_PATH_VERSION, NULL);
+    if (ver_str == NULL)
+        return false;
+    version = ver_str;
 
     return true;
 }
@@ -807,6 +814,13 @@ Repo::getVersion()
     return version;
 }
 
+string
+Repo::getRootPath()
+{
+    return rootPath;
+}
+
+
 /*
  * High Level Operations
  */
@@ -837,40 +851,19 @@ string
 Repo::findRootPath(const string &path)
 {
     string root = path;
-    string uuidfile;
-    struct stat dbstat;
+    if (path.size() == 0) {
+        char *cwd = getcwd(NULL, MAXPATHLEN);
+        if (cwd == NULL) {
+            perror("getcwd");
+            exit(1);
+        }
 
-    root = path;
-
-    // look for the UUID file
-    while (1) {
-        uuidfile = root + ORI_PATH_UUID;
-        if (stat(uuidfile.c_str(), &dbstat) == 0)
-            return root;
-
-        size_t slash = root.rfind('/');
-        if (slash == 0)
-            return "";
-        root.erase(slash);
+        root.assign(cwd);
+        free(cwd);
     }
 
-    return root;
-}
-
-string
-Repo::getRootPath()
-{
-    char *cwd = getcwd(NULL, MAXPATHLEN);
-    string root;
     string uuidfile;
     struct stat dbstat;
-
-    if (cwd == NULL) {
-        perror("getcwd");
-        exit(1);
-    }
-    root = cwd;
-    free(cwd);
 
     // look for the UUID file
     while (1) {
@@ -890,7 +883,7 @@ Repo::getRootPath()
 string
 Repo::getLogPath()
 {
-    string rootPath = Repo::getRootPath();
+    string rootPath = Repo::findRootPath();
     
     if (rootPath.compare("") == 0)
         return rootPath;
@@ -900,7 +893,7 @@ Repo::getLogPath()
 string
 Repo::getTmpFile()
 {
-    string rootPath = Repo::getRootPath();
+    string rootPath = Repo::findRootPath();
     string tmpFile;
     char buf[10];
     // Declare static as an optimization 

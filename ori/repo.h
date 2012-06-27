@@ -90,13 +90,13 @@ public:
     std::string getHead();
     void updateHead(const std::string &commitId);
     // General Operations
+    std::string getRootPath();
     std::string getUUID();
     std::string getVersion();
     // High Level Operations
     void pull(Repo *r);
     // Static Operations
-    static std::string findRootPath(const std::string &path);
-    static std::string getRootPath();
+    static std::string findRootPath(const std::string &path = "");
     static std::string getLogPath();
     static std::string getTmpFile();
 private:
