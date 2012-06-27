@@ -34,6 +34,7 @@ std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
 
 void Util_PrintHex(const std::string &data, off_t off = 0, size_t limit = 0);
+std::string Util_NewUUID();
 
 #endif /* __UTIL_H__ */
 

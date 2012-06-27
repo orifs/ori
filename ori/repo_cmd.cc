@@ -27,10 +27,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef __FreeBSD__
-#include <uuid.h>
-#endif /* __FreeBSD__ */
-
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -60,11 +56,6 @@ cmd_init(int argc, const char *argv[])
     string objDir;
     string versionFile;
     string uuidFile;
-#ifdef __FreeBSD__
-    uuid_t id;
-    char *uuidBuf;
-#endif /* __FreeBSD__ */
-    uint32_t status;
     int fd;
     
     if (argc == 1) {
@@ -110,20 +101,8 @@ cmd_init(int argc, const char *argv[])
         return 1;
     }
 
-#ifdef __FreeBSD__
-    uuid_create(&id, &status);
-    if (status != uuid_s_ok) {
-        printf("Failed to construct UUID!\n");
-        return 1;
-    }
-    uuid_to_string(&id, &uuidBuf, &status);
-    if (status != uuid_s_ok) {
-        printf("Failed to print UUID!\n");
-        return 1;
-    }
-    dprintf(fd, "%s", uuidBuf);
-    free(uuidBuf);
-#endif /* __FreeBSD__ */
+    std::string generated_uuid = Util_NewUUID();
+    write(fd, generated_uuid.data(), generated_uuid.length());
     close(fd);
     chmod(uuidFile.c_str(), 0440);
 
