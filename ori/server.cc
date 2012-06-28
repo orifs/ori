@@ -122,7 +122,7 @@ void SshServer::serve() {
             
             if (strcmp(command, "hello") == 0) {
                 // Setup comm protocol
-                printf("version: %s\nDONE\n", ORI_PROTO_VERSION);
+                printf("%s\nDONE\n", ORI_PROTO_VERSION);
             }
             else if (strcmp(command, "listobj") == 0) {
                 std::set<std::string> objects = repository.getObjects();
@@ -133,14 +133,29 @@ void SshServer::serve() {
                 }
                 printf("DONE\n");
             }
-            else if (strcmp(command, "catobj") == 0) {
+            else if (strcmp(command, "readobj") == 0) {
                 char *hash = args[1];
-                std::string obj = repository.getObject(hash);
-                printf("hash: %s\ndata-length: %lu\nDATA\n", hash, obj.length());
-                write(STDOUT_FILENO, obj.data(), obj.length());
+                // send compressed object
+                Object obj = repository.getObject(hash);
+                Object::ObjectInfo &info = obj.getInfo();
+
+                printf("%s\n%s\n%08X\n%lu\nDATA %lu\n",
+                        hash,
+                        info.getTypeStr(),
+                        info.flags,
+                        info.payload_size,
+                        obj.getStoredPayloadSize());
+
+                bytestream *bs = obj.getRawPayloadStream();
+                while (!bs->ended()) {
+                    uint8_t buf[1024];
+                    size_t read_n = bs->read(buf, 1024);
+                    write(STDOUT_FILENO, buf, read_n);
+                }
                 write(STDOUT_FILENO, "DONE\n", 5);
             }
             else if (strcmp(command, "show") == 0) {
+                // TODO: is this necessary?
                 printf("root: %s\nuuid: %s\nversion: %s\nHEAD: %s\nDONE\n",
                         repository.getRootPath().c_str(),
                         repository.getUUID().c_str(),

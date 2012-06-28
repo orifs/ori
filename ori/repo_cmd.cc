@@ -154,7 +154,7 @@ cmd_catobj(int argc, const char *argv[])
 	return 1;
     }
 
-    buf = repository.getObject(argv[1]);
+    buf = repository.getPayload(argv[1]);
     rawBuf = (const unsigned char *)buf.data();
 
     for (int i = 0; i < len; i++) {

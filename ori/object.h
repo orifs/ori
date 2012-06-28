@@ -46,12 +46,13 @@ public:
 
     struct ObjectInfo {
         ObjectInfo();
+        const char *getTypeStr();
         ssize_t writeTo(int fd, bool seekable = true);
 
         Type type;
         int flags;
         size_t payload_size;
-        uint8_t hash[2*ORI_MD_HASHSIZE];
+        char hash[2*ORI_MD_HASHSIZE+1]; // null byte at end
     };
 
     Object();
@@ -73,6 +74,7 @@ public:
     std::string extractBlob();
     std::string computeHash();
     bytestream *getPayloadStream();
+    bytestream *getRawPayloadStream();
     // Metadata
     void addMetadataEntry(MdType type, const std::string &data);
     std::string computeMetadataHash();

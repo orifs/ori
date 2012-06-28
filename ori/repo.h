@@ -88,7 +88,8 @@ public:
     std::string addBlob(const std::string &blob, Object::Type type);
     std::string addTree(/* const */ Tree &tree);
     std::string addCommit(/* const */ Commit &commit);
-    std::string getObject(const std::string &objId);
+    Object getObject(const std::string &objId);
+    std::string getPayload(const std::string &objId);
     size_t getObjectLength(const std::string &objId);
     Object::Type getObjectType(const std::string &objId);
     std::string verifyObject(const std::string &objId);

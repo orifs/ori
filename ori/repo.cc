@@ -298,18 +298,31 @@ Repo::addCommit(/* const */ Commit &commit)
 }
 
 /*
- * Read an object into memory and return it as a string.
+ * Get the Object associated with an ID.
  */
-std::string
+Object
 Repo::getObject(const string &objId)
 {
     string path = objIdToPath(objId);
-    Object o = Object();
+    Object o;
 
     // XXX: Add better error handling
     if (o.open(path) < 0)
-	return "";
+	return o;
 
+    return o;
+}
+
+/*
+ * Read an object into memory and return it as a string.
+ */
+std::string
+Repo::getPayload(const string &objId)
+{
+    Object o = getObject(objId);
+    // XXX: Add better error handling
+    if (o.getInfo().type == Object::Null)
+        return "";
     return o.extractBlob();
 }
 
@@ -479,7 +492,7 @@ Commit
 Repo::getCommit(const std::string &commitId)
 {
     Commit c = Commit();
-    string blob = getObject(commitId);
+    string blob = getPayload(commitId);
     c.fromBlob(blob);
 
     return c;
@@ -489,7 +502,7 @@ Tree
 Repo::getTree(const std::string &treeId)
 {
     Tree t = Tree();
-    string blob = getObject(treeId);
+    string blob = getPayload(treeId);
     t.fromBlob(blob);
 
     return t;
@@ -737,7 +750,7 @@ public:
         {
 	    if (!dst->hasObject(*it)) {
                 // XXX: Copy object without loading it all into memory!
-	        dst->addBlob(src->getObject(*it), src->getObjectType(*it));
+	        dst->addBlob(src->getPayload(*it), src->getObjectType(*it));
 	    }
         }
 
@@ -843,7 +856,7 @@ Repo::pull(Repo *r)
     {
 	if (!hasObject(*it)) {
 	    // XXX: Copy object without loading it all into memory!
-	    addBlob(r->getObject(*it), r->getObjectType(*it));
+	    addBlob(r->getPayload(*it), r->getObjectType(*it));
 	}
     }
 }

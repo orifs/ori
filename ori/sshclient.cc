@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstdio>
+#include <cassert>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -33,6 +34,8 @@ SshClient::~SshClient()
         while (kill(childPid, 0)) {
         }
     }
+
+    childPid = -1;
 }
 
 int SshClient::connect()
@@ -170,6 +173,40 @@ void SshClient::recvResponse(std::string &out) {
 /*
  * SshRepo
  */
+
+SshRepo::SshRepo(SshClient *client)
+    : client(client)
+{
+}
+
+SshRepo::~SshRepo()
+{
+}
+
+int SshRepo::getObjectRaw(Object::ObjectInfo *info, std::string &raw_data)
+{
+    std::string command = "readobj ";
+    command += info->hash;
+    client->sendCommand(command);
+
+    std::string resp;
+    client->recvResponse(resp);
+    // TODO
+    return -1;
+}
+
+std::set<std::string> SshRepo::listObjects()
+{
+    assert(false);
+    return std::set<std::string>();
+}
+
+Object SshRepo::addObjectRaw(Object::ObjectInfo info, const std::string
+        &raw_data)
+{
+    assert(false);
+    return Object();
+}
 
 
 

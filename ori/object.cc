@@ -48,10 +48,11 @@ using namespace std;
 Object::ObjectInfo::ObjectInfo()
     : type(Object::Null), flags(0), payload_size(0)
 {
-    memset(hash, 0, 2*SHA256_DIGEST_LENGTH); // TODO
+    assert(sizeof(hash) == 2*SHA256_DIGEST_LENGTH + 1);
+    memset(hash, 0, sizeof(hash)); // TODO
 }
 
-ssize_t Object::ObjectInfo::writeTo(int fd, bool seekable) {
+const char *Object::ObjectInfo::getTypeStr() {
     const char *type_str = NULL;
     switch (type) {
         case Commit:    type_str = "CMMT"; break;
@@ -62,8 +63,15 @@ ssize_t Object::ObjectInfo::writeTo(int fd, bool seekable) {
         default:
             printf("Unknown object type!\n");
             assert(false);
-            return -1;
+            return NULL;
     }
+    return type_str;
+}
+
+ssize_t Object::ObjectInfo::writeTo(int fd, bool seekable) {
+    const char *type_str = getTypeStr();
+    if (type_str == NULL)
+        return -1;
 
     ssize_t status;
     if (seekable) {
@@ -442,7 +450,7 @@ Object::appendBlob(const string &blob)
         if (status < 0)
             return -errno;
 
-        assert(status == blob.length());
+        assert((size_t)status == blob.length());
 
         storedLen = blob.length();
     }
@@ -509,11 +517,15 @@ Object::computeHash()
 
 bytestream *Object::getPayloadStream() {
     if (getCompressed()) {
-        return new lzmastream(new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
+        return new lzmastream(getRawPayloadStream());
     }
     else {
-        return new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen);
+        return getRawPayloadStream();
     }
+}
+
+bytestream *Object::getRawPayloadStream() {
+    return new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen);
 }
 
 
