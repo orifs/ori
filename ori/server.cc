@@ -111,6 +111,12 @@ void SshServer::serve() {
             }
         }
         else {
+            if (command[0] == '\n') {
+                // blank line
+                printf("DONE\n");
+                continue;
+            }
+
             // Separate command and arguments
             args_vec args = sep_args(command);
             
@@ -132,7 +138,7 @@ void SshServer::serve() {
                 std::string obj = repository.getObject(hash);
                 printf("hash: %s\ndata-length: %lu\nDATA\n", hash, obj.length());
                 write(STDOUT_FILENO, obj.data(), obj.length());
-                write(STDOUT_FILENO, "\n", 1);
+                write(STDOUT_FILENO, "DONE\n", 5);
             }
             else if (strcmp(command, "show") == 0) {
                 printf("root: %s\nuuid: %s\nversion: %s\nHEAD: %s\nDONE\n",
@@ -142,7 +148,7 @@ void SshServer::serve() {
                         repository.getHead().c_str());
             }
             else {
-                printf("ERROR unknown command %s\n", command);
+                printf("ERROR unknown command %s\nDONE\n", command);
             }
         }
         fflush(stdout);
@@ -171,12 +177,12 @@ int cmd_sshserver(int argc, const char *argv[])
     fcntl(STDOUT_FILENO, F_NOCACHE, 1); // os x
 
     if (argc < 2) {
-        printf("ERROR need repository name\n");
+        printf("ERROR need repository name\nDONE\n");
         fflush(stdout);
         exit(1);
     }
     if (!repository.open(argv[1])) {
-        printf("ERROR no repo found\n");
+        printf("ERROR no repo found\nDONE\n");
         fflush(stdout);
         exit(101);
     }

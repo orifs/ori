@@ -45,18 +45,23 @@ public:
     BasicRepo() {}
     virtual ~BasicRepo() {}
 
+    virtual int getObjectRaw(
+            Object::ObjectInfo *info,
+            std::string &raw_data) = 0;
+
+    // TODO: add options to query?
+    virtual std::set<std::string> listObjects() = 0;
+
     // TODO: change return value to std::auto_ptr<Object>?
     virtual Object addObjectRaw(
-            Object::Type type,
-            const std::string &id,
+            Object::ObjectInfo info,
             const std::string &raw_data) = 0;
     virtual Object addObjectRaw(
-            Object::Type type,
-            const std::string &id,
+            Object::ObjectInfo info,
             bytestream *raw_data) = 0;
 
     virtual std::string addObject(
-            Object::Type type,
+            Object::ObjectInfo info,
             const std::string &payload
             ) = 0;
 };
