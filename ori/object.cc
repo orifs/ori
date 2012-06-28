@@ -42,10 +42,59 @@
 
 using namespace std;
 
+/*
+ * ObjectInfo
+ */
+Object::ObjectInfo::ObjectInfo()
+    : type(Object::Null), flags(0), payload_size(0)
+{
+    memset(hash, 0, 2*SHA256_DIGEST_LENGTH); // TODO
+}
+
+ssize_t Object::ObjectInfo::writeTo(int fd, bool seekable) {
+    const char *type_str = NULL;
+    switch (type) {
+        case Commit:    type_str = "CMMT"; break;
+        case Tree:      type_str = "TREE"; break;
+        case Blob:      type_str = "BLOB"; break;
+        case LargeBlob: type_str = "LGBL"; break;
+        case Purged:    type_str = "PURG"; break;
+        default:
+            printf("Unknown object type!\n");
+            assert(false);
+            return -1;
+    }
+
+    ssize_t status;
+    if (seekable) {
+        status = pwrite(fd, type_str, ORI_OBJECT_TYPESIZE, 0);
+        if (status < 0) return status;
+        assert(status == ORI_OBJECT_TYPESIZE);
+
+        status = pwrite(fd, &flags, ORI_OBJECT_FLAGSSIZE, 4);
+        if (status < 0) return status;
+        assert(status == ORI_OBJECT_FLAGSSIZE);
+
+        status = pwrite(fd, &payload_size, ORI_OBJECT_SIZE, 8);
+        if (status < 0) return status;
+        assert(status == ORI_OBJECT_SIZE);
+
+        return 0;
+    }
+    else {
+        // TODO!!! use write() instead
+        assert(false);
+    }
+}
+
+
+
+/*
+ * Object
+ */
 Object::Object()
 {
     fd = -1;
-    flags = 0;
 }
 
 Object::~Object()
@@ -68,51 +117,18 @@ Object::create(const string &path, Type type, uint32_t flags)
     if (fd < 0)
 	return -errno;
 
-    switch (type) {
-	case Commit:
-	    status = pwrite(fd, "CMMT", ORI_OBJECT_TYPESIZE, 0);
-	    t = Commit;
-	    break;
-	case Tree:
-	    status = pwrite(fd, "TREE", ORI_OBJECT_TYPESIZE, 0);
-	    t = Tree;
-	    break;
-	case Blob:
-	    status = pwrite(fd, "BLOB", ORI_OBJECT_TYPESIZE, 0);
-	    t = Blob;
-	    break;
-    case LargeBlob:
-	    status = pwrite(fd, "LGBL", ORI_OBJECT_TYPESIZE, 0);
-	    t = LargeBlob;
-	    break;
-	case Purged:
-	    status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
-	    t = Purged;
-	    break;
-	default:
-	    printf("Unknown object type!\n");
-	    assert(false);
-	    break;
-    }
-    if (status < 0)
-	return -errno;
-
-    assert(status == 4);
-
-    this->flags = flags;
-    //checkFlags();
-    status = pwrite(fd, &flags,
-		    ORI_OBJECT_FLAGSSIZE, 4);
+    info.type = type;
+    info.flags = flags;
+    status = info.writeTo(fd);
     if (status < 0)
         return -errno;
 
-    for (int i = 1; i <= 2; i++) {
-        status = pwrite(fd, "\0\0\0\0\0\0\0\0",
-                ORI_OBJECT_SIZE, 8*i);
-        if (status < 0)
-            return -errno;
-        assert(status == ORI_OBJECT_SIZE);
-    }
+    // Stored length
+    status = pwrite(fd, "\0\0\0\0\0\0\0\0",
+            ORI_OBJECT_SIZE, 16);
+    if (status < 0)
+        return -errno;
+    assert(status == ORI_OBJECT_SIZE);
 
     return 0;
 }
@@ -142,6 +158,7 @@ Object::open(const string &path)
 
     assert(status == ORI_OBJECT_TYPESIZE);
 
+    Type t;
     if (strcmp(buf, "CMMT") == 0) {
         t = Commit;
     } else if (strcmp(buf, "TREE") == 0) {
@@ -157,13 +174,15 @@ Object::open(const string &path)
         assert(false);
     }
 
-    status = pread(fd, (void *)&flags, ORI_OBJECT_FLAGSSIZE, 4);
+    info.type = t;
+
+    status = pread(fd, (void *)&info.flags, ORI_OBJECT_FLAGSSIZE, 4);
     if (status < 0) {
         close();
         return -errno;
     }
 
-    status = pread(fd, (void *)&len, ORI_OBJECT_SIZE, 8);
+    status = pread(fd, (void *)&info.payload_size, ORI_OBJECT_SIZE, 8);
     if (status < 0) {
 	::close(fd);
 	fd = -1;
@@ -190,10 +209,17 @@ Object::close()
         ::close(fd);
 
     fd = -1;
-    t = Null;
-    len = -1;
-    storedLen = -1;
+    storedLen = 0;
     objPath = "";
+    info = ObjectInfo();
+}
+
+/*
+ * Get the header info.
+ */
+Object::ObjectInfo &
+Object::getInfo() {
+    return info;
 }
 
 /*
@@ -202,7 +228,7 @@ Object::close()
 Object::Type
 Object::getType()
 {
-    return t;
+    return info.type;
 }
 
 /*
@@ -221,23 +247,17 @@ Object::getDiskSize()
 }
 
 /*
- * Get the extracted object size.
+ * Get the size of the payload when stored on disk (e.g. after compression)
  */
 size_t
-Object::getObjectSize()
-{
-    return len;
-}
-
-size_t
-Object::getObjectStoredSize() {
+Object::getStoredPayloadSize() {
     return storedLen;
 }
 
 /* Flags */
 
 bool Object::getCompressed() {
-    return flags & ORI_FLAG_COMPRESSED;
+    return info.flags & ORI_FLAG_COMPRESSED;
 }
 
 #define COPYFILE_BUFSZ	4096
@@ -251,11 +271,11 @@ Object::purge()
     int status;
 
     // XXX: Support for backrefs and large blobs
-    NOT_IMPLEMENTED(ORI_OBJECT_HDRSIZE + len == getDiskSize());
-    NOT_IMPLEMENTED(t == Blob);
+    NOT_IMPLEMENTED(ORI_OBJECT_HDRSIZE + storedLen == getDiskSize());
+    NOT_IMPLEMENTED(info.type == Blob);
 
     status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
-    t = Purged;
+    info.type = Purged;
     if (status < 0)
 	return -errno;
 
@@ -294,10 +314,10 @@ Object::appendFile(const string &path)
 	return -errno;
     }
 
-    len = sb.st_size;
-    if (pwrite(fd, (void *)&len, ORI_OBJECT_SIZE, 8) != ORI_OBJECT_SIZE) {
-	::close(srcFd);
-	return -errno;
+    info.payload_size = sb.st_size;
+    if (info.writeTo(fd) < 0) {
+        ::close(srcFd);
+        return -errno;
     }
 
     bytesLeft = sb.st_size;
@@ -336,7 +356,7 @@ retryWrite:
         storedLen = strm.total_out;
     }
     else {
-        storedLen = len;
+        storedLen = info.payload_size;
     }
 
     if (pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16) != ORI_OBJECT_SIZE)
@@ -378,7 +398,7 @@ retryWrite:
     }
 
     ::close(dstFd);
-    return len;
+    return info.payload_size;
 
 bs_error:
     unlink(path.c_str());
@@ -398,8 +418,8 @@ Object::appendBlob(const string &blob)
 {
     int status;
 
-    len = blob.length();
-    if (pwrite(fd, (void *)&len, ORI_OBJECT_SIZE, 8) != ORI_OBJECT_SIZE) {
+    info.payload_size = blob.length();
+    if (info.writeTo(fd) < 0) {
         return -errno;
     }
 
@@ -444,8 +464,8 @@ Object::extractBlob()
     if (bs->error()) return "";
 
     std::string rval;
-    rval.resize(len);
-    bs->read((uint8_t*)rval.data(), len);
+    rval.resize(info.payload_size);
+    bs->read((uint8_t*)rval.data(), info.payload_size);
     if (bs->error()) return "";
 
     return rval;
@@ -501,7 +521,7 @@ bytestream *Object::getPayloadStream() {
  * Metadata operations
  */
 
-#define OFF_MD_HASH (ORI_OBJECT_HDRSIZE + getObjectStoredSize())
+#define OFF_MD_HASH (ORI_OBJECT_HDRSIZE + getStoredPayloadSize())
 
 /* Organization of metadata on disk: immediately following the stored data, the
  * SHA256 checksum of all the metadata (size ORI_MD_HASHSIZE); following that, a
@@ -513,7 +533,7 @@ void Object::addMetadataEntry(MdType type, const std::string &data) {
     assert(checkMetadata());
 
     off_t offset = getDiskSize();
-    if (offset == ORI_OBJECT_HDRSIZE + getObjectStoredSize()) {
+    if (offset == OFF_MD_HASH) {
         offset += ORI_MD_HASHSIZE;
     }
 
@@ -577,6 +597,10 @@ Object::checkMetadata()
 
     char disk_hash[ORI_MD_HASHSIZE+1];
     int status = pread(fd, disk_hash, ORI_MD_HASHSIZE, OFF_MD_HASH);
+    if (status < 0) {
+        perror("pread");
+        return false;
+    }
     disk_hash[ORI_MD_HASHSIZE] = '\0';
 
     std::string computed_hash = computeMetadataHash();

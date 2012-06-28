@@ -39,6 +39,28 @@
 
 #define LARGEFILE_MINIMUM (1024 * 1024)
 
+class BasicRepo
+{
+public:
+    BasicRepo() {}
+    virtual ~BasicRepo() {}
+
+    // TODO: change return value to std::auto_ptr<Object>?
+    virtual Object addObjectRaw(
+            Object::Type type,
+            const std::string &id,
+            const std::string &raw_data) = 0;
+    virtual Object addObjectRaw(
+            Object::Type type,
+            const std::string &id,
+            bytestream *raw_data) = 0;
+
+    virtual std::string addObject(
+            Object::Type type,
+            const std::string &payload
+            ) = 0;
+};
+
 class HistoryCB
 {
 public:

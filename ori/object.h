@@ -31,7 +31,7 @@
 #define ORI_OBJECT_SIZE		    8
 #define ORI_OBJECT_HDRSIZE	    24
 
-#define ORI_MD_HASHSIZE SHA256_DIGEST_LENGTH
+#define ORI_MD_HASHSIZE 32 //SHA256_DIGEST_LENGTH
 
 #define ORI_FLAG_COMPRESSED 0x0001
 
@@ -44,15 +44,25 @@ public:
     enum MdType { MdNull, MdBackref };
     enum BRState { BRNull, BRRef, BRPurged };
 
+    struct ObjectInfo {
+        ObjectInfo();
+        ssize_t writeTo(int fd, bool seekable = true);
+
+        Type type;
+        int flags;
+        size_t payload_size;
+        uint8_t hash[2*ORI_MD_HASHSIZE];
+    };
+
     Object();
     ~Object();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
     int open(const std::string &path);
     void close();
+    ObjectInfo &getInfo();
     Type getType();
     size_t getDiskSize();
-    size_t getObjectSize();
-    size_t getObjectStoredSize();
+    size_t getStoredPayloadSize();
     // Flags operations (TODO)
     bool getCompressed();
     // Payload Operations
@@ -74,11 +84,10 @@ public:
     std::map<std::string, BRState> getBackref();
 private:
     int fd;
-    int flags;
-    Type t;
-    int64_t len;
-    int64_t storedLen;
+    size_t storedLen;
     std::string objPath;
+
+    ObjectInfo info;
 
     void setupLzma(lzma_stream *strm, bool encode);
     bool appendLzma(int dstFd, lzma_stream *strm, lzma_action action);

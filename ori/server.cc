@@ -114,7 +114,20 @@ void SshServer::serve() {
             // Separate command and arguments
             args_vec args = sep_args(command);
             
-            if (strcmp(command, "catobj") == 0) {
+            if (strcmp(command, "hello") == 0) {
+                // Setup comm protocol
+                printf("version: %s\nDONE\n", ORI_PROTO_VERSION);
+            }
+            else if (strcmp(command, "listobj") == 0) {
+                std::set<std::string> objects = repository.getObjects();
+                for (std::set<std::string>::iterator it = objects.begin();
+                        it != objects.end();
+                        it++) {
+                    puts((*it).c_str());
+                }
+                printf("DONE\n");
+            }
+            else if (strcmp(command, "catobj") == 0) {
                 char *hash = args[1];
                 std::string obj = repository.getObject(hash);
                 printf("hash: %s\ndata-length: %lu\nDATA\n", hash, obj.length());

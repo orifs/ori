@@ -5,6 +5,8 @@
 
 #include "repo.h"
 
+#define ORI_PROTO_VERSION "1.0"
+
 class HttpServer
 {
 public:

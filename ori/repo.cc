@@ -326,7 +326,7 @@ Repo::getObjectLength(const string &objId)
     if (o.open(objPath) < 0)
 	return -1;
 
-    return o.getObjectSize();
+    return o.getInfo().payload_size;
 }
 
 /*
