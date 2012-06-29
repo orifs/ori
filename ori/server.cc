@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include "debug.h"
 #include "server.h"
 #include "util.h"
 
@@ -119,6 +120,7 @@ void SshServer::serve() {
 
             // Separate command and arguments
             args_vec args = sep_args(command);
+            LOG("sshserver: command '%s'", command);
             
             if (strcmp(command, "hello") == 0) {
                 // Setup comm protocol
@@ -201,6 +203,8 @@ int cmd_sshserver(int argc, const char *argv[])
         fflush(stdout);
         exit(101);
     }
+
+    ori_open_log(&repository);
 
     SshServer server;
     server.serve();

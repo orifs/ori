@@ -22,17 +22,10 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <time.h>
 
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
-#include <sys/time.h>
-
-#ifdef __MACH__
-#include <mach/mach.h>
-#include <mach/clock.h>
-#endif
 
 #include <string>
 
@@ -222,54 +215,6 @@ lookupcmd(const char *cmd)
     return -1;
 }
 
-/********************************************************************
- *
- *
- * Logging
- *
- *
- ********************************************************************/
-
-static int logfd = -1;
-
-void
-get_timespec(struct timespec *ts)
-{
-#ifdef __MACH__
-    clock_serv_t clk;
-    mach_timespec_t mts;
-    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &clk);
-    clock_get_time(clk, &mts);
-    mach_port_deallocate(mach_task_self(), clk);
-    ts->tv_sec = mts.tv_sec;
-    ts->tv_nsec = mts.tv_nsec;
-#else
-    clock_gettime(CLOCK_REALTIME, ts);
-#endif
-}
-
-void
-ori_log(const char *fmt, ...)
-{
-    va_list ap;
-    struct timespec ts;
-    char buf[32];
-
-    if (logfd == -1)
-        return;
-
-    get_timespec(&ts);
-    strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
-    dprintf(logfd, "%s", buf);
-
-    va_start(ap, fmt);
-    vdprintf(logfd, fmt, ap);
-    va_end(ap);
-
-    // XXX: May cause performance issues disable on release builds
-    fsync(logfd);
-}
-
 int util_selftest(void);
 
 static int
@@ -314,17 +259,6 @@ int
 main(int argc, char *argv[])
 {
     int idx;
-    string logPath = Repo::getLogPath();
-
-    if (logPath.compare("") != 0) {
-        logfd = open(logPath.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0660);
-        if (logfd == -1) {
-            perror("open");
-            return 1;
-        }
-    } else {
-        logfd = -1;
-    }
 
     if (argc == 1) {
         return cmd_help(0, NULL);
@@ -341,6 +275,8 @@ main(int argc, char *argv[])
             printf("No repository found!\n");
             exit(1);
         }
+
+        ori_open_log(&repository);
     }
 
     idx = lookupcmd(argv[1]);

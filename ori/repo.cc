@@ -867,6 +867,39 @@ Repo::getRootPath()
     return rootPath;
 }
 
+string
+Repo::getLogPath()
+{
+    if (rootPath.compare("") == 0)
+        return rootPath;
+    return rootPath + ORI_PATH_LOG;
+}
+
+string
+Repo::getTmpFile()
+{
+    string tmpFile;
+    char buf[10];
+    // Declare static as an optimization 
+    static int id = 1;
+    struct stat fileStat;
+
+    if (rootPath == "")
+        return rootPath;
+
+    while (1) {
+        snprintf(buf, 10, "%08x", id++);
+        tmpFile = rootPath + ORI_PATH_TMP + "tmp" + buf;
+
+        if (stat(tmpFile.c_str(), &fileStat) == 0)
+            continue;
+        if (errno != ENOENT)
+            break;
+    }
+
+    return tmpFile;
+}
+
 
 /*
  * High Level Operations
@@ -933,41 +966,5 @@ Repo::findRootPath(const string &path)
     }
 
     return root;
-}
-
-string
-Repo::getLogPath()
-{
-    string rootPath = Repo::findRootPath();
-    
-    if (rootPath.compare("") == 0)
-        return rootPath;
-    return rootPath + ORI_PATH_LOG;
-}
-
-string
-Repo::getTmpFile()
-{
-    string rootPath = Repo::findRootPath();
-    string tmpFile;
-    char buf[10];
-    // Declare static as an optimization 
-    static int id = 1;
-    struct stat fileStat;
-
-    if (rootPath == "")
-        return rootPath;
-
-    while (1) {
-        snprintf(buf, 10, "%08x", id++);
-        tmpFile = rootPath + ORI_PATH_TMP + "tmp" + buf;
-
-        if (stat(tmpFile.c_str(), &fileStat) == 0)
-            continue;
-        if (errno != ENOENT)
-            break;
-    }
-
-    return tmpFile;
 }
 
