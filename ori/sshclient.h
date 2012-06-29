@@ -6,11 +6,12 @@
 class SshClient
 {
 public:
-    SshClient(const std::string &remoteHost, const std::string &remoteRepo);
+    SshClient(const std::string &remotePath);
     ~SshClient();
 
     int connect();
     void disconnect();
+    bool connected();
 
     // At the moment the protocol is synchronous
     void sendCommand(const std::string &command);
@@ -28,6 +29,8 @@ class SshRepo : public BasicRepo
 public:
     SshRepo(SshClient *client);
     ~SshRepo();
+
+    std::string getHead();
 
     int getObjectRaw(Object::ObjectInfo *info, std::string &raw_data);
     std::set<std::string> listObjects();

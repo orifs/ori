@@ -482,6 +482,16 @@ Util_NewUUID()
 #endif /* __APPLE__ || __linux__ */
 }
 
+
+bool
+Util_IsPathRemote(const char *path) {
+    char *cc = strchr(path, ':');
+    if (cc == NULL) return false;
+    if (cc == path) return false; // TODO how to handle these cases?
+    if (cc == path+strlen(path)-1) return false;
+    return true;
+}
+
 // XXX: Debug Only
 
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)

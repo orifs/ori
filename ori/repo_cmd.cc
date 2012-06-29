@@ -35,6 +35,7 @@
 #include "scan.h"
 #include "util.h"
 #include "repo.h"
+#include "sshclient.h"
 
 using namespace std;
 
@@ -515,13 +516,22 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    printf("Pulling from %s\n", srcRoot.c_str());
+    std::auto_ptr<SshClient> client;
+    std::auto_ptr<BasicRepo> srcRepo;
+    if (Util_IsPathRemote(srcRoot.c_str())) {
+        client.reset(new SshClient(srcRoot));
+        srcRepo.reset(new SshRepo(client.get()));
+        client->connect();
+    }
+    else {
+        srcRepo.reset(new Repo(srcRoot));
+    }
 
-    Repo srcRepo(srcRoot);
-    repository.pull(&srcRepo);
+    printf("Pulling from %s\n", srcRoot.c_str());
+    repository.pull(srcRepo.get());
 
     // XXX: Need to rely on sync log.
-    repository.updateHead(srcRepo.getHead());
+    repository.updateHead(srcRepo->getHead());
 
     return 0;
 }

@@ -156,7 +156,7 @@ void SshServer::serve() {
             }
             else if (strcmp(command, "show") == 0) {
                 // TODO: is this necessary?
-                printf("root: %s\nuuid: %s\nversion: %s\nHEAD: %s\nDONE\n",
+                printf("%s\n%s\n%s\n%s\nDONE\n",
                         repository.getRootPath().c_str(),
                         repository.getUUID().c_str(),
                         repository.getVersion().c_str(),

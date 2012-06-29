@@ -45,6 +45,11 @@ public:
     BasicRepo() {}
     virtual ~BasicRepo() {}
 
+    // Repo information
+    // TODO: is this consistent with the model?
+    virtual std::string getHead() = 0;
+
+    // Objects
     virtual int getObjectRaw(
             Object::ObjectInfo *info,
             std::string &raw_data) = 0;

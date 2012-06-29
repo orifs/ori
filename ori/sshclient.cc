@@ -19,11 +19,13 @@
 /*
  * SshClient
  */
-SshClient::SshClient(const std::string &remoteHost, const std::string
-        &remoteRepo)
-    : remoteHost(remoteHost), remoteRepo(remoteRepo),
-      fdFromChild(-1), fdToChild(-1), childPid(-1)
+SshClient::SshClient(const std::string &remotePath)
+    : fdFromChild(-1), fdToChild(-1), childPid(-1)
 {
+    assert(Util_IsPathRemote(remotePath.c_str()));
+    size_t pos = remotePath.find(':');
+    remoteHost = remotePath.substr(0, pos);
+    remoteRepo = remotePath.substr(pos+1);
 }
 
 SshClient::~SshClient()
@@ -122,13 +124,20 @@ int SshClient::connect()
     return 0;
 }
 
+bool SshClient::connected() {
+    return fdFromChild != -1;
+}
+
 void SshClient::sendCommand(const std::string &command) {
+    assert(connected());
     write(fdToChild, command.data(), command.length());
     write(fdToChild, "\n", 1);
     fsync(fdToChild);
 }
 
 void SshClient::recvResponse(std::string &out) {
+    assert(connected());
+
     out.clear();
     while (true) {
         fd_set read_set;
@@ -224,6 +233,21 @@ SshRepo::~SshRepo()
 {
 }
 
+std::string SshRepo::getHead()
+{
+    client->sendCommand("show");
+    std::string resp;
+    client->recvResponse(resp);
+
+    ResponseParser p(resp);
+    std::string line;
+    p.nextLine(line); // root path
+    p.nextLine(line); // uuid
+    p.nextLine(line); // version
+    p.nextLine(line); // head
+    return line.substr(0, line.size()-1);
+}
+
 int SshRepo::getObjectRaw(Object::ObjectInfo *info, std::string &raw_data)
 {
     std::string command = "readobj ";
@@ -299,7 +323,7 @@ int cmd_sshclient(int argc, const char *argv[]) {
         exit(1);
     }
 
-    SshClient client(argv[1], "/Users/fyhuang/Projects/ori/tr");
+    SshClient client(std::string(argv[1]) + ":/Users/fyhuang/Projects/ori/tr");
     if (client.connect() < 0) {
         printf("Error connecting to %s\n", argv[1]);
         exit(1);
