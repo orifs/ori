@@ -95,7 +95,8 @@ public:
     {
 	struct stat sb;
 
-	buf = new uint8_t[8 * 1024 * 1024];
+        bufLen = 8 * 1024 * 1024;
+	buf = new uint8_t[bufLen];
 	if (buf == NULL)
 	    return -ENOMEM;
 
@@ -162,7 +163,7 @@ public:
         }
 
         fileOff += status;
-        *l += fileOff;
+        *l += status;
         *o = 0;
 
 	return 1;
