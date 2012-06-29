@@ -364,6 +364,11 @@ Repo::verifyObject(const string &objId)
 
 	    break;
 	}
+        case Object::LargeBlob:
+        {
+            // XXX: Verify fragments
+            break;
+        }
 	case Object::Purged:
 	    break;
 	default:
@@ -420,8 +425,14 @@ Repo::copyObject(const string &objId, const string &path)
     if (o.open(objPath) < 0)
 	return false;
 
-    if (o.extractFile(path) < 0)
-	return false;
+    if (o.getType() == Object::Blob) {
+        if (o.extractFile(path) < 0)
+	    return false;
+    } else if (o.getType() == Object::LargeBlob) {
+        LargeBlob lb = LargeBlob(this);
+        lb.fromBlob(o.extractBlob());
+        lb.extractFile(path);
+    }
     return true;
 }
 

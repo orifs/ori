@@ -208,6 +208,33 @@ LargeBlob::chunkFile(const string &path)
 void
 LargeBlob::extractFile(const string &path)
 {
+    int fd;
+    map<uint64_t, LBlobEntry>::iterator it;
+
+    fd = ::open(path.c_str(), O_CREAT | O_APPEND);
+    if (fd < 0) {
+        perror("Cannot open file for writing");
+        assert(false);
+        return;
+    }
+
+    for (it = parts.begin(); it != parts.end(); it++)
+    {
+        int status;
+        string tmp;
+        
+        tmp = repo->getObject((*it).second.hash);
+        assert(tmp.length() == (*it).second.length);
+
+        status = ::write(fd, tmp.data(), tmp.length());
+        if (status < 0) {
+            perror("write to large object failed");
+            assert(false);
+            return;
+        }
+
+        assert(status == tmp.length());
+    }
 }
 
 const string
