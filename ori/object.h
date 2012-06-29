@@ -46,6 +46,7 @@ public:
 
     struct ObjectInfo {
         ObjectInfo();
+        ObjectInfo(const char *hash);
         const char *getTypeStr();
         ssize_t writeTo(int fd, bool seekable = true);
 
@@ -58,6 +59,8 @@ public:
     Object();
     ~Object();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
+    int createFromRawData(const std::string &path, const ObjectInfo &info,
+            const std::string &raw_data);
     int open(const std::string &path);
     void close();
     ObjectInfo &getInfo();
@@ -84,6 +87,9 @@ public:
     void addBackref(const std::string &objId, BRState state);
     void updateBackref(const std::string &objId, BRState state);
     std::map<std::string, BRState> getBackref();
+
+    // Static methods
+    static Type getTypeForStr(const char *str);
 private:
     int fd;
     size_t storedLen;

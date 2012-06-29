@@ -178,7 +178,7 @@ cmd_catobj(int argc, const char *argv[])
 int
 cmd_listobj(int argc, const char *argv[])
 {
-    set<string> objects = repository.getObjects();
+    set<string> objects = repository.listObjects();
     set<string>::iterator it;
 
     for (it = objects.begin(); it != objects.end(); it++)
@@ -534,7 +534,7 @@ cmd_verify(int argc, const char *argv[])
 {
     int status = 0;
     string error;
-    set<string> objects = repository.getObjects();
+    set<string> objects = repository.listObjects();
     set<string>::iterator it;
 
     for (it = objects.begin(); it != objects.end(); it++)

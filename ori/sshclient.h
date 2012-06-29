@@ -31,7 +31,10 @@ public:
 
     int getObjectRaw(Object::ObjectInfo *info, std::string &raw_data);
     std::set<std::string> listObjects();
-    Object addObjectRaw(Object::ObjectInfo info, const std::string &raw_data);
+    Object addObjectRaw(const Object::ObjectInfo &info,
+            const std::string &raw_data);
+    Object addObjectRaw(Object::ObjectInfo info, bytestream *bs);
+    std::string addObject(Object::ObjectInfo info, const std::string &data);
 
 private:
     SshClient *client;

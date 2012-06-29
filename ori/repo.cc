@@ -475,7 +475,7 @@ Repo_GetObjectsCB(void *arg, const char *path)
  * Return a list of objects in the repository.
  */
 set<string>
-Repo::getObjects()
+Repo::listObjects()
 {
     int status;
     set<string> objs;
@@ -483,7 +483,7 @@ Repo::getObjects()
 
     status = Scan_RTraverse(objRoot.c_str(), (void *)&objs, Repo_GetObjectsCB);
     if (status < 0)
-	perror("getObjects");
+	perror("listObjects");
 
     return objs;
 }
@@ -519,6 +519,35 @@ Repo::hasObject(const string &objId)
     return Util_FileExists(path);
 }
 
+
+
+/*
+ * BasicRepo implementation
+ */
+int
+Repo::getObjectRaw(Object::ObjectInfo *info, std::string &raw_data)
+{
+    return -1;
+}
+
+Object
+Repo::addObjectRaw(const Object::ObjectInfo &info, const std::string &raw_data)
+{
+    string hash = info.hash;
+    string objPath = objIdToPath(hash);
+
+    Object o;
+
+    if (!Util_FileExists(objPath)) {
+        createObjDirs(hash);
+        if (o.createFromRawData(objPath, info, raw_data) < 0) {
+            perror("Unable to create object");
+        }
+    }
+
+    return o;
+}
+
 /*
  * Reference Counting Operations
  */
@@ -547,7 +576,7 @@ Repo::getRefs(const string &objId)
 map<string, map<string, Object::BRState> >
 Repo::getRefCounts()
 {
-    set<string> obj = getObjects();
+    set<string> obj = listObjects();
     set<string>::iterator it;
     map<string, map<string, Object::BRState> > rval;
 
@@ -565,7 +594,7 @@ Repo::getRefCounts()
 map<string, set<string> >
 Repo::computeRefCounts()
 {
-    set<string> obj = getObjects();
+    set<string> obj = listObjects();
     set<string>::iterator it;
     map<string, set<string> > rval;
     map<string, set<string> >::iterator key;
@@ -847,16 +876,24 @@ Repo::getRootPath()
  * Pull changes from the source repository.
  */
 void
-Repo::pull(Repo *r)
+Repo::pull(BasicRepo *r)
 {
-    set<string> objects = r->getObjects();
+    set<string> objects = r->listObjects();
     set<string>::iterator it;
 
     for (it = objects.begin(); it != objects.end(); it++)
     {
 	if (!hasObject(*it)) {
 	    // XXX: Copy object without loading it all into memory!
-	    addBlob(r->getPayload(*it), r->getObjectType(*it));
+	    //addBlob(r->getPayload(*it), r->getObjectType(*it));
+            Object::ObjectInfo info((*it).c_str());
+            std::string raw_data;
+            if (r->getObjectRaw(&info, raw_data) < 0) {
+                printf("Error getting object %s\n", (*it).c_str());
+                continue;
+            }
+
+            addObjectRaw(info, raw_data);
 	}
     }
 }

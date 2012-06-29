@@ -125,7 +125,7 @@ void SshServer::serve() {
                 printf("%s\nDONE\n", ORI_PROTO_VERSION);
             }
             else if (strcmp(command, "listobj") == 0) {
-                std::set<std::string> objects = repository.getObjects();
+                std::set<std::string> objects = repository.listObjects();
                 for (std::set<std::string>::iterator it = objects.begin();
                         it != objects.end();
                         it++) {

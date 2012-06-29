@@ -106,7 +106,7 @@ int SshClient::connect()
     fdFromChild = pipe_from_child[D_READ];
 
     // TODO: sync here
-    sleep(2);
+    //sleep(2);
 
     // SSH sets stderr to nonblock, possibly screwing up stdout (according to
     // rsync)
@@ -147,7 +147,7 @@ void SshClient::recvResponse(std::string &out) {
                 return;
             }
 
-            printf("Read '%s'\n", buf);
+            //printf("Read '%s'\n", buf);
 
             size_t curr_size = out.size();
             out.resize(curr_size + read_n);
@@ -170,6 +170,47 @@ void SshClient::recvResponse(std::string &out) {
 
 
 
+// TODO: return char *s instead of string, return all values from same chunk of
+// memory
+class ResponseParser {
+public:
+    ResponseParser(const std::string &text) : text(text), off(0) {}
+
+    bool nextLine(std::string &line) {
+        if (off >= text.size()) return false;
+
+        size_t oldOff = off;
+        while (off < text.size()) {
+            if (text[off] == '\n') {
+                off++;
+                line = text.substr(oldOff, (off-oldOff));
+                return true;
+            }
+            off++;
+        }
+        line = text.substr(oldOff, (off-oldOff));
+        return true;
+    }
+
+    size_t getDataLength(const std::string &line) {
+        size_t len = 0;
+        if (sscanf(line.c_str(), "DATA %lu\n", &len) != 1) {
+            return 0;
+        }
+        return len;
+    }
+
+    std::string getData(size_t len) {
+        assert(off + len <= text.size());
+        size_t oldOff = off;
+        off += len;
+        return text.substr(oldOff, len);
+    }
+private:
+    const std::string &text;
+    size_t off;
+};
+
 /*
  * SshRepo
  */
@@ -191,21 +232,63 @@ int SshRepo::getObjectRaw(Object::ObjectInfo *info, std::string &raw_data)
 
     std::string resp;
     client->recvResponse(resp);
-    // TODO
-    return -1;
+
+    ResponseParser p(resp);
+    std::string line;
+    p.nextLine(line); // hash
+
+    p.nextLine(line); // type
+    line[line.size()-1] = '\0';
+    info->type = Object::getTypeForStr(line.c_str());
+
+    p.nextLine(line); // flags
+    sscanf(line.c_str(), "%X\n", &info->flags);
+
+    p.nextLine(line); // payload_size
+    sscanf(line.c_str(), "%lu\n", &info->payload_size);
+
+    p.nextLine(line); // DATA x
+    raw_data = p.getData(p.getDataLength(line));
+
+    return 0;
 }
 
 std::set<std::string> SshRepo::listObjects()
 {
-    assert(false);
-    return std::set<std::string>();
+    client->sendCommand("listobj");
+    std::string resp;
+    client->recvResponse(resp);
+
+    std::set<std::string> rval;
+
+    ResponseParser p(resp);
+    std::string line;
+    while (p.nextLine(line)) {
+        if (line != "DONE\n")
+            rval.insert(line.substr(0, line.size()-1));
+    }
+
+    return rval;
 }
 
-Object SshRepo::addObjectRaw(Object::ObjectInfo info, const std::string
+Object SshRepo::addObjectRaw(const Object::ObjectInfo &info, const std::string
         &raw_data)
 {
     assert(false);
     return Object();
+}
+
+Object SshRepo::addObjectRaw(Object::ObjectInfo info, bytestream *bs)
+{
+    assert(false);
+    return Object();
+}
+
+std::string SshRepo::addObject(Object::ObjectInfo info, const std::string
+        &data)
+{
+    assert(false);
+    return "";
 }
 
 
@@ -223,6 +306,22 @@ int cmd_sshclient(int argc, const char *argv[]) {
     }
 
     dprintf(STDOUT_FILENO, "Connected\n");
+
+    SshRepo repo(&client);
+    std::set<std::string> objs = repo.listObjects();
+    for (std::set<std::string>::iterator it = objs.begin();
+            it != objs.end();
+            it++) {
+        printf("%s\n", (*it).c_str());
+    }
+
+    Object::ObjectInfo info("b7287ce2bca00e9b78555dba3ec7b013415425f7ffd6628b6ed68dcfba699426");
+    std::string data;
+    repo.getObjectRaw(&info, data);
+    printf("type: %d\nflags: %08X\npayload_size: %lu\n", info.type, info.flags,
+            info.payload_size);
+
+    return 0;
 
     // Simple command-line client
     while (true) {

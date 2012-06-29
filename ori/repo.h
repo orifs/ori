@@ -54,16 +54,16 @@ public:
 
     // TODO: change return value to std::auto_ptr<Object>?
     virtual Object addObjectRaw(
-            Object::ObjectInfo info,
+            const Object::ObjectInfo &info,
             const std::string &raw_data) = 0;
-    virtual Object addObjectRaw(
+    /*virtual Object addObjectRaw(
             Object::ObjectInfo info,
             bytestream *raw_data) = 0;
 
     virtual std::string addObject(
             Object::ObjectInfo info,
             const std::string &payload
-            ) = 0;
+            ) = 0;*/
 };
 
 class HistoryCB
@@ -73,7 +73,7 @@ public:
     virtual std::string cb(const std::string &commitId, Commit *c) = 0;
 };
 
-class Repo
+class Repo : public BasicRepo
 {
 public:
     Repo(const std::string &root = "");
@@ -96,10 +96,14 @@ public:
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
-    std::set<std::string> getObjects();
+    std::set<std::string> listObjects();
     Commit getCommit(const std::string &commitId);
     Tree getTree(const std::string &treeId);
     bool hasObject(const std::string &objId);
+    // BasicRepo implementation
+    int getObjectRaw(Object::ObjectInfo *info, std::string &raw_data);
+    Object addObjectRaw(const Object::ObjectInfo &info,
+            const std::string &raw_data);
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
     std::map<std::string, std::map<std::string, Object::BRState> >
@@ -122,7 +126,7 @@ public:
     std::string getUUID();
     std::string getVersion();
     // High Level Operations
-    void pull(Repo *r);
+    void pull(BasicRepo *r);
     // Static Operations
     static std::string findRootPath(const std::string &path = "");
     static std::string getLogPath();

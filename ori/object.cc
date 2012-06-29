@@ -52,6 +52,14 @@ Object::ObjectInfo::ObjectInfo()
     memset(hash, 0, sizeof(hash)); // TODO
 }
 
+Object::ObjectInfo::ObjectInfo(const char *in_hash)
+    : type(Object::Null), flags(0), payload_size(0)
+{
+    assert(sizeof(hash) == 2*SHA256_DIGEST_LENGTH + 1);
+    memcpy(hash, in_hash, sizeof(hash)-1);
+    hash[sizeof(hash)-1] = '\0';
+}
+
 const char *Object::ObjectInfo::getTypeStr() {
     const char *type_str = NULL;
     switch (type) {
@@ -142,6 +150,37 @@ Object::create(const string &path, Type type, uint32_t flags)
 }
 
 /*
+ * Create a new object from existing raw data
+ */
+int
+Object::createFromRawData(const string &path, const ObjectInfo &info,
+        const string &raw_data)
+{
+    objPath = path;
+    fd = ::open(path.c_str(), O_CREAT | O_RDWR,
+            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (fd < 0)
+        return -errno;
+
+    this->info = info;
+    int status = this->info.writeTo(fd);
+    if (status < 0)
+        return -errno;
+
+    // Store data
+    storedLen = raw_data.length();
+    status = pwrite(fd, &storedLen, ORI_OBJECT_SIZE, 16);
+    if (status < 0)
+        return -errno;
+
+    status = pwrite(fd, raw_data.data(), raw_data.length(), 24);
+    if (status < 0)
+        return -errno;
+
+    return 0;
+}
+
+/*
  * Open an existing object read-only.
  */
 int
@@ -166,23 +205,11 @@ Object::open(const string &path)
 
     assert(status == ORI_OBJECT_TYPESIZE);
 
-    Type t;
-    if (strcmp(buf, "CMMT") == 0) {
-        t = Commit;
-    } else if (strcmp(buf, "TREE") == 0) {
-        t = Tree;
-    } else if (strcmp(buf, "BLOB") == 0) {
-        t = Blob;
-    } else if (strcmp(buf, "LGBL") == 0) {
-        t = LargeBlob;
-    } else if (strcmp(buf, "PURG") == 0) {
-        t = Purged;
-    } else {
+    info.type = getTypeForStr(buf);
+    if (info.type == Null) {
         printf("Unknown object type!\n");
         assert(false);
     }
-
-    info.type = t;
 
     status = pread(fd, (void *)&info.flags, ORI_OBJECT_FLAGSSIZE, 4);
     if (status < 0) {
@@ -194,7 +221,7 @@ Object::open(const string &path)
     if (status < 0) {
 	::close(fd);
 	fd = -1;
-	t = Null;
+	info = ObjectInfo();
 	return -errno;
     }
 
@@ -725,6 +752,31 @@ Object::getBackref()
     }
 
     return rval;
+}
+
+
+
+/*
+ * Static methods
+ */
+
+Object::Type Object::getTypeForStr(const char *str) {
+    if (strcmp(str, "CMMT") == 0) {
+        return Commit;
+    }
+    else if (strcmp(str, "TREE") == 0) {
+        return Tree;
+    }
+    else if (strcmp(str, "BLOB") == 0) {
+        return Blob;
+    }
+    else if (strcmp(str, "LGBL") == 0) {
+        return LargeBlob;
+    }
+    else if (strcmp(str, "PURG") == 0) {
+        return Purged;
+    }
+    return Null;
 }
 
 
