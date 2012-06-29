@@ -162,7 +162,7 @@ string
 Repo::addLargeFile(const string &path)
 {
     string blob;
-    LargeBlob lb = LargeBlob();
+    LargeBlob lb = LargeBlob(this);
 
     lb.chunkFile(path);
     blob = lb.getBlob();
@@ -193,8 +193,6 @@ Repo::addBlob(const string &blob, Object::Type type)
 {
     string hash = Util_HashString(blob);
     string objPath = objIdToPath(hash);
-
-    ASSERT(type != Object::Blob);
 
     // Check if in tree
     if (!Util_FileExists(objPath)) {

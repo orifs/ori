@@ -39,6 +39,7 @@
 
 #include "largeblob.h"
 #include "chunker.h"
+#include "repo.h"
 
 using namespace std;
 
@@ -72,8 +73,9 @@ LBlobEntry::~LBlobEntry()
  *
  ********************************************************************/
 
-LargeBlob::LargeBlob()
+LargeBlob::LargeBlob(Repo *r)
 {
+    repo = r;
 }
 
 LargeBlob::~LargeBlob()
@@ -128,8 +130,13 @@ public:
 	    ss << hex << setw(2) << setfill('0') << (int)hash[i];
 	}
 
-	// XXX: Add to repository
+        // Add the fragment into the repository
+        // XXX: Journal for cleanup!
+        string blob = string((const char *)b, l);
+        //blob.set(b, l);
+        lb->repo->addBlob(blob, Object::Blob);
 
+        // Add the fragment to the LargeBlob object.
 	lb->parts.insert(make_pair(lbOff, LBlobEntry(ss.str(), l)));
 	lbOff += l;
     }
