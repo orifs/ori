@@ -31,9 +31,11 @@ SshClient::SshClient(const std::string &remotePath)
 SshClient::~SshClient()
 {
     if (childPid > 0) {
-        kill(childPid, SIGINT);
+        //kill(childPid, SIGINT);
+        close(fdToChild);
         // Wait for child to die
         while (kill(childPid, 0)) {
+            // TODO timeout
         }
     }
 
