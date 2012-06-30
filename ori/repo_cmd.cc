@@ -27,10 +27,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifdef __FreeBSD__
-#include <uuid.h>
-#endif /* __FreeBSD__ */
-
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -39,6 +35,7 @@
 #include "scan.h"
 #include "util.h"
 #include "repo.h"
+#include "sshclient.h"
 
 using namespace std;
 
@@ -60,11 +57,6 @@ cmd_init(int argc, const char *argv[])
     string objDir;
     string versionFile;
     string uuidFile;
-#ifdef __FreeBSD__
-    uuid_t id;
-    char *uuidBuf;
-#endif /* __FreeBSD__ */
-    uint32_t status;
     int fd;
     
     if (argc == 1) {
@@ -110,20 +102,8 @@ cmd_init(int argc, const char *argv[])
         return 1;
     }
 
-#ifdef __FreeBSD__
-    uuid_create(&id, &status);
-    if (status != uuid_s_ok) {
-        printf("Failed to construct UUID!\n");
-        return 1;
-    }
-    uuid_to_string(&id, &uuidBuf, &status);
-    if (status != uuid_s_ok) {
-        printf("Failed to print UUID!\n");
-        return 1;
-    }
-    dprintf(fd, "%s", uuidBuf);
-    free(uuidBuf);
-#endif /* __FreeBSD__ */
+    std::string generated_uuid = Util_NewUUID();
+    write(fd, generated_uuid.data(), generated_uuid.length());
     close(fd);
     chmod(uuidFile.c_str(), 0440);
 
@@ -143,7 +123,7 @@ cmd_init(int argc, const char *argv[])
 int
 cmd_show(int argc, const char *argv[])
 {
-    string rootPath = Repo::getRootPath();
+    string rootPath = Repo::findRootPath();
 
     if (rootPath.compare("") == 0) {
         printf("No repository found!\n");
@@ -175,7 +155,7 @@ cmd_catobj(int argc, const char *argv[])
 	return 1;
     }
 
-    buf = repository.getObject(argv[1]);
+    buf = repository.getPayload(argv[1]);
     rawBuf = (const unsigned char *)buf.data();
 
     for (int i = 0; i < len; i++) {
@@ -186,10 +166,11 @@ cmd_catobj(int argc, const char *argv[])
     }
 
     if (hex) {
-	// XXX: Add hex pretty printer
-	printf("hex object!\n");
+        printf("hex object! first 256 bytes:\n");
+        Util_PrintHex(buf, 0, 256);
+        printf("\n");
     } else {
-	printf("%s", rawBuf);
+        printf("%s", rawBuf);
     }
 
     return 0;
@@ -198,7 +179,7 @@ cmd_catobj(int argc, const char *argv[])
 int
 cmd_listobj(int argc, const char *argv[])
 {
-    set<string> objects = repository.getObjects();
+    set<string> objects = repository.listObjects();
     set<string>::iterator it;
 
     for (it = objects.begin(); it != objects.end(); it++)
@@ -293,7 +274,7 @@ cmd_commit(int argc, const char *argv[])
     string user;
     Tree tree = Tree();
     Commit commit = Commit();
-    string root = Repo::getRootPath();
+    string root = Repo::findRootPath();
 
     if (argc == 1) {
         msg = "No message.";
@@ -330,7 +311,7 @@ cmd_commit(int argc, const char *argv[])
 int
 StatusDirectoryCB(void *arg, const char *path)
 {
-    string repoRoot = Repo::getRootPath();
+    string repoRoot = Repo::findRootPath();
     string objPath = path;
     string objHash;
     map<string, string> *dirState = (map<string, string> *)arg;
@@ -389,7 +370,7 @@ cmd_status(int argc, const char *argv[])
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 
-    Scan_RTraverse(Repo::getRootPath().c_str(),
+    Scan_RTraverse(Repo::findRootPath().c_str(),
 		   (void *)&dirState,
 	           StatusDirectoryCB);
 
@@ -431,7 +412,7 @@ cmd_checkout(int argc, const char *argv[])
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 
-    Scan_RTraverse(Repo::getRootPath().c_str(),
+    Scan_RTraverse(Repo::findRootPath().c_str(),
 		   (void *)&dirState,
 	           StatusDirectoryCB);
 
@@ -444,14 +425,14 @@ cmd_checkout(int argc, const char *argv[])
 	    // XXX: Handle replace a file <-> directory with same name
 	    assert((*it).second != "DIR");
 	    repository.copyObject((*k).second,
-				  Repo::getRootPath()+(*k).first);
+				  Repo::findRootPath()+(*k).first);
 	}
     }
 
     for (it = tipState.begin(); it != tipState.end(); it++) {
 	map<string, string>::iterator k = dirState.find((*it).first);
 	if (k == dirState.end()) {
-	    string path = Repo::getRootPath() + (*it).first;
+	    string path = Repo::findRootPath() + (*it).first;
 	    if ((*it).second == "DIR") {
 		printf("N	%s\n", (*it).first.c_str());
 		mkdir(path.c_str(), 0755);
@@ -535,13 +516,22 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    printf("Pulling from %s\n", srcRoot.c_str());
+    std::auto_ptr<SshClient> client;
+    std::auto_ptr<BasicRepo> srcRepo;
+    if (Util_IsPathRemote(srcRoot.c_str())) {
+        client.reset(new SshClient(srcRoot));
+        srcRepo.reset(new SshRepo(client.get()));
+        client->connect();
+    }
+    else {
+        srcRepo.reset(new Repo(srcRoot));
+    }
 
-    Repo srcRepo(srcRoot);
-    repository.pull(&srcRepo);
+    printf("Pulling from %s\n", srcRoot.c_str());
+    repository.pull(srcRepo.get());
 
     // XXX: Need to rely on sync log.
-    repository.updateHead(srcRepo.getHead());
+    repository.updateHead(srcRepo->getHead());
 
     return 0;
 }
@@ -554,7 +544,7 @@ cmd_verify(int argc, const char *argv[])
 {
     int status = 0;
     string error;
-    set<string> objects = repository.getObjects();
+    set<string> objects = repository.listObjects();
     set<string>::iterator it;
 
     for (it = objects.begin(); it != objects.end(); it++)
@@ -639,14 +629,14 @@ cmd_rebuildrefs(int argc, const char *argv[])
             type == Object::Blob) {
             set<string>::iterator i;
 
-            o.clearBackref();
+            o.clearMetadata(); // was clearBackref
             for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
                 o.addBackref((*i), Object::BRRef);
             }
         } else if (type == Object::Purged) {
             set<string>::iterator i;
 
-            o.clearBackref();
+            o.clearMetadata(); // was clearBackref
             for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
                 o.addBackref((*i), Object::BRPurged);
             }

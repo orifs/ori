@@ -7,18 +7,23 @@ src = [
     "commit.cc",
     "largeblob.cc",
     "main.cc",
+    "debug.cc",
     "object.cc",
     "repo.cc",
     "repo_cmd.cc",
     "scan.cc",
     "tree.cc",
     "util.cc",
+    "stream.cc",
+    "server.cc",
+    "sshclient.cc",
 ]
 
 libs = [
         "crypto",
         "stdc++",
         "lzma",
+        "microhttpd",
        ]
 if sys.platform == "darwin":
     # TODO

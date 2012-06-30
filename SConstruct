@@ -33,7 +33,7 @@ env.Append(CPPPATH = [ "/usr/local/include" ])
 env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib", "/usr/local/lib/event2" ])
 
 if env["BUILDTYPE"] == "DEBUG":
-    env.Append(CPPFLAGS = [ "-g", "-DDEBUG" ])
+    env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall" ])
 elif env["BUILDTYPE"] == "RELEASE":
     env.Append(CPPFLAGS = "-DNDEBUG")
 else:

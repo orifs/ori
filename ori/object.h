@@ -23,19 +23,15 @@
 #include <string>
 #include <map>
 
-#ifndef ORI_USE_COMPRESSION
-#define ORI_USE_COMPRESSION 1
-#endif
-
-#if ORI_USE_COMPRESSION
-#include <lzma.h>
-#endif
+#include "stream.h"
 
 
 #define ORI_OBJECT_TYPESIZE	    4
 #define ORI_OBJECT_FLAGSSIZE	4
 #define ORI_OBJECT_SIZE		    8
 #define ORI_OBJECT_HDRSIZE	    24
+
+#define ORI_MD_HASHSIZE 32 //SHA256_DIGEST_LENGTH
 
 #define ORI_FLAG_COMPRESSED 0x0001
 
@@ -45,18 +41,33 @@ class Object
 {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
+    enum MdType { MdNull, MdBackref };
     enum BRState { BRNull, BRRef, BRPurged };
+
+    struct ObjectInfo {
+        ObjectInfo();
+        ObjectInfo(const char *hash);
+        const char *getTypeStr();
+        ssize_t writeTo(int fd, bool seekable = true);
+
+        Type type;
+        int flags;
+        size_t payload_size;
+        char hash[2*ORI_MD_HASHSIZE+1]; // null byte at end
+    };
+
     Object();
     ~Object();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
+    int createFromRawData(const std::string &path, const ObjectInfo &info,
+            const std::string &raw_data);
     int open(const std::string &path);
     void close();
+    ObjectInfo &getInfo();
     Type getType();
     size_t getDiskSize();
-    size_t getObjectSize();
-    size_t getObjectStoredSize();
+    size_t getStoredPayloadSize();
     // Flags operations (TODO)
-    void checkFlags();
     bool getCompressed();
     // Payload Operations
     int purge();
@@ -65,23 +76,32 @@ public:
     int appendBlob(const std::string &blob);
     std::string extractBlob();
     std::string computeHash();
+    bytestream *getPayloadStream();
+    bytestream *getRawPayloadStream();
+    // Metadata
+    void addMetadataEntry(MdType type, const std::string &data);
+    std::string computeMetadataHash();
+    bool checkMetadata();
+    void clearMetadata();
     // Backreferences
     void addBackref(const std::string &objId, BRState state);
     void updateBackref(const std::string &objId, BRState state);
-    void clearBackref();
     std::map<std::string, BRState> getBackref();
+
+    // Static methods
+    static Type getTypeForStr(const char *str);
 private:
     int fd;
-    int flags;
-    Type t;
-    int64_t len;
-    int64_t storedLen;
+    size_t storedLen;
     std::string objPath;
 
-#if ORI_USE_COMPRESSION
+    ObjectInfo info;
+
     void setupLzma(lzma_stream *strm, bool encode);
     bool appendLzma(int dstFd, lzma_stream *strm, lzma_action action);
-#endif
+
+    const char *_getIdForMdType(MdType);
+    MdType _getMdTypeForStr(const char *);
 };
 
 #endif /* __OBJECT_H__ */

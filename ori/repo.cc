@@ -50,7 +50,7 @@ Repo repository;
 
 Repo::Repo(const string &root)
 {
-    rootPath = (root == "") ? getRootPath() : root;
+    rootPath = (root == "") ? findRootPath() : root;
 }
 
 Repo::~Repo()
@@ -60,7 +60,7 @@ Repo::~Repo()
 bool
 Repo::open(const string &root)
 {
-    if (root != "") {
+    if (root.compare("") != 0) {
         rootPath = root;
     }
 
@@ -68,10 +68,17 @@ Repo::open(const string &root)
         return false;
 
     // Read UUID
-    id = Util_ReadFile(getRootPath() + ORI_PATH_UUID, NULL);
+    std::string uuid_path = rootPath + ORI_PATH_UUID;
+    char *id_str = Util_ReadFile(uuid_path, NULL);
+    if (id_str == NULL)
+        return false;
+    id = id_str;
 
     // Read Version
-    version = Util_ReadFile(getRootPath() + ORI_PATH_VERSION, NULL);
+    char *ver_str = Util_ReadFile(rootPath + ORI_PATH_VERSION, NULL);
+    if (ver_str == NULL)
+        return false;
+    version = ver_str;
 
     return true;
 }
@@ -132,7 +139,7 @@ Repo::addSmallFile(const string &path)
 
     if (hash == "") {
 	perror("Unable to hash file");
-	return 0;
+	return "";
     }
     objPath = objIdToPath(hash);
 
@@ -289,18 +296,31 @@ Repo::addCommit(/* const */ Commit &commit)
 }
 
 /*
- * Read an object into memory and return it as a string.
+ * Get the Object associated with an ID.
  */
-std::string
+Object
 Repo::getObject(const string &objId)
 {
     string path = objIdToPath(objId);
-    Object o = Object();
+    Object o;
 
     // XXX: Add better error handling
     if (o.open(path) < 0)
-	return "";
+	return o;
 
+    return o;
+}
+
+/*
+ * Read an object into memory and return it as a string.
+ */
+std::string
+Repo::getPayload(const string &objId)
+{
+    Object o = getObject(objId);
+    // XXX: Add better error handling
+    if (o.getInfo().type == Object::Null)
+        return "";
     return o.extractBlob();
 }
 
@@ -317,7 +337,7 @@ Repo::getObjectLength(const string &objId)
     if (o.open(objPath) < 0)
 	return -1;
 
-    return o.getObjectSize();
+    return o.getInfo().payload_size;
 }
 
 /*
@@ -373,6 +393,11 @@ Repo::verifyObject(const string &objId)
 	    break;
 	default:
 	    return "Object with unknown type!";
+    }
+
+    // Check object metadata
+    if (!o.checkMetadata()) {
+        return "Object metadata hash mismatch!";
     }
 
     return "";
@@ -459,7 +484,7 @@ Repo_GetObjectsCB(void *arg, const char *path)
  * Return a list of objects in the repository.
  */
 set<string>
-Repo::getObjects()
+Repo::listObjects()
 {
     int status;
     set<string> objs;
@@ -467,7 +492,7 @@ Repo::getObjects()
 
     status = Scan_RTraverse(objRoot.c_str(), (void *)&objs, Repo_GetObjectsCB);
     if (status < 0)
-	perror("getObjects");
+	perror("listObjects");
 
     return objs;
 }
@@ -476,7 +501,7 @@ Commit
 Repo::getCommit(const std::string &commitId)
 {
     Commit c = Commit();
-    string blob = getObject(commitId);
+    string blob = getPayload(commitId);
     c.fromBlob(blob);
 
     return c;
@@ -486,7 +511,7 @@ Tree
 Repo::getTree(const std::string &treeId)
 {
     Tree t = Tree();
-    string blob = getObject(treeId);
+    string blob = getPayload(treeId);
     t.fromBlob(blob);
 
     return t;
@@ -501,6 +526,35 @@ Repo::hasObject(const string &objId)
     string path = objIdToPath(objId);
 
     return Util_FileExists(path);
+}
+
+
+
+/*
+ * BasicRepo implementation
+ */
+int
+Repo::getObjectRaw(Object::ObjectInfo *info, std::string &raw_data)
+{
+    return -1;
+}
+
+Object
+Repo::addObjectRaw(const Object::ObjectInfo &info, const std::string &raw_data)
+{
+    string hash = info.hash;
+    string objPath = objIdToPath(hash);
+
+    Object o;
+
+    if (!Util_FileExists(objPath)) {
+        createObjDirs(hash);
+        if (o.createFromRawData(objPath, info, raw_data) < 0) {
+            perror("Unable to create object");
+        }
+    }
+
+    return o;
 }
 
 /*
@@ -531,7 +585,7 @@ Repo::getRefs(const string &objId)
 map<string, map<string, Object::BRState> >
 Repo::getRefCounts()
 {
-    set<string> obj = getObjects();
+    set<string> obj = listObjects();
     set<string>::iterator it;
     map<string, map<string, Object::BRState> > rval;
 
@@ -549,7 +603,7 @@ Repo::getRefCounts()
 map<string, set<string> >
 Repo::computeRefCounts()
 {
-    set<string> obj = getObjects();
+    set<string> obj = listObjects();
     set<string>::iterator it;
     map<string, set<string> > rval;
     map<string, set<string> >::iterator key;
@@ -734,7 +788,7 @@ public:
         {
 	    if (!dst->hasObject(*it)) {
                 // XXX: Copy object without loading it all into memory!
-	        dst->addBlob(src->getObject(*it), src->getObjectType(*it));
+	        dst->addBlob(src->getPayload(*it), src->getObjectType(*it));
 	    }
         }
 
@@ -816,91 +870,15 @@ Repo::getVersion()
     return version;
 }
 
-/*
- * High Level Operations
- */
-
-/*
- * Pull changes from the source repository.
- */
-void
-Repo::pull(Repo *r)
-{
-    set<string> objects = r->getObjects();
-    set<string>::iterator it;
-
-    for (it = objects.begin(); it != objects.end(); it++)
-    {
-	if (!hasObject(*it)) {
-	    // XXX: Copy object without loading it all into memory!
-	    addBlob(r->getObject(*it), r->getObjectType(*it));
-	}
-    }
-}
-
-/*
- * Static Operations
- */
-
-string
-Repo::findRootPath(const string &path)
-{
-    string root = path;
-    string uuidfile;
-    struct stat dbstat;
-
-    root = path;
-
-    // look for the UUID file
-    while (1) {
-        uuidfile = root + ORI_PATH_UUID;
-        if (stat(uuidfile.c_str(), &dbstat) == 0)
-            return root;
-
-        size_t slash = root.rfind('/');
-        if (slash == 0)
-            return "";
-        root.erase(slash);
-    }
-
-    return root;
-}
-
 string
 Repo::getRootPath()
 {
-    char *cwd = getcwd(NULL, MAXPATHLEN);
-    string root;
-    string uuidfile;
-    struct stat dbstat;
-
-    if (cwd == NULL) {
-        perror("getcwd");
-        exit(1);
-    }
-    root = cwd;
-    free(cwd);
-
-    // look for the UUID file
-    while (1) {
-        uuidfile = root + ORI_PATH_UUID;
-        if (stat(uuidfile.c_str(), &dbstat) == 0)
-            return root;
-
-        size_t slash = root.rfind('/');
-        if (slash == 0)
-            return "";
-        root.erase(slash);
-    }
-
-    return root;
+    return rootPath;
 }
 
 string
 Repo::getLogPath()
 {
-    string rootPath = Repo::getRootPath();
-    
     if (rootPath.compare("") == 0)
         return rootPath;
     return rootPath + ORI_PATH_LOG;
@@ -909,7 +887,6 @@ Repo::getLogPath()
 string
 Repo::getTmpFile()
 {
-    string rootPath = Repo::getRootPath();
     string tmpFile;
     char buf[10];
     // Declare static as an optimization 
@@ -930,5 +907,73 @@ Repo::getTmpFile()
     }
 
     return tmpFile;
+}
+
+
+/*
+ * High Level Operations
+ */
+
+/*
+ * Pull changes from the source repository.
+ */
+void
+Repo::pull(BasicRepo *r)
+{
+    set<string> objects = r->listObjects();
+    set<string>::iterator it;
+
+    for (it = objects.begin(); it != objects.end(); it++)
+    {
+	if (!hasObject(*it)) {
+	    // XXX: Copy object without loading it all into memory!
+	    //addBlob(r->getPayload(*it), r->getObjectType(*it));
+            Object::ObjectInfo info((*it).c_str());
+            std::string raw_data;
+            if (r->getObjectRaw(&info, raw_data) < 0) {
+                printf("Error getting object %s\n", (*it).c_str());
+                continue;
+            }
+
+            addObjectRaw(info, raw_data);
+	}
+    }
+}
+
+/*
+ * Static Operations
+ */
+
+string
+Repo::findRootPath(const string &path)
+{
+    string root = path;
+    if (path.size() == 0) {
+        char *cwd = getcwd(NULL, MAXPATHLEN);
+        if (cwd == NULL) {
+            perror("getcwd");
+            exit(1);
+        }
+
+        root.assign(cwd);
+        free(cwd);
+    }
+
+    string uuidfile;
+    struct stat dbstat;
+
+    // look for the UUID file
+    while (1) {
+        uuidfile = root + ORI_PATH_UUID;
+        if (stat(uuidfile.c_str(), &dbstat) == 0)
+            return root;
+
+        size_t slash = root.rfind('/');
+        if (slash == 0)
+            return "";
+        root.erase(slash);
+    }
+
+    return root;
 }
 

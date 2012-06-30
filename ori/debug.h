@@ -22,6 +22,8 @@
 #include <stdlib.h>
 
 void ori_log(const char *fmt, ...);
+class Repo;
+void ori_open_log(Repo *repo);
 
 #ifdef DEBUG
 #define LOG(fmt, ...) ori_log(fmt "\n", ##__VA_ARGS__)
