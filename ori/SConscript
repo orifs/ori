@@ -23,7 +23,6 @@ libs = [
         "crypto",
         "stdc++",
         "lzma",
-        "microhttpd",
        ]
 if sys.platform == "darwin":
     # TODO
