@@ -32,10 +32,12 @@ public:
     const uint16_t length;
 };
 
+class Repo;
+
 class LargeBlob
 {
 public:
-    LargeBlob();
+    LargeBlob(Repo *r);
     ~LargeBlob();
     void chunkFile(const std::string &path);
     void extractFile(const std::string &path);
@@ -48,6 +50,7 @@ public:
      * the file.
      */
     std::map<uint64_t, LBlobEntry> parts;
+    Repo *repo;
 };
 
 #endif /* __LARGEBLOB_H__ */

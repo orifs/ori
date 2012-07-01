@@ -95,10 +95,10 @@ fastPath:
      * Fast-path avoiding the length tests.off
      */
     for (; off < len - max; off++) {
-        for (; off < start + min; off++)
+        for (; off < start + min && off < len; off++)
             hash = (hash - lut[in[off-hashLen]]) * b + in[off];
 
-        for (; off < start + max; off++) {
+        for (; off < start + max && off < len; off++) {
             hash = (hash - lut[in[off-hashLen]]) * b + in[off];
             if (hash % target == 1)
                 break;
@@ -108,8 +108,10 @@ fastPath:
         start = off + 1;
     }
 
-    if (cb->load(&in, &len, &off) == 1)
+    if (cb->load(&in, &len, &off) == 1) {
+        start = off;
 	goto fastPath;
+    }
 
     for (; off < len; off++) {
         hash = (hash - lut[in[off-hashLen]]) * b + in[off];

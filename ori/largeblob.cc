@@ -39,6 +39,7 @@
 
 #include "largeblob.h"
 #include "chunker.h"
+#include "repo.h"
 
 using namespace std;
 
@@ -72,8 +73,9 @@ LBlobEntry::~LBlobEntry()
  *
  ********************************************************************/
 
-LargeBlob::LargeBlob()
+LargeBlob::LargeBlob(Repo *r)
 {
+    repo = r;
 }
 
 LargeBlob::~LargeBlob()
@@ -95,7 +97,8 @@ public:
     {
 	struct stat sb;
 
-	buf = new uint8_t[8 * 1024 * 1024];
+        bufLen = 8 * 1024 * 1024;
+	buf = new uint8_t[bufLen];
 	if (buf == NULL)
 	    return -ENOMEM;
 
@@ -127,8 +130,13 @@ public:
 	    ss << hex << setw(2) << setfill('0') << (int)hash[i];
 	}
 
-	// XXX: Add to repository
+        // Add the fragment into the repository
+        // XXX: Journal for cleanup!
+        string blob = string((const char *)b, l);
+        //blob.set(b, l);
+        lb->repo->addBlob(blob, Object::Blob);
 
+        // Add the fragment to the LargeBlob object.
 	lb->parts.insert(make_pair(lbOff, LBlobEntry(ss.str(), l)));
 	lbOff += l;
     }
@@ -162,7 +170,7 @@ public:
         }
 
         fileOff += status;
-        *l += fileOff;
+        *l += status;
         *o = 0;
 
 	return 1;
@@ -200,6 +208,33 @@ LargeBlob::chunkFile(const string &path)
 void
 LargeBlob::extractFile(const string &path)
 {
+    int fd;
+    map<uint64_t, LBlobEntry>::iterator it;
+
+    fd = ::open(path.c_str(), O_CREAT | O_APPEND);
+    if (fd < 0) {
+        perror("Cannot open file for writing");
+        assert(false);
+        return;
+    }
+
+    for (it = parts.begin(); it != parts.end(); it++)
+    {
+        int status;
+        string tmp;
+        
+        tmp = repo->getObject((*it).second.hash);
+        assert(tmp.length() == (*it).second.length);
+
+        status = ::write(fd, tmp.data(), tmp.length());
+        if (status < 0) {
+            perror("write to large object failed");
+            assert(false);
+            return;
+        }
+
+        assert(status == tmp.length());
+    }
 }
 
 const string
