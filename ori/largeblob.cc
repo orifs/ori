@@ -245,8 +245,11 @@ LargeBlob::getBlob()
 
     for (it = parts.begin(); it != parts.end(); it++)
     {
+        stringstream ss;
+
 	blob += (*it).second.hash + " ";
-	blob += (*it).second.length;
+        ss << (*it).second.length;
+        blob += ss.str();
 	blob += "\n";
     }
 
