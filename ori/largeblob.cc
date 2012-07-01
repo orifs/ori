@@ -211,7 +211,8 @@ LargeBlob::extractFile(const string &path)
     int fd;
     map<uint64_t, LBlobEntry>::iterator it;
 
-    fd = ::open(path.c_str(), O_CREAT | O_APPEND);
+    fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+	        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fd < 0) {
         perror("Cannot open file for writing");
         assert(false);
@@ -222,7 +223,7 @@ LargeBlob::extractFile(const string &path)
     {
         int status;
         string tmp;
-        
+
         tmp = repo->getPayload((*it).second.hash);
         assert(tmp.length() == (*it).second.length);
 
@@ -266,12 +267,15 @@ LargeBlob::fromBlob(const string &blob)
     while (getline(ss, line, '\n')) {
         string hash;
         string length;
+        uint64_t len;
 
 	hash = line.substr(0, 64);
         length = line.substr(65);
+        len = strtoul(length.c_str(), NULL, 10);
 
-	parts.insert(make_pair(off,
-		    LBlobEntry(hash, strtoul(length.c_str(), NULL, 10))));
+	parts.insert(make_pair(off, LBlobEntry(hash, len)));
+
+        off += len;
     }
 }
 
