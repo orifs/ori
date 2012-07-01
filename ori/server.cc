@@ -191,7 +191,9 @@ int cmd_sshserver(int argc, const char *argv[])
 
     // Disable output buffering
     setvbuf(stdout, NULL, _IONBF, 0); // libc
+#ifdef __APPLE__
     fcntl(STDOUT_FILENO, F_NOCACHE, 1); // os x
+#endif /* __APPLE__ */
 
     if (argc < 2) {
         printf("ERROR need repository name\nDONE\n");

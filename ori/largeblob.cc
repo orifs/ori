@@ -223,7 +223,7 @@ LargeBlob::extractFile(const string &path)
         int status;
         string tmp;
         
-        tmp = repo->getObject((*it).second.hash);
+        tmp = repo->getPayload((*it).second.hash);
         assert(tmp.length() == (*it).second.length);
 
         status = ::write(fd, tmp.data(), tmp.length());

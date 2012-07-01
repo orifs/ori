@@ -1,3 +1,6 @@
+
+#define _WITH_DPRINTF
+
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>

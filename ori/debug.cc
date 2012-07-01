@@ -1,5 +1,10 @@
 // TODO: maybe rename this logging.cc?
 
+#define _WITH_DPRINTF
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
 
@@ -56,7 +61,7 @@ ori_log(const char *fmt, ...)
 
     get_timespec(&ts);
     strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
-    dprintf(logfd, "%s", buf);
+    dprintf(logfd, "%s", (char *)buf);
 
     va_start(ap, fmt);
     vdprintf(logfd, fmt, ap);
