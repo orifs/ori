@@ -105,7 +105,7 @@ fastPath:
         }
 
         cb->match(in + start, off - start);
-        start = off + 1;
+        start = off;
     }
 
     if (cb->load(&in, &len, &off) == 1) {
@@ -118,7 +118,7 @@ fastPath:
         if (((off - start > min) && (hash % target == 1))
                 || (off - start >= max)) {
             cb->match(in + start, off - start);
-            start = off + 1;
+            start = off;
         }
     }
 
