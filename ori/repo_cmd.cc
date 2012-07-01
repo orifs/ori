@@ -166,8 +166,8 @@ cmd_catobj(int argc, const char *argv[])
     }
 
     if (hex) {
-        printf("hex object! first 256 bytes:\n");
-        Util_PrintHex(buf, 0, 256);
+        printf("Hex Dump (%ld bytes):\n", len);
+        Util_PrintHex(buf, 0, len);
         printf("\n");
     } else {
         printf("%s", rawBuf);

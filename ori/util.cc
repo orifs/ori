@@ -416,6 +416,8 @@ Util_PrintHex(const std::string &data, off_t off, size_t limit)
     //size_t num_printed = 0;
     for (size_t row = 0; !stop; row++) {
         printf("\n");
+
+        printf("%08lx  ", row * row_size);
         for (size_t col = 0; col < row_size; col++) { 
             size_t ix = row * row_size + col;
             if ((limit != 0 && ix >= limit) || ix >= data.length()) {
@@ -426,7 +428,7 @@ Util_PrintHex(const std::string &data, off_t off, size_t limit)
 
             printf("%02X ", (unsigned char)data[ix]);
         }
-        printf("  ");
+        printf("  |");
 
         for (size_t col = 0; col < row_size; col++) { 
             size_t ix = row * row_size + col;
@@ -437,11 +439,12 @@ Util_PrintHex(const std::string &data, off_t off, size_t limit)
             ix += off;
 
             unsigned char c = (unsigned char)data[ix];
-            if (c >= 0x20 && c <= 0x7F)
+            if (c >= 0x20 && c < 0x7F)
                 printf("%c", c);
             else
                 putchar('.');
         }
+        printf("|");
     }
 }
 
