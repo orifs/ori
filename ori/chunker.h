@@ -94,7 +94,7 @@ fastPath:
     /*
      * Fast-path avoiding the length tests.off
      */
-    for (; off < len - max; off++) {
+    for (; off < len - max;) {
         for (; off < start + min && off < len; off++)
             hash = (hash - lut[in[off-hashLen]]) * b + in[off];
 
