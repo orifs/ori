@@ -291,6 +291,7 @@ cmd_commit(int argc, const char *argv[])
     commit.setTree(treeHash);
     commit.setParents(repository.getHead());
     commit.setMessage(msg);
+    commit.setTime(time(NULL));
 
     user = Util_GetFullname();
     if (user != "")
@@ -457,9 +458,14 @@ cmd_log(int argc, const char *argv[])
 
     while (commit != EMPTY_COMMIT) {
 	Commit c = repository.getCommit(commit);
+    time_t timeVal = c.getTime();
+    char timeStr[26];
+
+    ctime_r(&timeVal, timeStr);
 
 	printf("commit:  %s\n", commit.c_str());
 	printf("parents: %s\n", c.getParents().first.c_str());
+    printf("date:    %s\n", timeStr);
 	printf("%s\n\n", c.getMessage().c_str());
 
 	commit = c.getParents().first;

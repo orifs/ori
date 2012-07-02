@@ -18,6 +18,7 @@
 #define __COMMIT_H__
 
 #include <stdint.h>
+#include <time.h>
 
 #include <utility>
 #include <string>
@@ -35,6 +36,8 @@ public:
     std::string getTree() const;
     void setUser(const std::string &user);
     std::string getUser() const;
+    void setTime(time_t t);
+    time_t getTime() const;
     void setGraft(const std::string &repo,
 		  const std::string &path,
 		  const std::string &commidId);
@@ -47,6 +50,7 @@ private:
     std::string message;
     std::string treeObjId;
     std::string user;
+    time_t date;
     std::string graftRepo;
     std::string graftPath;
     std::string graftCommitId;

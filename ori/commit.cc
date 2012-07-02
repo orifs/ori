@@ -93,6 +93,18 @@ Commit::getUser() const
 }
 
 void
+Commit::setTime(time_t t)
+{
+    date = t;
+}
+
+time_t
+Commit::getTime() const
+{
+    return date;
+}
+
+void
 Commit::setGraft(const string &repo,
 		 const string &path,
 		 const string &commitId)
@@ -117,6 +129,7 @@ Commit::getGraftCommit() const
 string
 Commit::getBlob() const
 {
+    stringstream ss;
     string blob;
     
     blob = "tree " + treeObjId + "\n";
@@ -128,6 +141,8 @@ Commit::getBlob() const
     if (user != "") {
 	blob += "user " + user + "\n";
     }
+    ss << date;
+    blob += "date " + ss.str() + "\n";
     if (graftRepo != "") {
 	assert(graftPath != "");
 	assert(graftCommitId != "");
@@ -156,6 +171,9 @@ Commit::fromBlob(const string &blob)
 	    parents.first = line.substr(7);
 	} else if (line.substr(0, 5) == "user ") {
 	    user = line.substr(5);
+    } else if (line.substr(0, 5) == "date ") {
+        string dateStr = line.substr(5);
+        date = strtoull(dateStr.c_str(), NULL, 10);
 	} else if (line.substr(0, 11) == "graft-repo ") {
 	    graftRepo = line.substr(11);
 	} else if (line.substr(0, 11) == "graft-path ") {
