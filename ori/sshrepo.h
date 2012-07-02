@@ -28,7 +28,7 @@ public:
 
     std::string getHead();
 
-    BaseObject *getObject(const std::string &id);
+    Object *getObject(const std::string &id);
     bool hasObject(const std::string &id);
     std::set<std::string> listObjects();
     int addObjectRaw(const Object::ObjectInfo &info,

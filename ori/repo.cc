@@ -73,7 +73,7 @@ Repo::addBlob(Object::Type type, const string &blob)
 size_t
 Repo::getObjectLength(const string &objId)
 {
-    auto_ptr<BaseObject> o(getObject(objId));
+    Object::ap o(getObject(objId));
     // XXX: Add better error handling
     if (!o.get())
         return 0;
@@ -86,7 +86,7 @@ Repo::getObjectLength(const string &objId)
 Object::Type
 Repo::getObjectType(const string &objId)
 {
-    auto_ptr<BaseObject> o(this->getObject(objId));
+    Object::ap o(this->getObject(objId));
     if (!o.get()) {
         printf("Couldn't get object %s\n", objId.c_str());
         return Object::Null;
@@ -127,7 +127,7 @@ Repo::pull(Repo *r)
 	if (!hasObject(*it)) {
 	    // XXX: Copy object without loading it all into memory!
 	    //addBlob(r->getPayload(*it), r->getObjectType(*it));
-            BaseObject::ap o(r->getObject((*it)));
+            Object::ap o(r->getObject((*it)));
             if (!o.get()) {
                 printf("Error getting object %s\n", (*it).c_str());
                 continue;

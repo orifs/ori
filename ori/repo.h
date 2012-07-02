@@ -50,7 +50,7 @@ public:
     virtual std::string getHead() = 0;
 
     // Objects
-    virtual BaseObject *getObject(
+    virtual Object *getObject(
             const std::string &id
             ) = 0;
     virtual bool hasObject(const std::string &id) = 0;

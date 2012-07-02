@@ -72,19 +72,19 @@ LocalRepo::close()
  * Object Operations
  */
 
-BaseObject *LocalRepo::getObject(const std::string &objId)
+Object *LocalRepo::getObject(const std::string &objId)
 {
     string path = objIdToPath(objId);
-    Object *o = new Object();
+    LocalObject *o = new LocalObject();
     o->open(path);
 
     return o;
 }
 
-Object LocalRepo::getLocalObject(const std::string &objId)
+LocalObject LocalRepo::getLocalObject(const std::string &objId)
 {
     string path = objIdToPath(objId);
-    Object o;
+    LocalObject o;
     o.open(path);
     return o;
 }
@@ -143,7 +143,7 @@ LocalRepo::addSmallFile(const string &path)
     // Check if in tree
     if (!Util_FileExists(objPath)) {
 	// Copy to object tree
-	Object o = Object();
+	LocalObject o;
 
 	createObjDirs(hash);
 	if (o.create(objPath, Object::Blob) < 0) {
@@ -177,7 +177,7 @@ LocalRepo::addLargeFile(const string &path)
         map<uint64_t, LBlobEntry>::iterator it;
 
         for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
-            Object o = Object();
+            LocalObject o;
             string refPath = objIdToPath((*it).second.hash);
 
             if (o.open(refPath) != 0) {
@@ -215,7 +215,7 @@ LocalRepo::addObject(const ObjectInfo &info, const string &payload)
     // Check if in tree
     if (!Util_FileExists(objPath)) {
         // Copy to object tree
-	Object o = Object();
+	LocalObject o;
 
 	createObjDirs(info.hash);
 	if (o.create(objPath, info.type) < 0) {
@@ -246,7 +246,7 @@ LocalRepo::addTree(const Tree &tree)
     }
 
     for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
-        Object o = Object();
+        LocalObject o;
         string refPath = objIdToPath((*it).second.hash);
 
         if (o.open(refPath) != 0) {
@@ -268,7 +268,7 @@ LocalRepo::addCommit(/* const */ Commit &commit)
 {
     string blob = commit.getBlob();
     string hash = Util_HashString(blob);
-    Object o = Object();
+    LocalObject o;
     string refPath;
 
     if (hasObject(hash)) {
@@ -312,7 +312,7 @@ LocalRepo::addCommit(/* const */ Commit &commit)
 std::string
 LocalRepo::getPayload(const string &objId)
 {
-    auto_ptr<BaseObject> o(getObject(objId));
+    Object::ap o(getObject(objId));
     // XXX: Add better error handling
     if (!o.get())
         return "";
@@ -328,7 +328,7 @@ string
 LocalRepo::verifyObject(const string &objId)
 {
     string objPath = objIdToPath(objId);
-    Object o = Object();
+    LocalObject o;
     Object::Type type;
 
     if (!hasObject(objId))
@@ -391,7 +391,7 @@ bool
 LocalRepo::purgeObject(const string &objId)
 {
     string objPath = objIdToPath(objId);
-    Object o = Object();
+    LocalObject o;
 
     if (o.open(objPath) < 0)
 	return false;
@@ -409,7 +409,7 @@ bool
 LocalRepo::copyObject(const string &objId, const string &path)
 {
     string objPath = objIdToPath(objId);
-    Object o = Object();
+    LocalObject o;
 
     // XXX: Add better error handling
     if (o.open(objPath) < 0)
@@ -494,7 +494,7 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, const std::string &raw_data)
     string hash = info.hash;
     string objPath = objIdToPath(hash);
 
-    Object o;
+    LocalObject o;
 
     if (!Util_FileExists(objPath)) {
         createObjDirs(hash);
@@ -517,7 +517,7 @@ map<string, Object::BRState>
 LocalRepo::getRefs(const string &objId)
 {
     string objPath = objIdToPath(objId);
-    Object o = Object();
+    LocalObject o;
     map<string, Object::BRState> rval;
 
     if (o.open(objPath) != 0)

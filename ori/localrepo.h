@@ -19,14 +19,14 @@ public:
     void close();
     void save();
     // Object Operations
-    int addObjectRaw(const Object::ObjectInfo &info,
+    int addObjectRaw(const ObjectInfo &info,
             const std::string &raw_data);
     int addObject(const ObjectInfo &info, const std::string
             &payload);
     bool hasObject(const std::string &objId);
-    BaseObject *getObject(const std::string &objId);
+    Object *getObject(const std::string &objId);
 
-    Object getLocalObject(const std::string &objId);
+    LocalObject getLocalObject(const std::string &objId);
 
     std::string addSmallFile(const std::string &path);
     std::string addLargeFile(const std::string &path);

@@ -619,7 +619,7 @@ cmd_rebuildrefs(int argc, const char *argv[])
 
     for (it = refs.begin(); it != refs.end(); it++) {
         int status;
-        Object o = Object();
+        LocalObject o;
         Object::Type type;
 
         if ((*it).first == EMPTY_COMMIT)

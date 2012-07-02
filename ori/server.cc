@@ -78,12 +78,12 @@ void SshServer::serve() {
             else if (strcmp(command, "readobj") == 0) {
                 char *hash = args[1];
                 // send compressed object
-                Object obj = repository.getLocalObject(hash);
+                LocalObject obj = repository.getLocalObject(hash);
                 const ObjectInfo &info = obj.getInfo();
 
                 printf("%s\n%s\n%08X\n%lu\nDATA %lu\n",
                         hash,
-                        BaseObject::getStrForType(info.type),
+                        Object::getStrForType(info.type),
                         info.flags,
                         info.payload_size,
                         obj.getStoredPayloadSize());

@@ -61,7 +61,7 @@ ObjectInfo::ObjectInfo(const char *in_hash)
 }
 
 ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
-    const char *type_str = BaseObject::getStrForType(type);
+    const char *type_str = Object::getStrForType(type);
     if (type_str == NULL)
         return -1;
 
@@ -94,9 +94,9 @@ bool ObjectInfo::getCompressed() {
 
 
 /*
- * BaseObject
+ * Object
  */
-const char *BaseObject::getStrForType(Type type) {
+const char *Object::getStrForType(Type type) {
     const char *type_str = NULL;
     switch (type) {
         case Commit:    type_str = "CMMT"; break;
@@ -112,7 +112,7 @@ const char *BaseObject::getStrForType(Type type) {
     return type_str;
 }
 
-BaseObject::Type BaseObject::getTypeForStr(const char *str) {
+Object::Type Object::getTypeForStr(const char *str) {
     if (strcmp(str, "CMMT") == 0) {
         return Commit;
     }
@@ -138,12 +138,12 @@ BaseObject::Type BaseObject::getTypeForStr(const char *str) {
 /*
  * Object
  */
-Object::Object()
+LocalObject::LocalObject()
 {
     fd = -1;
 }
 
-Object::~Object()
+LocalObject::~LocalObject()
 {
     close();
 }
@@ -152,7 +152,7 @@ Object::~Object()
  * Create a new object.
  */
 int
-Object::create(const string &path, Type type, uint32_t flags)
+LocalObject::create(const string &path, Type type, uint32_t flags)
 {
     int status;
 
@@ -183,7 +183,7 @@ Object::create(const string &path, Type type, uint32_t flags)
  * Create a new object from existing raw data
  */
 int
-Object::createFromRawData(const string &path, const ObjectInfo &info,
+LocalObject::createFromRawData(const string &path, const ObjectInfo &info,
         const string &raw_data)
 {
     objPath = path;
@@ -214,7 +214,7 @@ Object::createFromRawData(const string &path, const ObjectInfo &info,
  * Open an existing object read-only.
  */
 int
-Object::open(const string &path)
+LocalObject::open(const string &path)
 {
     int status;
     char buf[5];
@@ -268,7 +268,7 @@ Object::open(const string &path)
  * Close the object file.
  */
 void
-Object::close()
+LocalObject::close()
 {
     if (fd != -1)
         ::close(fd);
@@ -283,7 +283,7 @@ Object::close()
  * Get the on-disk file size including the object header.
  */
 size_t
-Object::getFileSize()
+LocalObject::getFileSize()
 {
     struct stat sb;
 
@@ -298,7 +298,7 @@ Object::getFileSize()
  * Get the size of the payload when stored on disk (e.g. after compression)
  */
 size_t
-Object::getStoredPayloadSize() {
+LocalObject::getStoredPayloadSize() {
     return storedLen;
 }
 
@@ -310,7 +310,7 @@ Object::getStoredPayloadSize() {
  * Purge object.
  */
 int
-Object::purge()
+LocalObject::purge()
 {
     int status;
 
@@ -334,7 +334,7 @@ Object::purge()
  * Append the specified file into the object.
  */
 int
-Object::setPayload(bytestream *bs_in)
+LocalObject::setPayload(bytestream *bs_in)
 {
     std::auto_ptr<bytestream> bs(bs_in);
     if (bs.get() == NULL)
@@ -402,7 +402,7 @@ retryWrite:
  * Append a blob to the object file.
  */
 int
-Object::setPayload(const string &blob)
+LocalObject::setPayload(const string &blob)
 {
     int status;
 
@@ -446,7 +446,7 @@ Object::setPayload(const string &blob)
  * Recompute the SHA-256 hash to verify the file.
  */
 string
-Object::computeHash()
+LocalObject::computeHash()
 {
     std::auto_ptr<bytestream> bs(getPayloadStream());
     if (bs->error()) return "";
@@ -478,7 +478,7 @@ Object::computeHash()
     return rval.str();
 }
 
-bytestream::ap Object::getPayloadStream() {
+bytestream::ap LocalObject::getPayloadStream() {
     if (info.getCompressed()) {
         bytestream::ap bs(getStoredPayloadStream());
         return bytestream::ap(new lzmastream(bs.release(), info.payload_size));
@@ -488,7 +488,7 @@ bytestream::ap Object::getPayloadStream() {
     }
 }
 
-bytestream::ap Object::getStoredPayloadStream() {
+bytestream::ap LocalObject::getStoredPayloadStream() {
     return bytestream::ap(new fdstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
 }
 
@@ -505,7 +505,7 @@ bytestream::ap Object::getStoredPayloadStream() {
  * identifier followed by 2 bytes denoting the length in bytes of the entry
  * followed by the entry itself.
  */
-void Object::addMetadataEntry(MdType type, const std::string &data) {
+void LocalObject::addMetadataEntry(MdType type, const std::string &data) {
     assert(checkMetadata());
 
     off_t offset = getFileSize();
@@ -529,7 +529,7 @@ void Object::addMetadataEntry(MdType type, const std::string &data) {
     assert(err == ORI_MD_HASHSIZE);
 }
 
-std::string Object::computeMetadataHash() {
+std::string LocalObject::computeMetadataHash() {
     off_t offset = OFF_MD_HASH + ORI_MD_HASHSIZE;
     if (lseek(fd, offset, SEEK_SET) != offset) {
         return "";
@@ -564,7 +564,7 @@ std::string Object::computeMetadataHash() {
 }
 
 bool
-Object::checkMetadata()
+LocalObject::checkMetadata()
 {
     if (getFileSize() <= OFF_MD_HASH) {
         // No metadata to check
@@ -587,7 +587,7 @@ Object::checkMetadata()
 }
 
 void
-Object::clearMetadata()
+LocalObject::clearMetadata()
 {
     int status;
 
@@ -597,7 +597,7 @@ Object::clearMetadata()
 
 
 void
-Object::addBackref(const string &objId, Object::BRState state)
+LocalObject::addBackref(const string &objId, LocalObject::BRState state)
 {
     string buf = objId;
 
@@ -615,7 +615,7 @@ Object::addBackref(const string &objId, Object::BRState state)
 }
 
 void
-Object::updateBackref(const string &objId, Object::BRState state)
+LocalObject::updateBackref(const string &objId, LocalObject::BRState state)
 {
     map<string, BRState> backrefs;
     map<string, BRState>::iterator it;
@@ -641,8 +641,8 @@ Object::updateBackref(const string &objId, Object::BRState state)
     }
 }
 
-map<string, Object::BRState>
-Object::getBackref()
+map<string, LocalObject::BRState>
+LocalObject::getBackref()
 {
     map<string, BRState> rval;
 
@@ -705,7 +705,7 @@ Object::getBackref()
 
 // Code from xz_pipe_comp.c in xz examples
 
-void Object::setupLzma(lzma_stream *strm, bool encode) {
+void LocalObject::setupLzma(lzma_stream *strm, bool encode) {
     lzma_ret ret_xz;
     if (encode) {
         ret_xz = lzma_easy_encoder(strm, 0, LZMA_CHECK_NONE);
@@ -716,7 +716,7 @@ void Object::setupLzma(lzma_stream *strm, bool encode) {
     assert(ret_xz == LZMA_OK);
 }
 
-bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
+bool LocalObject::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
     uint8_t outbuf[COPYFILE_BUFSZ];
     do {
         strm->next_out = outbuf;
@@ -740,7 +740,7 @@ bool Object::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
     return true;
 }
 
-const char *Object::_getIdForMdType(MdType type) {
+const char *LocalObject::_getIdForMdType(MdType type) {
     switch (type) {
     case MdBackref:
         return "BR";
@@ -749,7 +749,7 @@ const char *Object::_getIdForMdType(MdType type) {
     }
 }
 
-Object::MdType Object::_getMdTypeForStr(const char *str) {
+LocalObject::MdType LocalObject::_getMdTypeForStr(const char *str) {
     if (str[0] == 'B') {
         if (str[1] == 'R') {
             return MdBackref;

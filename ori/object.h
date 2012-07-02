@@ -37,13 +37,13 @@
 
 #define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
 
-class BaseObject {
+class Object {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
     enum MdType { MdNull, MdBackref };
     enum BRState { BRNull, BRRef, BRPurged };
 
-    typedef std::auto_ptr<BaseObject> ap;
+    typedef std::auto_ptr<Object> ap;
 
     struct ObjectInfo {
         ObjectInfo();
@@ -59,7 +59,7 @@ public:
         char hash[2*ORI_MD_HASHSIZE+1]; // null byte at end
     };
 
-    virtual ~BaseObject() {}
+    virtual ~Object() {}
 
     virtual const ObjectInfo &getInfo() const { return info; }
     virtual std::auto_ptr<bytestream> getPayloadStream() = 0;
@@ -74,14 +74,14 @@ protected:
     ObjectInfo info;
 };
 
-typedef BaseObject::ObjectInfo ObjectInfo;
+typedef Object::ObjectInfo ObjectInfo;
 
 
-class Object : public BaseObject
+class LocalObject : public Object
 {
 public:
-    Object();
-    ~Object();
+    LocalObject();
+    ~LocalObject();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
     int createFromRawData(const std::string &path, const ObjectInfo &info,
             const std::string &raw_data);
