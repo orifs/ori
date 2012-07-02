@@ -169,10 +169,28 @@ string
 Repo::addLargeFile(const string &path)
 {
     string blob;
+    string hash;
     LargeBlob lb = LargeBlob(this);
 
     lb.chunkFile(path);
     blob = lb.getBlob();
+    hash = Util_HashString(blob);
+
+    if (!hasObject(hash)) {
+        map<uint64_t, LBlobEntry>::iterator it;
+
+        for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
+            Object o = Object();
+            string refPath = objIdToPath((*it).second.hash);
+
+            if (o.open(refPath) != 0) {
+                perror("Cannot open object");
+                assert(false);
+            }
+            o.addBackref(hash, Object::BRRef);
+            o.close();
+        }
+    }
 
     return addBlob(blob, Object::LargeBlob);
 }
