@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "server.h"
 #include "util.h"
+#include "localrepo.h"
 
 SshServer::SshServer()
 {

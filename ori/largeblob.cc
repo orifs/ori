@@ -73,7 +73,7 @@ LBlobEntry::~LBlobEntry()
  *
  ********************************************************************/
 
-LargeBlob::LargeBlob(Repo *r)
+LargeBlob::LargeBlob(LocalRepo *r)
 {
     repo = r;
 }
@@ -134,7 +134,7 @@ public:
         // XXX: Journal for cleanup!
         string blob = string((const char *)b, l);
         //blob.set(b, l);
-        lb->repo->addBlob(blob, Object::Blob);
+        lb->repo->addBlob(Object::Blob, blob);
 
         // Add the fragment to the LargeBlob object.
 	lb->parts.insert(make_pair(lbOff, LBlobEntry(ss.str(), l)));
@@ -225,7 +225,8 @@ LargeBlob::extractFile(const string &path)
         int status;
         string tmp;
 
-        tmp = repo->getPayload((*it).second.hash);
+        ObjectInfo info((*it).second.hash.c_str());
+        repo->getData(&info, tmp);
         assert(tmp.length() == (*it).second.length);
 
         status = ::write(fd, tmp.data(), tmp.length());

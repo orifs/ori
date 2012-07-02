@@ -87,10 +87,10 @@ Tree::addObject(const char *path, const string &objId)
 
 
 const string
-Tree::getBlob()
+Tree::getBlob() const
 {
     string blob = "";
-    map<string, TreeEntry>::iterator it;
+    map<string, TreeEntry>::const_iterator it;
 
     for (it = tree.begin(); it != tree.end(); it++)
     {

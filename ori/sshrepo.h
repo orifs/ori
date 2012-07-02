@@ -20,7 +20,7 @@
 #include "repo.h"
 #include "sshclient.h"
 
-class SshRepo : public BasicRepo
+class SshRepo : public Repo
 {
 public:
     SshRepo(SshClient *client);
@@ -28,12 +28,14 @@ public:
 
     std::string getHead();
 
-    int getObjectRaw(Object::ObjectInfo *info, std::string &raw_data);
+    int getObjectInfo(ObjectInfo *info);
+    int getDataRaw(ObjectInfo *info, std::string &raw_data);
+    bool hasObject(const std::string &id);
     std::set<std::string> listObjects();
     Object addObjectRaw(const Object::ObjectInfo &info,
             const std::string &raw_data);
-    Object addObjectRaw(Object::ObjectInfo info, bytestream *bs);
-    std::string addObject(Object::ObjectInfo info, const std::string &data);
+    //Object addObjectRaw(Object::ObjectInfo info, bytestream *bs);
+    //std::string addObject(Object::ObjectInfo info, const std::string &data);
 
 private:
     SshClient *client;

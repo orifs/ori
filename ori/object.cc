@@ -572,7 +572,7 @@ void Object::addMetadataEntry(MdType type, const std::string &data) {
     assert(checkMetadata());
 
     off_t offset = getDiskSize();
-    if (offset == OFF_MD_HASH) {
+    if (offset == (off_t)OFF_MD_HASH) {
         offset += ORI_MD_HASHSIZE;
     }
 

@@ -265,7 +265,7 @@ int cmd_sshclient(int argc, const char *argv[]) {
 
     Object::ObjectInfo info("b7287ce2bca00e9b78555dba3ec7b013415425f7ffd6628b6ed68dcfba699426");
     std::string data;
-    repo.getObjectRaw(&info, data);
+    repo.getDataRaw(&info, data);
     printf("type: %d\nflags: %08X\npayload_size: %lu\n", info.type, info.flags,
             info.payload_size);
 

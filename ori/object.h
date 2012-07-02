@@ -104,5 +104,8 @@ private:
     MdType _getMdTypeForStr(const char *);
 };
 
+typedef Object::ObjectInfo ObjectInfo;
+
+
 #endif /* __OBJECT_H__ */
 

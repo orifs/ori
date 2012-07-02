@@ -43,7 +43,7 @@ public:
     Tree();
     ~Tree();
     void addObject(const char *path, const std::string &objId);
-    const std::string getBlob();
+    const std::string getBlob() const;
     void fromBlob(const std::string &blob);
     std::map<std::string, TreeEntry> tree;
 };

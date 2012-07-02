@@ -34,31 +34,50 @@
 #include "util.h"
 #include "object.h"
 #include "largeblob.h"
+
 #include "repo.h"
+#include "localrepo.h"
 
 using namespace std;
 
-Repo repository;
+
+/*
+ * Repo
+ */
+
+int Repo::addObject(const ObjectInfo &info,
+        const std::string &payload)
+{
+    return -1;
+}
+
+int Repo::getData(ObjectInfo *info,
+        std::string &data) {
+    return -1;
+}
+
+
+LocalRepo repository;
 
 /********************************************************************
  *
  *
- * Repository
+ * LocalRepo
  *
  *
  ********************************************************************/
 
-Repo::Repo(const string &root)
+LocalRepo::LocalRepo(const string &root)
 {
     rootPath = (root == "") ? findRootPath() : root;
 }
 
-Repo::~Repo()
+LocalRepo::~LocalRepo()
 {
 }
 
 bool
-Repo::open(const string &root)
+LocalRepo::open(const string &root)
 {
     if (root.compare("") != 0) {
         rootPath = root;
@@ -84,7 +103,7 @@ Repo::open(const string &root)
 }
 
 void
-Repo::close()
+LocalRepo::close()
 {
 }
 
@@ -92,8 +111,18 @@ Repo::close()
  * Object Operations
  */
 
+int LocalRepo::getObjectInfo(ObjectInfo *info)
+{
+    string path = objIdToPath(info->hash);
+    Object o;
+    o.open(path);
+    *info = o.getInfo();
+
+    return 0;
+}
+
 void
-Repo::createObjDirs(const string &objId)
+LocalRepo::createObjDirs(const string &objId)
 {
     string path = rootPath;
 
@@ -111,7 +140,7 @@ Repo::createObjDirs(const string &objId)
 }
 
 string
-Repo::objIdToPath(const string &objId)
+LocalRepo::objIdToPath(const string &objId)
 {
     string rval = rootPath;
 
@@ -132,7 +161,7 @@ Repo::objIdToPath(const string &objId)
  * Add a file to the repository. This is a low-level interface.
  */
 string
-Repo::addSmallFile(const string &path)
+LocalRepo::addSmallFile(const string &path)
 {
     string hash = Util_HashFile(path);
     string objPath;
@@ -166,7 +195,7 @@ Repo::addSmallFile(const string &path)
  * Add a file to the repository. This is a low-level interface.
  */
 string
-Repo::addLargeFile(const string &path)
+LocalRepo::addLargeFile(const string &path)
 {
     string blob;
     string hash;
@@ -192,7 +221,7 @@ Repo::addLargeFile(const string &path)
         }
     }
 
-    return addBlob(blob, Object::LargeBlob);
+    return addBlob(Object::LargeBlob, blob);
 }
 
 /*
@@ -200,7 +229,7 @@ Repo::addLargeFile(const string &path)
  * work to addLargeFile or addSmallFile based on our size threshold.
  */
 string
-Repo::addFile(const string &path)
+LocalRepo::addFile(const string &path)
 {
     size_t sz = Util_FileSize(path);
 
@@ -214,39 +243,49 @@ Repo::addFile(const string &path)
  * Add a blob to the repository. This is a low-level interface.
  */
 string
-Repo::addBlob(const string &blob, Object::Type type)
+Repo::addBlob(Object::Type type, const string &blob)
 {
     string hash = Util_HashString(blob);
-    string objPath = objIdToPath(hash);
+    ObjectInfo info(hash.c_str());
+    info.type = type;
+    //info.flags = ...;
+    addObject(info, blob);
+    return hash;
+}
+
+int
+LocalRepo::addObject(const ObjectInfo &info, const string &payload)
+{
+    string objPath = objIdToPath(info.hash);
 
     // Check if in tree
     if (!Util_FileExists(objPath)) {
         // Copy to object tree
 	Object o = Object();
 
-	createObjDirs(hash);
-	if (o.create(objPath, type) < 0) {
+	createObjDirs(info.hash);
+	if (o.create(objPath, info.type) < 0) {
 	    perror("Unable to create object");
-	    return "";
+	    return -errno;
 	}
-	if (o.appendBlob(blob) < 0) {
+	if (o.appendBlob(payload) < 0) {
 	    perror("Unable to copy file");
-	    return "";
+	    return -errno;
 	}
     }
 
-    return hash;
+    return 0;
 }
 
 /*
  * Add a tree to the repository.
  */
 string
-Repo::addTree(/* const */ Tree &tree)
+LocalRepo::addTree(const Tree &tree)
 {
     string blob = tree.getBlob();
     string hash = Util_HashString(blob);
-    map<string, TreeEntry>::iterator it;
+    map<string, TreeEntry>::const_iterator it;
 
     if (hasObject(hash)) {
         return hash;
@@ -264,14 +303,14 @@ Repo::addTree(/* const */ Tree &tree)
         o.close();
     }
 
-    return addBlob(blob, Object::Tree);
+    return addBlob(Object::Tree, blob);
 }
 
 /*
  * Add a commit to the repository.
  */
 string
-Repo::addCommit(/* const */ Commit &commit)
+LocalRepo::addCommit(/* const */ Commit &commit)
 {
     string blob = commit.getBlob();
     string hash = Util_HashString(blob);
@@ -310,14 +349,14 @@ Repo::addCommit(/* const */ Commit &commit)
         o.close();
     }
 
-    return addBlob(blob, Object::Commit);
+    return addBlob(Object::Commit, blob);
 }
 
 /*
  * Get the Object associated with an ID.
  */
 Object
-Repo::getObject(const string &objId)
+LocalRepo::getObject(const string &objId)
 {
     string path = objIdToPath(objId);
     Object o;
@@ -333,7 +372,7 @@ Repo::getObject(const string &objId)
  * Read an object into memory and return it as a string.
  */
 std::string
-Repo::getPayload(const string &objId)
+LocalRepo::getPayload(const string &objId)
 {
     Object o = getObject(objId);
     // XXX: Add better error handling
@@ -348,21 +387,20 @@ Repo::getPayload(const string &objId)
 size_t
 Repo::getObjectLength(const string &objId)
 {
-    string objPath = objIdToPath(objId);
-    Object o = Object();
+    ObjectInfo info(objId.c_str());
 
     // XXX: Add better error handling
-    if (o.open(objPath) < 0)
-	return -1;
+    if (getObjectInfo(&info) < 0)
+	return 0;
 
-    return o.getInfo().payload_size;
+    return info.payload_size;
 }
 
 /*
  * Verify object
  */
 string
-Repo::verifyObject(const string &objId)
+LocalRepo::verifyObject(const string &objId)
 {
     string objPath = objIdToPath(objId);
     Object o = Object();
@@ -425,7 +463,7 @@ Repo::verifyObject(const string &objId)
  * Purge object
  */
 bool
-Repo::purgeObject(const string &objId)
+LocalRepo::purgeObject(const string &objId)
 {
     string objPath = objIdToPath(objId);
     Object o = Object();
@@ -445,21 +483,20 @@ Repo::purgeObject(const string &objId)
 Object::Type
 Repo::getObjectType(const string &objId)
 {
-    string objPath = objIdToPath(objId);
-    Object o = Object();
+    ObjectInfo info(objId.c_str());
 
     // XXX: Add better error handling
-    if (o.open(objPath) < 0)
+    if (getObjectInfo(&info) < 0)
 	return Object::Null;
 
-    return o.getType();
+    return info.type;
 }
 
 /*
  * Copy an object to a working directory.
  */
 bool
-Repo::copyObject(const string &objId, const string &path)
+LocalRepo::copyObject(const string &objId, const string &path)
 {
     string objPath = objIdToPath(objId);
     Object o = Object();
@@ -502,7 +539,7 @@ Repo_GetObjectsCB(void *arg, const char *path)
  * Return a list of objects in the repository.
  */
 set<string>
-Repo::listObjects()
+LocalRepo::listObjects()
 {
     int status;
     set<string> objs;
@@ -516,7 +553,7 @@ Repo::listObjects()
 }
 
 Commit
-Repo::getCommit(const std::string &commitId)
+LocalRepo::getCommit(const std::string &commitId)
 {
     Commit c = Commit();
     string blob = getPayload(commitId);
@@ -528,8 +565,13 @@ Repo::getCommit(const std::string &commitId)
 Tree
 Repo::getTree(const std::string &treeId)
 {
-    Tree t = Tree();
-    string blob = getPayload(treeId);
+    ObjectInfo info(treeId.c_str());
+    string blob;
+    getData(&info, blob);
+
+    assert(info.type == Object::Tree);
+
+    Tree t;
     t.fromBlob(blob);
 
     return t;
@@ -539,7 +581,7 @@ Repo::getTree(const std::string &treeId)
  * Return true if the repository has the object.
  */
 bool
-Repo::hasObject(const string &objId)
+LocalRepo::hasObject(const string &objId)
 {
     string path = objIdToPath(objId);
 
@@ -552,13 +594,13 @@ Repo::hasObject(const string &objId)
  * BasicRepo implementation
  */
 int
-Repo::getObjectRaw(Object::ObjectInfo *info, std::string &raw_data)
+LocalRepo::getDataRaw(ObjectInfo *info, std::string &raw_data)
 {
     return -1;
 }
 
 Object
-Repo::addObjectRaw(const Object::ObjectInfo &info, const std::string &raw_data)
+LocalRepo::addObjectRaw(const ObjectInfo &info, const std::string &raw_data)
 {
     string hash = info.hash;
     string objPath = objIdToPath(hash);
@@ -583,7 +625,7 @@ Repo::addObjectRaw(const Object::ObjectInfo &info, const std::string &raw_data)
  * Return the references for a given object.
  */
 map<string, Object::BRState>
-Repo::getRefs(const string &objId)
+LocalRepo::getRefs(const string &objId)
 {
     string objPath = objIdToPath(objId);
     Object o = Object();
@@ -601,7 +643,7 @@ Repo::getRefs(const string &objId)
  * Return reference counts for all objects.
  */
 map<string, map<string, Object::BRState> >
-Repo::getRefCounts()
+LocalRepo::getRefCounts()
 {
     set<string> obj = listObjects();
     set<string>::iterator it;
@@ -619,7 +661,7 @@ Repo::getRefCounts()
  * be used as part of recovery.
  */
 map<string, set<string> >
-Repo::computeRefCounts()
+LocalRepo::computeRefCounts()
 {
     set<string> obj = listObjects();
     set<string>::iterator it;
@@ -689,7 +731,7 @@ Repo::computeRefCounts()
  * Return a set of all objects references by a tree.
  */
 set<string>
-Repo::getSubtreeObjects(const string &treeId)
+LocalRepo::getSubtreeObjects(const string &treeId)
 {
     queue<string> treeQ;
     set<string> rval;
@@ -722,7 +764,7 @@ Repo::getSubtreeObjects(const string &treeId)
  * XXX: Make this a template function
  */
 set<string>
-Repo::walkHistory(HistoryCB &cb)
+LocalRepo::walkHistory(HistoryCB &cb)
 {
     set<string> rval;
     set<string> curLevel;
@@ -762,7 +804,7 @@ Repo::walkHistory(HistoryCB &cb)
  * Lookup a path given a Commit and return the object ID.
  */
 string
-Repo::lookup(const Commit &c, const string &path)
+LocalRepo::lookup(const Commit &c, const string &path)
 {
     vector<string> pv = Util_PathToVector(path);
     vector<string>::iterator it;
@@ -779,7 +821,7 @@ Repo::lookup(const Commit &c, const string &path)
 class GraftCB : public HistoryCB
 {
 public:
-    GraftCB(Repo *dstRepo, Repo *srcRepo, const string &path)
+    GraftCB(LocalRepo *dstRepo, LocalRepo *srcRepo, const string &path)
     {
         dst = dstRepo;
         src = srcRepo;
@@ -806,7 +848,7 @@ public:
         {
 	    if (!dst->hasObject(*it)) {
                 // XXX: Copy object without loading it all into memory!
-	        dst->addBlob(src->getPayload(*it), src->getObjectType(*it));
+	        dst->addBlob(src->getObjectType(*it), src->getPayload(*it));
 	    }
         }
 
@@ -818,15 +860,15 @@ public:
     }
 private:
     string srcPath;
-    Repo *src;
-    Repo *dst;
+    LocalRepo *src;
+    LocalRepo *dst;
 };
 
 /*
  * Graft a subtree from Repo 'r' to this repository.
  */
 string
-Repo::graftSubtree(Repo *r,
+LocalRepo::graftSubtree(LocalRepo *r,
                    const std::string &srcPath,
                    const std::string &dstPath)
 {
@@ -848,7 +890,7 @@ Repo::graftSubtree(Repo *r,
  * Get the working repository version.
  */
 string
-Repo::getHead()
+LocalRepo::getHead()
 {
     string headPath = rootPath + ORI_PATH_HEAD;
     char *commitId = Util_ReadFile(headPath, NULL);
@@ -865,7 +907,7 @@ Repo::getHead()
  * Update the working directory revision.
  */
 void
-Repo::updateHead(const string &commitId)
+LocalRepo::updateHead(const string &commitId)
 {
     string headPath = rootPath + ORI_PATH_HEAD;
 
@@ -877,25 +919,25 @@ Repo::updateHead(const string &commitId)
  */
 
 string
-Repo::getUUID()
+LocalRepo::getUUID()
 {
     return id;
 }
 
 string
-Repo::getVersion()
+LocalRepo::getVersion()
 {
     return version;
 }
 
 string
-Repo::getRootPath()
+LocalRepo::getRootPath()
 {
     return rootPath;
 }
 
 string
-Repo::getLogPath()
+LocalRepo::getLogPath()
 {
     if (rootPath.compare("") == 0)
         return rootPath;
@@ -903,7 +945,7 @@ Repo::getLogPath()
 }
 
 string
-Repo::getTmpFile()
+LocalRepo::getTmpFile()
 {
     string tmpFile;
     char buf[10];
@@ -936,7 +978,7 @@ Repo::getTmpFile()
  * Pull changes from the source repository.
  */
 void
-Repo::pull(BasicRepo *r)
+Repo::pull(Repo *r)
 {
     set<string> objects = r->listObjects();
     set<string>::iterator it;
@@ -948,7 +990,7 @@ Repo::pull(BasicRepo *r)
 	    //addBlob(r->getPayload(*it), r->getObjectType(*it));
             Object::ObjectInfo info((*it).c_str());
             std::string raw_data;
-            if (r->getObjectRaw(&info, raw_data) < 0) {
+            if (r->getDataRaw(&info, raw_data) < 0) {
                 printf("Error getting object %s\n", (*it).c_str());
                 continue;
             }
@@ -963,7 +1005,7 @@ Repo::pull(BasicRepo *r)
  */
 
 string
-Repo::findRootPath(const string &path)
+LocalRepo::findRootPath(const string &path)
 {
     string root = path;
     if (path.size() == 0) {

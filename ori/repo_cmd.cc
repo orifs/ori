@@ -34,7 +34,7 @@
 #include "debug.h"
 #include "scan.h"
 #include "util.h"
-#include "repo.h"
+#include "localrepo.h"
 #include "sshclient.h"
 #include "sshrepo.h"
 
@@ -124,7 +124,7 @@ cmd_init(int argc, const char *argv[])
 int
 cmd_show(int argc, const char *argv[])
 {
-    string rootPath = Repo::findRootPath();
+    string rootPath = LocalRepo::findRootPath();
 
     if (rootPath.compare("") == 0) {
         printf("No repository found!\n");
@@ -275,7 +275,7 @@ cmd_commit(int argc, const char *argv[])
     string user;
     Tree tree = Tree();
     Commit commit = Commit();
-    string root = Repo::findRootPath();
+    string root = LocalRepo::findRootPath();
 
     if (argc == 1) {
         msg = "No message.";
@@ -313,7 +313,7 @@ cmd_commit(int argc, const char *argv[])
 int
 StatusDirectoryCB(void *arg, const char *path)
 {
-    string repoRoot = Repo::findRootPath();
+    string repoRoot = LocalRepo::findRootPath();
     string objPath = path;
     string objHash;
     map<string, string> *dirState = (map<string, string> *)arg;
@@ -372,7 +372,7 @@ cmd_status(int argc, const char *argv[])
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 
-    Scan_RTraverse(Repo::findRootPath().c_str(),
+    Scan_RTraverse(LocalRepo::findRootPath().c_str(),
 		   (void *)&dirState,
 	           StatusDirectoryCB);
 
@@ -414,7 +414,7 @@ cmd_checkout(int argc, const char *argv[])
 	StatusTreeIter(&tipState, "", c.getTree());
     }
 
-    Scan_RTraverse(Repo::findRootPath().c_str(),
+    Scan_RTraverse(LocalRepo::findRootPath().c_str(),
 		   (void *)&dirState,
 	           StatusDirectoryCB);
 
@@ -427,14 +427,14 @@ cmd_checkout(int argc, const char *argv[])
 	    // XXX: Handle replace a file <-> directory with same name
 	    assert((*it).second != "DIR");
 	    repository.copyObject((*k).second,
-				  Repo::findRootPath()+(*k).first);
+				  LocalRepo::findRootPath()+(*k).first);
 	}
     }
 
     for (it = tipState.begin(); it != tipState.end(); it++) {
 	map<string, string>::iterator k = dirState.find((*it).first);
 	if (k == dirState.end()) {
-	    string path = Repo::findRootPath() + (*it).first;
+	    string path = LocalRepo::findRootPath() + (*it).first;
 	    if ((*it).second == "DIR") {
 		printf("N	%s\n", (*it).first.c_str());
 		mkdir(path.c_str(), 0755);
@@ -500,8 +500,8 @@ cmd_clone(int argc, const char *argv[])
 
     printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
 
-    Repo srcRepo(srcRoot);
-    Repo dstRepo(newRoot);
+    LocalRepo srcRepo(srcRoot);
+    LocalRepo dstRepo(newRoot);
 
     dstRepo.pull(&srcRepo);
 
@@ -525,14 +525,14 @@ cmd_pull(int argc, const char *argv[])
     srcRoot = argv[1];
 
     std::auto_ptr<SshClient> client;
-    std::auto_ptr<BasicRepo> srcRepo;
+    std::auto_ptr<Repo> srcRepo;
     if (Util_IsPathRemote(srcRoot.c_str())) {
         client.reset(new SshClient(srcRoot));
         srcRepo.reset(new SshRepo(client.get()));
         client->connect();
     }
     else {
-        srcRepo.reset(new Repo(srcRoot));
+        srcRepo.reset(new LocalRepo(srcRoot));
     }
 
     printf("Pulling from %s\n", srcRoot.c_str());
@@ -787,7 +787,7 @@ int
 cmd_graft(int argc, const char *argv[])
 {
     string srcRoot, dstRoot, srcRelPath, dstRelPath;
-    Repo srcRepo, dstRepo;
+    LocalRepo srcRepo, dstRepo;
 
     if (argc != 3) {
         cout << "Error in correct number of arguments." << endl;
@@ -804,8 +804,8 @@ cmd_graft(int argc, const char *argv[])
         return 1;
     }
 
-    srcRoot = Repo::findRootPath(srcRelPath);
-    dstRoot = Repo::findRootPath(dstRelPath);
+    srcRoot = LocalRepo::findRootPath(srcRelPath);
+    dstRoot = LocalRepo::findRootPath(dstRelPath);
 
     if (srcRoot == "") {
         cout << "Error: source path is not a repository." << endl;

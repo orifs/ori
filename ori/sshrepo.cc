@@ -104,7 +104,7 @@ std::string SshRepo::getHead()
     return line.substr(0, line.size()-1);
 }
 
-int SshRepo::getObjectRaw(Object::ObjectInfo *info, std::string &raw_data)
+int SshRepo::getDataRaw(Object::ObjectInfo *info, std::string &raw_data)
 {
     std::string command = "readobj ";
     command += info->hash;
@@ -158,16 +158,24 @@ Object SshRepo::addObjectRaw(const Object::ObjectInfo &info, const std::string
     return Object();
 }
 
-Object SshRepo::addObjectRaw(Object::ObjectInfo info, bytestream *bs)
+int SshRepo::getObjectInfo(ObjectInfo *info) {
+    return -1;
+}
+
+bool SshRepo::hasObject(const std::string &id) {
+    return false;
+}
+
+/*Object SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
     assert(false);
     return Object();
 }
 
-std::string SshRepo::addObject(Object::ObjectInfo info, const std::string
+std::string SshRepo::addObject(const ObjectInfo &info, const std::string
         &data)
 {
     assert(false);
     return "";
-}
+}*/
 

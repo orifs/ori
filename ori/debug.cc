@@ -16,7 +16,7 @@
 #endif
 
 #include "debug.h"
-#include "repo.h"
+#include "localrepo.h"
 
 /********************************************************************
  *
@@ -71,7 +71,7 @@ ori_log(const char *fmt, ...)
     fsync(logfd);
 }
 
-void ori_open_log(Repo *repo) {
+void ori_open_log(LocalRepo *repo) {
     logfd = -1;
 
     std::string logPath = repo->getLogPath();

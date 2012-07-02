@@ -33,6 +33,7 @@ using namespace std;
 
 #include "debug.h"
 #include "repo.h"
+#include "localrepo.h"
 #include "server.h"
 
 /********************************************************************
