@@ -4,9 +4,76 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "debug.h"
 #include "stream.h"
+
+
+
+#define COPYFILE_BUFSZ 2048
+
+std::string bytestream::readAll() {
+    std::string rval;
+
+    if (sizeHint() == 0) {
+        // Need to read to end
+        uint8_t buf[COPYFILE_BUFSZ];
+        while (!ended()) {
+            size_t n = read(buf, COPYFILE_BUFSZ);
+            if (error()) {
+                return "";
+            }
+
+            size_t oldSize = rval.size();
+            rval.resize(oldSize + n);
+            memcpy(&rval[oldSize], buf, n);
+        }
+        return rval;
+    }
+    else {
+        rval.resize(sizeHint());
+        read((uint8_t*)&rval[0], sizeHint());
+        if (error()) {
+            return "";
+        }
+        return rval;
+    }
+}
+
+int bytestream::copyToFile(const std::string &path) {
+    int dstFd = ::open(path.c_str(), O_WRONLY | O_CREAT,
+            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (dstFd < 0)
+        return -errno;
+
+    int rval = copyToFd(dstFd);
+    if (rval < 0) {
+        ::close(dstFd);
+        unlink(path.c_str());
+    }
+    return rval;
+}
+
+int bytestream::copyToFd(int dstFd)
+{
+    size_t totalWritten = 0;
+    uint8_t buf[COPYFILE_BUFSZ];
+    while (!ended()) {
+        size_t bytesRead = read(buf, COPYFILE_BUFSZ);
+        if (error()) return -errnum();
+retryWrite:
+        ssize_t bytesWritten = write(dstFd, buf, bytesRead);
+        if (bytesWritten < 0) {
+            if (errno == EINTR)
+                goto retryWrite;
+            return -errno;
+        }
+        totalWritten += bytesWritten;
+    }
+
+    return totalWritten;
+}
 
 
 void bytestream::setErrno(const char *msg) {
@@ -16,7 +83,7 @@ void bytestream::setErrno(const char *msg) {
     last_errnum = errno;
 }
 
-bool bytestream::inheritError(bytestream *bs) {
+bool bytestream::inheritError(bytestream::ap bs) {
     if (bs->error()) {
         last_error.assign(bs->error());
         last_errnum = bs->errnum();
@@ -26,12 +93,12 @@ bool bytestream::inheritError(bytestream *bs) {
 }
 
 /*
- * diskstream
+ * fdstream
  */
 
 // TODO: error checking
 
-diskstream::diskstream(int fd, off_t offset, size_t length)
+fdstream::fdstream(int fd, off_t offset, size_t length)
     : fd(fd), offset(offset), length(length), left(length)
 {
     if (lseek(fd, offset, SEEK_SET) != offset) {
@@ -39,11 +106,11 @@ diskstream::diskstream(int fd, off_t offset, size_t length)
     }
 }
 
-bool diskstream::ended() {
+bool fdstream::ended() {
     return left == 0 || error();
 }
 
-size_t diskstream::read(uint8_t *buf, size_t n) {
+size_t fdstream::read(uint8_t *buf, size_t n) {
     size_t final_size = MIN(n, left);
 retry_read:
     ssize_t read_bytes = ::read(fd, buf, final_size);
@@ -57,14 +124,50 @@ retry_read:
     return read_bytes;
 }
 
+size_t fdstream::sizeHint() const {
+    return length;
+}
+
+/*
+ * diskstream
+ */
+
+diskstream::diskstream(const std::string &filename)
+    : fd(-1)
+{
+    fd = open(filename.c_str(), O_RDONLY);
+    if (fd < 0)
+        setErrno("open");
+
+    size_t length = lseek(fd, 0, SEEK_END);
+    source.reset(new fdstream(fd, 0, length));
+}
+
+diskstream::~diskstream() {
+    if (fd > 0)
+        close(fd);
+}
+
+bool diskstream::ended() {
+    return source->ended();
+}
+
+size_t diskstream::read(uint8_t *buf, size_t n) {
+    return source->read(buf, n);
+}
+
+size_t diskstream::sizeHint() const {
+    return source->sizeHint();
+}
+
 /*
  * lzmastream
  */
 
-lzmastream::lzmastream(bytestream *source)
-    : source(source), output_ended(false)
+lzmastream::lzmastream(std::auto_ptr<bytestream> source, size_t size_hint)
+    : source(source), size_hint(size_hint), output_ended(false)
 {
-    assert(source != NULL);
+    assert(source.get() != NULL);
 
     lzma_stream strm2 = LZMA_STREAM_INIT;
     memcpy(&strm, &strm2, sizeof(lzma_stream));
@@ -75,7 +178,6 @@ lzmastream::lzmastream(bytestream *source)
 }
 
 lzmastream::~lzmastream() {
-    delete source;
 }
 
 bool lzmastream::ended() {
@@ -114,6 +216,10 @@ size_t lzmastream::read(uint8_t *buf, size_t n) {
     }
 
     return strm.total_out - begin_total;
+}
+
+size_t lzmastream::sizeHint() const {
+    return size_hint;
 }
 
 const char *lzma_ret_str(lzma_ret ret) {

@@ -28,11 +28,10 @@ public:
 
     std::string getHead();
 
-    int getObjectInfo(ObjectInfo *info);
-    int getDataRaw(ObjectInfo *info, std::string &raw_data);
+    BaseObject *getObject(const std::string &id);
     bool hasObject(const std::string &id);
     std::set<std::string> listObjects();
-    Object addObjectRaw(const Object::ObjectInfo &info,
+    int addObjectRaw(const Object::ObjectInfo &info,
             const std::string &raw_data);
     //Object addObjectRaw(Object::ObjectInfo info, bytestream *bs);
     //std::string addObject(Object::ObjectInfo info, const std::string &data);

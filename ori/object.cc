@@ -45,14 +45,14 @@ using namespace std;
 /*
  * ObjectInfo
  */
-Object::ObjectInfo::ObjectInfo()
+ObjectInfo::ObjectInfo()
     : type(Object::Null), flags(0), payload_size(0)
 {
     assert(sizeof(hash) == 2*SHA256_DIGEST_LENGTH + 1);
     memset(hash, 0, sizeof(hash)); // TODO
 }
 
-Object::ObjectInfo::ObjectInfo(const char *in_hash)
+ObjectInfo::ObjectInfo(const char *in_hash)
     : type(Object::Null), flags(0), payload_size(0)
 {
     assert(sizeof(hash) == 2*SHA256_DIGEST_LENGTH + 1);
@@ -60,24 +60,8 @@ Object::ObjectInfo::ObjectInfo(const char *in_hash)
     hash[sizeof(hash)-1] = '\0';
 }
 
-const char *Object::ObjectInfo::getTypeStr() {
-    const char *type_str = NULL;
-    switch (type) {
-        case Commit:    type_str = "CMMT"; break;
-        case Tree:      type_str = "TREE"; break;
-        case Blob:      type_str = "BLOB"; break;
-        case LargeBlob: type_str = "LGBL"; break;
-        case Purged:    type_str = "PURG"; break;
-        default:
-            printf("Unknown object type!\n");
-            assert(false);
-            return NULL;
-    }
-    return type_str;
-}
-
-ssize_t Object::ObjectInfo::writeTo(int fd, bool seekable) {
-    const char *type_str = getTypeStr();
+ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
+    const char *type_str = BaseObject::getStrForType(type);
     if (type_str == NULL)
         return -1;
 
@@ -102,6 +86,52 @@ ssize_t Object::ObjectInfo::writeTo(int fd, bool seekable) {
         assert(false);
     }
 }
+
+bool ObjectInfo::getCompressed() {
+    return flags & ORI_FLAG_COMPRESSED;
+}
+
+
+
+/*
+ * BaseObject
+ */
+const char *BaseObject::getStrForType(Type type) {
+    const char *type_str = NULL;
+    switch (type) {
+        case Commit:    type_str = "CMMT"; break;
+        case Tree:      type_str = "TREE"; break;
+        case Blob:      type_str = "BLOB"; break;
+        case LargeBlob: type_str = "LGBL"; break;
+        case Purged:    type_str = "PURG"; break;
+        default:
+            printf("Unknown object type!\n");
+            assert(false);
+            return NULL;
+    }
+    return type_str;
+}
+
+BaseObject::Type BaseObject::getTypeForStr(const char *str) {
+    if (strcmp(str, "CMMT") == 0) {
+        return Commit;
+    }
+    else if (strcmp(str, "TREE") == 0) {
+        return Tree;
+    }
+    else if (strcmp(str, "BLOB") == 0) {
+        return Blob;
+    }
+    else if (strcmp(str, "LGBL") == 0) {
+        return LargeBlob;
+    }
+    else if (strcmp(str, "PURG") == 0) {
+        return Purged;
+    }
+    return Null;
+}
+
+
 
 
 
@@ -250,27 +280,10 @@ Object::close()
 }
 
 /*
- * Get the header info.
- */
-Object::ObjectInfo &
-Object::getInfo() {
-    return info;
-}
-
-/*
- * Read the object type.
- */
-Object::Type
-Object::getType()
-{
-    return info.type;
-}
-
-/*
  * Get the on-disk file size including the object header.
  */
 size_t
-Object::getDiskSize()
+Object::getFileSize()
 {
     struct stat sb;
 
@@ -291,10 +304,6 @@ Object::getStoredPayloadSize() {
 
 /* Flags */
 
-bool Object::getCompressed() {
-    return info.flags & ORI_FLAG_COMPRESSED;
-}
-
 #define COPYFILE_BUFSZ	4096
 
 /*
@@ -306,7 +315,7 @@ Object::purge()
     int status;
 
     // XXX: Support for backrefs and large blobs
-    NOT_IMPLEMENTED(ORI_OBJECT_HDRSIZE + storedLen == getDiskSize());
+    NOT_IMPLEMENTED(ORI_OBJECT_HDRSIZE + storedLen == getFileSize());
     NOT_IMPLEMENTED(info.type == Blob);
 
     status = pwrite(fd, "PURG", ORI_OBJECT_TYPESIZE, 0);
@@ -325,68 +334,57 @@ Object::purge()
  * Append the specified file into the object.
  */
 int
-Object::appendFile(const string &path)
+Object::setPayload(bytestream *bs_in)
 {
-    int srcFd;
-    char buf[COPYFILE_BUFSZ];
-    struct stat sb;
-    int64_t bytesLeft;
-    int64_t bytesRead, bytesWritten;
+    std::auto_ptr<bytestream> bs(bs_in);
+    if (bs.get() == NULL)
+        return -1;
+    if (bs->error()) {
+        puts(bs->error());
+        return -bs->errnum();
+    }
 
     lzma_stream strm = LZMA_STREAM_INIT;
-    if (getCompressed()) setupLzma(&strm, true);
+    if (info.getCompressed()) setupLzma(&strm, true);
 
     if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE) {
         return -errno;
     }
 
-    srcFd = ::open(path.c_str(), O_RDONLY);
-    if (srcFd < 0)
-        return -errno;
-
-    if (fstat(srcFd, &sb) < 0) {
-	::close(srcFd);
-	return -errno;
-    }
-
-    info.payload_size = sb.st_size;
-    if (info.writeTo(fd) < 0) {
-        ::close(srcFd);
-        return -errno;
-    }
-
-    bytesLeft = sb.st_size;
-    while(bytesLeft > 0) {
-        bytesRead = read(srcFd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
-        if (bytesRead < 0) {
-            if (errno == EINTR)
-            continue;
-            goto error;
-        }
-
-        if (getCompressed()) {
-            strm.next_in = (uint8_t*)buf;
+    size_t totalRead = 0;
+    uint8_t buf[COPYFILE_BUFSZ];
+    while (!bs->ended()) {
+        size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
+        if (bs->error())
+            return -bs->errnum();
+        totalRead += bytesRead;
+        
+        if (info.getCompressed()) {
+            strm.next_in = buf;
             strm.avail_in = bytesRead;
             appendLzma(fd, &strm, LZMA_RUN);
         }
         else {
 retryWrite:
-            bytesWritten = write(fd, buf, bytesRead);
+            ssize_t bytesWritten = write(fd, buf, bytesRead);
             if (bytesWritten < 0) {
                 if (errno == EINTR)
                     goto retryWrite;
-                goto error;
+                perror("write");
+                return -errno;
             }
 
-            // XXX: Need to handle this case!
-            assert(bytesRead == bytesWritten);
+            assert(bytesRead == (size_t)bytesWritten);
         }
+    }
 
-        bytesLeft -= bytesRead;
+    info.payload_size = totalRead;
+    if (info.writeTo(fd) < 0) {
+        return -errno;
     }
 
     // Write final (post-compression) size
-    if (getCompressed()) {
+    if (info.getCompressed()) {
         appendLzma(fd, &strm, LZMA_FINISH);
         storedLen = strm.total_out;
     }
@@ -397,59 +395,14 @@ retryWrite:
     if (pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16) != ORI_OBJECT_SIZE)
         return -errno;
 
-    ::close(srcFd);
-    return sb.st_size;
-
-error:
-    ::close(srcFd);
-    return -errno;
-}
-
-/*
- * Extract the contents of the object file into the specified path.
- */
-int
-Object::extractFile(const string &path)
-{
-    std::auto_ptr<bytestream> bs(getPayloadStream());
-    if (bs->error()) return -bs->errnum();
-
-    int dstFd = ::open(path.c_str(), O_WRONLY | O_CREAT,
-		   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    if (dstFd < 0)
-        return -errno;
-
-    uint8_t buf[COPYFILE_BUFSZ];
-    while (!bs->ended()) {
-        size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
-        if (bs->error()) goto bs_error;
-retryWrite:
-        ssize_t bytesWritten = write(dstFd, buf, bytesRead);
-        if (bytesWritten < 0) {
-            if (errno == EINTR)
-                goto retryWrite;
-            goto error;
-        }
-    }
-
-    ::close(dstFd);
-    return info.payload_size;
-
-bs_error:
-    unlink(path.c_str());
-    ::close(dstFd);
-    return -bs->errnum();
-error:
-    unlink(path.c_str());
-    ::close(dstFd);
-    return -errno;
+    return storedLen;
 }
 
 /*
  * Append a blob to the object file.
  */
 int
-Object::appendBlob(const string &blob)
+Object::setPayload(const string &blob)
 {
     int status;
 
@@ -458,7 +411,7 @@ Object::appendBlob(const string &blob)
         return -errno;
     }
 
-    if (getCompressed()) {
+    if (info.getCompressed()) {
         if (lseek(fd, ORI_OBJECT_HDRSIZE, SEEK_SET) != ORI_OBJECT_HDRSIZE)
             return -errno;
 
@@ -487,23 +440,6 @@ Object::appendBlob(const string &blob)
         return -errno;
 
     return 0;
-}
-
-/*
- * Extract the blob from the object file.
- */
-string
-Object::extractBlob()
-{
-    std::auto_ptr<bytestream> bs(getPayloadStream());
-    if (bs->error()) return "";
-
-    std::string rval;
-    rval.resize(info.payload_size);
-    bs->read((uint8_t*)rval.data(), info.payload_size);
-    if (bs->error()) return "";
-
-    return rval;
 }
 
 /*
@@ -542,17 +478,20 @@ Object::computeHash()
     return rval.str();
 }
 
-bytestream *Object::getPayloadStream() {
-    if (getCompressed()) {
-        return new lzmastream(getRawPayloadStream());
+bytestream::ap Object::getPayloadStream() {
+    if (info.getCompressed()) {
+        return bytestream::ap(
+                 new lzmastream(getStoredPayloadStream(),
+                                info.payload_size)
+               );
     }
     else {
-        return getRawPayloadStream();
+        return getStoredPayloadStream();
     }
 }
 
-bytestream *Object::getRawPayloadStream() {
-    return new diskstream(fd, ORI_OBJECT_HDRSIZE, storedLen);
+bytestream::ap Object::getStoredPayloadStream() {
+    return bytestream::ap(new fdstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
 }
 
 
@@ -571,7 +510,7 @@ bytestream *Object::getRawPayloadStream() {
 void Object::addMetadataEntry(MdType type, const std::string &data) {
     assert(checkMetadata());
 
-    off_t offset = getDiskSize();
+    off_t offset = getFileSize();
     if (offset == (off_t)OFF_MD_HASH) {
         offset += ORI_MD_HASHSIZE;
     }
@@ -601,10 +540,10 @@ std::string Object::computeMetadataHash() {
     SHA256_CTX state;
     SHA256_Init(&state);
 
-    if ((off_t)getDiskSize() < offset)
+    if ((off_t)getFileSize() < offset)
         return "";
 
-    size_t bytesLeft = getDiskSize() - offset;
+    size_t bytesLeft = getFileSize() - offset;
     while(bytesLeft > 0) {
         uint8_t buf[COPYFILE_BUFSZ];
         int bytesRead = read(fd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
@@ -629,7 +568,7 @@ std::string Object::computeMetadataHash() {
 bool
 Object::checkMetadata()
 {
-    if (getDiskSize() <= OFF_MD_HASH) {
+    if (getFileSize() <= OFF_MD_HASH) {
         // No metadata to check
         return true;
     }
@@ -710,13 +649,13 @@ Object::getBackref()
     map<string, BRState> rval;
 
     off_t md_off = OFF_MD_HASH + ORI_MD_HASHSIZE;
-    if ((off_t)getDiskSize() < md_off) {
+    if ((off_t)getFileSize() < md_off) {
         // No metadata
         return rval;
     }
 
     // Load all metadata into memory
-    size_t backrefSize = getDiskSize() - md_off;
+    size_t backrefSize = getFileSize() - md_off;
 
     std::vector<uint8_t> buf;
     buf.resize(backrefSize);
@@ -759,25 +698,6 @@ Object::getBackref()
 /*
  * Static methods
  */
-
-Object::Type Object::getTypeForStr(const char *str) {
-    if (strcmp(str, "CMMT") == 0) {
-        return Commit;
-    }
-    else if (strcmp(str, "TREE") == 0) {
-        return Tree;
-    }
-    else if (strcmp(str, "BLOB") == 0) {
-        return Blob;
-    }
-    else if (strcmp(str, "LGBL") == 0) {
-        return LargeBlob;
-    }
-    else if (strcmp(str, "PURG") == 0) {
-        return Purged;
-    }
-    return Null;
-}
 
 
 

@@ -78,22 +78,18 @@ void SshServer::serve() {
             else if (strcmp(command, "readobj") == 0) {
                 char *hash = args[1];
                 // send compressed object
-                Object obj = repository.getObject(hash);
-                Object::ObjectInfo &info = obj.getInfo();
+                Object obj = repository.getLocalObject(hash);
+                const ObjectInfo &info = obj.getInfo();
 
                 printf("%s\n%s\n%08X\n%lu\nDATA %lu\n",
                         hash,
-                        info.getTypeStr(),
+                        BaseObject::getStrForType(info.type),
                         info.flags,
                         info.payload_size,
                         obj.getStoredPayloadSize());
 
-                bytestream *bs = obj.getRawPayloadStream();
-                while (!bs->ended()) {
-                    uint8_t buf[1024];
-                    size_t read_n = bs->read(buf, 1024);
-                    write(STDOUT_FILENO, buf, read_n);
-                }
+                std::auto_ptr<bytestream> bs = obj.getStoredPayloadStream();
+                bs->copyToFd(STDOUT_FILENO);
                 write(STDOUT_FILENO, "DONE\n", 5);
             }
             else if (strcmp(command, "show") == 0) {

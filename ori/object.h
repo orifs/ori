@@ -37,18 +37,21 @@
 
 #define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
 
-class Object
-{
+class BaseObject {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
     enum MdType { MdNull, MdBackref };
     enum BRState { BRNull, BRRef, BRPurged };
 
+    typedef std::auto_ptr<BaseObject> ap;
+
     struct ObjectInfo {
         ObjectInfo();
         ObjectInfo(const char *hash);
-        const char *getTypeStr();
         ssize_t writeTo(int fd, bool seekable = true);
+
+        // Flags operations
+        bool getCompressed();
 
         Type type;
         int flags;
@@ -56,6 +59,27 @@ public:
         char hash[2*ORI_MD_HASHSIZE+1]; // null byte at end
     };
 
+    virtual ~BaseObject() {}
+
+    virtual const ObjectInfo &getInfo() const { return info; }
+    virtual std::auto_ptr<bytestream> getPayloadStream() = 0;
+    virtual std::auto_ptr<bytestream> getStoredPayloadStream() = 0;
+    virtual size_t getStoredPayloadSize() = 0;
+    
+    // Static methods
+    static const char *getStrForType(Type t);
+    static Type getTypeForStr(const char *str);
+
+protected:
+    ObjectInfo info;
+};
+
+typedef BaseObject::ObjectInfo ObjectInfo;
+
+
+class Object : public BaseObject
+{
+public:
     Object();
     ~Object();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
@@ -63,21 +87,19 @@ public:
             const std::string &raw_data);
     int open(const std::string &path);
     void close();
-    ObjectInfo &getInfo();
-    Type getType();
-    size_t getDiskSize();
+    size_t getFileSize();
+
+    // BaseObject implementation
+    std::auto_ptr<bytestream> getPayloadStream();
+    std::auto_ptr<bytestream> getStoredPayloadStream();
     size_t getStoredPayloadSize();
-    // Flags operations (TODO)
-    bool getCompressed();
+
     // Payload Operations
     int purge();
-    int appendFile(const std::string &path);
-    int extractFile(const std::string &path);
-    int appendBlob(const std::string &blob);
-    std::string extractBlob();
+    /// setPayload takes ownership of bs
+    int setPayload(bytestream *bs);
+    int setPayload(const std::string &blob);
     std::string computeHash();
-    bytestream *getPayloadStream();
-    bytestream *getRawPayloadStream();
     // Metadata
     void addMetadataEntry(MdType type, const std::string &data);
     std::string computeMetadataHash();
@@ -88,8 +110,6 @@ public:
     void updateBackref(const std::string &objId, BRState state);
     std::map<std::string, BRState> getBackref();
 
-    // Static methods
-    static Type getTypeForStr(const char *str);
 private:
     int fd;
     size_t storedLen;
@@ -104,7 +124,6 @@ private:
     MdType _getMdTypeForStr(const char *);
 };
 
-typedef Object::ObjectInfo ObjectInfo;
 
 
 #endif /* __OBJECT_H__ */

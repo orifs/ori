@@ -16,8 +16,9 @@ src = [
     "util.cc",
     "stream.cc",
     "server.cc",
-    "sshclient.cc",
-    "sshrepo.cc",
+    "localrepo.cc",
+#    "sshclient.cc",
+#    "sshrepo.cc",
 ]
 
 libs = [

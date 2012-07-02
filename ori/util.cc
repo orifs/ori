@@ -558,11 +558,10 @@ util_selftest(void)
     int test_fd = open("test.a", O_RDWR | O_CREAT);
     write(test_fd, "hello, world!", 13);
     fsync(test_fd);
-    bytestream *bs = new diskstream(test_fd, 1, 3);
+    bytestream::ap bs(new fdstream(test_fd, 1, 3));
     uint8_t b;
     bs->read(&b, 1);
     assert(b == 'e');
-    delete bs;
 
     printf("Test Succeeded!\n");
     return 0;

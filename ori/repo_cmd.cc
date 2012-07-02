@@ -524,14 +524,14 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    std::auto_ptr<SshClient> client;
+    //std::auto_ptr<SshClient> client;
     std::auto_ptr<Repo> srcRepo;
-    if (Util_IsPathRemote(srcRoot.c_str())) {
+    /*if (Util_IsPathRemote(srcRoot.c_str())) {
         client.reset(new SshClient(srcRoot));
         srcRepo.reset(new SshRepo(client.get()));
         client->connect();
     }
-    else {
+    else*/ {
         srcRepo.reset(new LocalRepo(srcRoot));
     }
 
@@ -630,7 +630,7 @@ cmd_rebuildrefs(int argc, const char *argv[])
             cout << "Cannot open object " << (*it).first << endl;
             return 1;
         }
-        type = o.getType();
+        type = o.getInfo().type;
 
         if (type == Object::Commit ||
             type == Object::Tree ||
