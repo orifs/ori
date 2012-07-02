@@ -699,9 +699,13 @@ cmd_refcount(int argc, const char *argv[])
 int
 cmd_stats(int argc, const char *argv[])
 {
+    uint64_t commits = 0;
+    uint64_t trees = 0;
     uint64_t blobs = 0;
     uint64_t danglingBlobs = 0;
     uint64_t blobRefs = 0;
+    uint64_t largeBlobs = 0;
+    uint64_t purgedBlobs = 0;
     map<string, map<string, Object::BRState> > refs;
     map<string, map<string, Object::BRState> >::iterator it;
 
@@ -710,21 +714,54 @@ cmd_stats(int argc, const char *argv[])
     for (it = refs.begin(); it != refs.end(); it++) {
         Object::Type type = repository.getObjectType((*it).first);
 
-        if (type == Object::Blob) {
+        switch (type) {
+        case Object::Commit:
+        {
+            commits++;
+            break;
+        }
+        case Object::Tree:
+        {
+            trees++;
+            break;
+        }
+        case Object::Blob:
+        {
             blobs++;
             if ((*it).second.size() == 0) {
                 danglingBlobs++;
             } else {
                 blobRefs += (*it).second.size();
             }
+            break;
+        }
+        case Object::LargeBlob:
+        {
+            largeBlobs++;
+            break;
+        }
+        case Object::Purged:
+        {
+            purgedBlobs++;
+            break;
+        }
+        default:
+        {
+            NOT_IMPLEMENTED(false);
+            return 1;
+        }
         }
     }
 
+    cout << left << setw(40) << "Commits" << commits << endl;
+    cout << left << setw(40) << "Trees" << trees << endl;
     cout << left << setw(40) << "Blobs" << blobs << endl;
-    cout << left << setw(40) << "Dangling Blobs" << danglingBlobs << endl;
-    cout << left << setw(40) << "Blobs Dedup Ratio"
+    cout << left << setw(40) << "  Dangling Blobs" << danglingBlobs << endl;
+    cout << left << setw(40) << "  Dedup Ratio"
          << fixed << setprecision(2)
-         << 100.0 * (float)blobs/(float)blobRefs << endl;
+         << 100.0 * (float)blobs/(float)blobRefs << "%" << endl;
+    cout << left << setw(40) << "Large Blobs" << largeBlobs << endl;
+    cout << left << setw(40) << "Purged Blobs" << purgedBlobs << endl;
 
     return 0;
 }
