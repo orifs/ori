@@ -168,6 +168,7 @@ public:
             assert(false);
             return -1;
         }
+        assert(status == toRead);
 
         fileOff += status;
         *l += status;
