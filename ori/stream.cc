@@ -164,10 +164,10 @@ size_t diskstream::sizeHint() const {
  * lzmastream
  */
 
-lzmastream::lzmastream(std::auto_ptr<bytestream> source, size_t size_hint)
+lzmastream::lzmastream(bytestream *source, size_t size_hint)
     : source(source), size_hint(size_hint), output_ended(false)
 {
-    assert(source.get() != NULL);
+    assert(source != NULL);
 
     lzma_stream strm2 = LZMA_STREAM_INIT;
     memcpy(&strm, &strm2, sizeof(lzma_stream));

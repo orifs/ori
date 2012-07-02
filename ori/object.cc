@@ -480,10 +480,8 @@ Object::computeHash()
 
 bytestream::ap Object::getPayloadStream() {
     if (info.getCompressed()) {
-        return bytestream::ap(
-                 new lzmastream(getStoredPayloadStream(),
-                                info.payload_size)
-               );
+        bytestream::ap bs(getStoredPayloadStream());
+        return bytestream::ap(new lzmastream(bs.release(), info.payload_size));
     }
     else {
         return getStoredPayloadStream();

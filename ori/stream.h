@@ -68,14 +68,14 @@ private:
 class lzmastream : public bytestream
 {
 public:
-    lzmastream(std::auto_ptr<bytestream> source, size_t size_hint = 0);
+    lzmastream(bytestream *source, size_t size_hint = 0);
     ~lzmastream();
     bool ended();
     size_t read(uint8_t *, size_t);
     size_t sizeHint() const;
 
 private:
-    std::auto_ptr<bytestream> source;
+    bytestream::ap source;
     size_t size_hint;
 
     bool output_ended;

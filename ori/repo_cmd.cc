@@ -204,7 +204,7 @@ cmd_listobj(int argc, const char *argv[])
 		type = "Purged";
 		break;
 	    default:
-		printf("Unknown object type!\n");
+		printf("Unknown object type (id %s)!\n", (*it).c_str());
 		assert(false);
 	}
 	printf("%s # %s\n", (*it).c_str(), type);

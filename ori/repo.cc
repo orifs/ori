@@ -86,7 +86,7 @@ Repo::getObjectLength(const string &objId)
 Object::Type
 Repo::getObjectType(const string &objId)
 {
-    auto_ptr<BaseObject> o(getObject(objId));
+    auto_ptr<BaseObject> o(this->getObject(objId));
     if (!o.get()) {
         printf("Couldn't get object %s\n", objId.c_str());
         return Object::Null;
