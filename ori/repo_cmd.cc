@@ -463,9 +463,10 @@ cmd_log(int argc, const char *argv[])
 
     ctime_r(&timeVal, timeStr);
 
-	printf("commit:  %s\n", commit.c_str());
-	printf("parents: %s\n", c.getParents().first.c_str());
-    printf("date:    %s\n", timeStr);
+	printf("Commit:  %s\n", commit.c_str());
+	printf("Parents: %s\n", c.getParents().first.c_str());
+    printf("Author:  %s\n", c.getUser().c_str());
+    printf("Date:    %s\n", timeStr);
 	printf("%s\n\n", c.getMessage().c_str());
 
 	commit = c.getParents().first;
