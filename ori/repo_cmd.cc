@@ -694,6 +694,42 @@ cmd_refcount(int argc, const char *argv[])
 }
 
 /*
+ * Print repository statistics.
+ */
+int
+cmd_stats(int argc, const char *argv[])
+{
+    uint64_t blobs = 0;
+    uint64_t danglingBlobs = 0;
+    uint64_t blobRefs = 0;
+    map<string, map<string, Object::BRState> > refs;
+    map<string, map<string, Object::BRState> >::iterator it;
+
+    refs = repository.getRefCounts();
+
+    for (it = refs.begin(); it != refs.end(); it++) {
+        Object::Type type = repository.getObjectType((*it).first);
+
+        if (type == Object::Blob) {
+            blobs++;
+            if ((*it).second.size() == 0) {
+                danglingBlobs++;
+            } else {
+                blobRefs += (*it).second.size();
+            }
+        }
+    }
+
+    cout << left << setw(40) << "Blobs" << blobs << endl;
+    cout << left << setw(40) << "Dangling Blobs" << danglingBlobs << endl;
+    cout << left << setw(40) << "Blobs Dedup Ratio"
+         << fixed << setprecision(2)
+         << 100.0 * (float)blobs/(float)blobRefs << endl;
+
+    return 0;
+}
+
+/*
  * Graft help
  */
 void

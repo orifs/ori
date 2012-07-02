@@ -68,6 +68,7 @@ int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_findheads(int argc, const char *argv[]);
 int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
+int cmd_stats(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
 // server.cc
 int cmd_sshserver(int argc, const char *argv[]);
@@ -166,6 +167,12 @@ static Cmd commands[] = {
 	"refcount",
 	"Print the reference count for all objects (DEBUG)",
 	cmd_refcount,
+	NULL,
+    },
+    {
+	"stats",
+	"Print repository statistics (DEBUG)",
+	cmd_stats,
 	NULL,
     },
     {
