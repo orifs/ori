@@ -14,30 +14,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __SSHCLIENT_H__
-#define __SSHCLIENT_H__
+#ifndef __SSHREPO_H__
+#define __SSHREPO_H__
 
-#include <string>
+#include "repo.h"
+#include "sshclient.h"
 
-class SshClient
+class SshRepo : public BasicRepo
 {
 public:
-    SshClient(const std::string &remotePath);
-    ~SshClient();
+    SshRepo(SshClient *client);
+    ~SshRepo();
 
-    int connect();
-    void disconnect();
-    bool connected();
+    std::string getHead();
 
-    // At the moment the protocol is synchronous
-    void sendCommand(const std::string &command);
-    void recvResponse(std::string &out);
+    int getObjectRaw(Object::ObjectInfo *info, std::string &raw_data);
+    std::set<std::string> listObjects();
+    Object addObjectRaw(const Object::ObjectInfo &info,
+            const std::string &raw_data);
+    Object addObjectRaw(Object::ObjectInfo info, bytestream *bs);
+    std::string addObject(Object::ObjectInfo info, const std::string &data);
 
 private:
-    std::string remoteHost, remoteRepo;
-
-    int fdFromChild, fdToChild;
-    int childPid;
+    SshClient *client;
 };
 
-#endif /* __SSHCLIENT_H__ */
+#endif /* __SSHREPO_H__ */

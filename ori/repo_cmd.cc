@@ -36,6 +36,7 @@
 #include "util.h"
 #include "repo.h"
 #include "sshclient.h"
+#include "sshrepo.h"
 
 using namespace std;
 
