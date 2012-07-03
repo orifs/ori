@@ -47,11 +47,11 @@ int Repo::addObject(const ObjectInfo &info,
     return -1;
 }
 
-int Repo::getData(ObjectInfo *info,
+/*int Repo::getData(ObjectInfo *info,
         std::string &data) {
     assert(false);
     return -1;
-}
+}*/
 
 /*
  * Add a blob to the repository. This is a low-level interface.
@@ -97,11 +97,10 @@ Repo::getObjectType(const string &objId)
 Tree
 Repo::getTree(const std::string &treeId)
 {
-    ObjectInfo info(treeId.c_str());
-    string blob;
-    getData(&info, blob);
+    Object::ap o(getObject(treeId));
+    string blob = o->getPayload();
 
-    assert(info.type == Object::Tree);
+    assert(o->getInfo().type == Object::Tree);
 
     Tree t;
     t.fromBlob(blob);

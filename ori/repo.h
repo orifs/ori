@@ -77,9 +77,9 @@ public:
             );
 
 
-    virtual int getData(
+    /*virtual int getData(
             ObjectInfo *info,
-            std::string &data);
+            std::string &data);*/
     virtual size_t getObjectLength(const std::string &objId);
     virtual Object::Type getObjectType(const std::string &objId);
     virtual Tree getTree(const std::string &treeId);

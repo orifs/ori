@@ -225,8 +225,8 @@ LargeBlob::extractFile(const string &path)
         int status;
         string tmp;
 
-        ObjectInfo info((*it).second.hash.c_str());
-        repo->getData(&info, tmp);
+        Object::ap o(repo->getObject((*it).second.hash));
+        tmp = o->getPayload();
         assert(tmp.length() == (*it).second.length);
 
         status = ::write(fd, tmp.data(), tmp.length());

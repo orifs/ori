@@ -66,6 +66,10 @@ public:
     virtual std::auto_ptr<bytestream> getStoredPayloadStream() = 0;
     virtual size_t getStoredPayloadSize() = 0;
     
+    virtual std::string getPayload() {
+        return getPayloadStream()->readAll();
+    }
+    
     // Static methods
     static const char *getStrForType(Type t);
     static Type getTypeForStr(const char *str);
