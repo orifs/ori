@@ -176,7 +176,7 @@ Util_WriteFile(const char *blob, size_t len, const string &path)
     return (bytesWritten == len);
 }
 
-#define COPYFILE_BUFSZ	4096
+#define COPYFILE_BUFSZ	(256 * 1024)
 
 /*
  * Copy a file.
@@ -291,7 +291,7 @@ Util_HashString(const string &str)
     return rval.str();
 }
 
-#define HASHFILE_BUFSZ	4096
+#define HASHFILE_BUFSZ	(256 * 1024)
 
 /*
  * Compute SHA 256 hash for a file.
