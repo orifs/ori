@@ -333,7 +333,7 @@ StatusDirectoryCB(void *arg, const char *path)
 }
 
 int
-StatusTreeIter(map<string, string> *tipState,
+StatusTreeIter(map<string, pair<string, string> > *tipState,
 	       const string &path,
 	       const string &treeId)
 {
@@ -345,17 +345,19 @@ StatusTreeIter(map<string, string> *tipState,
 
     for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
 	if ((*it).second.type == TreeEntry::Tree) {
-	    tipState->insert(pair<string, string>(path + "/" + (*it).first,
-						  "DIR"));
+	    tipState->insert(make_pair(path + "/" + (*it).first,
+				       make_pair("DIR", (*it).second.hash)));
 	    StatusTreeIter(tipState,
 			   path + "/" + (*it).first,
 			   (*it).second.hash);
 	} else {
             string filePath = path + "/" + (*it).first;
-            string hash = (*it).second.largeHash == "" ?
+            string fileHash = (*it).second.largeHash == "" ?
                           (*it).second.hash : (*it).second.largeHash;
+            string objHash = (*it).second.hash;
 
-	    tipState->insert(pair<string, string>(filePath, hash));
+	    tipState->insert(make_pair(filePath,
+                                       make_pair(fileHash, objHash)));
 	}
     }
 
@@ -366,8 +368,9 @@ int
 cmd_status(int argc, const char *argv[])
 {
     map<string, string> dirState;
-    map<string, string> tipState;
+    map<string, pair<string, string> > tipState;
     map<string, string>::iterator it;
+    map<string, pair<string, string> >::iterator tipIt;
     Commit c;
     string tip = repository.getHead();
 
@@ -381,19 +384,19 @@ cmd_status(int argc, const char *argv[])
 	           StatusDirectoryCB);
 
     for (it = dirState.begin(); it != dirState.end(); it++) {
-	map<string, string>::iterator k = tipState.find((*it).first);
-	if (k == tipState.end()) {
+	tipIt = tipState.find((*it).first);
+	if (tipIt == tipState.end()) {
 	    printf("A	%s\n", (*it).first.c_str());
-	} else if ((*k).second != (*it).second) {
+	} else if ((*tipIt).second.first != (*it).second) {
 	    // XXX: Handle replace a file <-> directory with same name
 	    printf("M	%s\n", (*it).first.c_str());
 	}
     }
 
-    for (it = tipState.begin(); it != tipState.end(); it++) {
-	map<string, string>::iterator k = dirState.find((*it).first);
-	if (k == dirState.end()) {
-	    printf("D	%s\n", (*it).first.c_str());
+    for (tipIt = tipState.begin(); tipIt != tipState.end(); tipIt++) {
+	it = dirState.find((*tipIt).first);
+	if (it == dirState.end()) {
+	    printf("D	%s\n", (*tipIt).first.c_str());
 	}
     }
 
@@ -404,8 +407,9 @@ int
 cmd_checkout(int argc, const char *argv[])
 {
     map<string, string> dirState;
-    map<string, string> tipState;
+    map<string, pair<string, string> > tipState;
     map<string, string>::iterator it;
+    map<string, pair<string, string> >::iterator tipIt;
     Commit c;
     string tip = repository.getHead();
 
@@ -423,29 +427,30 @@ cmd_checkout(int argc, const char *argv[])
 	           StatusDirectoryCB);
 
     for (it = dirState.begin(); it != dirState.end(); it++) {
-	map<string, string>::iterator k = tipState.find((*it).first);
-	if (k == tipState.end()) {
+	tipIt = tipState.find((*it).first);
+	if (tipIt == tipState.end()) {
 	    printf("A	%s\n", (*it).first.c_str());
-	} else if ((*k).second != (*it).second) {
+	} else if ((*tipIt).second.first != (*it).second) {
 	    printf("M	%s\n", (*it).first.c_str());
 	    // XXX: Handle replace a file <-> directory with same name
 	    assert((*it).second != "DIR");
-	    repository.copyObject((*k).second,
-				  Repo::findRootPath()+(*k).first);
+	    repository.copyObject((*tipIt).second.second,
+				  Repo::findRootPath()+(*tipIt).first);
 	}
     }
 
-    for (it = tipState.begin(); it != tipState.end(); it++) {
-	map<string, string>::iterator k = dirState.find((*it).first);
-	if (k == dirState.end()) {
-	    string path = Repo::findRootPath() + (*it).first;
-	    if ((*it).second == "DIR") {
-		printf("N	%s\n", (*it).first.c_str());
+    for (tipIt = tipState.begin(); tipIt != tipState.end(); tipIt++) {
+	it = dirState.find((*tipIt).first);
+	if (it == dirState.end()) {
+	    string path = Repo::findRootPath() + (*tipIt).first;
+	    if ((*tipIt).second.first == "DIR") {
+		printf("N	%s\n", (*tipIt).first.c_str());
 		mkdir(path.c_str(), 0755);
 	    } else {
-		printf("U	%s\n", (*it).first.c_str());
-		if (repository.getObjectType((*it).second) != Object::Purged)
-		    repository.copyObject((*it).second, path);
+		printf("U	%s\n", (*tipIt).first.c_str());
+		if (repository.getObjectType((*tipIt).second.second)
+                        != Object::Purged)
+		    repository.copyObject((*tipIt).second.second, path);
 		else
 		    cout << "Object has been purged." << endl;
 	    }

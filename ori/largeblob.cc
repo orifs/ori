@@ -250,7 +250,7 @@ LargeBlob::extractFile(const string &path)
 const string
 LargeBlob::getBlob()
 {
-    string blob = hash;
+    string blob = hash + "\n";
     map<uint64_t, LBlobEntry>::iterator it;
 
     for (it = parts.begin(); it != parts.end(); it++)
