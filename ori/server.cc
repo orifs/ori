@@ -9,6 +9,8 @@
 #include "util.h"
 #include "localrepo.h"
 
+extern LocalRepo repository;
+
 SshServer::SshServer()
 {
 }

@@ -18,8 +18,6 @@ using namespace std;
 #include "scan.h"
 #include "debug.h"
 
-LocalRepo repository;
-
 /********************************************************************
  *
  *
