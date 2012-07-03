@@ -270,7 +270,7 @@ LocalObject::open(const string &path)
 void
 LocalObject::close()
 {
-    if (fd != -1)
+    if (fd > 0)
         ::close(fd);
 
     fd = -1;
@@ -387,6 +387,7 @@ retryWrite:
     if (info.getCompressed()) {
         appendLzma(fd, &strm, LZMA_FINISH);
         storedLen = strm.total_out;
+        lzma_end(&strm);
     }
     else {
         storedLen = info.payload_size;
@@ -424,6 +425,7 @@ LocalObject::setPayload(const string &blob)
         appendLzma(fd, &strm, LZMA_FINISH);
 
         storedLen = strm.total_out;
+        lzma_end(&strm);
     }
     else {
         status = pwrite(fd, blob.data(), blob.length(), ORI_OBJECT_HDRSIZE);

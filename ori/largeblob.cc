@@ -90,9 +90,12 @@ public:
     {
 	lb = l;
 	lbOff = 0;
+        buf = NULL;
     }
     ~FileChunkerCB()
     {
+        if (buf)
+            delete[] buf;
     }
     int open(const string &path)
     {
