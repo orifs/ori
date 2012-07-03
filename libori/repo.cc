@@ -42,6 +42,17 @@ Repo::~Repo() {
 
 int Repo::addObject(const ObjectInfo &info, const string &payload)
 {
+#ifdef DEBUG
+    bool hasNonZero = false;
+    for (int i = 0; i < sizeof(info.hash); i++) {
+        if (info.hash[i] != '\0') {
+            hasNonZero = true;
+            break;
+        }
+    }
+    assert(hasNonZero); // hash must be included
+#endif
+    assert(info.type != Object::Null);
     assert(false);
     return -1;
 }

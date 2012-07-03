@@ -54,18 +54,10 @@ public:
             const std::string &id
             ) = 0;
     virtual bool hasObject(const std::string &id) = 0;
-
     // TODO: add options to query?
     virtual std::set<std::string> listObjects() = 0;
 
-    // TODO: change return value to std::auto_ptr<Object>?
-    virtual int addObjectRaw(
-            const ObjectInfo &info,
-            const std::string &raw_data) = 0;
-    /*virtual Object addObjectRaw(
-            Object::ObjectInfo info,
-            bytestream *raw_data) = 0;*/
-
+    // TODO: add object interface
 
     // High-level operations
     virtual void pull(Repo *r);

@@ -26,15 +26,13 @@ public:
     SshRepo(SshClient *client);
     ~SshRepo();
 
+    void hintPull();
+
     std::string getHead();
 
     Object *getObject(const std::string &id);
     bool hasObject(const std::string &id);
     std::set<std::string> listObjects();
-    int addObjectRaw(const Object::ObjectInfo &info,
-            const std::string &raw_data);
-    //Object addObjectRaw(Object::ObjectInfo info, bytestream *bs);
-    //std::string addObject(Object::ObjectInfo info, const std::string &data);
 
 private:
     SshClient *client;
