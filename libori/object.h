@@ -37,6 +37,13 @@
 
 #define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
 
+struct ObjectHash {
+    bool operator ==(const ObjectHash &other) {
+        return strcmp(hash, other.hash) == 0;
+    }
+    char hash[2*ORI_MD_HASHSIZE+1];
+};
+
 class Object {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
@@ -51,14 +58,18 @@ public:
         ssize_t writeTo(int fd, bool seekable = true);
 
         // Flags operations
-        bool getCompressed();
+        bool getCompressed() const;
+
+        bool operator <(const ObjectInfo &) const;
 
         Type type;
         int flags;
         size_t payload_size;
-        char hash[2*ORI_MD_HASHSIZE+1]; // null byte at end
+        std::string hash;
     };
 
+    Object() {}
+    Object(const ObjectInfo &info) : info(info) {}
     virtual ~Object() {}
 
     virtual const ObjectInfo &getInfo() const { return info; }
@@ -89,7 +100,7 @@ public:
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
     int createFromRawData(const std::string &path, const ObjectInfo &info,
             const std::string &raw_data);
-    int open(const std::string &path);
+    int open(const std::string &path, const std::string &hash="");
     void close();
     size_t getFileSize();
 

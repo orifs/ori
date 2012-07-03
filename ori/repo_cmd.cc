@@ -180,13 +180,13 @@ cmd_catobj(int argc, const char *argv[])
 int
 cmd_listobj(int argc, const char *argv[])
 {
-    set<string> objects = repository.listObjects();
-    set<string>::iterator it;
+    set<ObjectInfo> objects = repository.listObjects();
+    set<ObjectInfo>::iterator it;
 
     for (it = objects.begin(); it != objects.end(); it++)
     {
 	const char *type;
-	switch (repository.getObjectType(*it))
+	switch ((*it).type)
 	{
 	    case Object::Commit:
 		type = "Commit";
@@ -204,10 +204,10 @@ cmd_listobj(int argc, const char *argv[])
 		type = "Purged";
 		break;
 	    default:
-		printf("Unknown object type (id %s)!\n", (*it).c_str());
+		printf("Unknown object type (id %s)!\n", (*it).hash.c_str());
 		assert(false);
 	}
-	printf("%s # %s\n", (*it).c_str(), type);
+	printf("%s # %s\n", (*it).hash.c_str(), type);
     }
 
     return 0;
@@ -533,14 +533,14 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    //std::auto_ptr<SshClient> client;
+    std::auto_ptr<SshClient> client;
     std::auto_ptr<Repo> srcRepo;
-    /*if (Util_IsPathRemote(srcRoot.c_str())) {
+    if (Util_IsPathRemote(srcRoot.c_str())) {
         client.reset(new SshClient(srcRoot));
         srcRepo.reset(new SshRepo(client.get()));
         client->connect();
     }
-    else*/ {
+    else {
         srcRepo.reset(new LocalRepo(srcRoot));
     }
 
@@ -561,14 +561,14 @@ cmd_verify(int argc, const char *argv[])
 {
     int status = 0;
     string error;
-    set<string> objects = repository.listObjects();
-    set<string>::iterator it;
+    set<ObjectInfo> objects = repository.listObjects();
+    set<ObjectInfo>::iterator it;
 
     for (it = objects.begin(); it != objects.end(); it++)
     {
-	error = repository.verifyObject(*it);
+	error = repository.verifyObject((*it).hash);
 	if (error != "") {
-	    printf("Object %s\n%s\n", (*it).c_str(), error.c_str());
+	    printf("Object %s\n%s\n", (*it).hash.c_str(), error.c_str());
 	    status = 1;
 	}
     }

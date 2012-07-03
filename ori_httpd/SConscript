@@ -11,14 +11,12 @@ libs = [
         "stdc++",
         "lzma",
         "ori",
-        "event-2.0",
        ]
 
 if sys.platform == "darwin":
-    # TODO
-    libs += []
+    libs += ['event', 'resolv']
 else:
-    libs += ['rt']
+    libs += ['rt', "event-2.0",]
 
 env.Program("ori", src,
             LIBPATH = [ "#build/libori", "$LIBPATH" ],

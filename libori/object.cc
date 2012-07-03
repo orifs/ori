@@ -48,16 +48,14 @@ using namespace std;
 ObjectInfo::ObjectInfo()
     : type(Object::Null), flags(0), payload_size(0)
 {
-    assert(sizeof(hash) == 2*SHA256_DIGEST_LENGTH + 1);
-    memset(hash, 0, sizeof(hash)); // TODO
+    hash.resize(SHA256_DIGEST_LENGTH*2);
 }
 
 ObjectInfo::ObjectInfo(const char *in_hash)
     : type(Object::Null), flags(0), payload_size(0)
 {
-    assert(sizeof(hash) == 2*SHA256_DIGEST_LENGTH + 1);
-    memcpy(hash, in_hash, sizeof(hash)-1);
-    hash[sizeof(hash)-1] = '\0';
+    hash.resize(SHA256_DIGEST_LENGTH*2);
+    memcpy(&hash[0], in_hash, hash.size());
 }
 
 ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
@@ -87,7 +85,15 @@ ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
     }
 }
 
-bool ObjectInfo::getCompressed() {
+bool ObjectInfo::operator <(const ObjectInfo &other) const {
+    if (hash < other.hash) return true;
+    if (type < other.type) return true;
+    if (flags < other.flags) return true;
+    if (payload_size < other.payload_size) return true;
+    return false;
+}
+
+bool ObjectInfo::getCompressed() const {
     return flags & ORI_FLAG_COMPRESSED;
 }
 
@@ -214,7 +220,7 @@ LocalObject::createFromRawData(const string &path, const ObjectInfo &info,
  * Open an existing object read-only.
  */
 int
-LocalObject::open(const string &path)
+LocalObject::open(const string &path, const string &hash)
 {
     int status;
     char buf[5];
@@ -259,6 +265,11 @@ LocalObject::open(const string &path)
     if (status < 0) {
         close();
         return -errno;
+    }
+
+    if (hash.size() > 0) {
+        assert(hash.size() == 64);
+        info.hash = hash;
     }
 
     return 0;
@@ -483,7 +494,7 @@ LocalObject::computeHash()
 bytestream::ap LocalObject::getPayloadStream() {
     if (info.getCompressed()) {
         bytestream::ap bs(getStoredPayloadStream());
-        return bytestream::ap(new lzmastream(bs.release(), info.payload_size));
+        return bytestream::ap(new lzmastream(bs.release(), false, info.payload_size));
     }
     else {
         return getStoredPayloadStream();

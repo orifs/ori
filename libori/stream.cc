@@ -94,6 +94,32 @@ bool bytestream::inheritError(bytestream *bs) {
 }
 
 /*
+ * strstream
+ */
+strstream::strstream(const std::string &in_buf)
+    : buf(in_buf), off(0)
+{
+}
+
+bool strstream::ended() {
+    return off >= buf.size();
+}
+
+size_t strstream::read(uint8_t *out, size_t n)
+{
+    size_t left = buf.size() - off;
+    size_t to_read = MIN(n, left);
+    memcpy(out, &buf[off], to_read);
+    off += to_read;
+    return to_read;
+}
+
+size_t strstream::sizeHint() const
+{
+    return 0;
+}
+
+/*
  * fdstream
  */
 
@@ -165,7 +191,7 @@ size_t diskstream::sizeHint() const {
  * lzmastream
  */
 
-lzmastream::lzmastream(bytestream *source, size_t size_hint)
+lzmastream::lzmastream(bytestream *source, bool compress, size_t size_hint)
     : source(source), size_hint(size_hint), output_ended(false)
 {
     assert(source != NULL);
@@ -173,9 +199,18 @@ lzmastream::lzmastream(bytestream *source, size_t size_hint)
     lzma_stream strm2 = LZMA_STREAM_INIT;
     memcpy(&strm, &strm2, sizeof(lzma_stream));
 
-    lzma_ret ret = lzma_stream_decoder(&strm, UINT64_MAX, 0);
-    if (ret != LZMA_OK)
-        setLzmaErr("lzma_stream_decoder", ret);
+    if (compress) {
+        // TODO
+        assert(false);
+        lzma_ret ret = lzma_easy_encoder(&strm, 0, LZMA_CHECK_NONE);
+        if (ret != LZMA_OK)
+            setLzmaErr("lzma_easy_encoder", ret);
+    }
+    else {
+        lzma_ret ret = lzma_stream_decoder(&strm, UINT64_MAX, 0);
+        if (ret != LZMA_OK)
+            setLzmaErr("lzma_stream_decoder", ret);
+    }
 }
 
 lzmastream::~lzmastream() {

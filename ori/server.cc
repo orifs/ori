@@ -55,6 +55,8 @@ void SshServer::serve() {
             if (command[0] == '\n') {
                 // blank line
                 printf("DONE\n");
+                fflush(stdout);
+                fsync(STDOUT_FILENO);
                 continue;
             }
 
@@ -67,12 +69,14 @@ void SshServer::serve() {
                 printf("%s\nDONE\n", ORI_PROTO_VERSION);
             }
             else if (strcmp(command, "listobj") == 0) {
-                std::set<std::string> objects = repository.listObjects();
-                for (std::set<std::string>::iterator it = objects.begin();
+                std::set<ObjectInfo> objects = repository.listObjects();
+                for (std::set<ObjectInfo>::iterator it = objects.begin();
                         it != objects.end();
                         it++) {
-                    puts((*it).c_str());
+                    _writeObjectInfo(*it);
                 }
+                fflush(stdout);
+                fsync(STDOUT_FILENO);
                 printf("DONE\n");
             }
             else if (strcmp(command, "readobj") == 0) {
@@ -81,11 +85,8 @@ void SshServer::serve() {
                 LocalObject obj = repository.getLocalObject(hash);
                 const ObjectInfo &info = obj.getInfo();
 
-                printf("%s\n%s\n%08X\n%lu\nDATA %lu\n",
-                        hash,
-                        Object::getStrForType(info.type),
-                        info.flags,
-                        info.payload_size,
+                _writeObjectInfo(info);
+                printf("DATA %lu\n",
                         obj.getStoredPayloadSize());
 
                 std::auto_ptr<bytestream> bs = obj.getStoredPayloadStream();
@@ -112,6 +113,17 @@ void SshServer::serve() {
     fsync(STDOUT_FILENO);
 }
 
+void SshServer::_writeObjectInfo(const ObjectInfo &info)
+{
+    dprintf(STDOUT_FILENO, "%s\n%s\n%08X\n%lu\n",
+            info.hash.c_str(),
+            Object::getStrForType(info.type),
+            info.flags,
+            info.payload_size);
+}
+
+
+
 void ae_flush() {
     fflush(stdout);
     fsync(STDOUT_FILENO);
@@ -123,7 +135,7 @@ int cmd_sshserver(int argc, const char *argv[])
 
     Util_SetBlocking(STDIN_FILENO, true);
     // TODO: necessary?
-    Util_SetBlocking(STDOUT_FILENO, false);
+    Util_SetBlocking(STDOUT_FILENO, true);
 
     // Disable output buffering
     setvbuf(stdout, NULL, _IONBF, 0); // libc

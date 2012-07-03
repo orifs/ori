@@ -14,8 +14,8 @@ src = [
     "util.cc",
     "stream.cc",
     "localrepo.cc",
-#    "sshclient.cc",
-#    "sshrepo.cc",
+    "sshclient.cc",
+    "sshrepo.cc",
 ]
 
 env.StaticLibrary("ori", src, CPPPATH = [ "#libori" ])

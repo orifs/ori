@@ -26,6 +26,7 @@
 
 #include "repo.h"
 #include "localrepo.h"
+#include "sshrepo.h"
 
 using namespace std;
 
@@ -43,14 +44,8 @@ Repo::~Repo() {
 int Repo::addObject(const ObjectInfo &info, const string &payload)
 {
 #ifdef DEBUG
-    bool hasNonZero = false;
-    for (int i = 0; i < sizeof(info.hash); i++) {
-        if (info.hash[i] != '\0') {
-            hasNonZero = true;
-            break;
-        }
-    }
-    assert(hasNonZero); // hash must be included
+    assert(info.hash.size() > 0); // TODO
+    // hash must be included
 #endif
     assert(info.type != Object::Null);
     assert(false);
@@ -122,23 +117,36 @@ Repo::getTree(const std::string &treeId)
 void
 Repo::pull(Repo *r)
 {
-    set<string> objects = r->listObjects();
-    set<string>::iterator it;
+    set<ObjectInfo> objects = r->listObjects();
 
-    for (it = objects.begin(); it != objects.end(); it++)
+    vector<string> needed;
+    for (set<ObjectInfo>::iterator it = objects.begin();
+            it != objects.end();
+            it++) {
+        // TODO: order the objects
+        if (!hasObject((*it).hash)) {
+            needed.push_back((*it).hash);
+        }
+    }
+
+    if (dynamic_cast<SshRepo*>(r)) {
+        // TODO ((SshRepo *)r)->preload(needed);
+    }
+
+    for (vector<string>::iterator it = needed.begin(); it != needed.end(); it++)
     {
-	if (!hasObject(*it)) {
-	    // XXX: Copy object without loading it all into memory!
-	    //addBlob(r->getPayload(*it), r->getObjectType(*it));
-            Object::ap o(r->getObject((*it)));
-            if (!o.get()) {
-                printf("Error getting object %s\n", (*it).c_str());
-                continue;
-            }
+        // XXX: Copy object without loading it all into memory!
+        //addBlob(r->getPayload(*it), r->getObjectType(*it));
 
-            std::string raw_data = o->getStoredPayloadStream()->readAll();
-            addObjectRaw(o->getInfo(), raw_data);
-	}
+        Object::ap o(r->getObject((*it)));
+        if (!o.get()) {
+            printf("Error getting object %s\n", (*it).c_str());
+            continue;
+        }
+
+        printf("Copying object %s\n", (*it).c_str());
+        bytestream::ap bs(o->getStoredPayloadStream());
+        addObjectRaw(o->getInfo(), bs.get());
     }
 }
 

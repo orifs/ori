@@ -76,7 +76,7 @@ Object *LocalRepo::getObject(const std::string &objId)
 {
     string path = objIdToPath(objId);
     LocalObject *o = new LocalObject();
-    o->open(path);
+    o->open(path, objId);
 
     return o;
 }
@@ -85,7 +85,7 @@ LocalObject LocalRepo::getLocalObject(const std::string &objId)
 {
     string path = objIdToPath(objId);
     LocalObject o;
-    o.open(path);
+    o.open(path, objId);
     return o;
 }
 
@@ -206,6 +206,25 @@ LocalRepo::addFile(const string &path)
         return addLargeFile(path);
     else
         return make_pair(addSmallFile(path), "");
+}
+
+int
+LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+{
+    string hash = info.hash;
+    string objPath = objIdToPath(hash);
+
+    if (!Util_FileExists(objPath)) {
+        createObjDirs(hash);
+
+        LocalObject o;
+        if (o.createFromRawData(objPath, info, bs->readAll()) < 0) {
+            perror("Unable to create object");
+            return -errno;
+        }
+    }
+
+    return 0;
 }
 
 int
@@ -436,7 +455,7 @@ int
 Repo_GetObjectsCB(void *arg, const char *path)
 {
     string hash;
-    set<string> *objs = (set<string> *)arg;
+    set<ObjectInfo> *objs = (set<ObjectInfo> *)arg;
 
     // XXX: Only add the hash
     if (Util_IsDirectory(path)) {
@@ -445,7 +464,12 @@ Repo_GetObjectsCB(void *arg, const char *path)
 
     hash = path;
     hash = hash.substr(hash.rfind("/") + 1);
-    objs->insert(hash);
+
+    LocalObject o;
+    o.open(path);
+    ObjectInfo info = o.getInfo();
+    info.hash = hash;
+    objs->insert(info);
 
     return 0;
 }
@@ -453,11 +477,11 @@ Repo_GetObjectsCB(void *arg, const char *path)
 /*
  * Return a list of objects in the repository.
  */
-set<string>
+set<ObjectInfo>
 LocalRepo::listObjects()
 {
     int status;
-    set<string> objs;
+    set<ObjectInfo> objs;
     string objRoot = rootPath + ORI_PATH_OBJS;
 
     status = Scan_RTraverse(objRoot.c_str(), (void *)&objs, Repo_GetObjectsCB);
@@ -472,6 +496,11 @@ LocalRepo::getCommit(const std::string &commitId)
 {
     Commit c = Commit();
     string blob = getPayload(commitId);
+    if (blob.size() == 0) {
+        printf("Error getting commit blob\n");
+        assert(false);
+        return c;
+    }
     c.fromBlob(blob);
 
     return c;
@@ -493,23 +522,6 @@ LocalRepo::hasObject(const string &objId)
 /*
  * BasicRepo implementation
  */
-int
-LocalRepo::addObjectRaw(const ObjectInfo &info, const std::string &raw_data)
-{
-    string hash = info.hash;
-    string objPath = objIdToPath(hash);
-
-    LocalObject o;
-
-    if (!Util_FileExists(objPath)) {
-        createObjDirs(hash);
-        if (o.createFromRawData(objPath, info, raw_data) < 0) {
-            perror("Unable to create object");
-        }
-    }
-
-    return 0;
-}
 
 /*
  * Reference Counting Operations
@@ -539,12 +551,12 @@ LocalRepo::getRefs(const string &objId)
 map<string, map<string, Object::BRState> >
 LocalRepo::getRefCounts()
 {
-    set<string> obj = listObjects();
-    set<string>::iterator it;
+    set<ObjectInfo> obj = listObjects();
+    set<ObjectInfo>::iterator it;
     map<string, map<string, Object::BRState> > rval;
 
     for (it = obj.begin(); it != obj.end(); it++) {
-        rval[*it] = getRefs(*it);
+        rval[(*it).hash] = getRefs((*it).hash);
     }
 
     return rval;
@@ -557,42 +569,43 @@ LocalRepo::getRefCounts()
 map<string, set<string> >
 LocalRepo::computeRefCounts()
 {
-    set<string> obj = listObjects();
-    set<string>::iterator it;
+    set<ObjectInfo> obj = listObjects();
+    set<ObjectInfo>::iterator it;
     map<string, set<string> > rval;
     map<string, set<string> >::iterator key;
 
     for (it = obj.begin(); it != obj.end(); it++) {
-        key = rval.find(*it);
+        const std::string &hash = (*it).hash;
+        key = rval.find(hash);
         if (key == rval.end())
-            rval[*it] = set<string>();
-        switch (getObjectType(*it)) {
+            rval[hash] = set<string>();
+        switch (getObjectType(hash)) {
             case Object::Commit:
             {
-                Commit c = getCommit(*it);
+                Commit c = getCommit(hash);
                 
                 key = rval.find(c.getTree());
                 if (key == rval.end())
                     rval[c.getTree()] = set<string>();
-                rval[c.getTree()].insert(*it);
+                rval[c.getTree()].insert(hash);
                 
                 key = rval.find(c.getParents().first);
                 if (key == rval.end())
                     rval[c.getParents().first] = set<string>();
-                rval[c.getParents().first].insert(*it);
+                rval[c.getParents().first].insert(hash);
                 
                 if (c.getParents().second != "") {
                     key = rval.find(c.getParents().second);
                     if (key == rval.end())
                         rval[c.getTree()] = set<string>();
-                    rval[c.getParents().second].insert(*it);
+                    rval[c.getParents().second].insert(hash);
                 }
                 
                 break;
             }
             case Object::Tree:
             {
-                Tree t = getTree(*it);
+                Tree t = getTree(hash);
                 map<string, TreeEntry>::iterator tt;
 
                 for  (tt = t.tree.begin(); tt != t.tree.end(); tt++) {
@@ -600,7 +613,7 @@ LocalRepo::computeRefCounts()
                     key = rval.find(h);
                     if (key == rval.end())
                         rval[h] = set<string>();
-                    rval[h].insert(*it);
+                    rval[h].insert(hash);
                 }
                 break;
             }
@@ -804,6 +817,8 @@ void
 LocalRepo::updateHead(const string &commitId)
 {
     string headPath = rootPath + ORI_PATH_HEAD;
+
+    assert(commitId.length() == 64);
 
     Util_WriteFile(commitId.c_str(), commitId.size(), headPath);
 }

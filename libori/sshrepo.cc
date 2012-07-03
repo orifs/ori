@@ -41,6 +41,10 @@ class ResponseParser {
 public:
     ResponseParser(const std::string &text) : text(text), off(0) {}
 
+    bool ended() {
+        return off >= text.size();
+    }
+
     bool nextLine(std::string &line) {
         if (off >= text.size()) return false;
 
@@ -48,18 +52,18 @@ public:
         while (off < text.size()) {
             if (text[off] == '\n') {
                 off++;
-                line = text.substr(oldOff, (off-oldOff));
+                line = text.substr(oldOff, (off-oldOff-1));
                 return true;
             }
             off++;
         }
-        line = text.substr(oldOff, (off-oldOff));
+        line = text.substr(oldOff, (off-oldOff-1));
         return true;
     }
 
     size_t getDataLength(const std::string &line) {
         size_t len = 0;
-        if (sscanf(line.c_str(), "DATA %lu\n", &len) != 1) {
+        if (sscanf(line.c_str(), "DATA %lu", &len) != 1) {
             return 0;
         }
         return len;
@@ -70,6 +74,28 @@ public:
         size_t oldOff = off;
         off += len;
         return text.substr(oldOff, len);
+    }
+
+    bool loadObjectInfo(ObjectInfo &info) {
+        std::string line;
+        nextLine(line); // hash
+        if (line == "DONE") return false;
+
+        assert(line.size() == 64); // 2*SHA256_DIGEST_LENGTH
+        info.hash = line.data();
+
+        nextLine(line); // type
+        info.type = Object::getTypeForStr(line.c_str());
+        assert(info.type != Object::Null);
+
+        nextLine(line); // flags
+        sscanf(line.c_str(), "%X", &info.flags);
+
+        nextLine(line); // payload_size
+        sscanf(line.c_str(), "%lu", &info.payload_size);
+        assert(info.payload_size > 0);
+
+        return true;
     }
 private:
     const std::string &text;
@@ -101,81 +127,108 @@ std::string SshRepo::getHead()
     p.nextLine(line); // uuid
     p.nextLine(line); // version
     p.nextLine(line); // head
-    return line.substr(0, line.size()-1);
+    return line;
 }
 
-int SshRepo::getDataRaw(Object::ObjectInfo *info, std::string &raw_data)
+Object *SshRepo::getObject(const std::string &id)
 {
-    std::string command = "readobj ";
-    command += info->hash;
+    std::string command = "readobj " + id;
     client->sendCommand(command);
 
     std::string resp;
     client->recvResponse(resp);
 
     ResponseParser p(resp);
+    ObjectInfo info;
+    p.loadObjectInfo(info);
+
     std::string line;
-    p.nextLine(line); // hash
-
-    p.nextLine(line); // type
-    line[line.size()-1] = '\0';
-    info->type = Object::getTypeForStr(line.c_str());
-
-    p.nextLine(line); // flags
-    sscanf(line.c_str(), "%X\n", &info->flags);
-
-    p.nextLine(line); // payload_size
-    sscanf(line.c_str(), "%lu\n", &info->payload_size);
-
     p.nextLine(line); // DATA x
-    raw_data = p.getData(p.getDataLength(line));
+    std::string raw_data = p.getData(p.getDataLength(line));
 
-    return 0;
+    // TODO: add raw data to cache
+    _addPayload(info.hash, raw_data);
+
+    return new SshObject(this, info);
 }
 
-std::set<std::string> SshRepo::listObjects()
+bool SshRepo::hasObject(const std::string &id) {
+    assert(false);
+    return false;
+}
+
+std::set<ObjectInfo> SshRepo::listObjects()
 {
     client->sendCommand("listobj");
     std::string resp;
     client->recvResponse(resp);
 
-    std::set<std::string> rval;
+    std::set<ObjectInfo> rval;
 
     ResponseParser p(resp);
     std::string line;
-    while (p.nextLine(line)) {
-        if (line != "DONE\n")
-            rval.insert(line.substr(0, line.size()-1));
+    while (!p.ended()) {
+        ObjectInfo info;
+        if (!p.loadObjectInfo(info)) break;
+        rval.insert(info);
     }
 
     return rval;
 }
 
-Object SshRepo::addObjectRaw(const Object::ObjectInfo &info, const std::string
-        &raw_data)
+int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
     assert(false);
-    return Object();
-}
-
-int SshRepo::getObjectInfo(ObjectInfo *info) {
     return -1;
 }
 
-bool SshRepo::hasObject(const std::string &id) {
-    return false;
+std::string &SshRepo::_payload(const std::string &id)
+{
+    return payloads[id];
 }
 
-/*Object SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+void SshRepo::_addPayload(const std::string &id, const std::string &payload)
 {
-    assert(false);
-    return Object();
+    payloads[id] = payload;
 }
 
-std::string SshRepo::addObject(const ObjectInfo &info, const std::string
-        &data)
+void SshRepo::_clearPayload(const std::string &id)
 {
-    assert(false);
-    return "";
-}*/
+    payloads.erase(id);
+}
 
+
+/*
+ * SshObject
+ */
+
+SshObject::SshObject(SshRepo *repo, ObjectInfo info)
+    : Object(info), repo(repo)
+{
+    assert(repo != NULL);
+    assert(info.hash.size() > 0);
+}
+
+SshObject::~SshObject()
+{
+    repo->_clearPayload(info.hash);
+}
+
+bytestream::ap SshObject::getPayloadStream()
+{
+    if (info.getCompressed()) {
+        bytestream::ap bs(getStoredPayloadStream());
+        return bytestream::ap(new lzmastream(bs.release()));
+    }
+    return getStoredPayloadStream();
+}
+
+bytestream::ap SshObject::getStoredPayloadStream()
+{
+    return bytestream::ap(new strstream(repo->_payload(info.hash)));
+}
+
+size_t SshObject::getStoredPayloadSize()
+{
+    return repo->_payload(info.hash).length();
+}

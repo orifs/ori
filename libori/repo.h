@@ -55,9 +55,10 @@ public:
             ) = 0;
     virtual bool hasObject(const std::string &id) = 0;
     // TODO: add options to query?
-    virtual std::set<std::string> listObjects() = 0;
+    virtual std::set<ObjectInfo> listObjects() = 0;
 
     // TODO: add object interface
+    virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;
 
     // High-level operations
     virtual void pull(Repo *r);

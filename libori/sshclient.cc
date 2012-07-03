@@ -256,18 +256,17 @@ int cmd_sshclient(int argc, const char *argv[]) {
     dprintf(STDOUT_FILENO, "Connected\n");
 
     SshRepo repo(&client);
-    std::set<std::string> objs = repo.listObjects();
-    for (std::set<std::string>::iterator it = objs.begin();
+    std::set<ObjectInfo> objs = repo.listObjects();
+    for (std::set<ObjectInfo>::iterator it = objs.begin();
             it != objs.end();
             it++) {
-        printf("%s\n", (*it).c_str());
+        printf("%s\n", (*it).hash.c_str());
     }
 
-    Object::ObjectInfo info("b7287ce2bca00e9b78555dba3ec7b013415425f7ffd6628b6ed68dcfba699426");
-    std::string data;
-    repo.getDataRaw(&info, data);
-    printf("type: %d\nflags: %08X\npayload_size: %lu\n", info.type, info.flags,
-            info.payload_size);
+    //Object::ObjectInfo info("b7287ce2bca00e9b78555dba3ec7b013415425f7ffd6628b6ed68dcfba699426");
+    //std::string data;
+    //printf("type: %d\nflags: %08X\npayload_size: %lu\n", info.type, info.flags,
+    //        info.payload_size);
 
     return 0;
 

@@ -33,6 +33,18 @@ protected:
     bool inheritError(bytestream *bs);
 };
 
+class strstream : public bytestream
+{
+public:
+    strstream(const std::string &);
+    bool ended();
+    size_t read(uint8_t *, size_t);
+    size_t sizeHint() const;
+private:
+    const std::string &buf;
+    size_t off;
+};
+
 class fdstream : public bytestream
 {
 public:
@@ -68,7 +80,7 @@ private:
 class lzmastream : public bytestream
 {
 public:
-    lzmastream(bytestream *source, size_t size_hint = 0);
+    lzmastream(bytestream *source, bool compress = false, size_t size_hint = 0);
     ~lzmastream();
     bool ended();
     size_t read(uint8_t *, size_t);

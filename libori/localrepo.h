@@ -20,11 +20,12 @@ public:
     void save();
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,
-            const std::string &raw_data);
+            bytestream *bs);
     int addObject(const ObjectInfo &info, const std::string
             &payload);
     bool hasObject(const std::string &objId);
     Object *getObject(const std::string &objId);
+    std::set<ObjectInfo> listObjects();
 
     LocalObject getLocalObject(const std::string &objId);
 
@@ -41,7 +42,6 @@ public:
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
-    std::set<std::string> listObjects();
     Commit getCommit(const std::string &commitId);
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
