@@ -559,12 +559,12 @@ void LocalObject::addMetadataEntry(MdType type, const std::string &data) {
     assert((size_t)err == data.length());
     fsync(fd);
 
+    fileSize += 4 + data.length();
+
     std::string hash = computeMetadataHash();
     assert(hash != "");
     err = pwrite(fd, hash.data(), ORI_MD_HASHSIZE, OFF_MD_HASH);
     assert(err == ORI_MD_HASHSIZE);
-
-    fileSize += 4 + data.length();
 }
 
 std::string LocalObject::computeMetadataHash() {
