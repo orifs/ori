@@ -140,8 +140,8 @@ httpd_head(struct evhttp_request *req, void *arg)
 void
 httpd_getindex(struct evhttp_request *req, void *arg)
 {
-    set<string> objs = repository.listObjects();
-    set<string>::iterator it;
+    set<ObjectInfo> objs = repository.listObjects();
+    set<ObjectInfo>::iterator it;
     struct evbuffer *buf;
 
     LOG("httpd: getindex");
@@ -153,7 +153,7 @@ httpd_getindex(struct evhttp_request *req, void *arg)
     }
 
     for (it = objs.begin(); it != objs.end(); it++) {
-        evbuffer_add_printf(buf, "%s\n", (*it).c_str());
+        evbuffer_add_printf(buf, "%s\n", (*it).hash.c_str());
     }
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
