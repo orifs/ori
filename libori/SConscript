@@ -1,0 +1,22 @@
+import os
+
+Import('env')
+
+src = [
+    "chunker.cc",
+    "commit.cc",
+    "debug.cc",
+    "largeblob.cc",
+    "object.cc",
+    "repo.cc",
+    "scan.cc",
+    "tree.cc",
+    "util.cc",
+    "stream.cc",
+    "localrepo.cc",
+#    "sshclient.cc",
+#    "sshrepo.cc",
+]
+
+env.StaticLibrary("ori", src, CPPPATH = [ "#libori" ])
+

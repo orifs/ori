@@ -3,29 +3,18 @@ import sys
 Import('env')
 
 src = [
-    "chunker.cc",
-    "commit.cc",
-    "largeblob.cc",
     "main.cc",
-    "debug.cc",
-    "object.cc",
-    "repo.cc",
     "repo_cmd.cc",
-    "scan.cc",
-    "tree.cc",
-    "util.cc",
-    "stream.cc",
     "server.cc",
-    "localrepo.cc",
-#    "sshclient.cc",
-#    "sshrepo.cc",
 ]
 
 libs = [
         "crypto",
         "stdc++",
         "lzma",
+        "ori",
        ]
+
 if sys.platform == "darwin":
     # TODO
     libs += []
@@ -33,7 +22,7 @@ else:
     libs += ['rt']
 
 env.Program("ori", src,
-            LIBPATH = [ "$LIBPATH" ],
-	    LIBS = libs,
-            CPPPATH = [ "$CPPPATH", "#include", "#" ])
+            LIBPATH = [ "#build/libori", "$LIBPATH" ],
+            LIBS = libs,
+            CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])
 

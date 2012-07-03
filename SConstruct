@@ -63,8 +63,10 @@ def GetNumCPUs():
 env.SetOption('num_jobs', GetNumCPUs())
 
 Export('env')
+
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
+SConscript('libori/SConscript', variant_dir='build/libori')
 SConscript('ori/SConscript', variant_dir='build/ori')
 
 env.Install('$PREFIX','build/ori/ori')
