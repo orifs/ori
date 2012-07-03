@@ -13,6 +13,9 @@
 #include <netinet/in.h>
 #include <resolv.h>
 
+#include <string>
+#include <iostream>
+
 #include <event2/event.h>
 #include <event2/http.h>
 #include <event2/http_struct.h>
@@ -20,11 +23,20 @@
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
 
+#include "debug.h"
+#include "localrepo.h"
+#include "util.h"
+
+using namespace std;
+
 static struct evhttp *httpd;
 /* set if a test needs to call loopexit on a base */
 static struct event_base *base;
 
-int httpd_authenticate(struct evhttp_request *req, struct evbuffer *buf)
+LocalRepo repository;
+
+int
+httpd_authenticate(struct evhttp_request *req, struct evbuffer *buf)
 {
     int n;
     char output[64];
@@ -49,7 +61,8 @@ authFailed:
     return -1;
 }
 
-void httpd_stop(struct evhttp_request *req, void *arg)
+void
+httpd_stop(struct evhttp_request *req, void *arg)
 {
     struct evbuffer *buf;
     buf = evbuffer_new();
@@ -67,27 +80,125 @@ void httpd_stop(struct evhttp_request *req, void *arg)
     event_base_loopexit(base, NULL);
 }
 
-void httpd_getid(struct evhttp_request *req, void *arg)
+void
+httpd_getid(struct evhttp_request *req, void *arg)
 {
+    string repoId = repository.getUUID();
+    struct evbuffer *buf;
+
+    buf = evbuffer_new();
+    if (buf == NULL) {
+        printf("Failed");
+    }
+
+    evbuffer_add_printf(buf, "%s", repoId.c_str());
+    evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
+    evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
 
-void httpd_getversion(struct evhttp_request *req, void *arg)
+void
+httpd_getversion(struct evhttp_request *req, void *arg)
 {
+    string ver = repository.getVersion();
+    struct evbuffer *buf;
+
+    buf = evbuffer_new();
+    if (buf == NULL) {
+        printf("Failed");
+    }
+
+    evbuffer_add_printf(buf, "%s", ver.c_str());
+    evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
+    evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
 
-void httpd_head(struct evhttp_request *req, void *arg)
+void
+httpd_head(struct evhttp_request *req, void *arg)
 {
+    string headId = repository.getHead();
+    struct evbuffer *buf;
+
+    buf = evbuffer_new();
+    if (buf == NULL) {
+        printf("Failed");
+    }
+
+    evbuffer_add_printf(buf, "%s", headId.c_str());
+    evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
+    evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
 
-void httpd_getindex(struct evhttp_request *req, void *arg)
+void
+httpd_getindex(struct evhttp_request *req, void *arg)
 {
+    set<string> objs = repository.listObjects();
+    set<string>::iterator it;
+    struct evbuffer *buf;
+
+    buf = evbuffer_new();
+    if (buf == NULL) {
+        printf("Failed");
+    }
+
+    for (it = objs.begin(); it != objs.end(); it++) {
+        evbuffer_add_printf(buf, "%s\n", (*it).c_str());
+    }
+    evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
+    evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
 
-void httpd_getobj(struct evhttp_request *req, void *arg)
+void
+httpd_StringDeleteCB(const void *data, size_t len, void *extra)
 {
+    string *p = (string *)extra;
+
+    delete p;
 }
 
-void httpd_pushobj(struct evhttp_request *req, void *arg)
+void
+httpd_getobj(struct evhttp_request *req, void *arg)
+{
+    string objId;
+    auto_ptr<bytestream> bs;
+    string *payload = new string();
+    Object *obj;
+    struct evbuffer *buf;
+
+    objId = evhttp_request_get_uri(req);
+    objId = objId.substr(6);
+
+    buf = evbuffer_new();
+    if (buf == NULL) {
+        printf("Failed");
+    }
+
+    if (objId.size() != 64) {
+        evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", buf);
+        return;
+    }
+
+    obj = repository.getObject(objId.c_str());
+    if (obj == NULL) {
+        evhttp_send_reply(req, HTTP_NOTFOUND, "Object Not Found", buf);
+        return;
+    }
+
+    bs = obj->getStoredPayloadStream();
+    *payload = bs->readAll();
+
+    // Transmit
+    evbuffer_add_reference(buf, payload->data(), payload->size(),
+                           httpd_StringDeleteCB, payload);
+
+    evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
+    evhttp_send_reply(req, HTTP_OK, "OK", buf);
+
+    delete obj;
+    return;
+}
+
+void
+httpd_pushobj(struct evhttp_request *req, void *arg)
 {
     const char *cl = evhttp_find_header(req->input_headers, "Content-Length");
     uint32_t length;
@@ -136,37 +247,8 @@ void httpd_pushobj(struct evhttp_request *req, void *arg)
     evhttp_send_reply(req, HTTP_OK, "OK", outbuf);
 }
 
-void httpd_generic(struct evhttp_request *req, void *arg)
-{
-    int fd;
-    struct stat sb;
-    struct evbuffer *buf;
-    buf = evbuffer_new();
-    if (buf == NULL) {
-        printf("Failed");
-    }
-
-    fd = open(evhttp_request_get_uri(req) + 1, O_RDONLY);
-    if (fd < 0) {
-        evbuffer_add_printf(buf, "File not found %s\n",
-                            evhttp_request_get_uri(req));
-        evhttp_send_reply(req, HTTP_NOTFOUND, "File Not Found", buf);
-        return;
-    }
-
-    fstat(fd, &sb);
-    if (S_ISREG(sb.st_mode)) {
-        evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
-        evbuffer_add_file(buf, fd, 0, sb.st_size);
-    } else if (S_ISDIR(sb.st_mode)) {
-        evbuffer_add_printf(buf, "Directory\n");
-    } else {
-        evbuffer_add_printf(buf, "Something else\n");
-    }
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-}
-
-void httpd_logcb(int severity, const char *msg)
+void
+httpd_logcb(int severity, const char *msg)
 {
     const char *sev[] = {
         "Debug", "Msg", "Warning", "Error",
@@ -174,26 +256,82 @@ void httpd_logcb(int severity, const char *msg)
     printf("%s: %s\n", sev[severity], msg);
 }
 
-int main(int argc, char *argv[])
+void
+http_main(uint16_t port)
 {
     base = event_base_new();
     event_set_log_callback(httpd_logcb);
 
-    // XXX: Open repository
-
     httpd = evhttp_new(base);
-    evhttp_bind_socket(httpd, "0.0.0.0", 8080);
+    evhttp_bind_socket(httpd, "0.0.0.0", port);
 
     evhttp_set_cb(httpd, "/id", httpd_getid, NULL);
     evhttp_set_cb(httpd, "/version", httpd_getid, NULL);
     evhttp_set_cb(httpd, "/HEAD", httpd_head, NULL);
     evhttp_set_cb(httpd, "/index", httpd_getindex, NULL);
-    evhttp_set_cb(httpd, "/objs/*", httpd_getobj, NULL);
-    evhttp_set_cb(httpd, "/objs", httpd_pushobj, NULL);
+    //evhttp_set_cb(httpd, "/objs", httpd_pushobj, NULL);
     evhttp_set_cb(httpd, "/stop", httpd_stop, NULL);
-    evhttp_set_gencb(httpd, httpd_generic, NULL);
+    //evhttp_set_gencb(httpd, httpd_generic, NULL);
+    evhttp_set_gencb(httpd, httpd_getobj, NULL); // getObj/objs/*
 
     event_base_dispatch(base);
     evhttp_free(httpd);
+}
+
+void
+usage()
+{
+    cout << "usage: ori_httpd [options] <repository path>" << endl << endl;
+    cout << "Options:" << endl;
+    cout << "-p port    Set the HTTP port number (default 8080)" << endl;
+    cout << "-h         Show this message" << endl;
+}
+
+int
+main(int argc, char *argv[])
+{
+    bool success;
+    int bflag, ch;
+    unsigned long port = 8080;
+
+    bflag = 0;
+    while ((ch = getopt(argc, argv, "p:h")) != -1) {
+        switch (ch) {
+            case 'p':
+            {
+                char *p;
+                port = strtoul(optarg, &p, 10);
+                if (*p != '\0' || port > 65535) {
+                    cout << "Invalid port number '" << optarg << "'" << endl;
+                    usage();
+                    return 1;
+                }
+                break;
+            }
+            case 'h':
+                usage();
+                return 0;
+            case '?':
+            default:
+                usage();
+                return 1;
+        }
+    }
+    argc -= optind;
+    argv += optind;
+
+    if (argc == 1) {
+        success = repository.open(argv[0]);
+    } else {
+        success = repository.open();
+    }
+    if (!success) {
+        cout << "Could not open the local repository!" << endl;
+        return 1;
+    }
+
+    http_main(port);
+
+    return 0;
 }
 
