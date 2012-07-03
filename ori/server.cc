@@ -1,3 +1,6 @@
+
+#define _WITH_DPRINTF
+
 #include <map>
 
 #include <unistd.h>
