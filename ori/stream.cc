@@ -83,7 +83,7 @@ void bytestream::setErrno(const char *msg) {
     last_errnum = errno;
 }
 
-bool bytestream::inheritError(bytestream::ap bs) {
+bool bytestream::inheritError(bytestream *bs) {
     if (bs->error()) {
         last_error.assign(bs->error());
         last_errnum = bs->errnum();
@@ -178,6 +178,7 @@ lzmastream::lzmastream(bytestream *source, size_t size_hint)
 }
 
 lzmastream::~lzmastream() {
+    delete source;
 }
 
 bool lzmastream::ended() {

@@ -30,7 +30,7 @@ protected:
     int last_errnum;
 
     void setErrno(const char *msg);
-    bool inheritError(bytestream::ap bs);
+    bool inheritError(bytestream *bs);
 };
 
 class fdstream : public bytestream
@@ -75,7 +75,7 @@ public:
     size_t sizeHint() const;
 
 private:
-    bytestream::ap source;
+    bytestream *source;
     size_t size_hint;
 
     bool output_ended;
