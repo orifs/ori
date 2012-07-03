@@ -51,12 +51,14 @@ LocalRepo::open(const string &root)
     if (id_str == NULL)
         return false;
     id = id_str;
+    delete id_str;
 
     // Read Version
     char *ver_str = Util_ReadFile(rootPath + ORI_PATH_VERSION, NULL);
     if (ver_str == NULL)
         return false;
     version = ver_str;
+    delete ver_str;
 
     return true;
 }
