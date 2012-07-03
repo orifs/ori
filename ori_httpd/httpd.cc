@@ -86,9 +86,12 @@ httpd_getid(struct evhttp_request *req, void *arg)
     string repoId = repository.getUUID();
     struct evbuffer *buf;
 
+    LOG("httpd: getid");
+
     buf = evbuffer_new();
     if (buf == NULL) {
-        printf("Failed");
+        LOG("httpd_gethead: evbuffer_new failed!");
+        return;
     }
 
     evbuffer_add_printf(buf, "%s", repoId.c_str());
@@ -102,9 +105,12 @@ httpd_getversion(struct evhttp_request *req, void *arg)
     string ver = repository.getVersion();
     struct evbuffer *buf;
 
+    LOG("httpd: getversion");
+
     buf = evbuffer_new();
     if (buf == NULL) {
-        printf("Failed");
+        LOG("httpd_getversion: evbuffer_new failed!");
+        return;
     }
 
     evbuffer_add_printf(buf, "%s", ver.c_str());
@@ -118,9 +124,12 @@ httpd_head(struct evhttp_request *req, void *arg)
     string headId = repository.getHead();
     struct evbuffer *buf;
 
+    LOG("httpd: gethead");
+
     buf = evbuffer_new();
     if (buf == NULL) {
-        printf("Failed");
+        LOG("httpd_gethead: evbuffer_new failed!");
+        return;
     }
 
     evbuffer_add_printf(buf, "%s", headId.c_str());
@@ -135,9 +144,12 @@ httpd_getindex(struct evhttp_request *req, void *arg)
     set<string>::iterator it;
     struct evbuffer *buf;
 
+    LOG("httpd: getindex");
+
     buf = evbuffer_new();
     if (buf == NULL) {
-        printf("Failed");
+        LOG("httpd_getindex: evbuffer_new failed!");
+        return;
     }
 
     for (it = objs.begin(); it != objs.end(); it++) {
@@ -169,13 +181,15 @@ httpd_getobj(struct evhttp_request *req, void *arg)
 
     buf = evbuffer_new();
     if (buf == NULL) {
-        printf("Failed");
+        LOG("httpd_getobj: evbuffer_new failed!");
     }
 
     if (objId.size() != 64) {
         evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", buf);
         return;
     }
+    
+    LOG("httpd: getobj %s", objId.c_str());
 
     obj = repository.getObject(objId.c_str());
     if (obj == NULL) {
@@ -253,7 +267,7 @@ httpd_logcb(int severity, const char *msg)
     const char *sev[] = {
         "Debug", "Msg", "Warning", "Error",
     };
-    printf("%s: %s\n", sev[severity], msg);
+    LOG("%s: %s", sev[severity]);
 }
 
 void
@@ -272,7 +286,7 @@ http_main(uint16_t port)
     //evhttp_set_cb(httpd, "/objs", httpd_pushobj, NULL);
     evhttp_set_cb(httpd, "/stop", httpd_stop, NULL);
     //evhttp_set_gencb(httpd, httpd_generic, NULL);
-    evhttp_set_gencb(httpd, httpd_getobj, NULL); // getObj/objs/*
+    evhttp_set_gencb(httpd, httpd_getobj, NULL); // getObj: /objs/*
 
     event_base_dispatch(base);
     evhttp_free(httpd);
@@ -329,6 +343,8 @@ main(int argc, char *argv[])
         cout << "Could not open the local repository!" << endl;
         return 1;
     }
+
+    ori_open_log(&repository);
 
     http_main(port);
 
