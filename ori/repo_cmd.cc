@@ -239,19 +239,20 @@ int
 commitHelper(void *arg, const char *path)
 {
     string filePath = path;
-    string hash;
     Tree *tree = (Tree *)arg;
 
     if (Util_IsDirectory(path)) {
+        string hash;
 	Tree subTree = Tree();
 
 	Scan_Traverse(path, &subTree, commitHelper);
 
 	hash = repository.addTree(subTree);
+        tree->addObject(filePath.c_str(), hash);
     } else {
-	hash = repository.addFile(path);
+        pair<string, string> pHash = repository.addFile(path);
+        tree->addObject(filePath.c_str(), pHash.first, pHash.second);
     }
-    tree->addObject(filePath.c_str(), hash);
 
     return 0;
 }
@@ -350,8 +351,11 @@ StatusTreeIter(map<string, string> *tipState,
 			   path + "/" + (*it).first,
 			   (*it).second.hash);
 	} else {
-	    tipState->insert(pair<string, string>(path + "/" + (*it).first,
-				    (*it).second.hash));
+            string filePath = path + "/" + (*it).first;
+            string hash = (*it).second.largeHash == "" ?
+                          (*it).second.hash : (*it).second.largeHash;
+
+	    tipState->insert(pair<string, string>(filePath, hash));
 	}
     }
 

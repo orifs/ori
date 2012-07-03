@@ -37,6 +37,7 @@
 #error "SHA256 not supported!"
 #endif
 
+#include "util.h"
 #include "largeblob.h"
 #include "chunker.h"
 #include "repo.h"
@@ -203,6 +204,8 @@ LargeBlob::chunkFile(const string &path)
 	return;
     }
 
+    hash = Util_HashFile(path);
+
     c.chunk(&cb);
 }
 
@@ -237,12 +240,17 @@ LargeBlob::extractFile(const string &path)
 
         assert(status == tmp.length());
     }
+
+#ifdef DEBUG
+    string extractedHash = Util_HashFile(path);
+    assert(extractedHash == hash);
+#endif /* DEBUG */
 }
 
 const string
 LargeBlob::getBlob()
 {
-    string blob = "";
+    string blob = hash;
     map<uint64_t, LBlobEntry>::iterator it;
 
     for (it = parts.begin(); it != parts.end(); it++)
@@ -264,6 +272,9 @@ LargeBlob::fromBlob(const string &blob)
     uint64_t off = 0;
     string line;
     stringstream ss(blob);
+
+    getline(ss, line, '\n');
+    hash = line;
 
     while (getline(ss, line, '\n')) {
         string hash;

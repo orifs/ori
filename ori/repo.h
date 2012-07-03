@@ -88,8 +88,10 @@ public:
     void save();
     // Object Operations
     std::string addSmallFile(const std::string &path);
-    std::string addLargeFile(const std::string &path);
-    std::string addFile(const std::string &path);
+    std::pair<std::string, std::string>
+        addLargeFile(const std::string &path);
+    std::pair<std::string, std::string>
+        addFile(const std::string &path);
     std::string addBlob(const std::string &blob, Object::Type type);
     std::string addTree(/* const */ Tree &tree);
     std::string addCommit(/* const */ Commit &commit);

@@ -62,7 +62,7 @@ Tree::~Tree()
 }
 
 void
-Tree::addObject(const char *path, const string &objId)
+Tree::addObject(const char *path, const string &objId, const string &lgObjId)
 {
     string fileName = path;
     struct stat sb;
@@ -78,8 +78,15 @@ Tree::addObject(const char *path, const string &objId)
     } else {
 	entry.type = TreeEntry::Blob;
     }
+
     entry.mode = sb.st_mode & (S_IRWXO | S_IRWXG | S_IRWXU | S_IFDIR);
     entry.hash = objId;
+
+    if (lgObjId != "") {
+        assert(entry.type == TreeEntry::Blob);
+        entry.type = TreeEntry::LargeBlob;
+        entry.largeHash = lgObjId;
+    }
 
     fileName = fileName.substr(fileName.rfind("/") + 1);
     tree[fileName] = entry;
@@ -94,9 +101,20 @@ Tree::getBlob()
 
     for (it = tree.begin(); it != tree.end(); it++)
     {
-	blob += (*it).second.type == TreeEntry::Tree ? "tree" : "blob";
+        if ((*it).second.type == TreeEntry::Tree) {
+            blob += "tree";
+        } else if ((*it).second.type == TreeEntry::Blob) {
+            blob += "blob";
+        } else if ((*it).second.type == TreeEntry::LargeBlob) {
+            blob += "lgbl";
+        } else {
+            assert(false);
+        }
 	blob += " ";
 	blob += (*it).second.hash;
+        if ((*it).second.type == TreeEntry::LargeBlob) {
+            blob += (*it).second.largeHash;
+        }
 	blob += " ";
 	blob += (*it).first;
 	blob += "\n";
@@ -117,12 +135,22 @@ Tree::fromBlob(const string &blob)
 	    entry.type = TreeEntry::Tree;
 	} else if (line.substr(0, 5) == "blob ") {
 	    entry.type = TreeEntry::Blob;
+	} else if (line.substr(0, 5) == "lgbl ") {
+	    entry.type = TreeEntry::LargeBlob;
 	} else {
 	    assert(false);
 	}
+
 	// XXX: entry.mode
-	entry.hash = line.substr(5, 64);
-	tree[line.substr(70)] = entry;
+
+        entry.hash = line.substr(5, 64);
+        if (entry.type == TreeEntry::LargeBlob) {
+            entry.largeHash = line.substr(69, 64);
+	    tree[line.substr(134)] = entry;
+        } else {
+            entry.largeHash = "";
+	    tree[line.substr(70)] = entry;
+        }
     }
 }
 
