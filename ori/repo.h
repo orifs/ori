@@ -76,7 +76,6 @@ public:
             const std::string &payload
             );
 
-
     /*virtual int getData(
             ObjectInfo *info,
             std::string &data);*/

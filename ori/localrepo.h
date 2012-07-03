@@ -29,8 +29,10 @@ public:
     LocalObject getLocalObject(const std::string &objId);
 
     std::string addSmallFile(const std::string &path);
-    std::string addLargeFile(const std::string &path);
-    std::string addFile(const std::string &path);
+    std::pair<std::string, std::string>
+        addLargeFile(const std::string &path);
+    std::pair<std::string, std::string>
+        addFile(const std::string &path);
     virtual std::string addTree(const Tree &tree);
     virtual std::string addCommit(/* const */ Commit &commit);
     //std::string addBlob(const std::string &blob, Object::Type type);

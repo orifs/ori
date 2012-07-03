@@ -30,11 +30,13 @@ public:
     enum EntryType {
 	Null,
 	Blob,
+        LargeBlob,
 	Tree
     };
     EntryType	type;
     uint16_t	mode;
     std::string hash;
+    std::string largeHash;
 };
 
 class Tree
@@ -42,7 +44,9 @@ class Tree
 public:
     Tree();
     ~Tree();
-    void addObject(const char *path, const std::string &objId);
+    void addObject(const char *path,
+                   const std::string &objId,
+                   const std::string &lgObjId = "");
     const std::string getBlob() const;
     void fromBlob(const std::string &blob);
     std::map<std::string, TreeEntry> tree;

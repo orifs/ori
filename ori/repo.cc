@@ -40,18 +40,11 @@ Repo::Repo() {
 Repo::~Repo() {
 }
 
-int Repo::addObject(const ObjectInfo &info,
-        const std::string &payload)
+int Repo::addObject(const ObjectInfo &info, const string &payload)
 {
     assert(false);
     return -1;
 }
-
-/*int Repo::getData(ObjectInfo *info,
-        std::string &data) {
-    assert(false);
-    return -1;
-}*/
 
 /*
  * Add a blob to the repository. This is a low-level interface.

@@ -51,6 +51,7 @@ public:
      * blob entry object as the value.  It allows O(log n) random access into 
      * the file.
      */
+    std::string hash;
     std::map<uint64_t, LBlobEntry> parts;
     LocalRepo *repo;
 };

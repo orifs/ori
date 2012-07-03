@@ -162,7 +162,7 @@ LocalRepo::addSmallFile(const string &path)
 /*
  * Add a file to the repository. This is a low-level interface.
  */
-string
+pair<string, string>
 LocalRepo::addLargeFile(const string &path)
 {
     string blob;
@@ -189,14 +189,14 @@ LocalRepo::addLargeFile(const string &path)
         }
     }
 
-    return addBlob(Object::LargeBlob, blob);
+    return make_pair(addBlob(Object::LargeBlob, blob), lb.hash);
 }
 
 /*
  * Add a file to the repository. This is an internal interface that pusheds the
  * work to addLargeFile or addSmallFile based on our size threshold.
  */
-string
+pair<string, string>
 LocalRepo::addFile(const string &path)
 {
     size_t sz = Util_FileSize(path);
@@ -204,7 +204,7 @@ LocalRepo::addFile(const string &path)
     if (sz > LARGEFILE_MINIMUM)
         return addLargeFile(path);
     else
-        return addSmallFile(path);
+        return make_pair(addSmallFile(path), "");
 }
 
 int
