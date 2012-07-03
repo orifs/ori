@@ -80,6 +80,4 @@ private:
     std::string version;
 };
 
-extern LocalRepo repository;
-
 #endif

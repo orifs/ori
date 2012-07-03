@@ -42,6 +42,8 @@
 
 using namespace std;
 
+#define COPYFILE_BUFSZ	(256 * 1024)
+
 /*
  * ObjectInfo
  */
@@ -312,10 +314,6 @@ size_t
 LocalObject::getStoredPayloadSize() {
     return storedLen;
 }
-
-/* Flags */
-
-#define COPYFILE_BUFSZ	4096
 
 /*
  * Purge object.

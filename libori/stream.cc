@@ -10,9 +10,7 @@
 #include "debug.h"
 #include "stream.h"
 
-
-
-#define COPYFILE_BUFSZ 2048
+#define COPYFILE_BUFSZ (256 * 1024)
 
 std::string bytestream::readAll() {
     std::string rval;

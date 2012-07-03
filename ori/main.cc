@@ -36,6 +36,8 @@ using namespace std;
 #include "localrepo.h"
 #include "server.h"
 
+extern LocalRepo repository;
+
 /********************************************************************
  *
  *
