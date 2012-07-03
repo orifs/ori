@@ -12,6 +12,7 @@ opts.AddVariables(
     ("VERBOSE", "Show full build information (0 or 1)", "0"),
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto).", "0"),
     ("WITH_FUSE", "Include FUSE file system (0 or 1).", "1"),
+    ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "1"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
 
@@ -68,6 +69,8 @@ if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
 SConscript('libori/SConscript', variant_dir='build/libori')
 SConscript('ori/SConscript', variant_dir='build/ori')
+if env["WITH_HTTPD"] == "1":
+    SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
 
 env.Install('$PREFIX','build/ori/ori')
 env.Alias('install','$PREFIX')
