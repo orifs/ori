@@ -158,9 +158,11 @@ public:
         assert(*o <= bufLen);
 
         if (*o != 0 || *o != *l) {
-            memcpy(buf, buf + *o, *l - *o);
-            *l = *l - *o;
-            *o = 0;
+            assert(*o > 32); // XXX: Must equal hashLen
+            assert(*l > 32);
+            memcpy(buf, buf + *o - 32, *l - *o + 32);
+            *l = *l - *o + 32;
+            *o = 32;
         }
 
         uint64_t toRead = MIN(bufLen - *l, fileLen - fileOff);
@@ -176,7 +178,7 @@ public:
 
         fileOff += status;
         *l += status;
-        *o = 0;
+        //*o = 32;
 
 	return 1;
     }
