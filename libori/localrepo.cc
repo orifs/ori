@@ -368,7 +368,11 @@ LocalRepo::verifyObject(const string &objId)
 	}
         case Object::LargeBlob:
         {
+	    if (o.computeHash() != objId)
+		return "Object hash mismatch!"; 
+
             // XXX: Verify fragments
+            // XXX: Verify file hash matches largeObject's file hash
             break;
         }
 	case Object::Purged:
