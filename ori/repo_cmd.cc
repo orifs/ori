@@ -522,6 +522,8 @@ cmd_clone(int argc, const char *argv[])
     return 0;
 }
 
+int cmd_rebuildrefs(int argc, const char *argv[]);
+
 int
 cmd_pull(int argc, const char *argv[])
 {
@@ -551,6 +553,10 @@ cmd_pull(int argc, const char *argv[])
 
     // XXX: Need to rely on sync log.
     repository.updateHead(srcRepo->getHead());
+
+    // TODO: more efficient backref tracking
+    printf("Rebuilding references\n");
+    cmd_rebuildrefs(1, NULL);
 
     return 0;
 }
@@ -645,7 +651,8 @@ cmd_rebuildrefs(int argc, const char *argv[])
 
         if (type == Object::Commit ||
             type == Object::Tree ||
-            type == Object::Blob) {
+            type == Object::Blob ||
+            type == Object::LargeBlob) {
             set<string>::iterator i;
 
             o.clearMetadata(); // was clearBackref

@@ -617,6 +617,23 @@ LocalRepo::computeRefCounts()
                 }
                 break;
             }
+            case Object::LargeBlob:
+            {
+                LargeBlob lb(this);
+                Object::ap o(getObject(hash));
+                lb.fromBlob(o->getPayload());
+
+                for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
+                        pit != lb.parts.end();
+                        pit++) {
+                    string h = (*pit).second.hash;
+                    key = rval.find(h);
+                    if (key == rval.end())
+                        rval[h] = set<string>();
+                    rval[h].insert(hash);
+                }
+                break;
+            }
             case Object::Blob:
 	    case Object::Purged:
                 break;

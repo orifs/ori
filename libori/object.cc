@@ -315,8 +315,7 @@ LocalObject::getFileSize()
     struct stat sb;
     if (fstat(fd, &sb) < 0) {
         perror("fstat");
-        close();
-	return -errno;
+        return 0;
     }
     assert(fileSize == sb.st_size);
 #endif
