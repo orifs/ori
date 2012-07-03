@@ -1,0 +1,27 @@
+import sys
+
+Import('env')
+
+src = [
+    "httpd.cc",
+]
+
+libs = [
+        "crypto",
+        "stdc++",
+        "lzma",
+        "ori",
+        "event-2.0",
+       ]
+
+if sys.platform == "darwin":
+    # TODO
+    libs += []
+else:
+    libs += ['rt']
+
+env.Program("ori", src,
+            LIBPATH = [ "#build/libori", "$LIBPATH" ],
+            LIBS = libs,
+            CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])
+
