@@ -130,7 +130,7 @@ Repo::pull(Repo *r)
     }
 
     if (dynamic_cast<SshRepo*>(r)) {
-        // TODO ((SshRepo *)r)->preload(needed);
+        ((SshRepo *)r)->preload(needed);
     }
 
     for (vector<string>::iterator it = needed.begin(); it != needed.end(); it++)

@@ -579,7 +579,7 @@ LocalRepo::computeRefCounts()
         key = rval.find(hash);
         if (key == rval.end())
             rval[hash] = set<string>();
-        switch (getObjectType(hash)) {
+        switch ((*it).type) {
             case Object::Commit:
             {
                 Commit c = getCommit(hash);

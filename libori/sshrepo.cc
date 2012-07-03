@@ -115,6 +115,17 @@ SshRepo::~SshRepo()
 {
 }
 
+void SshRepo::preload(const std::vector<std::string> &objs)
+{
+    // TODO
+    return;
+
+    client->sendCommand("readobjs " + objs.size());
+    for (int i = 0; i < objs.size(); i++) {
+        client->sendCommand(objs[i]);
+    }
+}
+
 std::string SshRepo::getHead()
 {
     client->sendCommand("show");

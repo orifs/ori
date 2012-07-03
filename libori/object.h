@@ -128,6 +128,7 @@ private:
     int fd;
     size_t storedLen;
     std::string objPath;
+    size_t fileSize;
 
     void setupLzma(lzma_stream *strm, bool encode);
     bool appendLzma(int dstFd, lzma_stream *strm, lzma_action action);

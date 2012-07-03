@@ -147,8 +147,8 @@ Object::Type Object::getTypeForStr(const char *str) {
  * Object
  */
 LocalObject::LocalObject()
+    : fd(-1), storedLen(0), fileSize(0)
 {
-    fd = -1;
 }
 
 LocalObject::~LocalObject()
@@ -184,6 +184,8 @@ LocalObject::create(const string &path, Type type, uint32_t flags)
         return -errno;
     assert(status == ORI_OBJECT_SIZE);
 
+    fileSize = ORI_OBJECT_HDRSIZE;
+
     return 0;
 }
 
@@ -214,6 +216,8 @@ LocalObject::createFromRawData(const string &path, const ObjectInfo &info,
     status = pwrite(fd, raw_data.data(), raw_data.length(), 24);
     if (status < 0)
         return -errno;
+
+    fileSize = storedLen + ORI_OBJECT_HDRSIZE;
 
     return 0;
 }
@@ -269,6 +273,15 @@ LocalObject::open(const string &path, const string &hash)
         return -errno;
     }
 
+    // Read filesize
+    struct stat sb;
+    if (fstat(fd, &sb) < 0) {
+        perror("fstat");
+        close();
+	return -errno;
+    }
+    fileSize = sb.st_size;
+
     if (hash.size() > 0) {
         assert(hash.size() == 64);
         info.hash = hash;
@@ -298,13 +311,17 @@ LocalObject::close()
 size_t
 LocalObject::getFileSize()
 {
+#ifdef DEBUG
     struct stat sb;
-
     if (fstat(fd, &sb) < 0) {
+        perror("fstat");
+        close();
 	return -errno;
     }
+    assert(fileSize == sb.st_size);
+#endif
 
-    return sb.st_size;
+    return fileSize;
 }
 
 /*
@@ -335,6 +352,8 @@ LocalObject::purge()
     status = ftruncate(fd, ORI_OBJECT_HDRSIZE);
     if (status < 0)
 	return -errno;
+
+    fileSize = ORI_OBJECT_HDRSIZE;
 
     return 0;
 }
@@ -405,6 +424,8 @@ retryWrite:
     if (pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16) != ORI_OBJECT_SIZE)
         return -errno;
 
+    fileSize = ORI_OBJECT_HDRSIZE + storedLen; // TODO
+
     return storedLen;
 }
 
@@ -449,6 +470,8 @@ LocalObject::setPayload(const string &blob)
     status = pwrite(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16);
     if (status < 0)
         return -errno;
+
+    fileSize = ORI_OBJECT_HDRSIZE + storedLen; // TODO
 
     return 0;
 }
@@ -522,10 +545,12 @@ void LocalObject::addMetadataEntry(MdType type, const std::string &data) {
     off_t offset = getFileSize();
     if (offset == (off_t)OFF_MD_HASH) {
         offset += ORI_MD_HASHSIZE;
+        fileSize += ORI_MD_HASHSIZE;
     }
 
     int err = pwrite(fd, _getIdForMdType(type), 2, offset);
     assert(err == 2);
+    assert(data.length() <= UINT16_MAX);
     uint16_t len = data.length();
     err = pwrite(fd, &len, 2, offset + 2);
     assert(err == 2);
@@ -538,6 +563,8 @@ void LocalObject::addMetadataEntry(MdType type, const std::string &data) {
     assert(hash != "");
     err = pwrite(fd, hash.data(), ORI_MD_HASHSIZE, OFF_MD_HASH);
     assert(err == ORI_MD_HASHSIZE);
+
+    fileSize += 4 + data.length();
 }
 
 std::string LocalObject::computeMetadataHash() {
@@ -604,6 +631,7 @@ LocalObject::clearMetadata()
 
     status = ftruncate(fd, OFF_MD_HASH);
     assert(status == 0);
+    fileSize = ORI_OBJECT_HDRSIZE + storedLen;
 }
 
 
