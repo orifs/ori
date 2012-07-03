@@ -144,7 +144,7 @@ Repo::pull(Repo *r)
             continue;
         }
 
-        printf("Copying object %s\n", (*it).c_str());
+        //printf("Copying object %s\n", (*it).c_str());
         bytestream::ap bs(o->getStoredPayloadStream());
         addObjectRaw(o->getInfo(), bs.get());
     }
