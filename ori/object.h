@@ -100,7 +100,6 @@ public:
 
     // Payload Operations
     int purge();
-    /// setPayload takes ownership of bs
     int setPayload(bytestream *bs);
     int setPayload(const std::string &blob);
     std::string computeHash();

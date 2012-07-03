@@ -334,10 +334,10 @@ LocalObject::purge()
  * Append the specified file into the object.
  */
 int
-LocalObject::setPayload(bytestream *bs_in)
+LocalObject::setPayload(bytestream *bs)
 {
-    std::auto_ptr<bytestream> bs(bs_in);
-    if (bs.get() == NULL)
+    //std::auto_ptr<bytestream> bs(bs_in);
+    if (bs == NULL)
         return -1;
     if (bs->error()) {
         puts(bs->error());

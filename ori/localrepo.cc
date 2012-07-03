@@ -150,7 +150,8 @@ LocalRepo::addSmallFile(const string &path)
 	    perror("Unable to create object");
 	    return "";
 	}
-	if (o.setPayload(new diskstream(path)) < 0) {
+        diskstream ds(path);
+	if (o.setPayload(&ds) < 0) {
 	    perror("Unable to copy file");
 	    return "";
 	}
