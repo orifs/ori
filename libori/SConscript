@@ -6,6 +6,8 @@ src = [
     "chunker.cc",
     "commit.cc",
     "debug.cc",
+    "httpclient.cc",
+    "httprepo.cc",
     "largeblob.cc",
     "object.cc",
     "repo.cc",

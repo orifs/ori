@@ -247,7 +247,8 @@ int cmd_sshclient(int argc, const char *argv[]) {
         exit(1);
     }
 
-    SshClient client(std::string(argv[1]) + ":/Users/fyhuang/Projects/ori/tr");
+    SshClient client = SshClient(std::string(argv[1])
+                                  + ":/Users/fyhuang/Projects/ori/tr");
     if (client.connect() < 0) {
         printf("Error connecting to %s\n", argv[1]);
         exit(1);

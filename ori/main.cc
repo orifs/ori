@@ -76,6 +76,7 @@ int cmd_purgeobj(int argc, const char *argv[]); // Debug
 // server.cc
 int cmd_sshserver(int argc, const char *argv[]);
 // local
+int cmd_httpclient(int argc, const char *argv[]); // Debug
 //int cmd_sshclient(int argc, const char *argv[]); // Debug
 static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
@@ -188,6 +189,12 @@ static Cmd commands[] = {
         "sshserver",
         "Run a simple stdin/out server, intended for SSH access",
         cmd_sshserver,
+        NULL
+    },
+    {
+        "httpclient",
+        "Connect to a server via HTTP (DEBUG)",
+        cmd_httpclient,
         NULL
     },
     /*{
