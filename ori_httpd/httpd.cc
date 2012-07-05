@@ -36,7 +36,7 @@ static struct event_base *base;
 LocalRepo repository;
 
 int
-httpd_authenticate(struct evhttp_request *req, struct evbuffer *buf)
+Httpd_authenticate(struct evhttp_request *req, struct evbuffer *buf)
 {
     int n;
     char output[64];
@@ -62,7 +62,7 @@ authFailed:
 }
 
 void
-httpd_stop(struct evhttp_request *req, void *arg)
+Httpd_stop(struct evhttp_request *req, void *arg)
 {
     struct evbuffer *buf;
     buf = evbuffer_new();
@@ -70,7 +70,7 @@ httpd_stop(struct evhttp_request *req, void *arg)
         printf("Failed");
     }
 
-    if (httpd_authenticate(req, buf) < 0)
+    if (Httpd_authenticate(req, buf) < 0)
     {
         return;
     }
@@ -81,7 +81,7 @@ httpd_stop(struct evhttp_request *req, void *arg)
 }
 
 void
-httpd_getid(struct evhttp_request *req, void *arg)
+Httpd_getId(struct evhttp_request *req, void *arg)
 {
     string repoId = repository.getUUID();
     struct evbuffer *buf;
@@ -100,7 +100,7 @@ httpd_getid(struct evhttp_request *req, void *arg)
 }
 
 void
-httpd_getversion(struct evhttp_request *req, void *arg)
+Httpd_getVersion(struct evhttp_request *req, void *arg)
 {
     string ver = repository.getVersion();
     struct evbuffer *buf;
@@ -119,7 +119,7 @@ httpd_getversion(struct evhttp_request *req, void *arg)
 }
 
 void
-httpd_head(struct evhttp_request *req, void *arg)
+Httpd_head(struct evhttp_request *req, void *arg)
 {
     string headId = repository.getHead();
     struct evbuffer *buf;
@@ -138,7 +138,7 @@ httpd_head(struct evhttp_request *req, void *arg)
 }
 
 void
-httpd_getindex(struct evhttp_request *req, void *arg)
+Httpd_getIndex(struct evhttp_request *req, void *arg)
 {
     set<ObjectInfo> objs = repository.listObjects();
     set<ObjectInfo>::iterator it;
@@ -160,7 +160,7 @@ httpd_getindex(struct evhttp_request *req, void *arg)
 }
 
 void
-httpd_StringDeleteCB(const void *data, size_t len, void *extra)
+Httpd_stringDeleteCB(const void *data, size_t len, void *extra)
 {
     string *p = (string *)extra;
 
@@ -168,7 +168,7 @@ httpd_StringDeleteCB(const void *data, size_t len, void *extra)
 }
 
 void
-httpd_getobj(struct evhttp_request *req, void *arg)
+Httpd_getObj(struct evhttp_request *req, void *arg)
 {
     string objId;
     auto_ptr<bytestream> bs;
@@ -202,7 +202,7 @@ httpd_getobj(struct evhttp_request *req, void *arg)
 
     // Transmit
     evbuffer_add_reference(buf, payload->data(), payload->size(),
-                           httpd_StringDeleteCB, payload);
+                           Httpd_stringDeleteCB, payload);
 
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
@@ -212,7 +212,7 @@ httpd_getobj(struct evhttp_request *req, void *arg)
 }
 
 void
-httpd_pushobj(struct evhttp_request *req, void *arg)
+Httpd_pushObj(struct evhttp_request *req, void *arg)
 {
     const char *cl = evhttp_find_header(req->input_headers, "Content-Length");
     uint32_t length;
@@ -262,7 +262,7 @@ httpd_pushobj(struct evhttp_request *req, void *arg)
 }
 
 void
-httpd_logcb(int severity, const char *msg)
+Httpd_logCB(int severity, const char *msg)
 {
     const char *sev[] = {
         "Debug", "Msg", "Warning", "Error",
@@ -271,22 +271,21 @@ httpd_logcb(int severity, const char *msg)
 }
 
 void
-http_main(uint16_t port)
+Httpd_main(uint16_t port)
 {
     base = event_base_new();
-    event_set_log_callback(httpd_logcb);
+    event_set_log_callback(Httpd_logCB);
 
     httpd = evhttp_new(base);
     evhttp_bind_socket(httpd, "0.0.0.0", port);
 
-    evhttp_set_cb(httpd, "/id", httpd_getid, NULL);
-    evhttp_set_cb(httpd, "/version", httpd_getid, NULL);
-    evhttp_set_cb(httpd, "/HEAD", httpd_head, NULL);
-    evhttp_set_cb(httpd, "/index", httpd_getindex, NULL);
-    //evhttp_set_cb(httpd, "/objs", httpd_pushobj, NULL);
-    evhttp_set_cb(httpd, "/stop", httpd_stop, NULL);
-    //evhttp_set_gencb(httpd, httpd_generic, NULL);
-    evhttp_set_gencb(httpd, httpd_getobj, NULL); // getObj: /objs/*
+    evhttp_set_cb(httpd, "/id", Httpd_getId, NULL);
+    evhttp_set_cb(httpd, "/version", Httpd_getVersion, NULL);
+    evhttp_set_cb(httpd, "/HEAD", Httpd_head, NULL);
+    evhttp_set_cb(httpd, "/index", Httpd_getIndex, NULL);
+    //evhttp_set_cb(httpd, "/objs", Httpd_pushobj, NULL);
+    evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
+    evhttp_set_gencb(httpd, Httpd_getObj, NULL); // getObj: /objs/*
 
     event_base_dispatch(base);
     evhttp_free(httpd);
@@ -346,7 +345,7 @@ main(int argc, char *argv[])
 
     ori_open_log(&repository);
 
-    http_main(port);
+    Httpd_main(port);
 
     return 0;
 }

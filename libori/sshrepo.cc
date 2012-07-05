@@ -32,9 +32,6 @@
 #include "sshrepo.h"
 #include "util.h"
 
-#define D_READ 0
-#define D_WRITE 1
-
 // TODO: return char *s instead of string, return all values from same chunk of
 // memory
 class ResponseParser {
