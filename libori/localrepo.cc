@@ -18,6 +18,23 @@ using namespace std;
 #include "scan.h"
 #include "debug.h"
 
+/*
+ * LocalRepoLock
+ */
+LocalRepoLock::LocalRepoLock(const std::string &filename)
+    : lockFile(filename)
+{
+}
+
+LocalRepoLock::~LocalRepoLock()
+{
+    if (lockFile.size() > 0) {
+        if (unlink(lockFile.c_str()) < 0) {
+            perror("unlink");
+        }
+    }
+}
+
 /********************************************************************
  *
  *
@@ -66,6 +83,29 @@ LocalRepo::open(const string &root)
 void
 LocalRepo::close()
 {
+}
+
+LocalRepoLock *
+LocalRepo::lock()
+{
+    if (rootPath == "")
+        return NULL;
+    std::string lfPath = rootPath + ORI_PATH_LOCK;
+    std::string idPath = rootPath + ORI_PATH_UUID;
+
+    int rval = symlink(idPath.c_str(), lfPath.c_str());
+    if (rval < 0) {
+        switch (errno) {
+        case EEXIST:
+            printf("Repository at %s is already locked\n", rootPath.c_str());
+            return NULL;
+        default:
+            perror("symlink");
+            return NULL;
+        }
+    }
+
+    return new LocalRepoLock(lfPath);
 }
 
 /*

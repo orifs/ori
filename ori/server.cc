@@ -41,6 +41,12 @@ void SshServer::serve() {
     fflush(stdout);
     fsync(STDOUT_FILENO);
 
+    LocalRepoLock::ap lock(repository.lock());
+    if (!lock.get()) {
+        printf("Couldn't lock repo\n");
+        exit(1);
+    }
+
     while (true) {
         // Get command
         char command[256];

@@ -26,15 +26,6 @@
 #include "commit.h"
 #include "object.h"
 
-#define ORI_PATH_DIR "/.ori"
-#define ORI_PATH_VERSION "/.ori/version"
-#define ORI_PATH_UUID "/.ori/id"
-#define ORI_PATH_DIRSTATE "/.ori/dirstate"
-#define ORI_PATH_HEAD "/.ori/HEAD"
-#define ORI_PATH_LOG "/.ori/ori.log"
-#define ORI_PATH_TMP "/.ori/tmp/"
-#define ORI_PATH_OBJS "/.ori/objs/"
-
 #define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
 
 #define LARGEFILE_MINIMUM (1024 * 1024)
