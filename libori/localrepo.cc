@@ -531,6 +531,32 @@ LocalRepo::listObjects()
     return objs;
 }
 
+
+bool _timeCompare(const Commit &c1, const Commit &c2) {
+    return c1.getTime() < c2.getTime();
+}
+
+vector<Commit>
+LocalRepo::listCommits()
+{
+    vector<Commit> rval;
+
+    // TODO: more efficient
+    set<ObjectInfo> objs = listObjects();
+    for (set<ObjectInfo>::iterator it = objs.begin();
+            it != objs.end();
+            it++) {
+        const ObjectInfo &oi = *it;
+        if (oi.type == Object::Commit) {
+            const Commit &c = getCommit(oi.hash);
+            rval.push_back(c);
+        }
+    }
+
+    sort(rval.begin(), rval.end(), _timeCompare);
+    return rval;
+}
+
 Commit
 LocalRepo::getCommit(const std::string &commitId)
 {

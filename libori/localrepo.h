@@ -49,7 +49,10 @@ public:
     Object *getObject(const std::string &objId);
     std::set<ObjectInfo> listObjects();
 
+
     LocalObject getLocalObject(const std::string &objId);
+    
+    std::vector<Commit> listCommits();
 
     std::string addSmallFile(const std::string &path);
     std::pair<std::string, std::string>

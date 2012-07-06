@@ -45,8 +45,11 @@ public:
             const std::string &id
             ) = 0;
     virtual bool hasObject(const std::string &id) = 0;
-    // TODO: add options to query?
+
+    // Object queries
+    // TODO: add query options
     virtual std::set<ObjectInfo> listObjects() = 0;
+    virtual std::vector<Commit> listCommits() = 0;
 
     // TODO: add object interface
     virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;

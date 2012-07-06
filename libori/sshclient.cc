@@ -200,47 +200,83 @@ void SshClient::recvResponse(std::string &out) {
 
 
 
-// TODO: return char *s instead of string, return all values from same chunk of
-// memory
-class ResponseParser {
-public:
-    ResponseParser(const std::string &text) : text(text), off(0) {}
+/*
+ * SshResponseParser
+ */
+SshResponseParser::SshResponseParser(const std::string &text)
+    : text(text), off(0)
+{
+}
 
-    bool nextLine(std::string &line) {
-        if (off >= text.size()) return false;
+bool SshResponseParser::ended() const {
+    return off >= text.size();
+}
 
-        size_t oldOff = off;
-        while (off < text.size()) {
-            if (text[off] == '\n') {
-                off++;
-                line = text.substr(oldOff, (off-oldOff));
-                return true;
-            }
+bool SshResponseParser::nextLine(std::string &line) {
+    if (off >= text.size()) return false;
+
+    size_t oldOff = off;
+    while (off < text.size()) {
+        if (text[off] == '\n') {
             off++;
+            line = text.substr(oldOff, (off-oldOff-1));
+            if (line == "DONE")
+                return false;
+            return true;
         }
-        line = text.substr(oldOff, (off-oldOff));
-        return true;
+        off++;
     }
+    line = text.substr(oldOff, (off-oldOff-1));
 
-    size_t getDataLength(const std::string &line) {
-        size_t len = 0;
-        if (sscanf(line.c_str(), "DATA %lu\n", &len) != 1) {
-            return 0;
-        }
-        return len;
+    if (line == "DONE")
+        return false;
+    return true;
+}
+
+size_t SshResponseParser::getDataLength(const std::string &line) const {
+    size_t len = 0;
+    if (sscanf(line.c_str(), "DATA %lu", &len) != 1) {
+        return 0;
     }
+    return len;
+}
 
-    std::string getData(size_t len) {
-        assert(off + len <= text.size());
-        size_t oldOff = off;
-        off += len;
-        return text.substr(oldOff, len);
-    }
-private:
-    const std::string &text;
-    size_t off;
-};
+std::string SshResponseParser::getData(size_t len) {
+    assert(len > 0);
+    assert(off + len <= text.size());
+    size_t oldOff = off;
+    off += len;
+    return text.substr(oldOff, len);
+}
 
+bool SshResponseParser::loadObjectInfo(ObjectInfo &info) {
+    std::string line;
+    nextLine(line); // hash
+    if (line == "DONE") return false;
+
+    assert(line.size() == 64); // 2*SHA256_DIGEST_LENGTH
+    info.hash = line.data();
+
+    nextLine(line); // type
+    info.type = Object::getTypeForStr(line.c_str());
+    assert(info.type != Object::Null);
+
+    nextLine(line); // flags
+    sscanf(line.c_str(), "%X", &info.flags);
+
+    nextLine(line); // payload_size
+    sscanf(line.c_str(), "%lu", &info.payload_size);
+    assert(info.payload_size > 0);
+
+    return true;
+}
+
+
+
+
+/*
+ * cmd_sshclient
+ */
 int cmd_sshclient(int argc, const char *argv[]) {
     if (argc < 2) {
         printf("Usage: ori sshclient [username@]hostname\n");
@@ -257,11 +293,9 @@ int cmd_sshclient(int argc, const char *argv[]) {
     dprintf(STDOUT_FILENO, "Connected\n");
 
     SshRepo repo(&client);
-    std::set<ObjectInfo> objs = repo.listObjects();
-    for (std::set<ObjectInfo>::iterator it = objs.begin();
-            it != objs.end();
-            it++) {
-        printf("%s\n", (*it).hash.c_str());
+    std::vector<Commit> commits = repo.listCommits();
+    for (size_t i = 0; i < commits.size(); i++) {
+        printf("%ld\n", commits[i].getTime());
     }
 
     //Object::ObjectInfo info("b7287ce2bca00e9b78555dba3ec7b013415425f7ffd6628b6ed68dcfba699426");
