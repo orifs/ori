@@ -30,6 +30,8 @@
 
 #include <fuse.h>
 
+#include "debug.h"
+
 typedef struct ori_priv
 {
     char *datastore;
@@ -41,22 +43,6 @@ ori_getpriv()
 {
     return (ori_priv *)fuse_get_context()->private_data;
 }
-
-static void
-ori_log(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-
-    vdprintf(ori_getpriv()->logfd, fmt, ap);
-    fsync(ori_getpriv()->logfd);
-}
-
-#ifdef DEBUG
-#define LOG(fmt, ...) ori_log(fmt "\n", ##__VA_ARGS__)
-#else
-#define LOG(fmt, ...)
-#endif
 
 static int
 ori_getattr(const char *path, struct stat *stbuf)
@@ -211,39 +197,43 @@ ori_destroy(void *userdata)
 {
 }
 
-static struct fuse_operations ori_oper = {
-    .getattr = ori_getattr,
-    //.readlink
-    //.getdir
-    //.mknod
-    //.mkdir
-    //.unlink
-    //.rmdir
-    //.symlink
-    //.rename
-    //.link
-    //.chmod
-    //.chown
-    //.truncate
-    //.utime
-    .open = ori_open,
-    .read = ori_read,
-    //.write
-    .statfs = ori_statfs,
-    //.flush
-    .release = ori_release,
-    //.fsync
-    //.setxattr
-    //.getxattr
-    //.listxattr
-    //.removexattr
-    .opendir = ori_opendir,
-    .readdir = ori_readdir,
-    .releasedir = ori_releasedir,
-    //.fsyncdir
-    .init = ori_init,
-    .destroy = ori_destroy,
-};
+// C++ doesn't allow designated initializers
+static struct fuse_operations ori_oper;
+static void
+ori_setup_ori_oper()
+{
+    ori_oper.getattr = ori_getattr;
+    //ori_oper.readlink
+    //ori_oper.getdir
+    //ori_oper.mknod
+    //ori_oper.mkdir
+    //ori_oper.unlink
+    //ori_oper.rmdir
+    //ori_oper.symlink
+    //ori_oper.rename
+    //ori_oper.link
+    //ori_oper.chmod
+    //ori_oper.chown
+    //ori_oper.truncate
+    //ori_oper.utime
+    ori_oper.open = ori_open;
+    ori_oper.read = ori_read;
+    //ori_oper.write
+    ori_oper.statfs = ori_statfs;
+    //ori_oper.flush
+    ori_oper.release = ori_release;
+    //ori_oper.fsync
+    //ori_oper.setxattr
+    //ori_oper.getxattr
+    //ori_oper.listxattr
+    //ori_oper.removexattr
+    ori_oper.opendir = ori_opendir;
+    ori_oper.readdir = ori_readdir;
+    ori_oper.releasedir = ori_releasedir;
+    //ori_oper.fsyncdir
+    ori_oper.init = ori_init;
+    ori_oper.destroy = ori_destroy;
+}
 
 static void
 ori_usage()
@@ -253,6 +243,8 @@ ori_usage()
 int
 main(int argc, char *argv[])
 {
+    ori_setup_ori_oper();
+
     int i;
     ori_priv *priv;
 
@@ -269,15 +261,23 @@ main(int argc, char *argv[])
     }
 
     // Parse command line arguments
+    bool has_st = false;
     for (i = 1; (i < argc) && (argv[i][0] == '-'); i++)
     {
         if (argv[i][1] == 'o')
             i++;
+        if (strcmp(argv[i], "-s") == 0)
+            has_st = true;
     }
 
     // Not enough arguments
     if ((argc - i) != 2)
         ori_usage();
+    if (!has_st) {
+        // TODO: is ori thread-safe?
+        //printf("TODO: need single-threaded option (-s)\n");
+        //exit(1);
+    }
 
     priv->datastore = realpath(argv[i], NULL);
     argv[i] = argv[i+1];

@@ -1,12 +1,22 @@
+import sys
+
 Import('env')
 
 src = [
-    "ori_fuse.c",
+    "ori_fuse.cc",
 ]
 
+libs = [
+        "fuse",
+        ]
+
+if sys.platform == "darwin":
+    libs += []
+else:
+    libs += ['rt']
+
 env.Program("mount_ori", src,
-            LIBPATH = [ "$LIBPATH" ],
-            LIBS = [ "fuse",
-                     "rt" ],
-            CPPPATH = [ "$CPPPATH", "#include", "#" ])
+            LIBPATH = [ "#build/libori", "$LIBPATH" ],
+            LIBS = libs,
+            CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])
 
