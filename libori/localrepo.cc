@@ -18,6 +18,23 @@ using namespace std;
 #include "scan.h"
 #include "debug.h"
 
+/*
+ * LocalRepoLock
+ */
+LocalRepoLock::LocalRepoLock(const std::string &filename)
+    : lockFile(filename)
+{
+}
+
+LocalRepoLock::~LocalRepoLock()
+{
+    if (lockFile.size() > 0) {
+        if (unlink(lockFile.c_str()) < 0) {
+            perror("unlink");
+        }
+    }
+}
+
 /********************************************************************
  *
  *
@@ -66,6 +83,29 @@ LocalRepo::open(const string &root)
 void
 LocalRepo::close()
 {
+}
+
+LocalRepoLock *
+LocalRepo::lock()
+{
+    if (rootPath == "")
+        return NULL;
+    std::string lfPath = rootPath + ORI_PATH_LOCK;
+    std::string idPath = rootPath + ORI_PATH_UUID;
+
+    int rval = symlink(idPath.c_str(), lfPath.c_str());
+    if (rval < 0) {
+        switch (errno) {
+        case EEXIST:
+            printf("Repository at %s is already locked\n", rootPath.c_str());
+            return NULL;
+        default:
+            perror("symlink");
+            return NULL;
+        }
+    }
+
+    return new LocalRepoLock(lfPath);
 }
 
 /*
@@ -489,6 +529,32 @@ LocalRepo::listObjects()
 	perror("listObjects");
 
     return objs;
+}
+
+
+bool _timeCompare(const Commit &c1, const Commit &c2) {
+    return c1.getTime() < c2.getTime();
+}
+
+vector<Commit>
+LocalRepo::listCommits()
+{
+    vector<Commit> rval;
+
+    // TODO: more efficient
+    set<ObjectInfo> objs = listObjects();
+    for (set<ObjectInfo>::iterator it = objs.begin();
+            it != objs.end();
+            it++) {
+        const ObjectInfo &oi = *it;
+        if (oi.type == Object::Commit) {
+            const Commit &c = getCommit(oi.hash);
+            rval.push_back(c);
+        }
+    }
+
+    sort(rval.begin(), rval.end(), _timeCompare);
+    return rval;
 }
 
 Commit

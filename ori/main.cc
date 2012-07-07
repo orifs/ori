@@ -77,8 +77,9 @@ int cmd_purgeobj(int argc, const char *argv[]); // Debug
 // server.cc
 int cmd_sshserver(int argc, const char *argv[]);
 // local
+int cmd_sshclient(int argc, const char *argv[]); // Debug
+int cmd_mdnsserver(int argc, const char *argv[]); // Debug
 int cmd_httpclient(int argc, const char *argv[]); // Debug
-//int cmd_sshclient(int argc, const char *argv[]); // Debug
 static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
 
@@ -198,12 +199,18 @@ static Cmd commands[] = {
         cmd_httpclient,
         NULL
     },
-    /*{
+    {
         "sshclient",
         "Connect to a server via SSH (DEBUG)",
         cmd_sshclient,
         NULL
-    },*/
+    },
+    {
+        "mdnsserver",
+        "Run the mDNS server (DEBUG)",
+        cmd_mdnsserver,
+        NULL
+    },
     {
         "selftest",
         "Built-in unit tests (DEBUG)",

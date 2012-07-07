@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include "object.h"
+
 class SshClient
 {
 public:
@@ -39,5 +41,23 @@ private:
     int fdFromChild, fdToChild;
     int childPid;
 };
+
+// TODO: return char *s instead of string, return all values from same chunk of
+// memory
+class SshResponseParser {
+public:
+    SshResponseParser(const std::string &text);
+
+    bool ended() const;
+    bool nextLine(std::string &line);
+    size_t getDataLength(const std::string &line) const;
+    std::string getData(size_t len);
+    bool loadObjectInfo(ObjectInfo &info);
+
+private:
+    const std::string &text;
+    size_t off;
+};
+
 
 #endif /* __SSHCLIENT_H__ */

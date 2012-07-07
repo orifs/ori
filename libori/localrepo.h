@@ -3,11 +3,31 @@
 
 #include "repo.h"
 
+#define ORI_PATH_DIR "/.ori"
+#define ORI_PATH_VERSION "/.ori/version"
+#define ORI_PATH_UUID "/.ori/id"
+#define ORI_PATH_DIRSTATE "/.ori/dirstate"
+#define ORI_PATH_HEAD "/.ori/HEAD"
+#define ORI_PATH_LOG "/.ori/ori.log"
+#define ORI_PATH_TMP "/.ori/tmp/"
+#define ORI_PATH_OBJS "/.ori/objs/"
+#define ORI_PATH_LOCK "/.ori/lock"
+
+
 class HistoryCB
 {
 public:
     virtual ~HistoryCB() { };
     virtual std::string cb(const std::string &commitId, Commit *c) = 0;
+};
+
+class LocalRepoLock
+{
+    std::string lockFile;
+public:
+    LocalRepoLock(const std::string &filename);
+    ~LocalRepoLock();
+    typedef std::auto_ptr<LocalRepoLock> ap;
 };
 
 class LocalRepo : public Repo
@@ -18,6 +38,8 @@ public:
     bool open(const std::string &root = "");
     void close();
     void save();
+    LocalRepoLock *lock();
+
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,
             bytestream *bs);
@@ -27,7 +49,10 @@ public:
     Object *getObject(const std::string &objId);
     std::set<ObjectInfo> listObjects();
 
+
     LocalObject getLocalObject(const std::string &objId);
+    
+    std::vector<Commit> listCommits();
 
     std::string addSmallFile(const std::string &path);
     std::pair<std::string, std::string>

@@ -31,6 +31,7 @@
 #include "httpclient.h"
 #include "httprepo.h"
 #include "util.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -76,7 +77,7 @@ HttpRepo::getObject(const std::string &id)
 
 bool
 HttpRepo::hasObject(const std::string &id) {
-    assert(false);
+    NOT_IMPLEMENTED(false);
     return false;
 }
 
@@ -91,9 +92,17 @@ HttpRepo::listObjects()
 int
 HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
-    assert(false);
+    NOT_IMPLEMENTED(false);
     return -1;
 }
+
+vector<Commit>
+HttpRepo::listCommits()
+{
+    NOT_IMPLEMENTED(false);
+    return vector<Commit>();
+}
+
 
 std::string &
 HttpRepo::_payload(const std::string &id)

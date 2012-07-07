@@ -41,6 +41,12 @@ void SshServer::serve() {
     fflush(stdout);
     fsync(STDOUT_FILENO);
 
+    LocalRepoLock::ap lock(repository.lock());
+    if (!lock.get()) {
+        printf("Couldn't lock repo\n");
+        exit(1);
+    }
+
     while (true) {
         // Get command
         char command[256];
@@ -73,16 +79,27 @@ void SshServer::serve() {
                 // Setup comm protocol
                 printf("%s\nDONE\n", ORI_PROTO_VERSION);
             }
-            else if (strcmp(command, "listobj") == 0) {
-                std::set<ObjectInfo> objects = repository.listObjects();
-                for (std::set<ObjectInfo>::iterator it = objects.begin();
-                        it != objects.end();
-                        it++) {
-                    _writeObjectInfo(*it);
+            else if (strcmp(command, "list") == 0) {
+                if (strcmp(args[1], "objs") == 0) {
+                    std::set<ObjectInfo> objects = repository.listObjects();
+                    for (std::set<ObjectInfo>::iterator it = objects.begin();
+                            it != objects.end();
+                            it++) {
+                        _writeObjectInfo(*it);
+                    }
+                    fflush(stdout);
+                    fsync(STDOUT_FILENO);
+                    printf("DONE\n");
                 }
-                fflush(stdout);
-                fsync(STDOUT_FILENO);
-                printf("DONE\n");
+                else if (strcmp(args[1], "commits") == 0) {
+                    const std::vector<Commit> &commits = repository.listCommits();
+                    for (size_t i = 0; i < commits.size(); i++) {
+                        std::string blob = commits[i].getBlob();
+                        dprintf(STDOUT_FILENO, "DATA %u\n", blob.size());
+                        write(STDOUT_FILENO, blob.data(), blob.length());
+                    }
+                    dprintf(STDOUT_FILENO, "DONE\n");
+                }
             }
             else if (strcmp(command, "readobj") == 0) {
                 char *hash = args[1];

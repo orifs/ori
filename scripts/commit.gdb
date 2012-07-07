@@ -1,0 +1,2 @@
+set args commit
+run
