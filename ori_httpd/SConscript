@@ -17,6 +17,8 @@ if sys.platform == "darwin":
     libs += ['event', 'resolv']
 else:
     libs += ['rt', "event-2.0",]
+    if env["WITH_MDNS"] == "1":
+        libs += ['dns_sd']
 
 env.Program("ori_httpd", src,
             LIBPATH = [ "#build/libori", "$LIBPATH" ],
