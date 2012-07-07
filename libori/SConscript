@@ -9,6 +9,7 @@ src = [
     "httpclient.cc",
     "httprepo.cc",
     "largeblob.cc",
+    "lrucache.cc",
     "object.cc",
     "repo.cc",
     "scan.cc",

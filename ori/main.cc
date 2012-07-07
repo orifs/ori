@@ -28,6 +28,7 @@
 #include <sys/types.h>
 
 #include <string>
+#include <iostream>
 
 using namespace std;
 
@@ -233,11 +234,18 @@ lookupcmd(const char *cmd)
 }
 
 int util_selftest(void);
+int LRUCache_selfTest(void);
 
 static int
 cmd_selftest(int argc, const char *argv[])
 {
-    util_selftest();
+    int result = 0;
+    result += util_selftest();
+    result += LRUCache_selfTest();
+
+    if (result != 0) {
+        cout << -result << " errors occurred." << endl;
+    }
 
     return 0;
 }
