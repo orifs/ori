@@ -28,6 +28,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <iostream>
+
 #include "httpclient.h"
 #include "httprepo.h"
 #include "util.h"
@@ -55,9 +57,10 @@ HttpClient::HttpClient(const std::string &remotePath)
     pathPos = tmp.find('/');
     if (portPos != -1) {
         assert(portPos < pathPos);
-        remotePort = tmp.substr(portPos + 1, pathPos - portPos);
+        remotePort = tmp.substr(portPos + 1, pathPos - portPos - 1);
     } else {
         portPos = pathPos;
+        remotePort = "80";
     }
     assert(pathPos != -1);
 
