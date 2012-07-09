@@ -26,6 +26,7 @@
 #include "debug.h"
 #include "localrepo.h"
 #include "util.h"
+#include "zeroconf.h"
 
 using namespace std;
 
@@ -287,7 +288,12 @@ Httpd_main(uint16_t port)
     evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
     evhttp_set_gencb(httpd, Httpd_getObj, NULL); // getObj: /objs/*
 
+    // mDNS
+    struct event *mdns_evt = MDNS_Start(port, base);
+    event_add(mdns_evt, NULL);
+
     event_base_dispatch(base);
+    event_free(mdns_evt);
     evhttp_free(httpd);
 }
 
