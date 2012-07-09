@@ -47,10 +47,12 @@ Repo::~Repo() {
  * High-level operations
  */
 
-int Repo::addObject(const ObjectInfo &info, const string &payload)
+int Repo::addObject(const ObjectInfo &in_info, const string &payload)
 {
+    ObjectInfo info = in_info;
     assert(info.hash != ""); // hash must be included
     assert(info.type != Object::Null);
+    info.payload_size = payload.size();
 
     if (info.getCompressed()) {
         bytestream *ss = new strstream(payload);

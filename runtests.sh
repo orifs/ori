@@ -32,11 +32,27 @@ $ORI_EXE status
 echo "Committing"
 $ORI_EXE commit
 #gdb $ORI_EXE -x $SCRIPTS/commit.gdb
+$ORI_EXE verify
 rm -rf $TEST_REPO/*
 $ORI_EXE status
 echo "Checking out files again"
 $ORI_EXE checkout
 $PYTHON $SCRIPTS/compare.py "$TEMP_DIR" "$TEST_REPO"
+$ORI_EXE verify
+
+# SSH pulling
+if true; then
+    cd $ORIG_DIR
+    TEST_REPO2=`pwd`/test_repo2
+    $ORI_EXE init $TEST_REPO2
+    cd $TEST_REPO2
+    $ORI_EXE pull localhost:$TEST_REPO
+    #gdb $ORI_EXE -x $SCRIPTS/ssh-pull.gdb
+    $ORI_EXE checkout
+    $PYTHON $SCRIPTS/compare.py "$TEST_REPO" "$TEST_REPO2"
+    cd $ORIG_DIR
+    rm -rf $TEST_REPO2
+fi
 
 # Delete test repo, temp dir
 cd $ORIG_DIR

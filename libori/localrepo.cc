@@ -423,6 +423,10 @@ LocalRepo::verifyObject(const string &objId)
         return "Object metadata hash mismatch!";
     }
 
+    if (!o.getInfo().hasAllFields()) {
+        return "Object info missing some fileds!";
+    }
+
     return "";
 }
 
