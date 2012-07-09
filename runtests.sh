@@ -7,7 +7,7 @@ ORI_EXE=`pwd`/build/ori/ori
 TEMP_DIR=`pwd`/test_temp
 TEST_REPO=`pwd`/test_repo
 
-PYTHON=/usr/bin/python
+PYTHON="/usr/bin/env python"
 SCRIPTS=`pwd`/scripts
 
 # TODO: new tests for this script
