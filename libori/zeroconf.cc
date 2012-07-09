@@ -138,7 +138,7 @@ struct event *MDNS_Start(uint16_t port_num, struct event_base *evbase)
             NULL);
     if (err != kDNSServiceErr_NoError) {
         printf("Error setting up mDNS!\n");
-        exit(1);
+        return NULL;
     }
 
     err = DNSServiceProcessResult(registerRef);

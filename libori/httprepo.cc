@@ -78,9 +78,8 @@ HttpRepo::getObject(const std::string &id)
 {
     int status;
     string index;
-    ObjectInfo info;
+    ObjectInfo info = ObjectInfo(id.c_str());
     std::string payload;
-    std::string raw_data;
 
     status = client->getRequest("/objs/" + id, payload);
     if (status < 0) {
@@ -88,9 +87,10 @@ HttpRepo::getObject(const std::string &id)
         return NULL;
     }
 
+    info.setInfo(payload.substr(0, 16));
 
     // TODO: add raw data to cache
-    _addPayload(info.hash, raw_data);
+    _addPayload(info.hash, payload.substr(16));
 
     return new HttpObject(this, info);
 }
