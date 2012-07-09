@@ -7,8 +7,16 @@ struct OriPeer
     uint16_t port;
 };
 
-void ori_setup_mdns(uint16_t port_num);
-int ori_run_mdns(bool use_select = true);
-std::vector<OriPeer> get_local_peers();
+#include <event2/event.h>
+
+/**
+ * @returns the mDNS callback event, which must be made pending on evbase for
+ * mDNS to run properly
+ */
+struct event *MDNS_Start(uint16_t port_num, struct event_base *evbase);
+
+typedef void (*BrowseCallback)(const OriPeer &peer);
+void MDNS_RegisterBrowseCallback(BrowseCallback cb);
+std::vector<OriPeer> MDNS_GetPeers();
 
 #endif

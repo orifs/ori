@@ -28,6 +28,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <sstream>
+
 #include "sshclient.h"
 #include "sshrepo.h"
 #include "util.h"
@@ -51,7 +53,9 @@ void SshRepo::preload(const std::vector<std::string> &objs)
     // TODO
     return;
 
-    client->sendCommand("readobjs " + objs.size());
+    std::stringstream ss;
+    ss << "readobjs " << objs.size();
+    client->sendCommand(ss.str());
     for (int i = 0; i < objs.size(); i++) {
         client->sendCommand(objs[i]);
     }
