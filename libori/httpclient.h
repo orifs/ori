@@ -19,6 +19,8 @@
 
 #include <string>
 
+void HttpClient_requestDoneCB(struct evhttp_request *, void *);
+
 class HttpClient
 {
 public:
@@ -30,11 +32,19 @@ public:
     bool connected();
 
     // At the moment the protocol is synchronous
-    void sendCommand(const std::string &command);
-    void recvResponse(std::string &out);
+    int getRequest(const std::string &command,
+                   std::string &response);
+    int putRequest(const std::string &command,
+                   const std::string &payload,
+                   std::string &response);
 
 private:
+    struct event_base *base;
+    struct evdns_base *dnsBase;
+    struct evhttp_connection *con;
     std::string remoteHost, remotePort, remoteRepo;
+    friend void HttpClient_requestDoneCB(struct evhttp_request *,
+                                         void *);
 };
 
 #endif /* __HTTPCLIENT_H__ */
