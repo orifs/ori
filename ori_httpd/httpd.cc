@@ -153,9 +153,29 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
     }
 
     for (it = objs.begin(); it != objs.end(); it++) {
+        int status;
         string objInfo = (*it).getInfo();
-        evbuffer_add(buf, (*it).hash.c_str(), (*it).hash.size());
-        evbuffer_add(buf, objInfo.data(), objInfo.size());
+
+        LOG("hash = %s\n", (*it).hash.c_str());
+
+        status = evbuffer_add(buf, (*it).hash.c_str(), (*it).hash.size());
+        if (status != 0) {
+            assert(status == -1);
+            LOG("evbuffer_add failed while adding hash!");
+            evbuffer_free(buf);
+            buf = evbuffer_new();
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+            return;
+        }
+        status = evbuffer_add(buf, objInfo.data(), objInfo.size());
+        if (status != 0) {
+            assert(status == -1);
+            LOG("evbuffer_add failed while adding objInfo!");
+            evbuffer_free(buf);
+            buf = evbuffer_new();
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+            return;
+        }
     }
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);

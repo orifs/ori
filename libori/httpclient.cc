@@ -142,6 +142,14 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *c)
     headers = evhttp_request_get_input_headers(req);
     bufIn = evhttp_request_get_input_buffer(req);
 
+    /*
+     * XXX: This is a hack to prevent the corruption we were seeing. Not sure 
+     * why this works, but the data needs to be read out here into a string and 
+     * we should signal the client to wakeup or register a callback.
+     */
+    int len = evbuffer_get_length(bufIn);
+    evbuffer_pullup(bufIn, len);
+
     event_base_loopexit(client->base, NULL);
 }
 
