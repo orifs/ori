@@ -45,6 +45,8 @@ public:
     std::string getGraftCommit() const;
     std::string getBlob() const;
     void fromBlob(const std::string &blob);
+
+    std::string hash() const; // TODO: cache this
 private:
     std::pair<std::string, std::string> parents;
     std::string message;

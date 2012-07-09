@@ -67,6 +67,8 @@ public:
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
     Commit getCommit(const std::string &commitId);
+    // Clone/pull operations
+    void pull(Repo *r);
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
     std::map<std::string, std::map<std::string, Object::BRState> >

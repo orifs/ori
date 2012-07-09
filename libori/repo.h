@@ -53,12 +53,13 @@ public:
     virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;
 
     // High-level operations
-    virtual void pull(Repo *r);
-
     virtual std::string addBlob(Object::Type type, const std::string &blob);
     virtual int addObject(
             const ObjectInfo &info,
             const std::string &payload
+            );
+    virtual void copyFrom(
+            Object *other
             );
 
     /*virtual int getData(

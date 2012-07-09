@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include <iterator>
 
 #include "repo.h"
 #include "sshclient.h"
@@ -31,7 +32,8 @@ public:
     SshRepo(SshClient *client);
     ~SshRepo();
 
-    void preload(const std::vector<std::string> &objs);
+    template <class InputIterator>
+    void preload(InputIterator begin, InputIterator end);
 
     std::string getHead();
 

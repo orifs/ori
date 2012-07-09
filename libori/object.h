@@ -22,6 +22,7 @@
 #include <utility>
 #include <string>
 #include <map>
+#include <tr1/unordered_set>
 
 #include "stream.h"
 
@@ -61,6 +62,14 @@ public:
         std::string hash;
     };
 
+    struct ObjectInfoHash {
+        long operator ()(const ObjectInfo &oi) const {
+            std::tr1::hash<const char *> sh;
+            return oi.type + oi.flags + oi.payload_size +
+                sh(oi.hash.c_str());
+        }
+    };
+
     Object() {}
     Object(const ObjectInfo &info) : info(info) {}
     virtual ~Object() {}
@@ -83,6 +92,7 @@ protected:
 };
 
 typedef Object::ObjectInfo ObjectInfo;
+typedef std::tr1::unordered_set<ObjectInfo, Object::ObjectInfoHash> ObjectInfoSet;
 
 
 class LocalObject : public Object

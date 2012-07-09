@@ -276,19 +276,12 @@ Util_HashString(const string &str)
 {
     SHA256_CTX state;
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    stringstream rval;
 
     SHA256_Init(&state);
     SHA256_Update(&state, str.c_str(), str.size());
     SHA256_Final(hash, &state);
 
-    // Convert into string.
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-	rval << hex << setw(2) << setfill('0') << (int)hash[i];
-    }
-
-    return rval.str();
+    return Util_RawHashToHex(hash);
 }
 
 #define HASHFILE_BUFSZ	(256 * 1024)
@@ -306,7 +299,6 @@ Util_HashFile(const string &path)
     int64_t bytesRead;
     SHA256_CTX state;
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    stringstream rval;
 
     SHA256_Init(&state);
 
@@ -336,13 +328,22 @@ Util_HashFile(const string &path)
 
     SHA256_Final(hash, &state);
 
+    close(fd);
+
+    return Util_RawHashToHex(hash);
+}
+
+string
+Util_RawHashToHex(uint8_t hash[SHA256_DIGEST_LENGTH])
+{
+    stringstream rval;
+
     // Convert into string.
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
     {
 	rval << hex << setw(2) << setfill('0') << (int)hash[i];
     }
 
-    close(fd);
     return rval.str();
 }
 

@@ -30,6 +30,7 @@ int Util_CopyFile(const std::string &origPath, const std::string &newPath);
 int Util_MoveFile(const std::string &origPath, const std::string &newPath);
 std::string Util_HashString(const std::string &str);
 std::string Util_HashFile(const std::string &path);
+std::string Util_RawHashToHex(uint8_t hash[32]);
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
 int Util_SetBlocking(int fd, bool block);

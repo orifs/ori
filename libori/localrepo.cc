@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <string>
+#include <deque>
 #include <queue>
 #include <set>
 using namespace std;
@@ -17,6 +18,7 @@ using namespace std;
 #include "util.h"
 #include "scan.h"
 #include "debug.h"
+#include "sshrepo.h"
 
 /*
  * LocalRepoLock
@@ -546,6 +548,98 @@ LocalRepo::getCommit(const std::string &commitId)
     c.fromBlob(blob);
 
     return c;
+}
+
+/*
+ * High Level Operations
+ */
+
+/*
+ * Pull changes from the source repository.
+ */
+void
+LocalRepo::pull(Repo *r)
+{
+    SshRepo *sshrepo = NULL;
+    if (dynamic_cast<SshRepo*>(r))
+        sshrepo = (SshRepo *)r;
+
+    vector<Commit> remoteCommits = r->listCommits();
+    deque<string> toPull;
+
+    for (size_t i = 0; i < remoteCommits.size(); i++) {
+        string hash = remoteCommits[i].hash();
+        if (!hasObject(hash)) {
+            toPull.push_back(hash);
+            // TODO: partial pull
+        }
+    }
+
+    if (sshrepo)
+        sshrepo->preload(toPull.begin(), toPull.end());
+
+    LocalRepoLock::ap _lock(lock());
+
+    // Perform the pull
+    while (!toPull.empty()) {
+        string hash = toPull.front();
+        toPull.pop_front();
+
+        Object::ap o(r->getObject(hash));
+        if (!o.get()) {
+            printf("Error getting object %s\n", hash.c_str());
+            continue;
+        }
+
+        // Enqueue the object's references
+        Object::Type t = o->getInfo().type;
+        printf("Pulling object %s (%s)\n", hash.c_str(),
+                Object::getStrForType(t));
+
+        vector<string> newObjs;
+        if (t == Object::Commit) {
+            Commit c;
+            c.fromBlob(o->getPayload());
+            if (!hasObject(c.getTree())) {
+                toPull.push_back(c.getTree());
+                newObjs.push_back(c.getTree());
+            }
+        }
+        else if (t == Object::Tree) {
+            Tree t;
+            t.fromBlob(o->getPayload());
+            for (map<string, TreeEntry>::iterator it = t.tree.begin();
+                    it != t.tree.end();
+                    it++) {
+                const string &entry_hash = (*it).second.hash;
+                if (!hasObject(entry_hash)) {
+                    toPull.push_back(entry_hash);
+                    newObjs.push_back(entry_hash);
+                }
+            }
+        }
+        else if (t == Object::LargeBlob) {
+            LargeBlob lb(this);
+            lb.fromBlob(o->getPayload());
+
+            for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
+                    pit != lb.parts.end();
+                    pit++) {
+                const string &h = (*pit).second.hash;
+                if (!hasObject(h)) {
+                    toPull.push_back(h);
+                    newObjs.push_back(h);
+                }
+            }
+        }
+
+        // Preload new objects
+        if (sshrepo)
+            sshrepo->preload(newObjs.begin(), newObjs.end());
+
+        // Add the object to this repo
+        copyFrom(o.get());
+    }
 }
 
 /*
