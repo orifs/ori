@@ -124,6 +124,18 @@ ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
     }
 }
 
+bool
+ObjectInfo::hasAllFields() const
+{
+    if (type == Object::Null)
+        return false;
+    if (hash == "")
+        return false;
+    if (payload_size == 0)
+        return false;
+    return true;
+}
+
 bool ObjectInfo::operator <(const ObjectInfo &other) const {
     if (hash < other.hash) return true;
     if (type < other.type) return true;
@@ -239,6 +251,7 @@ LocalObject::createFromRawData(const string &path, const ObjectInfo &info,
     if (fd < 0)
         return -errno;
 
+    assert(info.hasAllFields());
     this->info = info;
     int status = this->info.writeTo(fd);
     if (status < 0)
