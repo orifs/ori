@@ -48,6 +48,8 @@ public:
     struct ObjectInfo {
         ObjectInfo();
         ObjectInfo(const char *hash);
+        std::string getInfo() const;
+        void setInfo(const std::string &info);
         ssize_t writeTo(int fd, bool seekable = true);
 
         // Flags operations

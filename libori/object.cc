@@ -63,6 +63,40 @@ ObjectInfo::ObjectInfo(const char *in_hash)
     memcpy(&hash[0], in_hash, hash.size());
 }
 
+std::string
+ObjectInfo::getInfo() const
+{
+    string rval;
+    char buf[16];
+    const char *type_str = Object::getStrForType(type);
+    if (type_str == NULL) {
+        assert(false);
+        return "";
+    }
+
+    strncpy(buf, type_str, ORI_OBJECT_TYPESIZE);
+    memcpy(buf+4, &flags, ORI_OBJECT_FLAGSSIZE);
+    memcpy(buf+8, &payload_size, ORI_OBJECT_SIZE);
+
+    rval.assign(buf, 16);
+
+    return rval;
+}
+
+void
+ObjectInfo::setInfo(const std::string &info)
+{
+    char buf[16];
+
+    assert(info.size() == 16);
+    memcpy(buf, info.c_str(), 16);
+
+    memcpy(&flags, buf+4, ORI_OBJECT_FLAGSSIZE);
+    memcpy(&payload_size, buf+8, ORI_OBJECT_SIZE);
+    buf[4] = '\0';
+    type = getTypeForStr(buf);
+}
+
 ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
     const char *type_str = Object::getStrForType(type);
     if (type_str == NULL)

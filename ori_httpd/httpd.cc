@@ -153,7 +153,9 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
     }
 
     for (it = objs.begin(); it != objs.end(); it++) {
-        evbuffer_add_printf(buf, "%s\n", (*it).hash.c_str());
+        string objInfo = (*it).getInfo();
+        evbuffer_add(buf, (*it).hash.c_str(), (*it).hash.size());
+        evbuffer_add(buf, objInfo.data(), objInfo.size());
     }
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
