@@ -35,6 +35,8 @@
 #include "scan.h"
 #include "util.h"
 #include "localrepo.h"
+#include "httpclient.h"
+#include "httprepo.h"
 #include "sshclient.h"
 #include "sshrepo.h"
 
@@ -537,14 +539,20 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    std::auto_ptr<SshClient> client;
+    std::auto_ptr<HttpClient> httpClient;
+    std::auto_ptr<SshClient> sshClient;
     std::auto_ptr<Repo> srcRepo;
     if (Util_IsPathRemote(srcRoot.c_str())) {
-        client.reset(new SshClient(srcRoot));
-        srcRepo.reset(new SshRepo(client.get()));
-        client->connect();
-    }
-    else {
+        if (strncmp(srcRoot.c_str(), "http://", 7) == 0) {
+            httpClient.reset(new HttpClient(srcRoot));
+            srcRepo.reset(new HttpRepo(httpClient.get()));
+            httpClient->connect();
+        } else {
+            sshClient.reset(new SshClient(srcRoot));
+            srcRepo.reset(new SshRepo(sshClient.get()));
+            sshClient->connect();
+        }
+    } else {
         srcRepo.reset(new LocalRepo(srcRoot));
     }
 

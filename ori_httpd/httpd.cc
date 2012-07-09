@@ -154,7 +154,29 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
     }
 
     for (it = objs.begin(); it != objs.end(); it++) {
-        evbuffer_add_printf(buf, "%s\n", (*it).hash.c_str());
+        int status;
+        string objInfo = (*it).getInfo();
+
+        LOG("hash = %s\n", (*it).hash.c_str());
+
+        status = evbuffer_add(buf, (*it).hash.c_str(), (*it).hash.size());
+        if (status != 0) {
+            assert(status == -1);
+            LOG("evbuffer_add failed while adding hash!");
+            evbuffer_free(buf);
+            buf = evbuffer_new();
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+            return;
+        }
+        status = evbuffer_add(buf, objInfo.data(), objInfo.size());
+        if (status != 0) {
+            assert(status == -1);
+            LOG("evbuffer_add failed while adding objInfo!");
+            evbuffer_free(buf);
+            buf = evbuffer_new();
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+            return;
+        }
     }
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
@@ -175,6 +197,7 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     auto_ptr<bytestream> bs;
     string *payload = new string();
     Object *obj;
+    string objInfo;
     struct evbuffer *buf;
 
     objId = evhttp_request_get_uri(req);
@@ -200,8 +223,10 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
 
     bs = obj->getStoredPayloadStream();
     *payload = bs->readAll();
+    objInfo = obj->getInfo().getInfo();
 
     // Transmit
+    evbuffer_add(buf, objInfo.data(), objInfo.size());
     evbuffer_add_reference(buf, payload->data(), payload->size(),
                            Httpd_stringDeleteCB, payload);
 
@@ -290,10 +315,12 @@ Httpd_main(uint16_t port)
 
     // mDNS
     struct event *mdns_evt = MDNS_Start(port, base);
-    event_add(mdns_evt, NULL);
+    if (mdns_evt)
+        event_add(mdns_evt, NULL);
 
     event_base_dispatch(base);
-    event_free(mdns_evt);
+    if (mdns_evt)
+        event_free(mdns_evt);
     evhttp_free(httpd);
 }
 
