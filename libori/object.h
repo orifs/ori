@@ -51,6 +51,7 @@ public:
         std::string getInfo() const;
         void setInfo(const std::string &info);
         ssize_t writeTo(int fd, bool seekable = true);
+        bool hasAllFields() const;
 
         // Flags operations
         bool getCompressed() const;
