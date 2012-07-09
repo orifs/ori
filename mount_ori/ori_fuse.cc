@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define FUSE_USE_VERSION 26
+#include "ori_fuse.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +27,6 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <dirent.h>
-
-#include <fuse.h>
 
 #include "debug.h"
 
@@ -235,50 +233,17 @@ ori_setup_ori_oper()
     ori_oper.destroy = ori_destroy;
 }
 
-static void
-ori_usage()
-{
-}
-
 int
 main(int argc, char *argv[])
 {
     ori_setup_ori_oper();
 
-    int i;
-    ori_priv *priv;
-
-    priv = (ori_priv *)malloc(sizeof *priv);
-    if (priv == NULL) {
-        perror("malloc");
-        return 1;
-    }
-
-    priv->logfd = open("ori.log", O_CREAT|O_WRONLY|O_TRUNC, 0660);
-    if (priv->logfd == -1) {
-        perror("open");
-        return 1;
-    }
-
     // Parse command line arguments
-    bool has_st = false;
-    for (i = 1; (i < argc) && (argv[i][0] == '-'); i++)
-    {
-        if (argv[i][1] == 'o')
-            i++;
-        if (strcmp(argv[i], "-s") == 0)
-            has_st = true;
-    }
+    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    mount_ori_config conf;
+    mount_ori_parse_opt(&args, &conf);
 
-    // Not enough arguments
-    if ((argc - i) != 2)
-        ori_usage();
-    if (!has_st) {
-        // TODO: is ori thread-safe?
-        //printf("TODO: need single-threaded option (-s)\n");
-        //exit(1);
-    }
-
+    // Open the repository
     priv->datastore = realpath(argv[i], NULL);
     argv[i] = argv[i+1];
     argc--;
