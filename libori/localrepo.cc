@@ -267,30 +267,6 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
     return 0;
 }
 
-int
-LocalRepo::addObject(const ObjectInfo &info, const string &payload)
-{
-    string objPath = objIdToPath(info.hash);
-
-    // Check if in tree
-    if (!Util_FileExists(objPath)) {
-        // Copy to object tree
-	LocalObject o;
-
-	createObjDirs(info.hash);
-	if (o.create(objPath, info.type) < 0) {
-	    perror("Unable to create object");
-	    return -errno;
-	}
-	if (o.setPayload(payload) < 0) {
-	    perror("Unable to copy file");
-	    return -errno;
-	}
-    }
-
-    return 0;
-}
-
 /*
  * Add a tree to the repository.
  */
@@ -578,6 +554,10 @@ LocalRepo::getCommit(const std::string &commitId)
 bool
 LocalRepo::hasObject(const string &objId)
 {
+    if (_objectInfoCache.hasKey(objId)) {
+        return true;
+    }
+
     string path = objIdToPath(objId);
 
     return Util_FileExists(path);
