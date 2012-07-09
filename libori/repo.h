@@ -37,7 +37,6 @@ public:
     virtual ~Repo();
 
     // Repo information
-    // TODO: is this consistent with the model?
     virtual std::string getHead() = 0;
 
     // Objects
@@ -47,11 +46,10 @@ public:
     virtual bool hasObject(const std::string &id) = 0;
 
     // Object queries
-    // TODO: add query options
     virtual std::set<ObjectInfo> listObjects() = 0;
     virtual std::vector<Commit> listCommits() = 0;
 
-    // TODO: add object interface
+    /// does not take ownership of bs
     virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;
 
     // High-level operations

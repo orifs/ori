@@ -95,7 +95,7 @@ void SshServer::serve() {
                     const std::vector<Commit> &commits = repository.listCommits();
                     for (size_t i = 0; i < commits.size(); i++) {
                         std::string blob = commits[i].getBlob();
-                        dprintf(STDOUT_FILENO, "DATA %u\n", blob.size());
+                        dprintf(STDOUT_FILENO, "DATA %lu\n", blob.size());
                         write(STDOUT_FILENO, blob.data(), blob.length());
                     }
                     dprintf(STDOUT_FILENO, "DONE\n");

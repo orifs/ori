@@ -2,6 +2,7 @@
 #define __LOCALREPO_H__
 
 #include "repo.h"
+#include "lrucache.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -43,8 +44,6 @@ public:
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,
             bytestream *bs);
-    int addObject(const ObjectInfo &info, const std::string
-            &payload);
     bool hasObject(const std::string &objId);
     Object *getObject(const std::string &objId);
     std::set<ObjectInfo> listObjects();
@@ -103,6 +102,9 @@ private:
     std::string rootPath;
     std::string id;
     std::string version;
+
+    // Caches
+    LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;
 };
 
 #endif
