@@ -19,6 +19,7 @@ struct OriService {
     std::string name, regType, domain;
 };
 static std::vector<OriService> services;
+static std::vector<BrowseCallback> callbacks;
 
 void ori_deregister_mdns()
 {
@@ -46,107 +47,6 @@ void _register_callback(
     printf("Service registered: %s/%s/%s\n", name, regtype, domain);
 }
 
-void _browse_callback(
-        DNSServiceRef browseRef,
-        DNSServiceFlags flags,
-        uint32_t interfaceIndex,
-        DNSServiceErrorType errorCode,
-
-        const char *serviceName,
-        const char *regType,
-        const char *replyDomain,
-        void *ctx)
-{
-    if (errorCode != kDNSServiceErr_NoError) {
-        printf("Error occurred while browsing mDNS services\n");
-        return;
-    }
-
-    OriService service;
-    service.name = serviceName;
-    service.regType = regType;
-    service.domain = replyDomain;
-    services.push_back(service);
-
-    // TODO
-    printf("Found service %s\n", serviceName);
-}
-
-void ori_setup_mdns(uint16_t port_num)
-{
-    DNSServiceErrorType err = DNSServiceRegister(
-            &registerRef,
-            0, 0,
-            NULL, // service name
-            ORI_SERVICE_TYPE,
-            NULL, // domain
-            NULL, // host
-            htons(port_num),
-            0, NULL, // txtRecord
-            _register_callback,
-            NULL);
-    if (err != kDNSServiceErr_NoError) {
-        printf("Error setting up mDNS!\n");
-        exit(1);
-    }
-
-    err = DNSServiceProcessResult(registerRef);
-    if (err != kDNSServiceErr_NoError) {
-        printf("Error setting up mDNS!\n");
-        exit(1);
-    }
-
-    // Find other ORI services on this network
-    err = DNSServiceBrowse(
-            &browseRef,
-            0, 0,
-            ORI_SERVICE_TYPE,
-            NULL, // domain,
-            _browse_callback,
-            NULL);
-    if (err != kDNSServiceErr_NoError) {
-        printf("Error browsing mDNS!\n");
-        exit(1);
-    }
-
-    atexit(ori_deregister_mdns);
-}
-
-int ori_run_mdns(bool use_select)
-{
-    printf("Running mDNS\n");
-    int fd = DNSServiceRefSockFD(browseRef);
-    if (fd < 0) {
-        printf("Error getting mDNS socket\n");
-        return -1;
-    }
-
-    int rv = 0;
-    fd_set md_set;
-
-    if (use_select) {
-        FD_ZERO(&md_set);
-        FD_SET(fd, &md_set);
-        struct timeval tv_zero = {0, 0};
-        rv = select(fd+1, &md_set, NULL, NULL, &tv_zero);
-    }
-
-    if (rv < 0) {
-        printf("Error calling select\n");
-        return -1;
-    }
-    else if (!use_select || (rv > 0 && FD_ISSET(fd, &md_set))) {
-        DNSServiceErrorType err = DNSServiceProcessResult(browseRef);
-        if (err != kDNSServiceErr_NoError) {
-            printf("Error processing mDNS result!\n");
-            exit(1);
-        }
-    }
-
-    return 0;
-}
-
-
 void _resolve_callback(
         DNSServiceRef resolveSd,
         DNSServiceFlags flags,
@@ -172,7 +72,111 @@ void _resolve_callback(
     p->port = ntohs(port);
 }
 
-std::vector<OriPeer> get_local_peers()
+void _browse_callback(
+        DNSServiceRef browseRef,
+        DNSServiceFlags flags,
+        uint32_t interfaceIndex,
+        DNSServiceErrorType errorCode,
+
+        const char *serviceName,
+        const char *regType,
+        const char *replyDomain,
+        void *ctx)
+{
+    if (errorCode != kDNSServiceErr_NoError) {
+        printf("Error occurred while browsing mDNS services\n");
+        return;
+    }
+
+    OriService service;
+    service.name = serviceName;
+    service.regType = regType;
+    service.domain = replyDomain;
+    services.push_back(service);
+
+    OriPeer p;
+    DNSServiceRef resolveSd;
+    DNSServiceResolve(
+            &resolveSd,
+            0, 0,
+            service.name.c_str(),
+            service.regType.c_str(),
+            service.domain.c_str(),
+            _resolve_callback,
+            &p);
+    DNSServiceProcessResult(resolveSd);
+    DNSServiceRefDeallocate(resolveSd);
+
+    if (p.port > 0) {
+        for (size_t i = 0; i < callbacks.size(); i++) {
+            callbacks[i](p);
+        }
+    }
+}
+
+void ori_run_mdns(evutil_socket_t fd, short what, void *ctx)
+{
+    DNSServiceErrorType err = DNSServiceProcessResult(browseRef);
+    if (err != kDNSServiceErr_NoError) {
+        printf("Error processing mDNS result!\n");
+        exit(1);
+    }
+}
+
+struct event *MDNS_Start(uint16_t port_num, struct event_base *evbase)
+{
+    DNSServiceErrorType err = DNSServiceRegister(
+            &registerRef,
+            0, 0,
+            NULL, // service name
+            ORI_SERVICE_TYPE,
+            NULL, // domain
+            NULL, // host
+            htons(port_num),
+            0, NULL, // txtRecord
+            _register_callback,
+            NULL);
+    if (err != kDNSServiceErr_NoError) {
+        printf("Error setting up mDNS!\n");
+        return NULL;
+    }
+
+    err = DNSServiceProcessResult(registerRef);
+    if (err != kDNSServiceErr_NoError) {
+        printf("Error setting up mDNS!\n");
+        exit(1);
+    }
+
+    // Find other ORI services on this network
+    err = DNSServiceBrowse(
+            &browseRef,
+            0, 0,
+            ORI_SERVICE_TYPE,
+            NULL, // domain,
+            _browse_callback,
+            NULL);
+    if (err != kDNSServiceErr_NoError) {
+        printf("Error browsing mDNS!\n");
+        exit(1);
+    }
+
+    atexit(ori_deregister_mdns);
+
+    int fd = DNSServiceRefSockFD(browseRef);
+    if (fd < 0) {
+        printf("Error getting mDNS socket\n");
+        return NULL;
+    }
+    return event_new(evbase, fd, EV_READ | EV_PERSIST, ori_run_mdns, NULL);
+}
+
+void
+MDNS_RegisterBrowseCallback(BrowseCallback cb)
+{
+    callbacks.push_back(cb);
+}
+
+std::vector<OriPeer> MDNS_GetPeers()
 {
     std::vector<OriPeer> rval;
     for (size_t i = 0; i < services.size(); i++) {
@@ -200,26 +204,21 @@ std::vector<OriPeer> get_local_peers()
     return rval;
 }
 
+void
+_print_cb(const OriPeer &peer)
+{
+    printf("Peer: %s:%d\n", peer.hostname.c_str(), peer.port);
+}
+
 int cmd_mdnsserver(int argc, const char *argv[])
 {
     printf("Starting mDNS server...\n");
-    ori_setup_mdns(rand() % 1000 + 1000);
-    while (true) {
-        ori_run_mdns(true);
+    struct event_base *evbase = event_base_new();
+    struct event *mdns_event = MDNS_Start(rand() % 1000 + 1000, evbase);
+    event_add(mdns_event, NULL);
 
-        if (argc > 1) {
-            std::vector<OriPeer> peers = get_local_peers();
-            if (peers.size() > 0) {
-                for (size_t i = 0; i < peers.size(); i++) {
-                    printf("Peer: %s:%d\n", peers[i].hostname.c_str(), peers[i].port);
-                }
-                sleep(1);
-            }
-            else {
-                printf("No peers\n");
-                sleep(2);
-            }
-        }
-    }
+    MDNS_RegisterBrowseCallback(_print_cb);
+
+    event_base_dispatch(evbase);
     return 0;
 }

@@ -80,6 +80,7 @@ private:
 class lzmastream : public bytestream
 {
 public:
+    /// Takes ownership of source. size_hint is number of bytes that can be read
     lzmastream(bytestream *source, bool compress = false, size_t size_hint = 0);
     ~lzmastream();
     bool ended();

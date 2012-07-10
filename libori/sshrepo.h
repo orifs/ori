@@ -40,6 +40,8 @@ public:
     std::set<ObjectInfo> listObjects();
     int addObjectRaw(const ObjectInfo &info, bytestream *bs);
 
+    std::vector<Commit> listCommits();
+
 private:
     SshClient *client;
     

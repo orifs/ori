@@ -2,6 +2,7 @@
 #define __LOCALREPO_H__
 
 #include "repo.h"
+#include "lrucache.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -43,13 +44,14 @@ public:
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,
             bytestream *bs);
-    int addObject(const ObjectInfo &info, const std::string
-            &payload);
     bool hasObject(const std::string &objId);
     Object *getObject(const std::string &objId);
     std::set<ObjectInfo> listObjects();
 
+
     LocalObject getLocalObject(const std::string &objId);
+    
+    std::vector<Commit> listCommits();
 
     std::string addSmallFile(const std::string &path);
     std::pair<std::string, std::string>
@@ -69,7 +71,10 @@ public:
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
     std::map<std::string, std::map<std::string, Object::BRState> >
         getRefCounts();
-    std::map<std::string, std::set<std::string> > computeRefCounts();
+
+    typedef std::map<std::string, std::set<std::string> > ObjReferenceMap;
+    ObjReferenceMap computeRefCounts();
+    bool rewriteReferences(const ObjReferenceMap &refs);
     // Pruning Operations
     // void pruneObject(const std::string &objId);
     // Grafting Operations
@@ -100,6 +105,9 @@ private:
     std::string rootPath;
     std::string id;
     std::string version;
+
+    // Caches
+    LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;
 };
 
 #endif

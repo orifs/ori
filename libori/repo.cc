@@ -41,15 +41,28 @@ Repo::Repo() {
 Repo::~Repo() {
 }
 
-int Repo::addObject(const ObjectInfo &info, const string &payload)
+
+
+/*
+ * High-level operations
+ */
+
+int Repo::addObject(const ObjectInfo &in_info, const string &payload)
 {
-#ifdef DEBUG
-    assert(info.hash.size() > 0); // TODO
-    // hash must be included
-#endif
+    ObjectInfo info = in_info;
+    assert(info.hash != ""); // hash must be included
     assert(info.type != Object::Null);
-    assert(false);
-    return -1;
+    info.payload_size = payload.size();
+
+    if (info.getCompressed()) {
+        bytestream *ss = new strstream(payload);
+        lzmastream bs(ss, true);
+        return addObjectRaw(info, &bs);
+    }
+    else {
+        strstream ss(payload);
+        return addObjectRaw(info, &ss);
+    }
 }
 
 /*

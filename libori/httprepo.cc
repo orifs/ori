@@ -28,9 +28,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <openssl/sha.h>
+
+#include "debug.h"
+#include "util.h"
+#include "object.h"
 #include "httpclient.h"
 #include "httprepo.h"
-#include "util.h"
 
 using namespace std;
 
@@ -57,33 +61,75 @@ HttpRepo::preload(const std::vector<std::string> &objs)
 std::string
 HttpRepo::getHead()
 {
-    string line;
+    int status;
+    string headId;
 
-    return line;
+    status = client->getRequest("/HEAD", headId);
+    if (status < 0) {
+        assert(false);
+        return "";
+    }
+
+    return headId;
 }
 
 Object *
 HttpRepo::getObject(const std::string &id)
 {
-    ObjectInfo info;
-    std::string raw_data;
+    int status;
+    string index;
+    ObjectInfo info = ObjectInfo(id.c_str());
+    std::string payload;
+
+    status = client->getRequest("/objs/" + id, payload);
+    if (status < 0) {
+        assert(false);
+        return NULL;
+    }
+
+    info.setInfo(payload.substr(0, 16));
 
     // TODO: add raw data to cache
-    _addPayload(info.hash, raw_data);
+    _addPayload(info.hash, payload.substr(16));
 
     return new HttpObject(this, info);
 }
 
 bool
 HttpRepo::hasObject(const std::string &id) {
-    assert(false);
+    NOT_IMPLEMENTED(false);
     return false;
 }
 
 std::set<ObjectInfo>
 HttpRepo::listObjects()
 {
-    std::set<ObjectInfo> rval;
+    int status;
+    string index;
+    set<ObjectInfo> rval;
+
+    status = client->getRequest("/index", index);
+    if (status < 0) {
+        assert(false);
+        return rval;
+    }
+
+    // Parse response
+    for (int offset = 0; offset < index.size();)
+    {
+        string hash;
+        string objInfo;
+        ObjectInfo info;
+
+        hash = index.substr(offset, SHA256_DIGEST_LENGTH * 2);
+        offset += SHA256_DIGEST_LENGTH * 2;
+        objInfo = index.substr(offset, 16);
+        offset += 16;
+
+        info = ObjectInfo(hash.c_str());
+        info.setInfo(objInfo);
+        rval.insert(info);
+    }
 
     return rval;
 }
@@ -91,9 +137,17 @@ HttpRepo::listObjects()
 int
 HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
-    assert(false);
+    NOT_IMPLEMENTED(false);
     return -1;
 }
+
+vector<Commit>
+HttpRepo::listCommits()
+{
+    NOT_IMPLEMENTED(false);
+    return vector<Commit>();
+}
+
 
 std::string &
 HttpRepo::_payload(const std::string &id)

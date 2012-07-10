@@ -28,6 +28,16 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <iostream>
+
+#include <event2/event.h>
+#include <event2/dns.h>
+#include <event2/http.h>
+#include <event2/buffer.h>
+#include <event2/util.h>
+#include <event2/keyvalq_struct.h>
+
+#include "debug.h"
 #include "httpclient.h"
 #include "httprepo.h"
 #include "util.h"
@@ -55,9 +65,10 @@ HttpClient::HttpClient(const std::string &remotePath)
     pathPos = tmp.find('/');
     if (portPos != -1) {
         assert(portPos < pathPos);
-        remotePort = tmp.substr(portPos + 1, pathPos - portPos);
+        remotePort = tmp.substr(portPos + 1, pathPos - portPos - 1);
     } else {
         portPos = pathPos;
+        remotePort = "80";
     }
     assert(pathPos != -1);
 
@@ -70,30 +81,120 @@ HttpClient::~HttpClient()
     // Close
 }
 
-int HttpClient::connect()
+int
+HttpClient::connect()
 {
-    // Wait for READY from server
-    std::string ready;
-    recvResponse(ready);
-    if (ready != "READY\n") {
-        return -1;
-    }
+    string id;
+    string version;
+    string headRev;
+    uint16_t port;
+
+    base = event_base_new();
+    dnsBase = evdns_base_new(base, /* Add DNS servers */ 0);
+
+    port = strtoul(remotePort.c_str(), NULL, 10);
+
+    con = evhttp_connection_base_new(base, dnsBase, remoteHost.c_str(), port);
 
     return 0;
 }
 
-bool HttpClient::connected() {
+
+void
+HttpClient::disconnect()
+{
+    if (con)
+        evhttp_connection_free(con);
+    if (dnsBase)
+        evdns_base_free(dnsBase, 0);
+    if (base)
+        event_base_free(base);
+    con = NULL;
+    dnsBase = NULL;
+    base = NULL;
+}
+
+bool
+HttpClient::connected()
+{
     return false;
 }
 
-void HttpClient::sendCommand(const std::string &command) {
+void
+HttpClient_requestDoneCB(struct evhttp_request *req, void *c)
+{
+    int status;
+    HttpClient *client = (HttpClient *)c;
+    struct evkeyvalq *headers;
+    struct evbuffer *bufIn;
+
+    if (!req) {
+        cout << "req is NULL!" << endl;
+        return;
+    }
+
+    status = evhttp_request_get_response_code(req);
+    if (status != HTTP_OK) {
+        cout << "Failed!" << endl;
+        return;
+    }
+
+    headers = evhttp_request_get_input_headers(req);
+    bufIn = evhttp_request_get_input_buffer(req);
+
+    /*
+     * XXX: This is a hack to prevent the corruption we were seeing. Not sure 
+     * why this works, but the data needs to be read out here into a string and 
+     * we should signal the client to wakeup or register a callback.
+     */
+    int len = evbuffer_get_length(bufIn);
+    evbuffer_pullup(bufIn, len);
+
+    event_base_loopexit(client->base, NULL);
 }
 
-void HttpClient::recvResponse(std::string &out) {
+int
+HttpClient::getRequest(const string &command, string &response)
+{
+    int status;
+    struct evhttp_request *req;
+
+    req = evhttp_request_new(HttpClient_requestDoneCB, (void *)this);
+
+    evhttp_add_header(evhttp_request_get_output_headers(req),
+                      "Connection", "keep-alive");
+
+    status = evhttp_make_request(con, req, EVHTTP_REQ_GET, command.c_str());
+    if (status == -1) {
+        cout << "Request failure!" << endl;
+        return -1;
+    }
+
+    // XXX: Create dedicated event loop
+    event_base_dispatch(base);
+
+    struct evbuffer *bufIn = evhttp_request_get_input_buffer(req);
+    
+    int len = evbuffer_get_length(bufIn);
+    char *data = (char *)evbuffer_pullup(bufIn, len);
+
+    response.assign(data, len);
+
+    return 0;
 }
 
+int
+HttpClient::putRequest(const string &command,
+                       const string &payload,
+                       string &response)
+{
+    NOT_IMPLEMENTED(false);
+    return -1;
+}
 
-int cmd_httpclient(int argc, const char *argv[]) {
+int
+cmd_httpclient(int argc, const char *argv[])
+{
     if (argc < 2) {
         printf("Usage: ori httpclient http://hostname:port/path\n");
         exit(1);
@@ -107,11 +208,22 @@ int cmd_httpclient(int argc, const char *argv[]) {
 
     dprintf(STDOUT_FILENO, "Connected\n");
 
+    string repoId;
+    string ver;
+    string headId;
+    client.getRequest("/id", repoId);
+    client.getRequest("/version", ver);
+    client.getRequest("/HEAD", headId);
+
+    cout << "Repository ID: " << repoId << endl;
+    cout << "Version: " << ver << endl;
+    cout << "HEAD: " << headId << endl << endl;
+
     HttpRepo repo(&client);
-    std::set<ObjectInfo> objs = repo.listObjects();
-    for (std::set<ObjectInfo>::iterator it = objs.begin();
-            it != objs.end();
-            it++) {
+    set<ObjectInfo> objs = repo.listObjects();
+    for (set<ObjectInfo>::iterator it = objs.begin();
+         it != objs.end();
+         it++) {
         printf("%s\n", (*it).hash.c_str());
     }
 

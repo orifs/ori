@@ -37,13 +37,6 @@
 
 #define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
 
-struct ObjectHash {
-    bool operator ==(const ObjectHash &other) {
-        return strcmp(hash, other.hash) == 0;
-    }
-    char hash[2*ORI_MD_HASHSIZE+1];
-};
-
 class Object {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
@@ -55,7 +48,10 @@ public:
     struct ObjectInfo {
         ObjectInfo();
         ObjectInfo(const char *hash);
+        std::string getInfo() const;
+        void setInfo(const std::string &info);
         ssize_t writeTo(int fd, bool seekable = true);
+        bool hasAllFields() const;
 
         // Flags operations
         bool getCompressed() const;

@@ -267,30 +267,6 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
     return 0;
 }
 
-int
-LocalRepo::addObject(const ObjectInfo &info, const string &payload)
-{
-    string objPath = objIdToPath(info.hash);
-
-    // Check if in tree
-    if (!Util_FileExists(objPath)) {
-        // Copy to object tree
-	LocalObject o;
-
-	createObjDirs(info.hash);
-	if (o.create(objPath, info.type) < 0) {
-	    perror("Unable to create object");
-	    return -errno;
-	}
-	if (o.setPayload(payload) < 0) {
-	    perror("Unable to copy file");
-	    return -errno;
-	}
-    }
-
-    return 0;
-}
-
 /*
  * Add a tree to the repository.
  */
@@ -445,6 +421,10 @@ LocalRepo::verifyObject(const string &objId)
         return "Object metadata hash mismatch!";
     }
 
+    if (!o.getInfo().hasAllFields()) {
+        return "Object info missing some fileds!";
+    }
+
     return "";
 }
 
@@ -531,6 +511,32 @@ LocalRepo::listObjects()
     return objs;
 }
 
+
+bool _timeCompare(const Commit &c1, const Commit &c2) {
+    return c1.getTime() < c2.getTime();
+}
+
+vector<Commit>
+LocalRepo::listCommits()
+{
+    vector<Commit> rval;
+
+    // TODO: more efficient
+    set<ObjectInfo> objs = listObjects();
+    for (set<ObjectInfo>::iterator it = objs.begin();
+            it != objs.end();
+            it++) {
+        const ObjectInfo &oi = *it;
+        if (oi.type == Object::Commit) {
+            const Commit &c = getCommit(oi.hash);
+            rval.push_back(c);
+        }
+    }
+
+    sort(rval.begin(), rval.end(), _timeCompare);
+    return rval;
+}
+
 Commit
 LocalRepo::getCommit(const std::string &commitId)
 {
@@ -552,6 +558,10 @@ LocalRepo::getCommit(const std::string &commitId)
 bool
 LocalRepo::hasObject(const string &objId)
 {
+    if (_objectInfoCache.hasKey(objId)) {
+        return true;
+    }
+
     string path = objIdToPath(objId);
 
     return Util_FileExists(path);
@@ -606,7 +616,7 @@ LocalRepo::getRefCounts()
  * Construct a raw set of references. This is the slow path and should only
  * be used as part of recovery.
  */
-map<string, set<string> >
+LocalRepo::ObjReferenceMap
 LocalRepo::computeRefCounts()
 {
     set<ObjectInfo> obj = listObjects();
@@ -685,6 +695,56 @@ LocalRepo::computeRefCounts()
     }
 
     return rval;
+}
+
+bool
+LocalRepo::rewriteReferences(const LocalRepo::ObjReferenceMap &refs)
+{
+    LOG("Rebuilding references");
+    LocalRepoLock::ap _lock(lock());
+
+    for (ObjReferenceMap::const_iterator it = refs.begin();
+            it != refs.end(); it++) {
+        int status;
+        LocalObject o;
+        Object::Type type;
+
+        if ((*it).first == EMPTY_COMMIT)
+            continue;
+
+        status = o.open(objIdToPath((*it).first));
+        if (status < 0) {
+            LOG("Cannot open object %s", (*it).first.c_str());
+            return false;
+        }
+        type = o.getInfo().type;
+
+        if (type == Object::Commit ||
+            type == Object::Tree ||
+            type == Object::Blob ||
+            type == Object::LargeBlob) {
+            set<string>::iterator i;
+
+            o.clearMetadata(); // was clearBackref
+            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
+                o.addBackref((*i), Object::BRRef);
+            }
+        } else if (type == Object::Purged) {
+            set<string>::iterator i;
+
+            o.clearMetadata(); // was clearBackref
+            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
+                o.addBackref((*i), Object::BRPurged);
+            }
+        } else {
+
+            NOT_IMPLEMENTED(false);
+        }
+
+        o.close();
+    }
+
+    return true;
 }
 
 /*

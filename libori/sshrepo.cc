@@ -28,76 +28,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <sstream>
+
 #include "sshclient.h"
 #include "sshrepo.h"
 #include "util.h"
-
-// TODO: return char *s instead of string, return all values from same chunk of
-// memory
-class ResponseParser {
-public:
-    ResponseParser(const std::string &text) : text(text), off(0) {}
-
-    bool ended() {
-        return off >= text.size();
-    }
-
-    bool nextLine(std::string &line) {
-        if (off >= text.size()) return false;
-
-        size_t oldOff = off;
-        while (off < text.size()) {
-            if (text[off] == '\n') {
-                off++;
-                line = text.substr(oldOff, (off-oldOff-1));
-                return true;
-            }
-            off++;
-        }
-        line = text.substr(oldOff, (off-oldOff-1));
-        return true;
-    }
-
-    size_t getDataLength(const std::string &line) {
-        size_t len = 0;
-        if (sscanf(line.c_str(), "DATA %lu", &len) != 1) {
-            return 0;
-        }
-        return len;
-    }
-
-    std::string getData(size_t len) {
-        assert(off + len <= text.size());
-        size_t oldOff = off;
-        off += len;
-        return text.substr(oldOff, len);
-    }
-
-    bool loadObjectInfo(ObjectInfo &info) {
-        std::string line;
-        nextLine(line); // hash
-        if (line == "DONE") return false;
-
-        assert(line.size() == 64); // 2*SHA256_DIGEST_LENGTH
-        info.hash = line.data();
-
-        nextLine(line); // type
-        info.type = Object::getTypeForStr(line.c_str());
-        assert(info.type != Object::Null);
-
-        nextLine(line); // flags
-        sscanf(line.c_str(), "%X", &info.flags);
-
-        nextLine(line); // payload_size
-        sscanf(line.c_str(), "%lu", &info.payload_size);
-        assert(info.payload_size > 0);
-
-        return true;
-    }
-private:
-    const std::string &text;
-    size_t off;
-};
+#include "debug.h"
 
 /*
  * SshRepo
@@ -117,7 +53,9 @@ void SshRepo::preload(const std::vector<std::string> &objs)
     // TODO
     return;
 
-    client->sendCommand("readobjs " + objs.size());
+    std::stringstream ss;
+    ss << "readobjs " << objs.size();
+    client->sendCommand(ss.str());
     for (int i = 0; i < objs.size(); i++) {
         client->sendCommand(objs[i]);
     }
@@ -129,7 +67,7 @@ std::string SshRepo::getHead()
     std::string resp;
     client->recvResponse(resp);
 
-    ResponseParser p(resp);
+    SshResponseParser p(resp);
     std::string line;
     p.nextLine(line); // root path
     p.nextLine(line); // uuid
@@ -146,7 +84,7 @@ Object *SshRepo::getObject(const std::string &id)
     std::string resp;
     client->recvResponse(resp);
 
-    ResponseParser p(resp);
+    SshResponseParser p(resp);
     ObjectInfo info;
     p.loadObjectInfo(info);
 
@@ -161,19 +99,19 @@ Object *SshRepo::getObject(const std::string &id)
 }
 
 bool SshRepo::hasObject(const std::string &id) {
-    assert(false);
+    NOT_IMPLEMENTED(false);
     return false;
 }
 
 std::set<ObjectInfo> SshRepo::listObjects()
 {
-    client->sendCommand("listobj");
+    client->sendCommand("list objs");
     std::string resp;
     client->recvResponse(resp);
 
     std::set<ObjectInfo> rval;
 
-    ResponseParser p(resp);
+    SshResponseParser p(resp);
     std::string line;
     while (!p.ended()) {
         ObjectInfo info;
@@ -186,9 +124,33 @@ std::set<ObjectInfo> SshRepo::listObjects()
 
 int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
-    assert(false);
+    NOT_IMPLEMENTED(false);
     return -1;
 }
+
+std::vector<Commit> SshRepo::listCommits()
+{
+    client->sendCommand("list commits");
+    std::string resp;
+    client->recvResponse(resp);
+
+    std::vector<Commit> rval;
+
+    SshResponseParser p(resp);
+    std::string line;
+    while (!p.ended()) {
+        if (!p.nextLine(line)) break;
+        size_t len = p.getDataLength(line);
+        std::string data = p.getData(len);
+        Commit c;
+        c.fromBlob(data);
+        rval.push_back(c);
+    }
+
+    return rval;
+}
+
+
 
 std::string &SshRepo::_payload(const std::string &id)
 {

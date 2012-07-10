@@ -51,7 +51,7 @@ using namespace std;
  * ObjectInfo
  */
 ObjectInfo::ObjectInfo()
-    : type(Object::Null), flags(0), payload_size(0)
+    : type(Object::Null), flags(0), payload_size((size_t)-1)
 {
     hash.resize(SHA256_DIGEST_LENGTH*2);
 }
@@ -61,6 +61,41 @@ ObjectInfo::ObjectInfo(const char *in_hash)
 {
     hash.resize(SHA256_DIGEST_LENGTH*2);
     memcpy(&hash[0], in_hash, hash.size());
+}
+
+std::string
+ObjectInfo::getInfo() const
+{
+    string rval;
+    char buf[16];
+    const char *type_str = Object::getStrForType(type);
+    if (type_str == NULL) {
+        assert(false);
+        return "";
+    }
+
+    strncpy(buf, type_str, ORI_OBJECT_TYPESIZE);
+    memcpy(buf+4, &flags, ORI_OBJECT_FLAGSSIZE);
+    memcpy(buf+8, &payload_size, ORI_OBJECT_SIZE);
+
+    rval.assign(buf, 16);
+
+    return rval;
+}
+
+void
+ObjectInfo::setInfo(const std::string &info)
+{
+    char buf[16];
+
+    assert(info.size() == 16);
+    memcpy(buf, info.c_str(), 16);
+
+    memcpy(&flags, buf+4, ORI_OBJECT_FLAGSSIZE);
+    memcpy(&payload_size, buf+8, ORI_OBJECT_SIZE);
+    buf[4] = '\0';
+    type = getTypeForStr(buf);
+    assert(type != Object::Null);
 }
 
 ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
@@ -88,6 +123,18 @@ ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
         // TODO!!! use write() instead
         assert(false);
     }
+}
+
+bool
+ObjectInfo::hasAllFields() const
+{
+    if (type == Object::Null)
+        return false;
+    if (hash == "")
+        return false; // hash shouldn't be all zeros
+    if (payload_size == (size_t)-1)
+        return false; // no objects should be that large, due to LargeBlob
+    return true;
 }
 
 bool ObjectInfo::operator <(const ObjectInfo &other) const {
@@ -205,6 +252,7 @@ LocalObject::createFromRawData(const string &path, const ObjectInfo &info,
     if (fd < 0)
         return -errno;
 
+    assert(info.hasAllFields());
     this->info = info;
     int status = this->info.writeTo(fd);
     if (status < 0)
