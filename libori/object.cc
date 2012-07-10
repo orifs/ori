@@ -51,7 +51,7 @@ using namespace std;
  * ObjectInfo
  */
 ObjectInfo::ObjectInfo()
-    : type(Object::Null), flags(0), payload_size(0)
+    : type(Object::Null), flags(0), payload_size((size_t)-1)
 {
     hash.resize(SHA256_DIGEST_LENGTH*2);
 }
@@ -131,8 +131,8 @@ ObjectInfo::hasAllFields() const
         return false;
     if (hash == "")
         return false;
-    if (payload_size == 0)
-        return false;
+    if (payload_size == (size_t)-1)
+        return false; // no objects should be that large, due to LargeBlob
     return true;
 }
 

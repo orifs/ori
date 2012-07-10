@@ -266,7 +266,7 @@ bool SshResponseParser::loadObjectInfo(ObjectInfo &info) {
 
     nextLine(line); // payload_size
     sscanf(line.c_str(), "%lu", &info.payload_size);
-    assert(info.payload_size > 0);
+    assert(info.payload_size != (size_t)-1);
 
     return true;
 }

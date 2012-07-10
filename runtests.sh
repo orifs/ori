@@ -17,7 +17,7 @@ SCRIPTS=`pwd`/scripts
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
 mkdir -p $SOURCE_FILES
-for i in {1..9}; do
+for i in {1..12}; do
     SIZE=$((2**(i+1)))
     echo "Creating random file size ${SIZE}k"
     #dd if=/dev/urandom of="$SOURCE_FILES/file$i.tst" bs=2k count=$SIZE
@@ -25,6 +25,7 @@ for i in {1..9}; do
 done
 mkdir -p $SOURCE_FILES/a
 echo "Hello, world!" > $SOURCE_FILES/a/a.txt
+touch $SOURCE_FILES/a/empty
 
 # Repository
 $ORI_EXE init $TEST_REPO
