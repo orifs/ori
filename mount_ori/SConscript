@@ -4,10 +4,14 @@ Import('env')
 
 src = [
     "ori_fuse.cc",
+    "parse_opt.cc",
 ]
 
 libs = [
+        "crypto",
         "fuse",
+        "lzma",
+        "ori",
         ]
 
 if sys.platform == "darwin":

@@ -48,7 +48,7 @@ public:
         typename lru_list::iterator p = lru.insert(lru.end(), key);
         cache[key] = std::make_pair(value, p);
     }
-    V get(K key) {
+    V &get(K key) {
         typename lru_cache::iterator it = cache.find(key);
 
         if (it != cache.end()) {

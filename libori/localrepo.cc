@@ -353,6 +353,10 @@ LocalRepo::getPayload(const string &objId)
     if (!o.get())
         return "";
 
+    // TODO: LargeBlob
+    if (o->getInfo().type == Object::LargeBlob)
+        assert(false);
+
     auto_ptr<bytestream> bs(o->getPayloadStream());
     return bs->readAll();
 }
