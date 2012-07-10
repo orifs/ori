@@ -95,6 +95,7 @@ ObjectInfo::setInfo(const std::string &info)
     memcpy(&payload_size, buf+8, ORI_OBJECT_SIZE);
     buf[4] = '\0';
     type = getTypeForStr(buf);
+    assert(type != Object::Null);
 }
 
 ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
@@ -130,7 +131,7 @@ ObjectInfo::hasAllFields() const
     if (type == Object::Null)
         return false;
     if (hash == "")
-        return false;
+        return false; // hash shouldn't be all zeros
     if (payload_size == (size_t)-1)
         return false; // no objects should be that large, due to LargeBlob
     return true;
