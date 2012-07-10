@@ -34,9 +34,15 @@
 #include "tree.h"
 #include "lrucache.h"
 
+#undef LOG
+#define LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
+
 typedef struct ori_priv
 {
+    ori_priv() : datastore(NULL), logfd(0) {}
+
     char *datastore;
+    int logfd;
 
     // Valid after ori_init
     LocalRepo *repo;
@@ -50,6 +56,26 @@ static ori_priv*
 ori_getpriv()
 {
     return (ori_priv *)fuse_get_context()->private_data;
+}
+
+static void
+ori_fuse_log(const char *what, ...)
+{
+    ori_priv *p = ori_getpriv();
+    if (p->logfd == 0) {
+        p->logfd = open("ori.log", O_CREAT|O_WRONLY|O_TRUNC, 0660);
+        if (p->logfd == -1) {
+            perror("open");
+            exit(1);
+        } 
+    }
+
+    va_list vl;
+    va_start(vl, what);
+    vdprintf(p->logfd, what, vl);
+    va_end(vl);
+
+    fsync(p->logfd);
 }
 
 Tree *_getTree(ori_priv *p, const std::string &hash)
