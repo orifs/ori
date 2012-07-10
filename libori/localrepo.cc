@@ -616,7 +616,7 @@ LocalRepo::getRefCounts()
  * Construct a raw set of references. This is the slow path and should only
  * be used as part of recovery.
  */
-map<string, set<string> >
+LocalRepo::ObjReferenceMap
 LocalRepo::computeRefCounts()
 {
     set<ObjectInfo> obj = listObjects();
@@ -695,6 +695,56 @@ LocalRepo::computeRefCounts()
     }
 
     return rval;
+}
+
+bool
+LocalRepo::rewriteReferences(const LocalRepo::ObjReferenceMap &refs)
+{
+    LOG("Rebuilding references");
+    LocalRepoLock::ap _lock(lock());
+
+    for (ObjReferenceMap::const_iterator it = refs.begin();
+            it != refs.end(); it++) {
+        int status;
+        LocalObject o;
+        Object::Type type;
+
+        if ((*it).first == EMPTY_COMMIT)
+            continue;
+
+        status = o.open(objIdToPath((*it).first));
+        if (status < 0) {
+            LOG("Cannot open object %s", (*it).first.c_str());
+            return false;
+        }
+        type = o.getInfo().type;
+
+        if (type == Object::Commit ||
+            type == Object::Tree ||
+            type == Object::Blob ||
+            type == Object::LargeBlob) {
+            set<string>::iterator i;
+
+            o.clearMetadata(); // was clearBackref
+            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
+                o.addBackref((*i), Object::BRRef);
+            }
+        } else if (type == Object::Purged) {
+            set<string>::iterator i;
+
+            o.clearMetadata(); // was clearBackref
+            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
+                o.addBackref((*i), Object::BRPurged);
+            }
+        } else {
+
+            NOT_IMPLEMENTED(false);
+        }
+
+        o.close();
+    }
+
+    return true;
 }
 
 /*

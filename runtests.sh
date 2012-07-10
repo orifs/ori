@@ -4,6 +4,7 @@
 
 ORIG_DIR=`pwd`
 ORI_EXE=`pwd`/build/ori/ori
+ORI_HTTPD=$ORIG_DIR/build/ori_httpd/ori_httpd
 TEMP_DIR=`pwd`/tempdir
 SOURCE_FILES=$TEMP_DIR/files
 TEST_REPO=$TEMP_DIR/test_repo
@@ -43,10 +44,17 @@ $ORI_EXE checkout
 $PYTHON $SCRIPTS/compare.py "$SOURCE_FILES" "$TEST_REPO"
 $ORI_EXE verify
 
-# Cloning
-if false; then
+# Local cloning
+if true; then
     cd $TEMP_DIR
-    $ORI_EXE clone $TEST_REPO
+    $ORI_EXE clone $TEST_REPO $TEST_REPO2
+    cd $TEST_REPO2
+    $ORI_EXE checkout
+    $PYTHON $SCRIPTS/compare.py "$TEST_REPO" "$TEST_REPO2"
+    $ORI_EXE verify
+    
+    cd $TEMP_DIR
+    rm -rf $TEST_REPO2
 fi
 
 # Local pulling
@@ -58,6 +66,7 @@ if true; then
     $ORI_EXE checkout
     $PYTHON $SCRIPTS/compare.py "$TEST_REPO" "$TEST_REPO2"
     $ORI_EXE verify
+
     cd $ORIG_DIR
     rm -rf $TEST_REPO2
 fi
@@ -72,7 +81,28 @@ if true; then
     $ORI_EXE checkout
     $PYTHON $SCRIPTS/compare.py "$TEST_REPO" "$TEST_REPO2"
     $ORI_EXE verify
+
     cd $ORIG_DIR
+    rm -rf $TEST_REPO2
+fi
+
+# HTTP pulling
+if false; then
+    cd $TEMP_DIR
+    cd $TEST_REPO
+    $ORI_HTTPD &
+    sleep 1
+
+    $ORI_EXE init $TEST_REPO2
+    cd $TEST_REPO2
+    $ORI_EXE pull http://localhost/$TEST_REPO
+    $ORI_EXE checkout
+    $PYTHON $SCRIPTS/compare.py "$TEST_REPO" "$TEST_REPO2"
+    $ORI_EXE verify
+
+    kill %1
+
+    cd $TEMP_DIR
     rm -rf $TEST_REPO2
 fi
 
