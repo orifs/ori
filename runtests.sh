@@ -5,10 +5,12 @@
 ORIG_DIR=`pwd`
 ORI_EXE=`pwd`/build/ori/ori
 ORI_HTTPD=$ORIG_DIR/build/ori_httpd/ori_httpd
+MOUNT_ORI_EXE=$ORIG_DIR/build/mount_ori/mount_ori
 TEMP_DIR=`pwd`/tempdir
 SOURCE_FILES=$TEMP_DIR/files
 TEST_REPO=$TEMP_DIR/test_repo
 TEST_REPO2=$TEMP_DIR/test_repo2
+MTPOINT=$TEMP_DIR/mtpoint
 
 PYTHON="/usr/bin/env python"
 SCRIPTS=`pwd`/scripts
@@ -45,7 +47,7 @@ $PYTHON $SCRIPTS/compare.py "$SOURCE_FILES" "$TEST_REPO"
 $ORI_EXE verify
 
 # Local cloning
-if true; then
+if false; then
     cd $TEMP_DIR
     $ORI_EXE clone $TEST_REPO $TEST_REPO2
     cd $TEST_REPO2
@@ -58,7 +60,7 @@ if true; then
 fi
 
 # Local pulling
-if true; then
+if false; then
     cd $ORIG_DIR
     $ORI_EXE init $TEST_REPO2
     cd $TEST_REPO2
@@ -72,7 +74,7 @@ if true; then
 fi
 
 # SSH pulling
-if true; then
+if false; then
     cd $ORIG_DIR
     $ORI_EXE init $TEST_REPO2
     cd $TEST_REPO2
@@ -104,6 +106,21 @@ if false; then
 
     cd $TEMP_DIR
     rm -rf $TEST_REPO2
+fi
+
+# Test FUSE reading
+if true; then
+    cd $TEMP_DIR
+    mkdir -p $MTPOINT
+
+    $MOUNT_ORI_EXE -o repo=$TEST_REPO $MTPOINT
+    sleep 1
+
+    ls -lah $MTPOINT
+    
+    #$PYTHON $SCRIPTS/compare.py "$TEST_REPO" "$MTPOINT"
+
+    umount $MTPOINT
 fi
 
 # Delete test repo, temp dir

@@ -5,6 +5,8 @@ Import('env')
 src = [
     "ori_fuse.cc",
     "parse_opt.cc",
+    "ori_priv.cc",
+    "logging.cc",
 ]
 
 libs = [

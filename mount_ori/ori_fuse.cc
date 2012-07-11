@@ -28,74 +28,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#include "localrepo.h"
-#include "commit.h"
 #include "debug.h"
-#include "tree.h"
-#include "lrucache.h"
-
-#define FUSE_LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
-static void ori_fuse_log(const char *what, ...);
-
-typedef struct ori_priv
-{
-    ori_priv() : datastore(NULL) {}
-
-    char *datastore;
-
-    // Valid after ori_init
-    LocalRepo *repo;
-    Commit *head;
-    Tree *headtree;
-
-    LRUCache<std::string, Tree, 128> treecache;
-    LRUCache<std::string, ObjectInfo, 128> objInfoCache;
-} ori_priv;
-
-static ori_priv*
-ori_getpriv()
-{
-    return (ori_priv *)fuse_get_context()->private_data;
-}
-
-static int logfd = 0;
-
-static void
-ori_fuse_log(const char *what, ...)
-{
-    if (logfd == 0) {
-        logfd = open("ori_fuse.log", O_CREAT|O_WRONLY|O_TRUNC, 0660);
-        if (logfd == -1) {
-            perror("open");
-            exit(1);
-        } 
-    }
-
-    va_list vl;
-    va_start(vl, what);
-    vdprintf(logfd, what, vl);
-
-    fsync(logfd);
-}
-
-Tree *_getTree(ori_priv *p, const std::string &hash)
-{
-    if (!p->treecache.hasKey(hash)) {
-        Tree t;
-        t.fromBlob(p->repo->getPayload(hash));
-        p->treecache.put(hash, t);
-    }
-    return &p->treecache.get(hash);
-}
-
-ObjectInfo *_getObjectInfo(ori_priv *p, const std::string &hash)
-{
-    if (!p->objInfoCache.hasKey(hash)) {
-        LocalObject lo = p->repo->getLocalObject(hash);
-        p->objInfoCache.put(hash, lo.getInfo());
-    }
-    return &p->objInfoCache.get(hash);
-}
 
 int _numComponents(const char *path)
 {
@@ -149,7 +82,7 @@ _getTreeEntry(ori_priv *priv, const char *path)
 
         e = &(*it).second;
         if (e->type == TreeEntry::Tree) {
-            t = _getTree(priv, e->hash);
+            t = priv->getTree(e->hash);
         }
         else {
             t = NULL;
@@ -197,7 +130,7 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 1;
 
         // Get the ObjectInfo
-        ObjectInfo *oi = _getObjectInfo(p, e->hash);
+        ObjectInfo *oi = p->getObjectInfo(e->hash);
         stbuf->st_size = oi->payload_size;
     }
     else {
@@ -212,7 +145,7 @@ ori_getattr(const char *path, struct stat *stbuf)
 static int
 ori_statfs(const char *path, struct statvfs *statv)
 {
-    int status;
+    /*int status;
     char fullpath[PATH_MAX];
 
     strcpy(fullpath, ori_getpriv()->datastore);
@@ -222,7 +155,7 @@ ori_statfs(const char *path, struct statvfs *statv)
 
     status = statvfs(fullpath, statv);
     if (status != 0)
-        return -errno;
+        return -errno;*/
 
     return 0;
 }
@@ -298,7 +231,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         if (e == NULL) return -ENOENT;
         if (e->type != TreeEntry::Tree)
             return -ENOTDIR;
-        t = _getTree(p, e->hash);
+        t = p->getTree(e->hash);
     }
 
     for (std::map<std::string, TreeEntry>::iterator it = t->tree.begin();
@@ -328,31 +261,13 @@ static void *
 ori_init(struct fuse_conn_info *conn)
 {
     char *datastore = (char *)fuse_get_context()->private_data;
-
     if (datastore == NULL) {
         FUSE_LOG("no repo selected");
         exit(1);
     }
     
-    ori_priv *priv = new ori_priv();
-    FUSE_LOG("opening repo at %s", datastore);
-    priv->repo = new LocalRepo(datastore);
-
-    FUSE_LOG("opening repo log %s", priv->repo->getLogPath().c_str());
-
-    if (ori_open_log(priv->repo) < 0) {
-        FUSE_LOG("error opening repo log %s", strerror(errno));
-        exit(1);
-    }
-
+    ori_priv *priv = new ori_priv(datastore);
     FUSE_LOG("ori filesystem starting ...");
-
-    priv->head = new Commit();
-    priv->head->fromBlob(priv->repo->getPayload(priv->repo->getHead()));
-
-    priv->headtree = new Tree();
-    priv->headtree->fromBlob(priv->repo->getPayload(
-                priv->head->getTree()));
 
     return priv;
 }
@@ -364,15 +279,9 @@ static void
 ori_destroy(void *userdata)
 {
     ori_priv *priv = ori_getpriv();
+    delete priv;
 
     LOG("finished");
-
-    free(priv->datastore);
-    delete priv->headtree;
-    delete priv->head;
-    delete priv->repo;
-    // TODO: ?
-    delete priv;
 }
 
 // C++ doesn't allow designated initializers
