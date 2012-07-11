@@ -73,7 +73,10 @@ public:
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
     std::map<std::string, std::map<std::string, Object::BRState> >
         getRefCounts();
-    std::map<std::string, std::set<std::string> > computeRefCounts();
+
+    typedef std::map<std::string, std::set<std::string> > ObjReferenceMap;
+    ObjReferenceMap computeRefCounts();
+    bool rewriteReferences(const ObjReferenceMap &refs);
     // Pruning Operations
     // void pruneObject(const std::string &objId);
     // Grafting Operations

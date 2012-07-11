@@ -30,6 +30,7 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <tr1/memory>
 
 #include "debug.h"
 #include "scan.h"
@@ -490,6 +491,29 @@ cmd_log(int argc, const char *argv[])
 }
 
 int
+getRepoFromURL(const string &url,
+        std::tr1::shared_ptr<Repo> &r,
+        std::tr1::shared_ptr<HttpClient> &hc,
+        std::tr1::shared_ptr<SshClient> &sc)
+{
+    if (Util_IsPathRemote(url.c_str())) {
+        if (strncmp(url.c_str(), "http://", 7) == 0) {
+            hc.reset(new HttpClient(url));
+            r.reset(new HttpRepo(hc.get()));
+            hc->connect();
+        } else {
+            sc.reset(new SshClient(url));
+            r.reset(new SshRepo(sc.get()));
+            sc->connect();
+        }
+    } else {
+        r.reset(new LocalRepo(url));
+    }
+
+    return 0; // TODO: errors?
+}
+
+int
 cmd_clone(int argc, const char *argv[])
 {
     string srcRoot;
@@ -513,18 +537,25 @@ cmd_clone(int argc, const char *argv[])
 
     printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
 
-    LocalRepo srcRepo(srcRoot);
+    std::tr1::shared_ptr<Repo> srcRepo;
+    std::tr1::shared_ptr<HttpClient> httpClient;
+    std::tr1::shared_ptr<SshClient> sshClient;
+    getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
+
     LocalRepo dstRepo(newRoot);
 
-    dstRepo.pull(&srcRepo);
+    dstRepo.pull(srcRepo.get());
 
     // XXX: Need to rely on sync log.
-    dstRepo.updateHead(srcRepo.getHead());
+    dstRepo.updateHead(srcRepo->getHead());
+
+    // TODO: rebuild references
+    LocalRepo::ObjReferenceMap refs = dstRepo.computeRefCounts();
+    if (!dstRepo.rewriteReferences(refs))
+        return 1;
 
     return 0;
 }
-
-int cmd_rebuildrefs(int argc, const char *argv[]);
 
 int
 cmd_pull(int argc, const char *argv[])
@@ -539,22 +570,10 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    std::auto_ptr<HttpClient> httpClient;
-    std::auto_ptr<SshClient> sshClient;
-    std::auto_ptr<Repo> srcRepo;
-    if (Util_IsPathRemote(srcRoot.c_str())) {
-        if (strncmp(srcRoot.c_str(), "http://", 7) == 0) {
-            httpClient.reset(new HttpClient(srcRoot));
-            srcRepo.reset(new HttpRepo(httpClient.get()));
-            httpClient->connect();
-        } else {
-            sshClient.reset(new SshClient(srcRoot));
-            srcRepo.reset(new SshRepo(sshClient.get()));
-            sshClient->connect();
-        }
-    } else {
-        srcRepo.reset(new LocalRepo(srcRoot));
-    }
+    std::tr1::shared_ptr<Repo> srcRepo;
+    std::tr1::shared_ptr<HttpClient> httpClient;
+    std::tr1::shared_ptr<SshClient> sshClient;
+    getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
 
     printf("Pulling from %s\n", srcRoot.c_str());
     repository.pull(srcRepo.get());
@@ -564,7 +583,9 @@ cmd_pull(int argc, const char *argv[])
 
     // TODO: more efficient backref tracking
     printf("Rebuilding references\n");
-    cmd_rebuildrefs(1, NULL);
+    LocalRepo::ObjReferenceMap refs = repository.computeRefCounts();
+    if (!repository.rewriteReferences(refs))
+        return 1;
 
     return 0;
 }
@@ -632,55 +653,14 @@ cmd_findheads(int argc, const char *argv[])
 int
 cmd_rebuildrefs(int argc, const char *argv[])
 {
-    map<string, set<string> > refs;
-    map<string, set<string> >::iterator it;
-
     if (argc != 1) {
-        cout << "rebuildrefs takes no arguements!" << endl;
+        cout << "rebuildrefs takes no arguments!" << endl;
         cout << "Usage: ori rebuildrefs" << endl;
     }
 
-    refs = repository.computeRefCounts();
-
-    for (it = refs.begin(); it != refs.end(); it++) {
-        int status;
-        LocalObject o;
-        Object::Type type;
-
-        if ((*it).first == EMPTY_COMMIT)
-            continue;
-
-        status = o.open(repository.objIdToPath((*it).first));
-        if (status < 0) {
-            cout << "Cannot open object " << (*it).first << endl;
-            return 1;
-        }
-        type = o.getInfo().type;
-
-        if (type == Object::Commit ||
-            type == Object::Tree ||
-            type == Object::Blob ||
-            type == Object::LargeBlob) {
-            set<string>::iterator i;
-
-            o.clearMetadata(); // was clearBackref
-            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
-                o.addBackref((*i), Object::BRRef);
-            }
-        } else if (type == Object::Purged) {
-            set<string>::iterator i;
-
-            o.clearMetadata(); // was clearBackref
-            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
-                o.addBackref((*i), Object::BRPurged);
-            }
-        } else {
-
-            NOT_IMPLEMENTED(false);
-        }
-
-        o.close();
-    }
+    LocalRepo::ObjReferenceMap refs = repository.computeRefCounts();
+    if (!repository.rewriteReferences(refs))
+        return 1;
 
     return 0;
 }

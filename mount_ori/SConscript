@@ -1,12 +1,30 @@
+import sys
+
 Import('env')
 
 src = [
-    "ori_fuse.c",
+    "ori_fuse.cc",
+    "parse_opt.cc",
+    "ori_priv.cc",
+    "logging.cc",
 ]
 
-env.Program("mount_ori", src,
-            LIBPATH = [ "$LIBPATH" ],
-            LIBS = [ "fuse",
-                     "rt" ],
-            CPPPATH = [ "$CPPPATH", "#include", "#" ])
+libs = [
+        "crypto",
+        "lzma",
+        "ori",
+        ]
 
+if sys.platform == "darwin":
+    env.ParseConfig('pkg-config --cflags fuse')
+    env.ParseConfig('pkg-config --libs fuse')
+else:
+    libs += ['fuse', 'rt']
+    
+env.Append(
+        LIBS = libs,
+        LIBPATH = [ "#build/libori", "$LIBPATH" ],
+        CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ]
+        )
+
+env.Program("mount_ori", src)

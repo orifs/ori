@@ -1,0 +1,9 @@
+cd $TEMP_DIR
+$ORI_EXE clone $SOURCE_REPO $TEST_REPO2
+cd $TEST_REPO2
+$ORI_EXE checkout
+$PYTHON $SCRIPTS/compare.py "$SOURCE_REPO" "$TEST_REPO2"
+$ORI_EXE verify
+
+cd $TEMP_DIR
+rm -rf $TEST_REPO2
