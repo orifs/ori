@@ -124,14 +124,20 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_mode = 0555 | S_IFDIR;
         stbuf->st_nlink = 2;
     }
-    else if (e->type == TreeEntry::Blob ||
-             e->type == TreeEntry::LargeBlob) {
+    else if (e->type == TreeEntry::Blob) {
         stbuf->st_mode = 0444 | S_IFREG;
         stbuf->st_nlink = 1;
 
         // Get the ObjectInfo
         ObjectInfo *oi = p->getObjectInfo(e->hash);
         stbuf->st_size = oi->payload_size;
+    }
+    else if (e->type == TreeEntry::LargeBlob) {
+        stbuf->st_mode = 0444 | S_IFREG;
+        stbuf->st_nlink = 1;
+
+        LargeBlob *lb = p->getLargeBlob(e->hash);
+        stbuf->st_size = lb->totalSize();
     }
     else {
         // TreeEntry::Null
@@ -182,18 +188,25 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     TreeEntry *e = _getTreeEntry(p, path);
     if (e == NULL) return -ENOENT;
 
-    if (e->type == TreeEntry::LargeBlob) {
-        FUSE_LOG("Can't read large blobs");
+    if (e->type == TreeEntry::Blob) {
+        // Read the payload to memory
+        // TODO: too inefficient
+        std::string payload;
+        payload = p->repo->getPayload(e->hash);
+
+        size_t left = payload.size() - offset;
+        size_t real_read = MAX(size, left);
+
+        memcpy(buf, payload.data()+offset, real_read);
+
+        return real_read;
+    }
+    else if (e->type == TreeEntry::LargeBlob) {
+        LargeBlob *lb = p->getLargeBlob(e->hash);
+        //payload = lb->getBlob();
+        FUSE_LOG("Large blobs not yet supported");
         return -EIO;
     }
-
-    std::string payload = p->repo->getPayload(e->hash);
-    size_t left = payload.size() - offset;
-    size_t real_read = MAX(size, left);
-
-    memcpy(buf, payload.data()+offset, real_read);
-
-    return real_read;
 }
 
 static int

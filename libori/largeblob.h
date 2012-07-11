@@ -46,6 +46,7 @@ public:
     // XXX: Stream read/write operations
     const std::string getBlob();
     void fromBlob(const std::string &blob);
+    size_t totalSize() const;
     /*
      * A map of the file parts contains the file offset as the key and the large 
      * blob entry object as the value.  It allows O(log n) random access into 

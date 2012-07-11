@@ -297,3 +297,16 @@ LargeBlob::fromBlob(const string &blob)
     }
 }
 
+size_t
+LargeBlob::totalSize() const
+{
+    size_t total = 0;
+    for (map<uint64_t, LBlobEntry>::const_iterator it = parts.begin();
+            it != parts.end(); it++)
+    {
+        total += (*it).second.length;
+    }
+
+    return total;
+}
+
