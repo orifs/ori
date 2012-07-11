@@ -48,7 +48,8 @@ typedef struct ori_priv
     Commit *head;
     Tree *headtree;
 
-    LRUCache<std::string, Tree, 128> *treecache;
+    LRUCache<std::string, Tree, 128> treecache;
+    LRUCache<std::string, ObjectInfo, 128> objInfoCache;
 } ori_priv;
 
 static ori_priv*
@@ -79,12 +80,21 @@ ori_fuse_log(const char *what, ...)
 
 Tree *_getTree(ori_priv *p, const std::string &hash)
 {
-    if (!p->treecache->hasKey(hash)) {
+    if (!p->treecache.hasKey(hash)) {
         Tree t;
         t.fromBlob(p->repo->getPayload(hash));
-        p->treecache->put(hash, t);
+        p->treecache.put(hash, t);
     }
-    return &p->treecache->get(hash);
+    return &p->treecache.get(hash);
+}
+
+ObjectInfo *_getObjectInfo(ori_priv *p, const std::string &hash)
+{
+    if (!p->objInfoCache.hasKey(hash)) {
+        LocalObject lo = p->repo->getLocalObject(hash);
+        p->objInfoCache.put(hash, lo.getInfo());
+    }
+    return &p->objInfoCache.get(hash);
 }
 
 int _numComponents(const char *path)
@@ -185,6 +195,10 @@ ori_getattr(const char *path, struct stat *stbuf)
              e->type == TreeEntry::LargeBlob) {
         stbuf->st_mode = 0444 | S_IFREG;
         stbuf->st_nlink = 1;
+
+        // Get the ObjectInfo
+        ObjectInfo *oi = _getObjectInfo(p, e->hash);
+        stbuf->st_size = oi->payload_size;
     }
     else {
         // TreeEntry::Null
@@ -340,8 +354,6 @@ ori_init(struct fuse_conn_info *conn)
     priv->headtree->fromBlob(priv->repo->getPayload(
                 priv->head->getTree()));
 
-    priv->treecache = new LRUCache<std::string, Tree, 128>();
-
     return priv;
 }
 
@@ -359,7 +371,6 @@ ori_destroy(void *userdata)
     delete priv->headtree;
     delete priv->head;
     delete priv->repo;
-    delete priv->treecache;
     // TODO: ?
     delete priv;
 }
@@ -384,8 +395,8 @@ ori_setup_ori_oper()
     //ori_oper.chown
     //ori_oper.truncate
     //ori_oper.utime
-    //ori_oper.open = ori_open;
-    //ori_oper.read = ori_read;
+    ori_oper.open = ori_open;
+    ori_oper.read = ori_read;
     //ori_oper.write
     //ori_oper.statfs = ori_statfs;
     //ori_oper.flush
