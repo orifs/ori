@@ -176,7 +176,11 @@ int cmd_sshserver(int argc, const char *argv[])
         exit(101);
     }
 
-    ori_open_log(&repository);
+    if (ori_open_log(&repository) < 0) {
+        printf("ERROR couldn't open log\nDONE\n");
+        fflush(stdout);
+        exit(1);
+    }
 
     SshServer server;
     server.serve();

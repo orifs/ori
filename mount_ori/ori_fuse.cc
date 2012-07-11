@@ -34,22 +34,21 @@
 #include "tree.h"
 #include "lrucache.h"
 
-#undef LOG
-#define LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
+#define FUSE_LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
+static void ori_fuse_log(const char *what, ...);
 
 typedef struct ori_priv
 {
-    ori_priv() : datastore(NULL), logfd(0) {}
+    ori_priv() : datastore(NULL) {}
 
     char *datastore;
-    int logfd;
 
     // Valid after ori_init
     LocalRepo *repo;
     Commit *head;
     Tree *headtree;
 
-    LRUCache<std::string, Tree, 128> treecache;
+    LRUCache<std::string, Tree, 128> *treecache;
 } ori_priv;
 
 static ori_priv*
@@ -58,13 +57,14 @@ ori_getpriv()
     return (ori_priv *)fuse_get_context()->private_data;
 }
 
+static int logfd = 0;
+
 static void
 ori_fuse_log(const char *what, ...)
 {
-    ori_priv *p = ori_getpriv();
-    if (p->logfd == 0) {
-        p->logfd = open("ori.log", O_CREAT|O_WRONLY|O_TRUNC, 0660);
-        if (p->logfd == -1) {
+    if (logfd == 0) {
+        logfd = open("ori_fuse.log", O_CREAT|O_WRONLY|O_TRUNC, 0660);
+        if (logfd == -1) {
             perror("open");
             exit(1);
         } 
@@ -72,26 +72,26 @@ ori_fuse_log(const char *what, ...)
 
     va_list vl;
     va_start(vl, what);
-    vdprintf(p->logfd, what, vl);
-    va_end(vl);
+    vdprintf(logfd, what, vl);
 
-    fsync(p->logfd);
+    fsync(logfd);
 }
 
 Tree *_getTree(ori_priv *p, const std::string &hash)
 {
-    if (!p->treecache.hasKey(hash)) {
+    if (!p->treecache->hasKey(hash)) {
         Tree t;
         t.fromBlob(p->repo->getPayload(hash));
-        p->treecache.put(hash, t);
+        p->treecache->put(hash, t);
     }
-    return &p->treecache.get(hash);
+    return &p->treecache->get(hash);
 }
 
 int _numComponents(const char *path)
 {
     size_t len = strlen(path);
-    size_t cnt = 0;
+    if (len == 1) return 0;
+    size_t cnt = 1;
     for (size_t i = 1; i < len; i++) {
         if (path[i] == '/')
             cnt++;
@@ -102,20 +102,34 @@ int _numComponents(const char *path)
 static TreeEntry *
 _getTreeEntry(ori_priv *priv, const char *path)
 {
+    FUSE_LOG("FUSE _getTreeEntry(path=\"%s\")", path);
     int numc = _numComponents(path);
+    FUSE_LOG("num components %d", numc);
+
     Tree *t = priv->headtree;
     TreeEntry *e = NULL;
 
+    size_t plen = strlen(path);
     const char *start = path+1;
     for (int i = 0; i < numc; i++) {
         if (t == NULL) {
             // Got to leaf of tree (e.g. e is a file)
             // but still have more path components
+            FUSE_LOG("path leaf is a file");
             return NULL;
         }
 
         const char *end = strchr(start, '/');
+        if (end == NULL) {
+            if (start == path+plen) {
+                FUSE_LOG("path too stort, too many components");
+                return NULL;
+            }
+            end = path+plen;
+        }
         char *comp = strndup(start, end-start);
+        FUSE_LOG("finding %s", comp);
+
         std::map<std::string, TreeEntry>::iterator it =
             t->tree.find(comp);
         if (it == t->tree.end()) {
@@ -132,6 +146,7 @@ _getTreeEntry(ori_priv *priv, const char *path)
         }
 
         free(comp);
+        start = end+1;
     }
 
     return e;
@@ -140,27 +155,40 @@ _getTreeEntry(ori_priv *priv, const char *path)
 static int
 ori_getattr(const char *path, struct stat *stbuf)
 {
-    LOG("FUSE ori_getattr(path=\"%s\")", path);
+    FUSE_LOG("FUSE ori_getattr(path=\"%s\")", path);
 
-    ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    if (e == NULL) return -ENOENT;
-        
     memset(stbuf, 0, sizeof(struct stat));
     stbuf->st_uid = geteuid();
     stbuf->st_gid = getegid();
 
+    if (strcmp(path, "/") == 0) {
+        stbuf->st_mode = 0555 | S_IFDIR;
+        stbuf->st_nlink = 2;
+        FUSE_LOG("stat root");
+        return 0;
+    }
+
+    ori_priv *p = ori_getpriv();
+    TreeEntry *e = _getTreeEntry(p, path);
+    if (e == NULL) {
+        FUSE_LOG("getattr couldn't find file");
+        return -ENOENT;
+    }
+        
     // TODO: e->mode is not implemented yet in tree.cc
     // so just fake the mode here
     if (e->type == TreeEntry::Tree) {
         stbuf->st_mode = 0555 | S_IFDIR;
+        stbuf->st_nlink = 2;
     }
     else if (e->type == TreeEntry::Blob ||
              e->type == TreeEntry::LargeBlob) {
         stbuf->st_mode = 0444 | S_IFREG;
+        stbuf->st_nlink = 1;
     }
     else {
         // TreeEntry::Null
+        FUSE_LOG("entry type Null");
         return -EIO;
     }
 
@@ -176,7 +204,7 @@ ori_statfs(const char *path, struct statvfs *statv)
     strcpy(fullpath, ori_getpriv()->datastore);
     strncat(fullpath, path, PATH_MAX);
 
-    LOG("FUSE ori_statfs(path=\"%s\")", path);
+    FUSE_LOG("FUSE ori_statfs(path=\"%s\")", path);
 
     status = statvfs(fullpath, statv);
     if (status != 0)
@@ -188,7 +216,7 @@ ori_statfs(const char *path, struct statvfs *statv)
 static int
 ori_open(const char *path, struct fuse_file_info *fi)
 {
-    LOG("FUSE ori_open(path=\"%s\")", path);
+    FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
 
     ori_priv *p = ori_getpriv();
     TreeEntry *e = _getTreeEntry(p, path);
@@ -201,14 +229,14 @@ static int
 ori_read(const char *path, char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
-    LOG("FUSE ori_read(path=\"%s\", size=%d, offset=%d)", path, size, offset);
+    FUSE_LOG("FUSE ori_read(path=\"%s\", size=%d, offset=%d)", path, size, offset);
 
     ori_priv *p = ori_getpriv();
     TreeEntry *e = _getTreeEntry(p, path);
     if (e == NULL) return -ENOENT;
 
     if (e->type == TreeEntry::LargeBlob) {
-        assert(false);
+        FUSE_LOG("Can't read large blobs");
         return -EIO;
     }
 
@@ -224,7 +252,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
 static int
 ori_release(const char *path, struct fuse_file_info *fi)
 {
-    LOG("FUSE ori_release(path=\"%s\")", path);
+    FUSE_LOG("FUSE ori_release(path=\"%s\")", path);
 
     return close(fi->fh);
 }
@@ -232,21 +260,7 @@ ori_release(const char *path, struct fuse_file_info *fi)
 static int
 ori_opendir(const char *path, struct fuse_file_info *fi)
 {
-    DIR *dir;
-    char fullpath[PATH_MAX];
-
-    strcpy(fullpath, ori_getpriv()->datastore);
-    strncat(fullpath, path, PATH_MAX);
-    
-    LOG("FUSE ori_opendir(path=\"%s\")", path);
-
-    dir = opendir(fullpath);
-    if (dir == NULL) {
-        LOG("opendir failed '%s': %s", path, strerror(errno));
-        return -errno;
-    }
-
-    fi->fh = (intptr_t)dir;
+    FUSE_LOG("FUSE ori_opendir(path=\"%s\")", path);
 
     return 0;
 }
@@ -255,23 +269,30 @@ static int
 ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                         off_t offset, struct fuse_file_info *fi)
 {
-    DIR *dir;
-    struct dirent *entry;
+    FUSE_LOG("FUSE ori_readdir(path=\"%s\")", path);
 
-    LOG("FUSE ori_readdir(path=\"%s\")", path);
+    filler(buf, ".", NULL, 0);
+    filler(buf, "..", NULL, 0);
 
-    dir = (DIR *)(uintptr_t)fi->fh;
-
-    entry = readdir(dir);
-    if (entry == NULL) {
-        return -errno;
+    ori_priv *p = ori_getpriv();
+    Tree *t = NULL;
+    if (strcmp(path, "/") == 0) {
+        t = p->headtree;
+    }
+    else {
+        TreeEntry *e = _getTreeEntry(p, path);
+        if (e == NULL) return -ENOENT;
+        if (e->type != TreeEntry::Tree)
+            return -ENOTDIR;
+        t = _getTree(p, e->hash);
     }
 
-    do {
-        if (filler(buf, entry->d_name, NULL, 0) != 0) {
-            return -ENOMEM;
-        }
-    } while ((entry = readdir(dir)) != NULL);
+    for (std::map<std::string, TreeEntry>::iterator it = t->tree.begin();
+            it != t->tree.end();
+            it++) {
+        FUSE_LOG("readdir entry %s", (*it).first.c_str());
+        filler(buf, (*it).first.c_str(), NULL, 0);
+    }
 
     return 0;
 }
@@ -279,7 +300,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 static int
 ori_releasedir(const char *path, struct fuse_file_info *fi)
 {
-    LOG("FUSE ori_closedir(path=\"%s\")", path);
+    FUSE_LOG("FUSE ori_closedir(path=\"%s\")", path);
 
     closedir((DIR *)(uintptr_t)fi->fh);
 
@@ -292,12 +313,25 @@ ori_releasedir(const char *path, struct fuse_file_info *fi)
 static void *
 ori_init(struct fuse_conn_info *conn)
 {
-    ori_priv *priv = ori_getpriv();
-    
-    priv->repo = new LocalRepo(priv->datastore);
-    ori_open_log(priv->repo);
+    char *datastore = (char *)fuse_get_context()->private_data;
 
-    LOG("ori filesystem starting ...");
+    if (datastore == NULL) {
+        FUSE_LOG("no repo selected");
+        exit(1);
+    }
+    
+    ori_priv *priv = new ori_priv();
+    FUSE_LOG("opening repo at %s", datastore);
+    priv->repo = new LocalRepo(datastore);
+
+    FUSE_LOG("opening repo log %s", priv->repo->getLogPath().c_str());
+
+    if (ori_open_log(priv->repo) < 0) {
+        FUSE_LOG("error opening repo log %s", strerror(errno));
+        exit(1);
+    }
+
+    FUSE_LOG("ori filesystem starting ...");
 
     priv->head = new Commit();
     priv->head->fromBlob(priv->repo->getPayload(priv->repo->getHead()));
@@ -305,6 +339,8 @@ ori_init(struct fuse_conn_info *conn)
     priv->headtree = new Tree();
     priv->headtree->fromBlob(priv->repo->getPayload(
                 priv->head->getTree()));
+
+    priv->treecache = new LRUCache<std::string, Tree, 128>();
 
     return priv;
 }
@@ -316,9 +352,14 @@ static void
 ori_destroy(void *userdata)
 {
     ori_priv *priv = ori_getpriv();
+
+    LOG("finished");
+
+    free(priv->datastore);
     delete priv->headtree;
     delete priv->head;
     delete priv->repo;
+    delete priv->treecache;
     // TODO: ?
     delete priv;
 }
@@ -328,6 +369,7 @@ static struct fuse_operations ori_oper;
 static void
 ori_setup_ori_oper()
 {
+    memset(&ori_oper, 0, sizeof(struct fuse_operations));
     ori_oper.getattr = ori_getattr;
     //ori_oper.readlink
     //ori_oper.getdir
@@ -342,8 +384,8 @@ ori_setup_ori_oper()
     //ori_oper.chown
     //ori_oper.truncate
     //ori_oper.utime
-    ori_oper.open = ori_open;
-    ori_oper.read = ori_read;
+    //ori_oper.open = ori_open;
+    //ori_oper.read = ori_read;
     //ori_oper.write
     //ori_oper.statfs = ori_statfs;
     //ori_oper.flush
@@ -353,7 +395,7 @@ ori_setup_ori_oper()
     //ori_oper.getxattr
     //ori_oper.listxattr
     //ori_oper.removexattr
-    ori_oper.opendir = ori_opendir;
+    //ori_oper.opendir = ori_opendir;
     ori_oper.readdir = ori_readdir;
     //ori_oper.releasedir = ori_releasedir;
     //ori_oper.fsyncdir
@@ -380,9 +422,15 @@ main(int argc, char *argv[])
     printf("Opening repo at %s\n", conf.repo_path);
 
     // Set the repo path
-    ori_priv *priv = new ori_priv();
-    priv->datastore = conf.repo_path;
+    char *datastore = realpath(conf.repo_path, NULL);
+    //ori_priv *priv = new ori_priv();
+    //priv->datastore = realpath(conf.repo_path, NULL);
 
-    return fuse_main(args.argc, args.argv, &ori_oper, priv);
+    FUSE_LOG("main");
+    FUSE_LOG("%d", args.argc);
+    for (int i = 0; i < args.argc; i++)
+        FUSE_LOG("%s", args.argv[i]);
+
+    return fuse_main(args.argc, args.argv, &ori_oper, datastore);
 }
 

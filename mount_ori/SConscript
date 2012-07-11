@@ -9,18 +9,20 @@ src = [
 
 libs = [
         "crypto",
-        "fuse",
         "lzma",
         "ori",
         ]
 
 if sys.platform == "darwin":
-    libs += []
+    env.ParseConfig('pkg-config --cflags fuse')
+    env.ParseConfig('pkg-config --libs fuse')
 else:
-    libs += ['rt']
+    libs += ['fuse', 'rt']
+    
+env.Append(
+        LIBS = libs,
+        LIBPATH = [ "#build/libori", "$LIBPATH" ],
+        CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ]
+        )
 
-env.Program("mount_ori", src,
-            LIBPATH = [ "#build/libori", "$LIBPATH" ],
-            LIBS = libs,
-            CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])
-
+env.Program("mount_ori", src)

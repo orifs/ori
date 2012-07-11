@@ -308,7 +308,10 @@ main(int argc, char *argv[])
             exit(1);
         }
 
-        ori_open_log(&repository);
+        if (ori_open_log(&repository) < 0) {
+            printf("Couldn't open log!\n");
+            exit(1);
+        }
     }
 
     idx = lookupcmd(argv[1]);
