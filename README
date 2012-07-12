@@ -14,10 +14,13 @@ Dependences:
  - liblzma (XZ Utils)
  - libevent 2.0
  - mDNSResponder
+ - FUSE (API Version 26+)
 
 Build flags can be added to 'Local.sc' in the root directory, or through the 
 command line.  The available options can be displayed by typing 'scons --help'.  
-To disable the fuse module, add WITH_FUSE="0" to the Local.sc file.
+To disable the fuse module, add WITH_FUSE="0" to the Local.sc file. You may 
+disable the HTTPD and/or MDNS with by adding WITH_HTTPD and WITH_MDNS build 
+options.
 
 To build the binary run the follow:
 
