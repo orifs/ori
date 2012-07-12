@@ -195,7 +195,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
         payload = p->repo->getPayload(e->hash);
 
         size_t left = payload.size() - offset;
-        size_t real_read = MAX(size, left);
+        size_t real_read = MIN(size, left);
 
         memcpy(buf, payload.data()+offset, real_read);
 
@@ -203,9 +203,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     }
     else if (e->type == TreeEntry::LargeBlob) {
         LargeBlob *lb = p->getLargeBlob(e->hash);
-        //payload = lb->getBlob();
-        FUSE_LOG("Large blobs not yet supported");
-        return -EIO;
+        return lb->read((uint8_t*)buf, size, offset);
     }
 }
 
