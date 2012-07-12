@@ -120,11 +120,18 @@ HttpClient::connected()
     return false;
 }
 
+struct RequestCB
+{
+    HttpClient *client;
+    string *response;
+};
+
 void
-HttpClient_requestDoneCB(struct evhttp_request *req, void *c)
+HttpClient_requestDoneCB(struct evhttp_request *req, void *r)
 {
     int status;
-    HttpClient *client = (HttpClient *)c;
+    RequestCB *cb = (RequestCB *)r;
+    HttpClient *client = cb->client;
     struct evkeyvalq *headers;
     struct evbuffer *bufIn;
 
@@ -148,7 +155,9 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *c)
      * we should signal the client to wakeup or register a callback.
      */
     int len = evbuffer_get_length(bufIn);
-    evbuffer_pullup(bufIn, len);
+    char *data = (char *)evbuffer_pullup(bufIn, len);
+
+    cb->response->assign(data, len);
 
     event_base_loopexit(client->base, NULL);
 }
@@ -157,9 +166,12 @@ int
 HttpClient::getRequest(const string &command, string &response)
 {
     int status;
+    RequestCB cb;
     struct evhttp_request *req;
 
-    req = evhttp_request_new(HttpClient_requestDoneCB, (void *)this);
+    cb.client = this;
+    cb.response = &response;
+    req = evhttp_request_new(HttpClient_requestDoneCB, (void *)&cb);
 
     evhttp_add_header(evhttp_request_get_output_headers(req),
                       "Connection", "keep-alive");
@@ -172,13 +184,6 @@ HttpClient::getRequest(const string &command, string &response)
 
     // XXX: Create dedicated event loop
     event_base_dispatch(base);
-
-    struct evbuffer *bufIn = evhttp_request_get_input_buffer(req);
-    
-    int len = evbuffer_get_length(bufIn);
-    char *data = (char *)evbuffer_pullup(bufIn, len);
-
-    response.assign(data, len);
 
     return 0;
 }
