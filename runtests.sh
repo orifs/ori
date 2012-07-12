@@ -73,6 +73,8 @@ for t in `find $ORI_TESTS -name '*.sh' | sort`; do
 
     if [ "$?" -ne "0" ] ; then
         echo "FAILED: $TEST_NAME" | tee -a $TEST_RESULTS
+        exit 1
+        # TODO: to keep directory state
     else
         echo "$TEST_NAME" >> $TEST_RESULTS
     fi
