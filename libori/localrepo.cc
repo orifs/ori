@@ -95,14 +95,14 @@ LocalRepo::lock()
 
     int rval = symlink(idPath.c_str(), lfPath.c_str());
     if (rval < 0) {
-        switch (errno) {
-        case EEXIST:
-            printf("Repository at %s is already locked\n", rootPath.c_str());
-            return NULL;
-        default:
-            perror("symlink");
-            return NULL;
+        if (errno == EEXIST) {
+            printf("Repository at %s is already locked\nAnother instance of ORI may currently be using it\n", rootPath.c_str());
         }
+        else {
+            perror("symlink");
+        }
+
+        return NULL;
     }
 
     return new LocalRepoLock(lfPath);
