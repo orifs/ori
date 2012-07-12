@@ -43,7 +43,7 @@ public:
     ~LargeBlob();
     void chunkFile(const std::string &path);
     void extractFile(const std::string &path);
-    /// May not read exactly s bytes every time
+    /// May read less than s bytes
     ssize_t read(uint8_t *buf, size_t s, off_t off);
     // XXX: Stream read/write operations
     const std::string getBlob();
