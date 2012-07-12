@@ -75,11 +75,14 @@ int ori_open_log(LocalRepo *repo) {
     logfd = -1;
 
     std::string logPath = repo->getLogPath();
-    if (logPath == "") return -1;
+    if (logPath == "")
+        return -1;
 
     logfd = open(logPath.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0660);
     if (logfd == -1) {
         perror("open");
         return -1;
     }
+
+    return 0;
 }
