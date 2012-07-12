@@ -97,12 +97,11 @@ LocalRepo::lock()
     if (rval < 0) {
         if (errno == EEXIST) {
             printf("Repository at %s is already locked\nAnother instance of ORI may currently be using it\n", rootPath.c_str());
-        }
-        else {
+        } else {
             perror("symlink");
         }
 
-        return NULL;
+        exit(1);
     }
 
     return new LocalRepoLock(lfPath);
@@ -771,6 +770,8 @@ LocalRepo::stripMetadata()
         o.clearMetadata();
         o.close();
     }
+
+    return true;
 }
 
 /*
