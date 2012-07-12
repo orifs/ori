@@ -75,6 +75,7 @@ public:
     typedef std::map<std::string, std::set<std::string> > ObjReferenceMap;
     ObjReferenceMap computeRefCounts();
     bool rewriteReferences(const ObjReferenceMap &refs);
+    bool stripMetadata();
     // Pruning Operations
     // void pruneObject(const std::string &objId);
     // Grafting Operations
