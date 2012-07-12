@@ -8,6 +8,7 @@ src = [
     "debug.cc",
     "httpclient.cc",
     "httprepo.cc",
+    "index.cc",
     "largeblob.cc",
     "lrucache.cc",
     "object.cc",

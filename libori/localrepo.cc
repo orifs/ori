@@ -50,6 +50,7 @@ LocalRepo::LocalRepo(const string &root)
 
 LocalRepo::~LocalRepo()
 {
+    close();
 }
 
 bool
@@ -77,12 +78,15 @@ LocalRepo::open(const string &root)
     version = ver_str;
     delete ver_str;
 
+    index.open(rootPath + ORI_PATH_INDEX);
+
     return true;
 }
 
 void
 LocalRepo::close()
 {
+    index.close();
 }
 
 LocalRepoLock *
@@ -194,6 +198,8 @@ LocalRepo::addSmallFile(const string &path)
 	    perror("Unable to copy file");
 	    return "";
 	}
+
+        index.updateInfo(o.getInfo().hash, o.getInfo());
     }
 
     return hash;
@@ -262,6 +268,8 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
             return -errno;
         }
     }
+
+    index.updateInfo(hash, info);
 
     return 0;
 }
@@ -427,6 +435,8 @@ LocalRepo::verifyObject(const string &objId)
         return "Object info missing some fileds!";
     }
 
+    // XXX: Check against index
+
     return "";
 }
 
@@ -512,7 +522,6 @@ LocalRepo::listObjects()
 
     return objs;
 }
-
 
 bool _timeCompare(const Commit &c1, const Commit &c2) {
     return c1.getTime() < c2.getTime();
