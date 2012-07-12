@@ -751,6 +751,29 @@ LocalRepo::rewriteReferences(const LocalRepo::ObjReferenceMap &refs)
     return true;
 }
 
+bool
+LocalRepo::stripMetadata()
+{
+    LOG("Stripping metadata");
+    int status;
+    LocalRepoLock::ap _lock(lock());
+    set<ObjectInfo> obj = listObjects();
+    set<ObjectInfo>::iterator it;
+
+    for (it = obj.begin(); it != obj.end(); it++) {
+        LocalObject o;
+
+        status = o.open(objIdToPath((*it).hash));
+        if (status < 0) {
+            LOG("Cannot open object %s", (*it).hash.c_str());
+            return false;
+        }
+
+        o.clearMetadata();
+        o.close();
+    }
+}
+
 /*
  * Grafting Operations
  */

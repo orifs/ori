@@ -666,6 +666,22 @@ cmd_rebuildrefs(int argc, const char *argv[])
 }
 
 /*
+ * Strip all meta-data including reference counts.
+ */
+int
+cmd_stripmetadata(int argc, const char *argv[])
+{
+    if (argc != 1) {
+        cout << "stripmetadata takes no arguments!" << endl;
+        cout << "Usage: ori stripmetadata" << endl;
+    }
+
+    if (!repository.stripMetadata())
+        return 1;
+    return 0;
+}
+
+/*
  * Print the reference counts for all objects, or show the references
  * to a particular object.
  */

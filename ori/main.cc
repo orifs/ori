@@ -74,6 +74,7 @@ int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_stats(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
+int cmd_stripmetadata(int argc, const char *argv[]); // Debug
 // server.cc
 int cmd_sshserver(int argc, const char *argv[]);
 // local
@@ -186,6 +187,12 @@ static Cmd commands[] = {
 	"Purge object (DEBUG)",
 	cmd_purgeobj,
 	NULL,
+    },
+    {
+        "stripmetadata",
+        "Strip all object metadata including backreferences (DEBUG)",
+        cmd_stripmetadata,
+        NULL,
     },
     {
         "sshserver",
@@ -322,8 +329,6 @@ main(int argc, char *argv[])
     }
 
     LOG("Executing '%s'", argv[1]);
-    commands[idx].cmd(argc-1, (const char **)argv+1);
-
-    return 0;
+    return commands[idx].cmd(argc-1, (const char **)argv+1);
 }
 
