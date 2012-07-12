@@ -253,6 +253,32 @@ LargeBlob::extractFile(const string &path)
 #endif /* DEBUG */
 }
 
+ssize_t
+LargeBlob::read(uint8_t *buf, size_t s, off_t off)
+{
+    size_t total = 0;
+
+    map<uint64_t, LBlobEntry>::const_iterator it;
+    for (it = parts.begin(); it != parts.end(); it++)
+    {
+        if ((*it).second.length + total > off)
+            break;
+        total += (*it).second.length;
+    }
+
+    if (it == parts.end())
+        return -EIO;
+
+    uint16_t part_off = off - total;
+    int left = (*it).second.length - part_off;
+    int to_read = MIN(left, s);
+
+    const std::string &payload = repo->getPayload((*it).second.hash);
+    memcpy(buf, payload.data()+part_off, to_read);
+
+    return to_read;
+}
+
 const string
 LargeBlob::getBlob()
 {
@@ -295,5 +321,18 @@ LargeBlob::fromBlob(const string &blob)
 
         off += len;
     }
+}
+
+size_t
+LargeBlob::totalSize() const
+{
+    size_t total = 0;
+    for (map<uint64_t, LBlobEntry>::const_iterator it = parts.begin();
+            it != parts.end(); it++)
+    {
+        total += (*it).second.length;
+    }
+
+    return total;
 }
 

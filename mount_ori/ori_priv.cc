@@ -35,6 +35,17 @@ ori_priv::getTree(const std::string &hash)
     return &treeCache.get(hash);
 }
 
+LargeBlob *
+ori_priv::getLargeBlob(const std::string &hash)
+{
+    if (!lbCache.hasKey(hash)) {
+        std::tr1::shared_ptr<LargeBlob> lb(new LargeBlob(repo));
+        lb->fromBlob(repo->getPayload(hash));
+        lbCache.put(hash, lb);
+    }
+    return lbCache.get(hash).get();
+}
+
 ObjectInfo *
 ori_priv::getObjectInfo(const std::string &hash)
 {

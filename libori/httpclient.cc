@@ -74,6 +74,8 @@ HttpClient::HttpClient(const std::string &remotePath)
 
     remoteHost = tmp.substr(0, portPos);
     remoteRepo = tmp.substr(pathPos + 1);
+
+    LOG("libevent %s", event_get_version());
 }
 
 HttpClient::~HttpClient()
@@ -94,6 +96,7 @@ HttpClient::connect()
 
     port = strtoul(remotePort.c_str(), NULL, 10);
 
+    // TODO: doesn't resolve hostnames
     con = evhttp_connection_base_new(base, dnsBase, remoteHost.c_str(), port);
 
     return 0;
@@ -136,13 +139,15 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *r)
     struct evbuffer *bufIn;
 
     if (!req) {
-        cout << "req is NULL!" << endl;
+        LOG("req is NULL!");
+        event_base_loopexit(client->base, NULL);
         return;
     }
 
     status = evhttp_request_get_response_code(req);
     if (status != HTTP_OK) {
-        cout << "Failed!" << endl;
+        LOG("HTTP request failed!");
+        event_base_loopexit(client->base, NULL);
         return;
     }
 
@@ -156,6 +161,11 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *r)
      */
     int len = evbuffer_get_length(bufIn);
     char *data = (char *)evbuffer_pullup(bufIn, len);
+    if (data == NULL) {
+        LOG("Error running evbuffer_pullup");
+        event_base_loopexit(client->base, NULL);
+        return;
+    }
 
     cb->response->assign(data, len);
 
@@ -173,12 +183,12 @@ HttpClient::getRequest(const string &command, string &response)
     cb.response = &response;
     req = evhttp_request_new(HttpClient_requestDoneCB, (void *)&cb);
 
-    evhttp_add_header(evhttp_request_get_output_headers(req),
-                      "Connection", "keep-alive");
+    struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+    evhttp_add_header(headers, "Connection", "keep-alive");
 
     status = evhttp_make_request(con, req, EVHTTP_REQ_GET, command.c_str());
-    if (status == -1) {
-        cout << "Request failure!" << endl;
+    if (status < 0) {
+        LOG("HTTP request failure!");
         return -1;
     }
 

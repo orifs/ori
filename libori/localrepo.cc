@@ -95,16 +95,13 @@ LocalRepo::lock()
 
     int rval = symlink(idPath.c_str(), lfPath.c_str());
     if (rval < 0) {
-        switch (errno) {
-        case EEXIST:
-            printf("Repository at %s is already locked\n", rootPath.c_str());
-            exit(1);
-            return NULL;
-        default:
+        if (errno == EEXIST) {
+            printf("Repository at %s is already locked\nAnother instance of ORI may currently be using it\n", rootPath.c_str());
+        } else {
             perror("symlink");
-            exit(1);
-            return NULL;
         }
+
+        exit(1);
     }
 
     return new LocalRepoLock(lfPath);
@@ -355,9 +352,8 @@ LocalRepo::getPayload(const string &objId)
     if (!o.get())
         return "";
 
-    // TODO: LargeBlob
-    if (o->getInfo().type == Object::LargeBlob)
-        assert(false);
+    // TODO: if object is a LargeBlob, this will only return the LargeBlob
+    // object, not the full contents of all the referenced blobs
 
     auto_ptr<bytestream> bs(o->getPayloadStream());
     return bs->readAll();

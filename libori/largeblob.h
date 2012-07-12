@@ -43,9 +43,12 @@ public:
     ~LargeBlob();
     void chunkFile(const std::string &path);
     void extractFile(const std::string &path);
+    /// May not read exactly s bytes every time
+    ssize_t read(uint8_t *buf, size_t s, off_t off);
     // XXX: Stream read/write operations
     const std::string getBlob();
     void fromBlob(const std::string &blob);
+    size_t totalSize() const;
     /*
      * A map of the file parts contains the file offset as the key and the large 
      * blob entry object as the value.  It allows O(log n) random access into 
