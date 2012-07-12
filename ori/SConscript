@@ -15,16 +15,14 @@ libs = [
         "ori",
        ]
 
-if sys.platform == "darwin":
-    # TODO
-    libs += ['event']
-else:
+if sys.platform != "darwin":
     libs += ['rt', 'event-2.0']
     if env["WITH_MDNS"] == "1":
         libs += ['dns_sd']
 
-env.Program("ori", src,
-            LIBPATH = [ "#build/libori", "$LIBPATH" ],
+env.Append(LIBPATH = [ "#build/libori", "$LIBPATH" ],
             LIBS = libs,
             CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])
+
+env.Program("ori", src)
 
