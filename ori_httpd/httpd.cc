@@ -225,6 +225,8 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     *payload = bs->readAll();
     objInfo = obj->getInfo().getInfo();
 
+    assert(objInfo.size() == 16);
+
     // Transmit
     evbuffer_add(buf, objInfo.data(), objInfo.size());
     evbuffer_add_reference(buf, payload->data(), payload->size(),
