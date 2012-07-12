@@ -203,7 +203,15 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     }
     else if (e->type == TreeEntry::LargeBlob) {
         LargeBlob *lb = p->getLargeBlob(e->hash);
-        return lb->read((uint8_t*)buf, size, offset);
+        lb->extractFile("temp.tst");
+        size_t total = 0;
+        while (total < size) {
+            ssize_t res = lb->read((uint8_t*)(buf + total),
+                    size - total, offset + total);
+            if (res <= 0) return res;
+            total += res;
+        }
+        return total;
     }
 }
 
