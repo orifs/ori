@@ -71,6 +71,8 @@ retryWrite:
         totalWritten += bytesWritten;
     }
 
+    if (sizeHint() > 0)
+        assert(totalWritten == sizeHint());
     return totalWritten;
 }
 
