@@ -123,6 +123,7 @@ void
 Httpd_head(struct evhttp_request *req, void *arg)
 {
     string headId = repository.getHead();
+    assert(headId.size() == 64);
     struct evbuffer *buf;
 
     LOG("httpd: gethead");
@@ -377,6 +378,7 @@ main(int argc, char *argv[])
     }
 
     ori_open_log(&repository);
+    LOG("libevent %s", event_get_version());
 
     Httpd_main(port);
 
