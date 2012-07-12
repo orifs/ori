@@ -98,9 +98,11 @@ LocalRepo::lock()
         switch (errno) {
         case EEXIST:
             printf("Repository at %s is already locked\n", rootPath.c_str());
+            exit(1);
             return NULL;
         default:
             perror("symlink");
+            exit(1);
             return NULL;
         }
     }
@@ -772,6 +774,8 @@ LocalRepo::stripMetadata()
         o.clearMetadata();
         o.close();
     }
+
+    return true;
 }
 
 /*
