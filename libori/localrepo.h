@@ -48,6 +48,7 @@ public:
             bytestream *bs);
     bool hasObject(const std::string &objId);
     Object *getObject(const std::string &objId);
+    virtual ObjectInfo *getObjectInfo(const std::string &objId);
     std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
     bool rebuildIndex();

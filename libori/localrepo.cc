@@ -597,6 +597,14 @@ LocalRepo::hasObject(const string &objId)
     return index.hasObject(objId);
 }
 
+/*
+ * Return ObjectInfo through the fast path.
+ */
+ObjectInfo *
+LocalRepo::getObjectInfo(const string &objId)
+{
+    return new ObjectInfo(index.getInfo(objId));
+}
 
 /*
  * BasicRepo implementation
