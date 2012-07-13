@@ -44,6 +44,7 @@ LocalRepoLock::~LocalRepoLock()
  ********************************************************************/
 
 LocalRepo::LocalRepo(const string &root)
+    : opened(false)
 {
     rootPath = (root == "") ? findRootPath() : root;
 }
@@ -80,6 +81,7 @@ LocalRepo::open(const string &root)
 
     index.open(rootPath + ORI_PATH_INDEX);
 
+    opened = true;
     return true;
 }
 
@@ -87,11 +89,13 @@ void
 LocalRepo::close()
 {
     index.close();
+    opened = false;
 }
 
 LocalRepoLock *
 LocalRepo::lock()
 {
+    assert(opened);
     if (rootPath == "")
         return NULL;
     std::string lfPath = rootPath + ORI_PATH_LOCK;
@@ -118,11 +122,13 @@ LocalRepo::lock()
 Object::sp LocalRepo::getObject(const std::string &objId)
 {
     LocalObject::sp o(getLocalObject(objId));
+    if (!o) return Object::sp();
     return Object::sp(o);
 }
 
 LocalObject::sp LocalRepo::getLocalObject(const std::string &objId)
 {
+    assert(opened);
     if (!_objectCache.hasKey(objId)) {
         string path = objIdToPath(objId);
         LocalObject::sp o(new LocalObject());
@@ -250,6 +256,7 @@ LocalRepo::addLargeFile(const string &path)
 pair<string, string>
 LocalRepo::addFile(const string &path)
 {
+    assert(opened);
     size_t sz = Util_FileSize(path);
 
     if (sz > LARGEFILE_MINIMUM)
@@ -261,6 +268,7 @@ LocalRepo::addFile(const string &path)
 int
 LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
+    assert(opened);
     string hash = info.hash;
     string objPath = objIdToPath(hash);
 

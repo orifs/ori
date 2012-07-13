@@ -45,12 +45,10 @@ ObjectInfo *
 Repo::getObjectInfo(const std::string &id)
 {
     Object::sp o(getObject(id));
-    ObjectInfo *info = NULL;
-
     if (!o)
         return NULL;
 
-    info = new ObjectInfo(o->getInfo());
+    ObjectInfo *info = new ObjectInfo(o->getInfo());
     return info;
 }
 

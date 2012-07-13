@@ -287,6 +287,7 @@ LocalObject::open(const string &path, const string &hash)
     fd = ::open(path.c_str(), O_RDWR);
     if (fd < 0) {
         perror("open");
+        printf("object open error %s\n", path.c_str());
 	return -errno;
     }
 

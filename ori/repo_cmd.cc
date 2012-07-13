@@ -508,6 +508,7 @@ getRepoFromURL(const string &url,
         }
     } else {
         r.reset(new LocalRepo(url));
+        ((LocalRepo *)r.get())->open(url);
     }
 
     return 0; // TODO: errors?
@@ -537,7 +538,8 @@ cmd_clone(int argc, const char *argv[])
 
     printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
 
-    LocalRepo dstRepo(newRoot);
+    LocalRepo dstRepo;
+    dstRepo.open(newRoot);
     {
         std::tr1::shared_ptr<Repo> srcRepo;
         std::tr1::shared_ptr<HttpClient> httpClient;

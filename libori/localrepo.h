@@ -107,6 +107,7 @@ public: // Hack to enable rebuild operations
     std::string objIdToPath(const std::string &objId);
 private:
     // Variables
+    bool opened;
     std::string rootPath;
     std::string id;
     std::string version;
