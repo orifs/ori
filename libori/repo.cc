@@ -153,6 +153,7 @@ Repo::pull(Repo *r)
         }
     }
 
+    // XXX: What about HTTP
     if (dynamic_cast<SshRepo*>(r)) {
         ((SshRepo *)r)->preload(needed);
     }
