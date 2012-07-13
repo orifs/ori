@@ -382,6 +382,36 @@ LocalRepo::getPayload(const string &objId)
 }
 
 /*
+ * Get an object length.
+ */
+size_t
+LocalRepo::getObjectLength(const string &objId)
+{
+    if (!hasObject(objId)) {
+        LOG("Couldn't get object %s", objId.c_str());
+        return -1;
+    }
+
+    const ObjectInfo &info = getObjectInfo(objId);
+    return info.payload_size;
+}
+
+/*
+ * Get the object type.
+ */
+Object::Type
+LocalRepo::getObjectType(const string &objId)
+{
+    if (!hasObject(objId)) {
+        LOG("Couldn't get object %s", objId.c_str());
+        return Object::Null;
+    }
+
+    const ObjectInfo &info = getObjectInfo(objId);
+    return info.type;
+}
+
+/*
  * Verify object
  */
 string
@@ -612,10 +642,10 @@ LocalRepo::hasObject(const string &objId)
 /*
  * Return ObjectInfo through the fast path.
  */
-ObjectInfo *
+const ObjectInfo &
 LocalRepo::getObjectInfo(const string &objId)
 {
-    return new ObjectInfo(index.getInfo(objId));
+    return index.getInfo(objId);
 }
 
 /*

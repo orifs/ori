@@ -48,7 +48,7 @@ public:
             bytestream *bs);
     bool hasObject(const std::string &objId);
     Object::sp getObject(const std::string &objId);
-    virtual ObjectInfo *getObjectInfo(const std::string &objId);
+    const ObjectInfo &getObjectInfo(const std::string &objId);
     std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
     bool rebuildIndex();
@@ -65,6 +65,8 @@ public:
     virtual std::string addTree(const Tree &tree);
     virtual std::string addCommit(/* const */ Commit &commit);
     //std::string addBlob(const std::string &blob, Object::Type type);
+    size_t getObjectLength(const std::string &objId);
+    Object::Type getObjectType(const std::string &objId);
     std::string getPayload(const std::string &objId);
     std::string verifyObject(const std::string &objId);
     bool purgeObject(const std::string &objId);

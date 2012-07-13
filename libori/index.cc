@@ -145,17 +145,13 @@ Index::updateInfo(const string &objId, const ObjectInfo &info)
     write(fd, indexLine.data(), indexLine.size());
 }
 
-ObjectInfo
-Index::getInfo(const string &objId)
+const ObjectInfo &
+Index::getInfo(const string &objId) const
 {
-    map<string, ObjectInfo>::iterator it;
+    map<string, ObjectInfo>::const_iterator it = index.find(objId);
+    assert(it != index.end());
 
-    it = index.find(objId);
-
-    if (it != index.end())
-        return (*it).second;
-    else
-        return NULL;
+    return (*it).second;
 }
 
 bool

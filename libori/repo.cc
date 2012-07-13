@@ -41,17 +41,6 @@ Repo::Repo() {
 Repo::~Repo() {
 }
 
-ObjectInfo *
-Repo::getObjectInfo(const std::string &id)
-{
-    Object::sp o(getObject(id));
-    if (!o)
-        return NULL;
-
-    ObjectInfo *info = new ObjectInfo(o->getInfo());
-    return info;
-}
-
 /*
  * High-level operations
  */
@@ -88,33 +77,6 @@ Repo::addBlob(Object::Type type, const string &blob)
     return hash;
 }
 
-/*
- * Get an object length.
- */
-size_t
-Repo::getObjectLength(const string &objId)
-{
-    auto_ptr<ObjectInfo> info(getObjectInfo(objId));
-    if (!info.get()){
-        printf("Couldn't get object %s\n", objId.c_str());
-        return -1;
-    }
-    return info->payload_size;
-}
-
-/*
- * Get the object type.
- */
-Object::Type
-Repo::getObjectType(const string &objId)
-{
-    auto_ptr<ObjectInfo> info(getObjectInfo(objId));
-    if (!info.get()){
-        printf("Couldn't get object %s\n", objId.c_str());
-        return Object::Null;
-    }
-    return info->type;
-}
 
 Tree
 Repo::getTree(const std::string &treeId)

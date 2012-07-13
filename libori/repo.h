@@ -43,7 +43,6 @@ public:
     virtual Object::sp getObject(
             const std::string &id
             ) = 0;
-    virtual ObjectInfo *getObjectInfo(const std::string &objId);
     virtual bool hasObject(const std::string &id) = 0;
 
     // Object queries
@@ -65,8 +64,6 @@ public:
     /*virtual int getData(
             ObjectInfo *info,
             std::string &data);*/
-    virtual size_t getObjectLength(const std::string &objId);
-    virtual Object::Type getObjectType(const std::string &objId);
     virtual Tree getTree(const std::string &treeId);
 };
 

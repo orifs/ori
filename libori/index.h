@@ -35,7 +35,7 @@ public:
     void close();
     void dump();
     void updateInfo(const std::string &objId, const ObjectInfo &info);
-    ObjectInfo getInfo(const std::string &objId);
+    const ObjectInfo &getInfo(const std::string &objId) const;
     bool hasObject(const std::string &objId);
     std::set<ObjectInfo> getList();
 private:
