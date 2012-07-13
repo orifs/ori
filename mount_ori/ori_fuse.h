@@ -2,10 +2,12 @@
 #include <fuse.h>
 
 #include <string>
+#include <tr1/memory>
 
 #include "localrepo.h"
 #include "commit.h"
 #include "tree.h"
+#include "largeblob.h"
 #include "lrucache.h"
 
 // logging.cc
@@ -27,6 +29,7 @@ struct ori_priv
 
     // Functions to access the cache
     Tree *getTree(const std::string &hash);
+    LargeBlob *getLargeBlob(const std::string &hash);
     ObjectInfo *getObjectInfo(const std::string &hash);
 
     LocalRepo *repo;
@@ -34,6 +37,7 @@ struct ori_priv
     Tree *headtree;
 
     LRUCache<std::string, Tree, 128> treeCache;
+    LRUCache<std::string, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
     LRUCache<std::string, ObjectInfo, 128> objInfoCache;
 };
 

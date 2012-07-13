@@ -84,7 +84,7 @@ std::string SshRepo::getHead()
     return line;
 }
 
-Object *SshRepo::getObject(const std::string &id)
+Object::sp SshRepo::getObject(const std::string &id)
 {
     std::string command = "readobj " + id;
     client->sendCommand(command);
@@ -103,7 +103,7 @@ Object *SshRepo::getObject(const std::string &id)
     // TODO: add raw data to cache
     _addPayload(info.hash, raw_data);
 
-    return new SshObject(this, info);
+    return Object::sp(new SshObject(this, info));
 }
 
 bool SshRepo::hasObject(const std::string &id) {

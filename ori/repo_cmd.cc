@@ -508,6 +508,7 @@ getRepoFromURL(const string &url,
         }
     } else {
         r.reset(new LocalRepo(url));
+        ((LocalRepo *)r.get())->open(url);
     }
 
     return 0; // TODO: errors?
@@ -537,17 +538,19 @@ cmd_clone(int argc, const char *argv[])
 
     printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
 
-    std::tr1::shared_ptr<Repo> srcRepo;
-    std::tr1::shared_ptr<HttpClient> httpClient;
-    std::tr1::shared_ptr<SshClient> sshClient;
-    getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
+    LocalRepo dstRepo;
+    dstRepo.open(newRoot);
+    {
+        std::tr1::shared_ptr<Repo> srcRepo;
+        std::tr1::shared_ptr<HttpClient> httpClient;
+        std::tr1::shared_ptr<SshClient> sshClient;
+        getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
 
-    LocalRepo dstRepo(newRoot);
+        dstRepo.pull(srcRepo.get());
 
-    dstRepo.pull(srcRepo.get());
-
-    // XXX: Need to rely on sync log.
-    dstRepo.updateHead(srcRepo->getHead());
+        // XXX: Need to rely on sync log.
+        dstRepo.updateHead(srcRepo->getHead());
+    }
 
     // TODO: rebuild references
     LocalRepo::ObjReferenceMap refs = dstRepo.computeRefCounts();
@@ -570,16 +573,18 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    std::tr1::shared_ptr<Repo> srcRepo;
-    std::tr1::shared_ptr<HttpClient> httpClient;
-    std::tr1::shared_ptr<SshClient> sshClient;
-    getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
+    {
+        std::tr1::shared_ptr<Repo> srcRepo;
+        std::tr1::shared_ptr<HttpClient> httpClient;
+        std::tr1::shared_ptr<SshClient> sshClient;
+        getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
 
-    printf("Pulling from %s\n", srcRoot.c_str());
-    repository.pull(srcRepo.get());
+        printf("Pulling from %s\n", srcRoot.c_str());
+        repository.pull(srcRepo.get());
 
-    // XXX: Need to rely on sync log.
-    repository.updateHead(srcRepo->getHead());
+        // XXX: Need to rely on sync log.
+        repository.updateHead(srcRepo->getHead());
+    }
 
     // TODO: more efficient backref tracking
     printf("Rebuilding references\n");
@@ -662,6 +667,38 @@ cmd_rebuildrefs(int argc, const char *argv[])
     if (!repository.rewriteReferences(refs))
         return 1;
 
+    return 0;
+}
+
+/*
+ * Rebuild the index
+ */
+int
+cmd_rebuildindex(int argc, const char *argv[])
+{
+    if (argc != 1) {
+        cout << "rebuildindex takes no arguments!" << endl;
+        cout << "Usage: ori rebuildindex" << endl;
+    }
+
+    if (!repository.rebuildIndex())
+        return 1;
+    return 0;
+}
+
+/*
+ * Strip all meta-data including reference counts.
+ */
+int
+cmd_stripmetadata(int argc, const char *argv[])
+{
+    if (argc != 1) {
+        cout << "stripmetadata takes no arguments!" << endl;
+        cout << "Usage: ori stripmetadata" << endl;
+    }
+
+    if (!repository.stripMetadata())
+        return 1;
     return 0;
 }
 

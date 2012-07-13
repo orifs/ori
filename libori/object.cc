@@ -285,15 +285,19 @@ LocalObject::open(const string &path, const string &hash)
     objPath = path;
 
     fd = ::open(path.c_str(), O_RDWR);
-    if (fd < 0)
+    if (fd < 0) {
+        perror("open");
+        printf("object open error %s\n", path.c_str());
 	return -errno;
+    }
 
     buf[4] = '\0';
     status = pread(fd, buf, ORI_OBJECT_TYPESIZE, 0);
     if (status < 0) {
-	::close(fd);
-	fd = -1;
-	return -errno;
+        int en = errno;
+        perror("pread type");
+	close();
+	return -en;
     }
 
     assert(status == ORI_OBJECT_TYPESIZE);
@@ -306,30 +310,35 @@ LocalObject::open(const string &path, const string &hash)
 
     status = pread(fd, (void *)&info.flags, ORI_OBJECT_FLAGSSIZE, 4);
     if (status < 0) {
+        int en = errno;
+        perror("pread flags");
         close();
-        return -errno;
+        return -en;
     }
 
     status = pread(fd, (void *)&info.payload_size, ORI_OBJECT_SIZE, 8);
     if (status < 0) {
-	::close(fd);
-	fd = -1;
-	info = ObjectInfo();
-	return -errno;
+        int en = errno;
+        perror("pread payload_size");
+	close();
+	return -en;
     }
 
     status = pread(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16);
     if (status < 0) {
+        int en = errno;
+        perror("pread storedLen");
         close();
-        return -errno;
+        return -en;
     }
 
     // Read filesize
     struct stat sb;
     if (fstat(fd, &sb) < 0) {
+        int en = errno;
         perror("fstat");
         close();
-	return -errno;
+	return -en;
     }
     fileSize = sb.st_size;
 

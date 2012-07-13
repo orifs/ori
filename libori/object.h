@@ -22,7 +22,7 @@
 #include <utility>
 #include <string>
 #include <map>
-#include <tr1/unordered_set>
+#include <tr1/memory>
 
 #include "stream.h"
 
@@ -44,7 +44,7 @@ public:
     enum MdType { MdNull, MdBackref };
     enum BRState { BRNull, BRRef, BRPurged };
 
-    typedef std::auto_ptr<Object> ap;
+    typedef std::tr1::shared_ptr<Object> sp;
 
     struct ObjectInfo {
         ObjectInfo();
@@ -63,14 +63,6 @@ public:
         int flags;
         size_t payload_size;
         std::string hash;
-    };
-
-    struct ObjectInfoHash {
-        long operator ()(const ObjectInfo &oi) const {
-            std::tr1::hash<const char *> sh;
-            return oi.type + oi.flags + oi.payload_size +
-                sh(oi.hash.c_str());
-        }
     };
 
     Object() {}
@@ -95,12 +87,13 @@ protected:
 };
 
 typedef Object::ObjectInfo ObjectInfo;
-typedef std::tr1::unordered_set<ObjectInfo, Object::ObjectInfoHash> ObjectInfoSet;
 
 
 class LocalObject : public Object
 {
 public:
+    typedef std::tr1::shared_ptr<LocalObject> sp;
+
     LocalObject();
     ~LocalObject();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);

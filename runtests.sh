@@ -25,7 +25,7 @@ export TEST_RESULTS=$ORIG_DIR/ori_test_results.txt
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
 mkdir -p $SOURCE_FILES
-for i in {1..12}; do
+for i in {1..13}; do
     SIZE=$((2**(i+1)))
     echo "Creating random file size ${SIZE}k"
     #dd if=/dev/urandom of="$SOURCE_FILES/file$i.tst" bs=2k count=$SIZE
@@ -73,6 +73,8 @@ for t in `find $ORI_TESTS -name '*.sh' | sort`; do
 
     if [ "$?" -ne "0" ] ; then
         echo "FAILED: $TEST_NAME" | tee -a $TEST_RESULTS
+        exit 1
+        # TODO: to keep directory state
     else
         echo "$TEST_NAME" >> $TEST_RESULTS
     fi

@@ -233,7 +233,7 @@ LargeBlob::extractFile(const string &path)
         int status;
         string tmp;
 
-        Object::ap o(repo->getObject((*it).second.hash));
+        Object::sp o(repo->getObject((*it).second.hash));
         tmp = o->getPayload();
         assert(tmp.length() == (*it).second.length);
 
@@ -251,6 +251,43 @@ LargeBlob::extractFile(const string &path)
     string extractedHash = Util_HashFile(path);
     assert(extractedHash == hash);
 #endif /* DEBUG */
+}
+
+ssize_t
+LargeBlob::read(uint8_t *buf, size_t s, off_t off)
+{
+    // TODO: this is not as clean as I would like
+    map<uint64_t, LBlobEntry>::const_iterator it =
+        parts.upper_bound(off);
+    it--;
+
+    if (it == parts.end()) {
+        LOG("offset %lu larger than large blob", off);
+        return 0;
+    }
+
+    off_t part_off = off - (*it).first;
+    if (part_off >= (*it).second.length) {
+        LOG("offset %lu larger than last blob in LB", off);
+        return 0;
+    }
+    if (part_off < 0) {
+        LOG("part_off less than 0");
+        return -EIO;
+    }
+
+    int left = (*it).second.length - part_off;
+    if (left <= 0) {
+        LOG("incorrect computation of left! (%d)", left);
+        return -EIO;
+    }
+
+    size_t to_read = MIN(left, s);
+
+    const std::string &payload = repo->getPayload((*it).second.hash);
+    memcpy(buf, payload.data()+part_off, to_read);
+
+    return to_read;
 }
 
 const string
@@ -290,10 +327,27 @@ LargeBlob::fromBlob(const string &blob)
 	hash = line.substr(0, 64);
         length = line.substr(65);
         len = strtoul(length.c_str(), NULL, 10);
+        if (len == 0 || (len == ULONG_MAX && errno == ERANGE)) {
+            LOG("error reading blob length");
+            exit(1);
+        }
 
 	parts.insert(make_pair(off, LBlobEntry(hash, len)));
 
         off += len;
     }
+}
+
+size_t
+LargeBlob::totalSize() const
+{
+    size_t total = 0;
+    for (map<uint64_t, LBlobEntry>::const_iterator it = parts.begin();
+            it != parts.end(); it++)
+    {
+        total += (*it).second.length;
+    }
+
+    return total;
 }
 

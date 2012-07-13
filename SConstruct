@@ -64,6 +64,10 @@ def GetNumCPUs():
 
 env.SetOption('num_jobs', GetNumCPUs())
 
+# Add pkg-config options (TODO)
+if sys.platform == "darwin":
+    env.ParseConfig('pkg-config --libs --cflags libevent')
+
 Export('env')
 
 if env["WITH_FUSE"] == "1":

@@ -37,7 +37,7 @@ public:
 
     std::string getHead();
 
-    Object *getObject(const std::string &id);
+    Object::sp getObject(const std::string &id);
     bool hasObject(const std::string &id);
     std::set<ObjectInfo> listObjects();
     int addObjectRaw(const ObjectInfo &info, bytestream *bs);
