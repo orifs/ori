@@ -179,7 +179,56 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
             return;
         }
     }
-    evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
+    evhttp_add_header(req->output_headers, "Content-Type",
+            "application/octet-stream");
+    evhttp_send_reply(req, HTTP_OK, "OK", buf);
+}
+
+void
+Httpd_getCommits(struct evhttp_request *req, void *arg)
+{
+    struct evbuffer *buf;
+
+    LOG("httpd: getCommits");
+
+    buf = evbuffer_new();
+    if (buf == NULL) {
+        LOG("httpd_getindex: evbuffer_new failed!");
+        return;
+    }
+
+    vector<Commit> commits = repository.listCommits();
+    for (size_t i = 0; i < commits.size(); i++) {
+        int status;
+
+        //LOG("hash = %s\n", (*it).hash.c_str());
+
+        const Commit &c = commits[i];
+        std::string blob = c.getBlob();
+
+        int16_t bsize = htons(blob.size());
+        status = evbuffer_add(buf, &bsize, sizeof(int16_t));
+        if (status != 0) {
+            assert(status == -1);
+            LOG("evbuffer_add failed while adding blob size!");
+            evbuffer_free(buf);
+            buf = evbuffer_new();
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+            return;
+        }
+
+        status = evbuffer_add(buf, blob.data(), blob.size());
+        if (status != 0) {
+            assert(status == -1);
+            LOG("evbuffer_add failed while adding blob!");
+            evbuffer_free(buf);
+            buf = evbuffer_new();
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+            return;
+        }
+    }
+    evhttp_add_header(req->output_headers, "Content-Type",
+            "application/octet-stream");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
 
@@ -310,6 +359,7 @@ Httpd_main(uint16_t port)
     evhttp_set_cb(httpd, "/version", Httpd_getVersion, NULL);
     evhttp_set_cb(httpd, "/HEAD", Httpd_head, NULL);
     evhttp_set_cb(httpd, "/index", Httpd_getIndex, NULL);
+    evhttp_set_cb(httpd, "/commits", Httpd_getCommits, NULL);
     //evhttp_set_cb(httpd, "/objs", Httpd_pushobj, NULL);
     evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
     evhttp_set_gencb(httpd, Httpd_getObj, NULL); // getObj: /objs/*

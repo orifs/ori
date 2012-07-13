@@ -146,8 +146,31 @@ HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 vector<Commit>
 HttpRepo::listCommits()
 {
-    NOT_IMPLEMENTED(false);
-    return vector<Commit>();
+    vector<Commit> rval;
+
+    string index;
+    int status = client->getRequest("/commits", index);
+    if (status < 0) {
+        assert(false);
+        return rval;
+    }
+
+    // Parse response
+    for (int offset = 0; offset < index.size();)
+    {
+        int16_t bsize = *(int16_t*)&index[offset];
+        bsize = ntohs(bsize);
+        offset += sizeof(int16_t);
+
+        string blob = index.substr(offset, bsize);
+        offset += bsize;
+
+        Commit c;
+        c.fromBlob(blob);
+        rval.push_back(c);
+    }
+
+    return rval;
 }
 
 

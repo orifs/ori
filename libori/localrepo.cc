@@ -667,8 +667,8 @@ LocalRepo::pull(Repo *r)
         string hash = toPull.front();
         toPull.pop_front();
 
-        Object::ap o(r->getObject(hash));
-        if (!o.get()) {
+        Object::sp o(r->getObject(hash));
+        if (!o) {
             printf("Error getting object %s\n", hash.c_str());
             continue;
         }
