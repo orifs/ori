@@ -233,7 +233,7 @@ LargeBlob::extractFile(const string &path)
         int status;
         string tmp;
 
-        Object::ap o(repo->getObject((*it).second.hash));
+        Object::sp o(repo->getObject((*it).second.hash));
         tmp = o->getPayload();
         assert(tmp.length() == (*it).second.length);
 

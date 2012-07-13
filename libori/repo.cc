@@ -85,7 +85,7 @@ Repo::addBlob(Object::Type type, const string &blob)
 size_t
 Repo::getObjectLength(const string &objId)
 {
-    Object::ap o(getObject(objId));
+    Object::sp o(getObject(objId));
     // XXX: Add better error handling
     if (!o.get())
         return 0;
@@ -98,7 +98,7 @@ Repo::getObjectLength(const string &objId)
 Object::Type
 Repo::getObjectType(const string &objId)
 {
-    Object::ap o(this->getObject(objId));
+    Object::sp o(this->getObject(objId));
     if (!o.get()) {
         printf("Couldn't get object %s\n", objId.c_str());
         return Object::Null;
@@ -109,7 +109,7 @@ Repo::getObjectType(const string &objId)
 Tree
 Repo::getTree(const std::string &treeId)
 {
-    Object::ap o(getObject(treeId));
+    Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
     assert(o->getInfo().type == Object::Tree);
@@ -151,8 +151,8 @@ Repo::pull(Repo *r)
         // XXX: Copy object without loading it all into memory!
         //addBlob(r->getPayload(*it), r->getObjectType(*it));
 
-        Object::ap o(r->getObject((*it)));
-        if (!o.get()) {
+        Object::sp o(r->getObject((*it)));
+        if (!o) {
             printf("Error getting object %s\n", (*it).c_str());
             continue;
         }

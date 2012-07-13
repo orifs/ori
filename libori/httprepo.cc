@@ -73,7 +73,7 @@ HttpRepo::getHead()
     return headId;
 }
 
-Object *
+Object::sp
 HttpRepo::getObject(const std::string &id)
 {
     int status;
@@ -84,7 +84,7 @@ HttpRepo::getObject(const std::string &id)
     status = client->getRequest("/objs/" + id, payload);
     if (status < 0) {
         assert(false);
-        return NULL;
+        return Object::sp();
     }
 
     info.setInfo(payload.substr(0, 16));
@@ -92,7 +92,7 @@ HttpRepo::getObject(const std::string &id)
     // TODO: add raw data to cache
     _addPayload(info.hash, payload.substr(16));
 
-    return new HttpObject(this, info);
+    return Object::sp(new HttpObject(this, info));
 }
 
 bool

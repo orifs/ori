@@ -45,11 +45,11 @@ public:
     int addObjectRaw(const ObjectInfo &info,
             bytestream *bs);
     bool hasObject(const std::string &objId);
-    Object *getObject(const std::string &objId);
+    Object::sp getObject(const std::string &objId);
     std::set<ObjectInfo> listObjects();
 
 
-    LocalObject getLocalObject(const std::string &objId);
+    LocalObject::sp getLocalObject(const std::string &objId);
     
     std::vector<Commit> listCommits();
 
@@ -109,6 +109,9 @@ private:
 
     // Caches
     LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;
+    // TODO: ulimit is 256 files open on OSX, need to support 2 repos open at a
+    // time?
+    LRUCache<std::string, LocalObject::sp, 96> _objectCache;
 };
 
 #endif

@@ -197,7 +197,6 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     string objId;
     auto_ptr<bytestream> bs;
     string *payload = new string();
-    Object *obj;
     string objInfo;
     struct evbuffer *buf;
 
@@ -216,7 +215,7 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     
     LOG("httpd: getobj %s", objId.c_str());
 
-    obj = repository.getObject(objId.c_str());
+    Object::sp obj = repository.getObject(objId.c_str());
     if (obj == NULL) {
         evhttp_send_reply(req, HTTP_NOTFOUND, "Object Not Found", buf);
         return;
@@ -236,7 +235,6 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
 
-    delete obj;
     return;
 }
 
