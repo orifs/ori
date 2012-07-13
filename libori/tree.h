@@ -21,6 +21,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 class TreeEntry
 {
@@ -50,6 +51,28 @@ public:
     const std::string getBlob() const;
     void fromBlob(const std::string &blob);
     std::map<std::string, TreeEntry> tree;
+};
+
+struct TreeDiffEntry
+{
+    enum DiffType {
+        New,
+        Deleted,
+        Modified,
+        ModifiedDiff
+    } type;
+
+    std::string filepath;
+    // TODO: uint16_t newmode;
+    std::string modifications;
+};
+
+class TreeDiff
+{
+public:
+    void diffTwoTrees(const Tree &t1, const Tree &t2);
+
+    std::vector<TreeDiffEntry> entries;
 };
 
 #endif /* __TREE_H__ */

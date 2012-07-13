@@ -154,3 +154,20 @@ Tree::fromBlob(const string &blob)
     }
 }
 
+
+
+
+/*
+ * TreeDiff
+ */
+
+void
+TreeDiff::diffTwoTrees(const Tree &t1, const Tree &t2)
+{
+}
+
+void
+TreeDiff::diffToWD(const Tree &src)
+{
+}
+
