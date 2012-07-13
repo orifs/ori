@@ -43,6 +43,7 @@ public:
     virtual Object::sp getObject(
             const std::string &id
             ) = 0;
+    virtual ObjectInfo *getObjectInfo(const std::string &objId);
     virtual bool hasObject(const std::string &id) = 0;
 
     // Object queries

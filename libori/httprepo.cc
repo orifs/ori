@@ -28,6 +28,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <iostream>
+
 #include <openssl/sha.h>
 
 #include "debug.h"

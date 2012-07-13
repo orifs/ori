@@ -50,6 +50,7 @@ LocalRepo::LocalRepo(const string &root)
 
 LocalRepo::~LocalRepo()
 {
+    close();
 }
 
 bool
@@ -77,12 +78,15 @@ LocalRepo::open(const string &root)
     version = ver_str;
     delete ver_str;
 
+    index.open(rootPath + ORI_PATH_INDEX);
+
     return true;
 }
 
 void
 LocalRepo::close()
 {
+    index.close();
 }
 
 LocalRepoLock *
@@ -201,6 +205,8 @@ LocalRepo::addSmallFile(const string &path)
 	    perror("Unable to copy file");
 	    return "";
 	}
+
+        index.updateInfo(hash, o.getInfo());
     }
 
     return hash;
@@ -267,6 +273,8 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
             return -errno;
         }
     }
+
+    index.updateInfo(hash, info);
 
     return 0;
 }
@@ -433,6 +441,8 @@ LocalRepo::verifyObject(const string &objId)
         return "Object info missing some fileds!";
     }
 
+    // XXX: Check against index
+
     return "";
 }
 
@@ -504,7 +514,7 @@ Repo_GetObjectsCB(void *arg, const char *path)
  * Return a list of objects in the repository.
  */
 set<ObjectInfo>
-LocalRepo::listObjects()
+LocalRepo::slowListObjects()
 {
     int status;
     set<ObjectInfo> objs;
@@ -517,6 +527,30 @@ LocalRepo::listObjects()
     return objs;
 }
 
+set<ObjectInfo>
+LocalRepo::listObjects()
+{
+    return index.getList();
+}
+
+bool
+LocalRepo::rebuildIndex()
+{
+    set<ObjectInfo> l = slowListObjects();
+    set<ObjectInfo>::iterator it;
+
+    string indexPath = rootPath + ORI_PATH_INDEX;
+    index.close();
+    ::unlink(indexPath.c_str());
+    index.open(indexPath);
+
+    for (it = l.begin(); it != l.end(); it++)
+    {
+        index.updateInfo((*it).hash, (*it));
+    }
+
+    return true;
+}
 
 bool _timeCompare(const Commit &c1, const Commit &c2) {
     return c1.getTime() < c2.getTime();
@@ -564,16 +598,17 @@ LocalRepo::getCommit(const std::string &commitId)
 bool
 LocalRepo::hasObject(const string &objId)
 {
-    if (_objectInfoCache.hasKey(objId)) {
-        return true;
-    }
-
-    string path = objIdToPath(objId);
-
-    return Util_FileExists(path);
+    return index.hasObject(objId);
 }
 
-
+/*
+ * Return ObjectInfo through the fast path.
+ */
+ObjectInfo *
+LocalRepo::getObjectInfo(const string &objId)
+{
+    return new ObjectInfo(index.getInfo(objId));
+}
 
 /*
  * BasicRepo implementation

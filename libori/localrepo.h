@@ -2,11 +2,13 @@
 #define __LOCALREPO_H__
 
 #include "repo.h"
+#include "index.h"
 #include "lrucache.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
 #define ORI_PATH_UUID "/.ori/id"
+#define ORI_PATH_INDEX "/.ori/index"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
 #define ORI_PATH_HEAD "/.ori/HEAD"
 #define ORI_PATH_LOG "/.ori/ori.log"
@@ -46,8 +48,10 @@ public:
             bytestream *bs);
     bool hasObject(const std::string &objId);
     Object::sp getObject(const std::string &objId);
+    virtual ObjectInfo *getObjectInfo(const std::string &objId);
+    std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
-
+    bool rebuildIndex();
 
     LocalObject::sp getLocalObject(const std::string &objId);
     
@@ -106,6 +110,7 @@ private:
     std::string rootPath;
     std::string id;
     std::string version;
+    Index index;
 
     // Caches
     LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;

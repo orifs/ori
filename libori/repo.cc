@@ -41,7 +41,18 @@ Repo::Repo() {
 Repo::~Repo() {
 }
 
+ObjectInfo *
+Repo::getObjectInfo(const std::string &id)
+{
+    Object::sp o(getObject(id));
+    ObjectInfo *info = NULL;
 
+    if (!o)
+        return NULL;
+
+    info = new ObjectInfo(o->getInfo());
+    return info;
+}
 
 /*
  * High-level operations
@@ -85,11 +96,12 @@ Repo::addBlob(Object::Type type, const string &blob)
 size_t
 Repo::getObjectLength(const string &objId)
 {
-    Object::sp o(getObject(objId));
-    // XXX: Add better error handling
-    if (!o.get())
-        return 0;
-    return o->getInfo().payload_size;
+    auto_ptr<ObjectInfo> info(getObjectInfo(objId));
+    if (!info.get()){
+        printf("Couldn't get object %s\n", objId.c_str());
+        return -1;
+    }
+    return info->payload_size;
 }
 
 /*
@@ -98,12 +110,12 @@ Repo::getObjectLength(const string &objId)
 Object::Type
 Repo::getObjectType(const string &objId)
 {
-    Object::sp o(this->getObject(objId));
-    if (!o.get()) {
+    auto_ptr<ObjectInfo> info(getObjectInfo(objId));
+    if (!info.get()){
         printf("Couldn't get object %s\n", objId.c_str());
         return Object::Null;
     }
-    return o->getInfo().type;
+    return info->type;
 }
 
 Tree
@@ -142,6 +154,7 @@ Repo::pull(Repo *r)
         }
     }
 
+    // XXX: What about HTTP
     if (dynamic_cast<SshRepo*>(r)) {
         ((SshRepo *)r)->preload(needed);
     }
