@@ -71,6 +71,7 @@ int cmd_catobj(int argc, const char *argv[]); // Debug
 int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_findheads(int argc, const char *argv[]);
 int cmd_rebuildrefs(int argc, const char *argv[]);
+int cmd_rebuildindex(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_stats(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
@@ -155,6 +156,12 @@ static Cmd commands[] = {
         "rebuildrefs",
         "Rebuild references",
         cmd_rebuildrefs,
+        NULL,
+    },
+    {
+        "rebuildindex",
+        "Rebuild index",
+        cmd_rebuildindex,
         NULL,
     },
     /* Debugging */

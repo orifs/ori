@@ -529,6 +529,25 @@ LocalRepo::listObjects()
     return index.getList();
 }
 
+bool
+LocalRepo::rebuildIndex()
+{
+    set<ObjectInfo> l = slowListObjects();
+    set<ObjectInfo>::iterator it;
+
+    string indexPath = rootPath + ORI_PATH_INDEX;
+    index.close();
+    ::unlink(indexPath.c_str());
+    index.open(indexPath);
+
+    for (it = l.begin(); it != l.end(); it++)
+    {
+        index.updateInfo((*it).hash, (*it));
+    }
+
+    return true;
+}
+
 bool _timeCompare(const Commit &c1, const Commit &c2) {
     return c1.getTime() < c2.getTime();
 }

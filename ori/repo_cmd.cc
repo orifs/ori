@@ -666,6 +666,22 @@ cmd_rebuildrefs(int argc, const char *argv[])
 }
 
 /*
+ * Rebuild the index
+ */
+int
+cmd_rebuildindex(int argc, const char *argv[])
+{
+    if (argc != 1) {
+        cout << "rebuildindex takes no arguments!" << endl;
+        cout << "Usage: ori rebuildindex" << endl;
+    }
+
+    if (!repository.rebuildIndex())
+        return 1;
+    return 0;
+}
+
+/*
  * Strip all meta-data including reference counts.
  */
 int

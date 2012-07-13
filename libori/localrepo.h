@@ -50,6 +50,7 @@ public:
     Object *getObject(const std::string &objId);
     std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
+    bool rebuildIndex();
 
     LocalObject getLocalObject(const std::string &objId);
     
