@@ -21,6 +21,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 
 #include "debug.h"
 #include "object.h"
@@ -34,12 +35,12 @@ public:
     void close();
     void dump();
     void updateInfo(const std::string &objId, const ObjectInfo &info);
-    ObjectInfo *getInfo(const std::string &objId);
+    ObjectInfo getInfo(const std::string &objId);
     bool hasObject(const std::string &objId);
-    std::map<std::string, ObjectInfo *> getList();
+    std::set<ObjectInfo> getList();
 private:
     int fd;
-    std::map<std::string, ObjectInfo *> index;
+    std::map<std::string, ObjectInfo> index;
 };
 
 #endif /* __INDEX_H__ */

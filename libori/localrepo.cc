@@ -199,7 +199,7 @@ LocalRepo::addSmallFile(const string &path)
 	    return "";
 	}
 
-        index.updateInfo(o.getInfo().hash, o.getInfo());
+        index.updateInfo(hash, o.getInfo());
     }
 
     return hash;
@@ -510,7 +510,7 @@ Repo_GetObjectsCB(void *arg, const char *path)
  * Return a list of objects in the repository.
  */
 set<ObjectInfo>
-LocalRepo::listObjects()
+LocalRepo::slowListObjects()
 {
     int status;
     set<ObjectInfo> objs;
@@ -521,6 +521,12 @@ LocalRepo::listObjects()
 	perror("listObjects");
 
     return objs;
+}
+
+set<ObjectInfo>
+LocalRepo::listObjects()
+{
+    return index.getList();
 }
 
 bool _timeCompare(const Commit &c1, const Commit &c2) {
@@ -569,15 +575,8 @@ LocalRepo::getCommit(const std::string &commitId)
 bool
 LocalRepo::hasObject(const string &objId)
 {
-    if (_objectInfoCache.hasKey(objId)) {
-        return true;
-    }
-
-    string path = objIdToPath(objId);
-
-    return Util_FileExists(path);
+    return index.hasObject(objId);
 }
-
 
 
 /*

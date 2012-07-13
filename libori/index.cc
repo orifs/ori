@@ -24,6 +24,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 #include <iostream>
 
 #include "debug.h"
@@ -80,7 +81,7 @@ Index::open(const string &indexFile)
         int status;
         char entry[INDEX_ENTRYSIZE];
         string hash, info;
-        ObjectInfo *objInfo;
+        ObjectInfo objInfo;
 
         status = read(fd, &entry, INDEX_ENTRYSIZE);
         assert(status == INDEX_ENTRYSIZE);
@@ -88,8 +89,8 @@ Index::open(const string &indexFile)
         hash.assign(entry, 64);
         info.assign(entry + 64, 16);
 
-        objInfo = new ObjectInfo(hash.c_str());
-        objInfo->setInfo(info);
+        objInfo = ObjectInfo(hash.c_str());
+        objInfo.setInfo(info);
 
         index[hash] = objInfo;
     }
@@ -113,7 +114,7 @@ Index::close()
 void
 Index::dump()
 {
-    map<string, ObjectInfo *>::iterator it;
+    map<string, ObjectInfo>::iterator it;
 
     cout << "***** BEGIN REPOSITORY INDEX *****" << endl;
     for (it = index.begin(); it != index.end(); it++)
@@ -128,16 +129,26 @@ Index::updateInfo(const string &objId, const ObjectInfo &info)
 {
     string indexLine;
 
+    assert(objId.size() == 64);
+
+    /*
+     * XXX: Extra sanity checking for the hash string
+     * for (int i = 0; i < 64; i++) {
+     *     char c = objId[i];
+     *     assert((c >= 'a' && c <= 'f') || (c >= '0' && c <= '9'));
+     * }
+     */
+
     indexLine = objId;
     indexLine += info.getInfo();
 
     write(fd, indexLine.data(), indexLine.size());
 }
 
-ObjectInfo *
+ObjectInfo
 Index::getInfo(const string &objId)
 {
-    map<string, ObjectInfo *>::iterator it;
+    map<string, ObjectInfo>::iterator it;
 
     it = index.find(objId);
 
@@ -150,16 +161,24 @@ Index::getInfo(const string &objId)
 bool
 Index::hasObject(const string &objId)
 {
-    map<string, ObjectInfo *>::iterator it;
+    map<string, ObjectInfo>::iterator it;
 
     it = index.find(objId);
 
     return it != index.end();
 }
 
-map<string, ObjectInfo *>
+set<ObjectInfo>
 Index::getList()
 {
-    return index;
+    set<ObjectInfo> lst;
+    map<string, ObjectInfo>::iterator it;
+
+    for (it = index.begin(); it != index.end(); it++)
+    {
+        lst.insert((*it).second);
+    }
+
+    return lst;
 }
 

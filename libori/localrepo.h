@@ -48,8 +48,8 @@ public:
             bytestream *bs);
     bool hasObject(const std::string &objId);
     Object *getObject(const std::string &objId);
+    std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
-
 
     LocalObject getLocalObject(const std::string &objId);
     
