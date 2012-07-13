@@ -155,9 +155,9 @@ Index::getInfo(const string &objId) const
 }
 
 bool
-Index::hasObject(const string &objId)
+Index::hasObject(const string &objId) const
 {
-    map<string, ObjectInfo>::iterator it;
+    map<string, ObjectInfo>::const_iterator it;
 
     it = index.find(objId);
 
