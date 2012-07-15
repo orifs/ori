@@ -392,10 +392,9 @@ int
 main(int argc, char *argv[])
 {
     bool success;
-    int bflag, ch;
+    int ch;
     unsigned long port = 8080;
 
-    bflag = 0;
     while ((ch = getopt(argc, argv, "p:h")) != -1) {
         switch (ch) {
             case 'p':
