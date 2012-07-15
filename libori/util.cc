@@ -269,6 +269,30 @@ Util_MoveFile(const string &origPath, const string &newPath)
 }
 
 /*
+ * Delete a file.
+ */
+int
+Util_DeleteFile(const std::string &path)
+{
+    if (unlink(path.c_str()) < 0)
+        return -errno;
+
+    return 0;
+}
+
+/*
+ * Rename a file.
+ */
+int
+Util_RenameFile(const std::string &from, const std::string &to)
+{
+    if (rename(from.c_str(), to.c_str()) < 0)
+	return -errno;
+
+    return 0;
+}
+
+/*
  * Compute SHA 256 hash for a string.
  */
 string

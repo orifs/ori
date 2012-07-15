@@ -33,6 +33,7 @@ public:
     ~Index();
     void open(const std::string &indexFile);
     void close();
+    void rewrite();
     void dump();
     void updateInfo(const std::string &objId, const ObjectInfo &info);
     const ObjectInfo &getInfo(const std::string &objId) const;
@@ -40,6 +41,7 @@ public:
     std::set<ObjectInfo> getList();
 private:
     int fd;
+    std::string fileName;
     std::map<std::string, ObjectInfo> index;
 };
 

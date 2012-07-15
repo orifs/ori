@@ -28,6 +28,8 @@ char *Util_ReadFile(const std::string &path, size_t *flen);
 bool Util_WriteFile(const char *blob, size_t len, const std::string &path);
 int Util_CopyFile(const std::string &origPath, const std::string &newPath);
 int Util_MoveFile(const std::string &origPath, const std::string &newPath);
+int Util_DeleteFile(const std::string &path);
+int Util_RenameFile(const std::string &from, const std::string &to);
 std::string Util_HashString(const std::string &str);
 std::string Util_HashFile(const std::string &path);
 std::string Util_RawHashToHex(uint8_t hash[32]);
