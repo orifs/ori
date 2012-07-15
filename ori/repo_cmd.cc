@@ -472,19 +472,73 @@ cmd_log(int argc, const char *argv[])
 
     while (commit != EMPTY_COMMIT) {
 	Commit c = repository.getCommit(commit);
-    time_t timeVal = c.getTime();
-    char timeStr[26];
+	time_t timeVal = c.getTime();
+	char timeStr[26];
 
-    ctime_r(&timeVal, timeStr);
+	ctime_r(&timeVal, timeStr);
 
 	printf("Commit:  %s\n", commit.c_str());
 	printf("Parents: %s\n", c.getParents().first.c_str());
-    printf("Author:  %s\n", c.getUser().c_str());
-    printf("Date:    %s\n", timeStr);
+	printf("Author:  %s\n", c.getUser().c_str());
+	printf("Date:    %s\n", timeStr);
 	printf("%s\n\n", c.getMessage().c_str());
 
 	commit = c.getParents().first;
 	// XXX: Handle merge cases
+    }
+
+    return 0;
+}
+
+int
+cmd_filelog(int argc, const char *argv[])
+{
+    string commit = repository.getHead();
+    list<pair<Commit, string> > revs;
+    list<pair<Commit, string> >::iterator it;
+    Commit lastCommit;
+    string lastCommitHash;
+    string lastHash = "";
+
+    if (argc != 2) {
+	cout << "Wrong number of arguements!" << endl;
+	return 1;
+    }
+
+    while (commit != EMPTY_COMMIT) {
+	Commit c = repository.getCommit(commit);
+	string objId;
+
+	objId = repository.lookup(c, argv[1]);
+
+	if (lastHash != objId && lastHash != "") {
+	    revs.push_back(make_pair(lastCommit, lastCommitHash));
+	}
+	lastCommit = c;
+	lastCommitHash = commit;
+	lastHash = objId;
+
+	commit = c.getParents().first;
+	// XXX: Handle merge cases
+    }
+
+    if (lastHash != "") {
+	revs.push_back(make_pair(lastCommit, lastCommitHash));
+    }
+
+    for (it = revs.begin(); it != revs.end(); it++) {
+	Commit c = (*it).first;
+	time_t timeVal = c.getTime();
+	char timeStr[26];
+
+	ctime_r(&timeVal, timeStr);
+
+	printf("Commit:  %s\n", (*it).second.c_str());
+	printf("Parents: %s\n", c.getParents().first.c_str());
+	printf("Author:  %s\n", c.getUser().c_str());
+	// XXX: print file id?
+	printf("Date:    %s\n", timeStr);
+	printf("%s\n\n", c.getMessage().c_str());
     }
 
     return 0;

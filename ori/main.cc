@@ -64,6 +64,7 @@ int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
+int cmd_filelog(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
@@ -132,6 +133,12 @@ static Cmd commands[] = {
 	"log",
 	"Display a log of commits to the repository",
 	cmd_log,
+	NULL,
+    },
+    {
+	"filelog",
+	"Display a log of commits to the repository for the specified file",
+	cmd_filelog,
 	NULL,
     },
     {
