@@ -81,7 +81,9 @@ int cmd_stripmetadata(int argc, const char *argv[]); // Debug
 int cmd_sshserver(int argc, const char *argv[]);
 // local
 int cmd_sshclient(int argc, const char *argv[]); // Debug
+#if !defined(WITHOUT_MDNS)
 int cmd_mdnsserver(int argc, const char *argv[]); // Debug
+#endif
 int cmd_httpclient(int argc, const char *argv[]); // Debug
 static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
@@ -226,12 +228,14 @@ static Cmd commands[] = {
         cmd_sshclient,
         NULL
     },
+#if !defined(WITHOUT_MDNS)
     {
         "mdnsserver",
         "Run the mDNS server (DEBUG)",
         cmd_mdnsserver,
         NULL
     },
+#endif
     {
         "selftest",
         "Built-in unit tests (DEBUG)",
