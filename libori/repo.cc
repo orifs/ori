@@ -14,6 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include <string>
 #include <set>
 #include <queue>

@@ -15,6 +15,8 @@
  */
 
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include <fcntl.h>
 #include <sys/param.h>

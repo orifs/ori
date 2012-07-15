@@ -17,6 +17,9 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include <string>
 #include <vector>
 

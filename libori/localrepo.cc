@@ -1,6 +1,9 @@
 #include <cassert>
+#include <stdbool.h>
+#include <stdint.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 #include <unistd.h>
 #include <sys/param.h>
@@ -11,6 +14,7 @@
 #include <deque>
 #include <queue>
 #include <set>
+#include <algorithm>
 using namespace std;
 
 #include "localrepo.h"

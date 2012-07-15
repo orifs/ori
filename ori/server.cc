@@ -1,11 +1,15 @@
 
 #define _WITH_DPRINTF
 
-#include <map>
+#include <cstring>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+
+#include <map>
 
 #include "debug.h"
 #include "server.h"
