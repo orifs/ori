@@ -616,6 +616,10 @@ void LocalObject::addMetadataEntry(MdType type, const std::string &data) {
 
     err = pwrite(fd, data.data(), data.length(), offset + 4);
     assert((size_t)err == data.length());
+    /*
+     * XXX: This is one of the most expensive system call in the commit path.
+     * 							-- Ali
+     */
     fsync(fd);
 
     fileSize += 4 + data.length();
