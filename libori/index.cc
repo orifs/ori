@@ -36,8 +36,8 @@
 
 using namespace std;
 
-/// Entry consist of the hash and the serialized object info.
-#define INDEX_ENTRYSIZE (64 + 16)
+/// Entry consist of the object hash, object info, and a checksum.
+#define INDEX_ENTRYSIZE (64 + 16 + 16)
 
 Index::Index()
 {
@@ -74,6 +74,7 @@ Index::open(const string &indexFile)
     }
 
     if (sb.st_size % INDEX_ENTRYSIZE != 0) {
+	// XXX: Attempt truncating last entries
         cout << "Index seems dirty please rebuild it!" << endl;
         ::close(fd);
         fd = -1;
@@ -93,6 +94,18 @@ Index::open(const string &indexFile)
 
         hash.assign(entry, 64);
         info.assign(entry + 64, 16);
+
+	string entryStr = string().assign(entry, 64 + 16);
+	string chksum = string().assign(entry + 64 + 16, 16);
+	string chksumComputed = Util_HashString(entryStr).substr(0, 16);
+	if (chksum != chksumComputed) {
+	    // XXX: Attempt truncating last entries
+	    cout << "Index has corrupt entries please rebuild it!" << endl;
+	    ::close(fd);
+	    fd = -1;
+	    exit(1);
+	    return;
+	}
 
         objInfo = ObjectInfo(hash.c_str());
         objInfo.setInfo(info);
@@ -141,9 +154,13 @@ Index::rewrite()
     {
         int status;
         string indexLine;
+	string hash;
 
         indexLine = (*it).first;
         indexLine += (*it).second.getInfo();
+
+	hash = Util_HashString(indexLine);
+	indexLine += hash.substr(0, 16);
 
         status = write(fdNew, indexLine.data(), indexLine.size());
         assert(status == indexLine.size());
@@ -173,6 +190,7 @@ void
 Index::updateInfo(const string &objId, const ObjectInfo &info)
 {
     string indexLine;
+    string hash;
 
     assert(objId.size() == 64);
 
@@ -186,6 +204,9 @@ Index::updateInfo(const string &objId, const ObjectInfo &info)
 
     indexLine = objId;
     indexLine += info.getInfo();
+
+    hash = Util_HashString(indexLine);
+    indexLine += hash.substr(0, 16);
 
     write(fd, indexLine.data(), indexLine.size());
 }
