@@ -20,6 +20,9 @@ if sys.platform != "darwin":
     if env["WITH_MDNS"] == "1":
         libs += ['dns_sd']
 
+if sys.platform == "linux2":
+    libs += ['uuid', 'resolv']
+
 env.Append(LIBPATH = [ "#build/libori", "$LIBPATH" ],
             LIBS = libs,
             CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])

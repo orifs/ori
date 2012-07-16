@@ -15,6 +15,8 @@
  */
 
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -269,6 +271,30 @@ Util_MoveFile(const string &origPath, const string &newPath)
 }
 
 /*
+ * Delete a file.
+ */
+int
+Util_DeleteFile(const std::string &path)
+{
+    if (unlink(path.c_str()) < 0)
+        return -errno;
+
+    return 0;
+}
+
+/*
+ * Rename a file.
+ */
+int
+Util_RenameFile(const std::string &from, const std::string &to)
+{
+    if (rename(from.c_str(), to.c_str()) < 0)
+	return -errno;
+
+    return 0;
+}
+
+/*
  * Compute SHA 256 hash for a string.
  */
 string
@@ -276,19 +302,12 @@ Util_HashString(const string &str)
 {
     SHA256_CTX state;
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    stringstream rval;
 
     SHA256_Init(&state);
     SHA256_Update(&state, str.c_str(), str.size());
     SHA256_Final(hash, &state);
 
-    // Convert into string.
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-	rval << hex << setw(2) << setfill('0') << (int)hash[i];
-    }
-
-    return rval.str();
+    return Util_RawHashToHex(hash);
 }
 
 #define HASHFILE_BUFSZ	(256 * 1024)
@@ -306,7 +325,6 @@ Util_HashFile(const string &path)
     int64_t bytesRead;
     SHA256_CTX state;
     unsigned char hash[SHA256_DIGEST_LENGTH];
-    stringstream rval;
 
     SHA256_Init(&state);
 
@@ -336,13 +354,22 @@ Util_HashFile(const string &path)
 
     SHA256_Final(hash, &state);
 
+    close(fd);
+
+    return Util_RawHashToHex(hash);
+}
+
+string
+Util_RawHashToHex(uint8_t hash[SHA256_DIGEST_LENGTH])
+{
+    stringstream rval;
+
     // Convert into string.
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
     {
 	rval << hex << setw(2) << setfill('0') << (int)hash[i];
     }
 
-    close(fd);
     return rval.str();
 }
 
@@ -488,7 +515,7 @@ Util_NewUUID()
 
 bool
 Util_IsPathRemote(const char *path) {
-    char *cc = strchr(path, ':');
+    const char *cc = strchr(path, ':');
     if (cc == NULL) return false;
     if (cc == path) return false; // TODO how to handle these cases?
     if (cc == path+strlen(path)-1) return false;

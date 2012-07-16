@@ -34,9 +34,12 @@ env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
 env.Append(CPPPATH = [ "/usr/local/include" ])
 env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib", "/usr/local/lib/event2" ])
 
+if env["WITH_MDNS"] != "1":
+    env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
+
 if env["BUILDTYPE"] == "DEBUG":
     env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
-        "-Wno-deprecated-declarations" ])
+	"-Wno-deprecated-declarations" ])
 elif env["BUILDTYPE"] == "RELEASE":
     env.Append(CPPFLAGS = "-DNDEBUG")
 else:

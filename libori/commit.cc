@@ -18,12 +18,14 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <iostream>
 #include <sstream>
 #include <string>
 
 #include "commit.h"
+#include "util.h"
 
 using namespace std;
 
@@ -192,3 +194,8 @@ Commit::fromBlob(const string &blob)
     // Verify that everything is set!
 }
 
+std::string
+Commit::hash() const
+{
+    return Util_HashString(getBlob());
+}

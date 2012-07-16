@@ -8,8 +8,10 @@ src = [
     "debug.cc",
     "httpclient.cc",
     "httprepo.cc",
+    "index.cc",
     "largeblob.cc",
     "lrucache.cc",
+    "monitor.cc",
     "object.cc",
     "repo.cc",
     "scan.cc",
@@ -20,6 +22,9 @@ src = [
     "sshclient.cc",
     "sshrepo.cc",
 ]
+
+if os.name == 'posix':
+    src += ['mutex_posix.cc', 'rwlock_posix.cc', 'thread_posix.cc']
 
 if env["WITH_MDNS"] == "1":
     src.append("zeroconf.cc")

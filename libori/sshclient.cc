@@ -16,9 +16,10 @@
 
 #define _WITH_DPRINTF
 
-#include <cstdlib>
-#include <cstdio>
 #include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <unistd.h>
 #include <fcntl.h>

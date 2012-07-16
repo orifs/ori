@@ -17,6 +17,8 @@
 #define _WITH_DPRINTF
 
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,8 +73,13 @@ cmd_init(int argc, const char *argv[])
         free(cwd);
     } else if (argc == 2) {
         rootPath = argv[1];
-	if (!Util_IsDirectory(rootPath)) {
+	if (!Util_FileExists(rootPath)) {
 	    mkdir(rootPath.c_str(), 0755);
+	} else {
+	    if (!Util_IsDirectory(rootPath)) {
+		printf("The specified path exists, but is not a directory!\n");
+		return 1;
+	    }
 	}
     } else {
         printf("Too many arguments!\n");
@@ -472,19 +479,73 @@ cmd_log(int argc, const char *argv[])
 
     while (commit != EMPTY_COMMIT) {
 	Commit c = repository.getCommit(commit);
-    time_t timeVal = c.getTime();
-    char timeStr[26];
+	time_t timeVal = c.getTime();
+	char timeStr[26];
 
-    ctime_r(&timeVal, timeStr);
+	ctime_r(&timeVal, timeStr);
 
 	printf("Commit:  %s\n", commit.c_str());
 	printf("Parents: %s\n", c.getParents().first.c_str());
-    printf("Author:  %s\n", c.getUser().c_str());
-    printf("Date:    %s\n", timeStr);
+	printf("Author:  %s\n", c.getUser().c_str());
+	printf("Date:    %s\n", timeStr);
 	printf("%s\n\n", c.getMessage().c_str());
 
 	commit = c.getParents().first;
 	// XXX: Handle merge cases
+    }
+
+    return 0;
+}
+
+int
+cmd_filelog(int argc, const char *argv[])
+{
+    string commit = repository.getHead();
+    list<pair<Commit, string> > revs;
+    list<pair<Commit, string> >::iterator it;
+    Commit lastCommit;
+    string lastCommitHash;
+    string lastHash = "";
+
+    if (argc != 2) {
+	cout << "Wrong number of arguements!" << endl;
+	return 1;
+    }
+
+    while (commit != EMPTY_COMMIT) {
+	Commit c = repository.getCommit(commit);
+	string objId;
+
+	objId = repository.lookup(c, argv[1]);
+
+	if (lastHash != objId && lastHash != "") {
+	    revs.push_back(make_pair(lastCommit, lastCommitHash));
+	}
+	lastCommit = c;
+	lastCommitHash = commit;
+	lastHash = objId;
+
+	commit = c.getParents().first;
+	// XXX: Handle merge cases
+    }
+
+    if (lastHash != "") {
+	revs.push_back(make_pair(lastCommit, lastCommitHash));
+    }
+
+    for (it = revs.begin(); it != revs.end(); it++) {
+	Commit c = (*it).first;
+	time_t timeVal = c.getTime();
+	char timeStr[26];
+
+	ctime_r(&timeVal, timeStr);
+
+	printf("Commit:  %s\n", (*it).second.c_str());
+	printf("Parents: %s\n", c.getParents().first.c_str());
+	printf("Author:  %s\n", c.getUser().c_str());
+	// XXX: print file id?
+	printf("Date:    %s\n", timeStr);
+	printf("%s\n\n", c.getMessage().c_str());
     }
 
     return 0;
@@ -508,6 +569,7 @@ getRepoFromURL(const string &url,
         }
     } else {
         r.reset(new LocalRepo(url));
+        ((LocalRepo *)r.get())->open(url);
     }
 
     return 0; // TODO: errors?
@@ -537,17 +599,19 @@ cmd_clone(int argc, const char *argv[])
 
     printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
 
-    std::tr1::shared_ptr<Repo> srcRepo;
-    std::tr1::shared_ptr<HttpClient> httpClient;
-    std::tr1::shared_ptr<SshClient> sshClient;
-    getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
+    LocalRepo dstRepo;
+    dstRepo.open(newRoot);
+    {
+        std::tr1::shared_ptr<Repo> srcRepo;
+        std::tr1::shared_ptr<HttpClient> httpClient;
+        std::tr1::shared_ptr<SshClient> sshClient;
+        getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
 
-    LocalRepo dstRepo(newRoot);
+        dstRepo.pull(srcRepo.get());
 
-    dstRepo.pull(srcRepo.get());
-
-    // XXX: Need to rely on sync log.
-    dstRepo.updateHead(srcRepo->getHead());
+        // XXX: Need to rely on sync log.
+        dstRepo.updateHead(srcRepo->getHead());
+    }
 
     // TODO: rebuild references
     LocalRepo::ObjReferenceMap refs = dstRepo.computeRefCounts();
@@ -570,16 +634,18 @@ cmd_pull(int argc, const char *argv[])
 
     srcRoot = argv[1];
 
-    std::tr1::shared_ptr<Repo> srcRepo;
-    std::tr1::shared_ptr<HttpClient> httpClient;
-    std::tr1::shared_ptr<SshClient> sshClient;
-    getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
+    {
+        std::tr1::shared_ptr<Repo> srcRepo;
+        std::tr1::shared_ptr<HttpClient> httpClient;
+        std::tr1::shared_ptr<SshClient> sshClient;
+        getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
 
-    printf("Pulling from %s\n", srcRoot.c_str());
-    repository.pull(srcRepo.get());
+        printf("Pulling from %s\n", srcRoot.c_str());
+        repository.pull(srcRepo.get());
 
-    // XXX: Need to rely on sync log.
-    repository.updateHead(srcRepo->getHead());
+        // XXX: Need to rely on sync log.
+        repository.updateHead(srcRepo->getHead());
+    }
 
     // TODO: more efficient backref tracking
     printf("Rebuilding references\n");
@@ -661,6 +727,33 @@ cmd_rebuildrefs(int argc, const char *argv[])
     LocalRepo::ObjReferenceMap refs = repository.computeRefCounts();
     if (!repository.rewriteReferences(refs))
         return 1;
+
+    return 0;
+}
+
+/*
+ * Rebuild the index
+ */
+int
+cmd_rebuildindex(int argc, const char *argv[])
+{
+    if (argc != 1) {
+        cout << "rebuildindex takes no arguments!" << endl;
+        cout << "Usage: ori rebuildindex" << endl;
+    }
+
+    if (!repository.rebuildIndex())
+        return 1;
+    return 0;
+}
+
+/*
+ * Reclaim unused space.
+ */
+int
+cmd_gc(int argc, const char *argv[])
+{
+    repository.gc();
 
     return 0;
 }
