@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <tr1/memory>
@@ -105,6 +106,17 @@ cmd_init(int argc, const char *argv[])
     if (mkdir(tmpDir.c_str(), 0755) < 0) {
         perror("Could not create '.ori/objs' directory");
         return 1;
+    }
+
+    for (int i = 0; i < 256; i++)
+    {
+	stringstream hexval;
+	string path = rootPath + ORI_PATH_OBJS;
+
+	hexval << hex << setw(2) << setfill('0') << i;
+	path += hexval.str();
+
+	mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
     }
 
     // Construct UUID

@@ -161,7 +161,7 @@ LocalRepo::createObjDirs(const string &objId)
     path += ORI_PATH_OBJS;
     path += objId.substr(0,2);
 
-    mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    //mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 
     path += "/";
     path += objId.substr(2,2);
