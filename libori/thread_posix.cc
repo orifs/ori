@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sched.h>
 
 #include <string>
 
@@ -101,7 +102,7 @@ bool Thread::wait(unsigned long time)
 
 void Thread::yield()
 {
-    pthread_yield();
+    sched_yield();
 }
 
 void EntryWrapper(Thread *t)
