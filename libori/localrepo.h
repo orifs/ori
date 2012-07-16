@@ -75,6 +75,8 @@ public:
     Commit getCommit(const std::string &commitId);
     // Clone/pull operations
     void pull(Repo *r);
+    // Repository Operations
+    void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
     std::map<std::string, std::map<std::string, Object::BRState> >

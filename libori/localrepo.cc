@@ -729,6 +729,17 @@ LocalRepo::pull(Repo *r)
 }
 
 /*
+ * Garbage Collect. Attempt to reduce wasted space from deleted objects and 
+ * metadata.
+ */
+void
+LocalRepo::gc()
+{
+    // Compact the index
+    index.rewrite();
+}
+
+/*
  * Return true if the repository has the object.
  */
 bool

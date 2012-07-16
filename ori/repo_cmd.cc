@@ -748,6 +748,17 @@ cmd_rebuildindex(int argc, const char *argv[])
 }
 
 /*
+ * Reclaim unused space.
+ */
+int
+cmd_gc(int argc, const char *argv[])
+{
+    repository.gc();
+
+    return 0;
+}
+
+/*
  * Strip all meta-data including reference counts.
  */
 int
