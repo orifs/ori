@@ -68,6 +68,20 @@ env.SetOption('num_jobs', GetNumCPUs())
 if sys.platform == "darwin":
     env.ParseConfig('pkg-config --libs --cflags libevent')
 
+# Configuration
+conf = env.Configure()
+
+if not conf.CheckLibWithHeader('lzma','lzma.h','C','lzma_version_string();'):
+    print 'Please install liblzma'
+    Exit(1)
+
+if not conf.CheckLibWithHeader('event-2.0', 'event.h', 'C', 'event_init();'):
+    print 'Please install libevent 2.0+'
+    Exit(1)
+
+conf.Finish()
+
+# Targets
 Export('env')
 
 if env["WITH_FUSE"] == "1":
