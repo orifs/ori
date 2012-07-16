@@ -11,6 +11,7 @@ src = [
     "index.cc",
     "largeblob.cc",
     "lrucache.cc",
+    "monitor.cc",
     "object.cc",
     "repo.cc",
     "scan.cc",
