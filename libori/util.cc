@@ -52,6 +52,7 @@
 #error "SHA256 not supported!"
 #endif
 
+#include "tuneables.h"
 #include "util.h"
 #include "stream.h"
 
@@ -177,8 +178,6 @@ Util_WriteFile(const char *blob, size_t len, const string &path)
 
     return (bytesWritten == len);
 }
-
-#define COPYFILE_BUFSZ	(256 * 1024)
 
 /*
  * Copy a file.
@@ -310,8 +309,6 @@ Util_HashString(const string &str)
     return Util_RawHashToHex(hash);
 }
 
-#define HASHFILE_BUFSZ	(256 * 1024)
-
 /*
  * Compute SHA 256 hash for a file.
  */
@@ -319,7 +316,7 @@ string
 Util_HashFile(const string &path)
 {
     int fd;
-    char buf[COPYFILE_BUFSZ];
+    char buf[HASHFILE_BUFSZ];
     struct stat sb;
     int64_t bytesLeft;
     int64_t bytesRead;
@@ -340,7 +337,7 @@ Util_HashFile(const string &path)
 
     bytesLeft = sb.st_size;
     while(bytesLeft > 0) {
-	bytesRead = read(fd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
+	bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
 	if (bytesRead < 0) {
 	    if (errno == EINTR)
 		continue;

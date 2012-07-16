@@ -41,12 +41,11 @@
 #endif
 
 #include "debug.h"
+#include "tuneables.h"
 #include "object.h"
 #include "localobject.h"
 
 using namespace std;
-
-#define COPYFILE_BUFSZ	(256 * 1024)
 
 /*
  * Object
