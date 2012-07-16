@@ -73,8 +73,13 @@ cmd_init(int argc, const char *argv[])
         free(cwd);
     } else if (argc == 2) {
         rootPath = argv[1];
-	if (!Util_IsDirectory(rootPath)) {
+	if (!Util_FileExists(rootPath)) {
 	    mkdir(rootPath.c_str(), 0755);
+	} else {
+	    if (!Util_IsDirectory(rootPath)) {
+		printf("The specified path exists, but is not a directory!\n");
+		return 1;
+	    }
 	}
     } else {
         printf("Too many arguments!\n");
