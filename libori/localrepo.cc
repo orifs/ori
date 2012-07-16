@@ -35,7 +35,7 @@ LocalRepoLock::LocalRepoLock(const std::string &filename)
 LocalRepoLock::~LocalRepoLock()
 {
     if (lockFile.size() > 0) {
-        if (unlink(lockFile.c_str()) < 0) {
+        if (Util_DeleteFile(lockFile) < 0) {
             perror("unlink");
         }
     }
@@ -585,7 +585,9 @@ LocalRepo::rebuildIndex()
 
     string indexPath = rootPath + ORI_PATH_INDEX;
     index.close();
-    ::unlink(indexPath.c_str());
+
+    Util_DeleteFile(indexPath);
+
     index.open(indexPath);
 
     for (it = l.begin(); it != l.end(); it++)
