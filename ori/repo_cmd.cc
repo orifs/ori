@@ -386,6 +386,14 @@ cmd_status(int argc, const char *argv[])
     Commit c;
     string tip = repository.getHead();
 
+    TreeDiff td;
+    if (tip != EMPTY_COMMIT) {
+        c = repository.getCommit(tip);
+        Tree t = repository.getTree(c.getTree());
+        td.diffToWD(t, &repository);
+        return 0;
+    }
+
     if (tip != EMPTY_COMMIT) {
         c = repository.getCommit(tip);
 	StatusTreeIter(&tipState, "", c.getTree());

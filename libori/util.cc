@@ -522,6 +522,21 @@ Util_IsPathRemote(const char *path) {
     return true;
 }
 
+
+/*
+ * String utilities
+ */
+std::string
+StrUtil_Basename(const std::string &path)
+{
+    size_t ix = path.rfind('/');
+    if (ix == std::string::npos) {
+        return path;
+    }
+    return path.substr(ix+1);
+}
+
+
 // XXX: Debug Only
 
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)

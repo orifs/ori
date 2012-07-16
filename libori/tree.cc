@@ -23,8 +23,12 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <set>
 
 #include "tree.h"
+#include "util.h"
+#include "scan.h"
+#include "repo.h"
 
 using namespace std;
 
@@ -166,8 +170,105 @@ TreeDiff::diffTwoTrees(const Tree &t1, const Tree &t2)
 {
 }
 
-void
-TreeDiff::diffToWD(const Tree &src)
+struct _scanHelperData {
+    const Tree *t1, *t2;
+    TreeDiff *td;
+
+    set<string> *pathset;
+    size_t cwdLen;
+    Repo *repo;
+};
+
+int _diffToWdHelper(void *arg, const char *path)
 {
+    string fullPath = path;
+    _scanHelperData *sd = (_scanHelperData *)arg;
+    const Tree *tree = sd->t1;
+
+    string relPath = fullPath.substr(sd->cwdLen);
+    sd->pathset->insert(relPath);
+
+    TreeDiffEntry diffEntry;
+    diffEntry.filepath = relPath;
+
+    if (tree == NULL) {
+        // Every file/dir is new
+        if (!Util_IsDirectory(fullPath)) {
+            diffEntry.type = TreeDiffEntry::NewFile;
+            sd->td->entries.push_back(diffEntry);
+        }
+        else {
+            diffEntry.type = TreeDiffEntry::NewDir;
+            sd->td->entries.push_back(diffEntry);
+            Scan_Traverse(path, sd, _diffToWdHelper);
+        }
+        return 0;
+    }
+
+    string filename = StrUtil_Basename(relPath);
+    map<string, TreeEntry>::const_iterator it = tree->tree.find(filename);
+
+    if (Util_IsDirectory(fullPath)) {
+        if (it == tree->tree.end()) {
+            // New dir
+            diffEntry.type = TreeDiffEntry::NewDir;
+            sd->td->entries.push_back(diffEntry);
+
+            _scanHelperData new_sd = *sd;
+            new_sd.t1 = NULL;
+            return Scan_Traverse(path, &new_sd, _diffToWdHelper);
+        }
+        else {
+            const TreeEntry &te = (*it).second;
+            if (te.type != TreeEntry::Tree) {
+                // TODO: was a file
+                assert(false);
+            }
+            _scanHelperData new_sd = *sd;
+            Tree new_tree = sd->repo->getTree(te.hash);
+            new_sd.t1 = &new_tree;
+            return Scan_Traverse(path, &new_sd, _diffToWdHelper);
+        }
+
+        return 0;
+    }
+
+    if (it == tree->tree.end()) {
+        // New file
+        diffEntry.type = TreeDiffEntry::NewFile;
+        sd->td->entries.push_back(diffEntry);
+    }
+    else {
+        if ((*it).second.type == TreeEntry::Tree) {
+            // TODO: was a dir
+            assert(false);
+        }
+
+        string fileHash = Util_HashFile(fullPath);
+        if (fileHash != (*it).second.hash) {
+            // Modified
+            diffEntry.type = TreeDiffEntry::Modified;
+            sd->td->entries.push_back(diffEntry);
+        }
+    }
+
+    return 0;
+}
+
+void
+TreeDiff::diffToWD(Tree src, Repo *r)
+{
+    char *cwd = (char *)malloc(PATH_MAX);
+    getcwd(cwd, PATH_MAX);
+
+    set<string> pathset;
+    _scanHelperData sd = {&src, NULL, this, &pathset, strlen(cwd), r};
+    Scan_Traverse(cwd, &sd, _diffToWdHelper);
+
+    free(cwd);
+
+    for (size_t i = 0; i < entries.size(); i++) {
+        printf("%c %s\n", entries[i].type, entries[i].filepath.c_str());
+    }
 }
 

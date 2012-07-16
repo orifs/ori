@@ -30,9 +30,12 @@ Help(opts.GenerateHelpText(env))
 #env.Append(CXXFLAGS = [ "-Wno-non-template-friend", "-Woverloaded-virtual",
 #                        "-Wcast-qual", "-Wcast-align", "-Wconversion",
 #                        "-Weffc++", "-std=c++0x", "-Werror" ])
-env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
+if sys.platform != "darwin":
+    env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
+    env.Append(LIBPATH = [ "/usr/local/lib/event2" ])
+
 env.Append(CPPPATH = [ "/usr/local/include" ])
-env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib", "/usr/local/lib/event2" ])
+env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
 if env["WITH_MDNS"] != "1":
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])

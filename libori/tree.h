@@ -56,10 +56,11 @@ public:
 struct TreeDiffEntry
 {
     enum DiffType {
-        New,
-        Deleted,
-        Modified,
-        ModifiedDiff
+        NewFile = 'N',
+        NewDir = 'p',
+        Deleted = 'D',
+        Modified = 'M',
+        ModifiedDiff = 'm'
     } type;
 
     std::string filepath;
@@ -67,10 +68,12 @@ struct TreeDiffEntry
     std::string modifications;
 };
 
+class Repo;
 class TreeDiff
 {
 public:
     void diffTwoTrees(const Tree &t1, const Tree &t2);
+    void diffToWD(Tree src, Repo *r);
 
     std::vector<TreeDiffEntry> entries;
 };
