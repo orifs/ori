@@ -4,6 +4,7 @@
 #include "repo.h"
 #include "index.h"
 #include "lrucache.h"
+#include "localobject.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
