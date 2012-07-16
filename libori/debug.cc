@@ -3,11 +3,13 @@
 #define _WITH_DPRINTF
 
 #include <assert.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
 
+#include <unistd.h>
 #include <sys/time.h>
 
 #ifdef __MACH__
@@ -81,6 +83,7 @@ int ori_open_log(LocalRepo *repo) {
     logfd = open(logPath.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0660);
     if (logfd == -1) {
         perror("open");
+        printf("couldn't open logfile: %s\n", logPath.c_str());
         return -1;
     }
 

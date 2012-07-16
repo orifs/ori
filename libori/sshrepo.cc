@@ -29,6 +29,8 @@
 #include <sys/socket.h>
 
 #include <sstream>
+#include <deque>
+#include <vector>
 
 #include "sshclient.h"
 #include "sshrepo.h"
@@ -48,18 +50,24 @@ SshRepo::~SshRepo()
 {
 }
 
-void SshRepo::preload(const std::vector<std::string> &objs)
+template<typename InputIterator>
+void SshRepo::preload(InputIterator begin, InputIterator end)
 {
     // TODO
     return;
 
-    std::stringstream ss;
+    /*std::stringstream ss;
     ss << "readobjs " << objs.size();
     client->sendCommand(ss.str());
     for (int i = 0; i < objs.size(); i++) {
         client->sendCommand(objs[i]);
-    }
+    }*/
 }
+
+template void
+SshRepo::preload<std::deque<std::string>::iterator>(std::deque<std::string>::iterator, std::deque<std::string>::iterator);
+template void
+SshRepo::preload<std::vector<std::string>::iterator>(std::vector<std::string>::iterator, std::vector<std::string>::iterator);
 
 std::string SshRepo::getHead()
 {
@@ -76,7 +84,7 @@ std::string SshRepo::getHead()
     return line;
 }
 
-Object *SshRepo::getObject(const std::string &id)
+Object::sp SshRepo::getObject(const std::string &id)
 {
     std::string command = "readobj " + id;
     client->sendCommand(command);
@@ -95,7 +103,7 @@ Object *SshRepo::getObject(const std::string &id)
     // TODO: add raw data to cache
     _addPayload(info.hash, raw_data);
 
-    return new SshObject(this, info);
+    return Object::sp(new SshObject(this, info));
 }
 
 bool SshRepo::hasObject(const std::string &id) {

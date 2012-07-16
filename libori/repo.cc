@@ -14,6 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include <string>
 #include <set>
 #include <queue>
@@ -41,18 +44,6 @@ Repo::Repo() {
 Repo::~Repo() {
 }
 
-ObjectInfo *
-Repo::getObjectInfo(const std::string &id)
-{
-    Object::ap o(getObject(id));
-    ObjectInfo *info;
-
-    if (!o.get())
-        info = new ObjectInfo(o->getInfo());
-
-    return info;
-}
-
 /*
  * High-level operations
  */
@@ -75,6 +66,13 @@ int Repo::addObject(const ObjectInfo &in_info, const string &payload)
     }
 }
 
+void
+Repo::copyFrom(Object *other)
+{
+    bytestream::ap bs(other->getStoredPayloadStream());
+    addObjectRaw(other->getInfo(), bs.get());
+}
+
 /*
  * Add a blob to the repository. This is a low-level interface.
  */
@@ -89,38 +87,11 @@ Repo::addBlob(Object::Type type, const string &blob)
     return hash;
 }
 
-/*
- * Get an object length.
- */
-size_t
-Repo::getObjectLength(const string &objId)
-{
-    auto_ptr<ObjectInfo> info(getObjectInfo(objId));
-    if (!info.get()){
-        printf("Couldn't get object %s\n", objId.c_str());
-        return -1;
-    }
-    return info->payload_size;
-}
-
-/*
- * Get the object type.
- */
-Object::Type
-Repo::getObjectType(const string &objId)
-{
-    auto_ptr<ObjectInfo> info(getObjectInfo(objId));
-    if (!info.get()){
-        printf("Couldn't get object %s\n", objId.c_str());
-        return Object::Null;
-    }
-    return info->type;
-}
 
 Tree
 Repo::getTree(const std::string &treeId)
 {
-    Object::ap o(getObject(treeId));
+    Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
     assert(o->getInfo().type == Object::Tree);
@@ -129,49 +100,5 @@ Repo::getTree(const std::string &treeId)
     t.fromBlob(blob);
 
     return t;
-}
-
-/*
- * High Level Operations
- */
-
-/*
- * Pull changes from the source repository.
- */
-void
-Repo::pull(Repo *r)
-{
-    set<ObjectInfo> objects = r->listObjects();
-
-    vector<string> needed;
-    for (set<ObjectInfo>::iterator it = objects.begin();
-            it != objects.end();
-            it++) {
-        // TODO: order the objects
-        if (!hasObject((*it).hash)) {
-            needed.push_back((*it).hash);
-        }
-    }
-
-    // XXX: What about HTTP
-    if (dynamic_cast<SshRepo*>(r)) {
-        ((SshRepo *)r)->preload(needed);
-    }
-
-    for (vector<string>::iterator it = needed.begin(); it != needed.end(); it++)
-    {
-        // XXX: Copy object without loading it all into memory!
-        //addBlob(r->getPayload(*it), r->getObjectType(*it));
-
-        Object::ap o(r->getObject((*it)));
-        if (!o.get()) {
-            printf("Error getting object %s\n", (*it).c_str());
-            continue;
-        }
-
-        //printf("Copying object %s\n", (*it).c_str());
-        bytestream::ap bs(o->getStoredPayloadStream());
-        addObjectRaw(o->getInfo(), bs.get());
-    }
 }
 

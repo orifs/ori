@@ -22,6 +22,7 @@
 #include <utility>
 #include <string>
 #include <map>
+#include <tr1/memory>
 
 #include "stream.h"
 
@@ -43,7 +44,7 @@ public:
     enum MdType { MdNull, MdBackref };
     enum BRState { BRNull, BRRef, BRPurged };
 
-    typedef std::auto_ptr<Object> ap;
+    typedef std::tr1::shared_ptr<Object> sp;
 
     struct ObjectInfo {
         ObjectInfo();
@@ -91,6 +92,8 @@ typedef Object::ObjectInfo ObjectInfo;
 class LocalObject : public Object
 {
 public:
+    typedef std::tr1::shared_ptr<LocalObject> sp;
+
     LocalObject();
     ~LocalObject();
     int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);

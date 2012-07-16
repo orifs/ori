@@ -1,6 +1,9 @@
 #include <cassert>
+#include <stdbool.h>
+#include <stdint.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 #include <unistd.h>
 #include <sys/param.h>
@@ -8,8 +11,10 @@
 #include <errno.h>
 
 #include <string>
+#include <deque>
 #include <queue>
 #include <set>
+#include <algorithm>
 using namespace std;
 
 #include "localrepo.h"
@@ -17,6 +22,7 @@ using namespace std;
 #include "util.h"
 #include "scan.h"
 #include "debug.h"
+#include "sshrepo.h"
 
 /*
  * LocalRepoLock
@@ -29,7 +35,7 @@ LocalRepoLock::LocalRepoLock(const std::string &filename)
 LocalRepoLock::~LocalRepoLock()
 {
     if (lockFile.size() > 0) {
-        if (unlink(lockFile.c_str()) < 0) {
+        if (Util_DeleteFile(lockFile) < 0) {
             perror("unlink");
         }
     }
@@ -44,6 +50,7 @@ LocalRepoLock::~LocalRepoLock()
  ********************************************************************/
 
 LocalRepo::LocalRepo(const string &root)
+    : opened(false)
 {
     rootPath = (root == "") ? findRootPath() : root;
 }
@@ -80,6 +87,7 @@ LocalRepo::open(const string &root)
 
     index.open(rootPath + ORI_PATH_INDEX);
 
+    opened = true;
     return true;
 }
 
@@ -87,11 +95,13 @@ void
 LocalRepo::close()
 {
     index.close();
+    opened = false;
 }
 
 LocalRepoLock *
 LocalRepo::lock()
 {
+    assert(opened);
     if (rootPath == "")
         return NULL;
     std::string lfPath = rootPath + ORI_PATH_LOCK;
@@ -115,21 +125,30 @@ LocalRepo::lock()
  * Object Operations
  */
 
-Object *LocalRepo::getObject(const std::string &objId)
+Object::sp LocalRepo::getObject(const std::string &objId)
 {
-    string path = objIdToPath(objId);
-    LocalObject *o = new LocalObject();
-    o->open(path, objId);
-
-    return o;
+    LocalObject::sp o(getLocalObject(objId));
+    if (!o) return Object::sp();
+    return Object::sp(o);
 }
 
-LocalObject LocalRepo::getLocalObject(const std::string &objId)
+LocalObject::sp LocalRepo::getLocalObject(const std::string &objId)
 {
-    string path = objIdToPath(objId);
-    LocalObject o;
-    o.open(path, objId);
-    return o;
+    assert(opened);
+    if (!_objectCache.hasKey(objId)) {
+        string path = objIdToPath(objId);
+        LocalObject::sp o(new LocalObject());
+
+        int st = o->open(path, objId);
+        if (st < 0) {
+            LOG("LocalRepo couldn't open object %s: %s", objId.c_str(),
+                    strerror(st));
+            return LocalObject::sp(); // NULL
+        }
+
+        _objectCache.put(objId, o);
+    }
+    return _objectCache.get(objId);
 }
 
 void
@@ -223,15 +242,13 @@ LocalRepo::addLargeFile(const string &path)
         map<uint64_t, LBlobEntry>::iterator it;
 
         for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
-            LocalObject o;
-            string refPath = objIdToPath((*it).second.hash);
-
-            if (o.open(refPath) != 0) {
+            LocalObject::sp o = getLocalObject((*it).second.hash);
+            if (!o) {
                 perror("Cannot open object");
                 assert(false);
             }
-            o.addBackref(hash, Object::BRRef);
-            o.close();
+            o->addBackref(hash, Object::BRRef);
+            //o->close();
         }
     }
 
@@ -245,6 +262,7 @@ LocalRepo::addLargeFile(const string &path)
 pair<string, string>
 LocalRepo::addFile(const string &path)
 {
+    assert(opened);
     size_t sz = Util_FileSize(path);
 
     if (sz > LARGEFILE_MINIMUM)
@@ -256,6 +274,7 @@ LocalRepo::addFile(const string &path)
 int
 LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
+    assert(opened);
     string hash = info.hash;
     string objPath = objIdToPath(hash);
 
@@ -289,15 +308,13 @@ LocalRepo::addTree(const Tree &tree)
     }
 
     for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
-        LocalObject o;
-        string refPath = objIdToPath((*it).second.hash);
-
-        if (o.open(refPath) != 0) {
+        LocalObject::sp o(getLocalObject((*it).second.hash));
+        if (!o) {
             perror("Cannot open object");
             assert(false);
         }
-        o.addBackref(hash, Object::BRRef);
-        o.close();
+        o->addBackref(hash, Object::BRRef);
+        //o.close();
     }
 
     return addBlob(Object::Tree, blob);
@@ -311,39 +328,42 @@ LocalRepo::addCommit(/* const */ Commit &commit)
 {
     string blob = commit.getBlob();
     string hash = Util_HashString(blob);
-    LocalObject o;
     string refPath;
 
     if (hasObject(hash)) {
         return hash;
     }
 
-    refPath = objIdToPath(commit.getTree());
-    if (o.open(refPath) != 0) {
+    LocalObject::sp o;
+    o = getLocalObject(commit.getTree());
+    if (!o) {
         perror("Cannot open object");
+        return "";
     }
-    o.addBackref(hash, Object::BRRef);
-    o.close();
+    o->addBackref(hash, Object::BRRef);
+    //o.close();
 
     refPath = commit.getParents().first;
     if (refPath != EMPTY_COMMIT) {
-        refPath = objIdToPath(refPath);
-        if (o.open(refPath) != 0) {
+        o = getLocalObject(commit.getParents().first);
+        if (!o) {
             printf("%s\n", refPath.c_str());
             perror("Cannot open object");
+            return "";
         }
-        o.addBackref(hash, Object::BRRef);
-        o.close();
+        o->addBackref(hash, Object::BRRef);
+        //o.close();
     }
 
     refPath = commit.getParents().second;
     if (refPath != "") {
-        refPath = objIdToPath(refPath);
-        if (o.open(refPath) != 0) {
+        o = getLocalObject(commit.getParents().second);
+        if (!o) {
             perror("Cannot open object");
+            return "";
         }
-        o.addBackref(hash, Object::BRRef);
-        o.close();
+        o->addBackref(hash, Object::BRRef);
+        //o.close();
     }
 
     return addBlob(Object::Commit, blob);
@@ -355,9 +375,9 @@ LocalRepo::addCommit(/* const */ Commit &commit)
 std::string
 LocalRepo::getPayload(const string &objId)
 {
-    Object::ap o(getObject(objId));
+    Object::sp o(getObject(objId));
     // XXX: Add better error handling
-    if (!o.get())
+    if (!o)
         return "";
 
     // TODO: if object is a LargeBlob, this will only return the LargeBlob
@@ -368,29 +388,59 @@ LocalRepo::getPayload(const string &objId)
 }
 
 /*
+ * Get an object length.
+ */
+size_t
+LocalRepo::getObjectLength(const string &objId)
+{
+    if (!hasObject(objId)) {
+        LOG("Couldn't get object %s", objId.c_str());
+        return -1;
+    }
+
+    const ObjectInfo &info = getObjectInfo(objId);
+    return info.payload_size;
+}
+
+/*
+ * Get the object type.
+ */
+Object::Type
+LocalRepo::getObjectType(const string &objId)
+{
+    if (!hasObject(objId)) {
+        LOG("Couldn't get object %s", objId.c_str());
+        return Object::Null;
+    }
+
+    const ObjectInfo &info = getObjectInfo(objId);
+    return info.type;
+}
+
+/*
  * Verify object
  */
 string
 LocalRepo::verifyObject(const string &objId)
 {
-    string objPath = objIdToPath(objId);
-    LocalObject o;
+    LocalObject::sp o;
     Object::Type type;
 
     if (!hasObject(objId))
 	return "Object not found!";
 
     // XXX: Add better error handling
-    if (o.open(objPath) < 0)
+    o = getLocalObject(objId);
+    if (!o)
 	return "Cannot open object!";
 
-    type = o.getInfo().type;
+    type = o->getInfo().type;
     switch(type) {
 	case Object::Null:
 	    return "Object with Null type!";
 	case Object::Commit:
 	{
-	    if (o.computeHash() != objId)
+	    if (o->computeHash() != objId)
 		return "Object hash mismatch!"; 
 
 	    // XXX: Verify tree and parents exist
@@ -398,7 +448,7 @@ LocalRepo::verifyObject(const string &objId)
 	}
 	case Object::Tree:
 	{
-	    if (o.computeHash() != objId)
+	    if (o->computeHash() != objId)
 		return "Object hash mismatch!"; 
 
 	    // XXX: Verify subtrees and blobs exist
@@ -406,14 +456,14 @@ LocalRepo::verifyObject(const string &objId)
 	}
 	case Object::Blob:
 	{
-	    if (o.computeHash() != objId)
+	    if (o->computeHash() != objId)
 		return "Object hash mismatch!"; 
 
 	    break;
 	}
         case Object::LargeBlob:
         {
-	    if (o.computeHash() != objId)
+	    if (o->computeHash() != objId)
 		return "Object hash mismatch!"; 
 
             // XXX: Verify fragments
@@ -427,11 +477,11 @@ LocalRepo::verifyObject(const string &objId)
     }
 
     // Check object metadata
-    if (!o.checkMetadata()) {
+    if (!o->checkMetadata()) {
         return "Object metadata hash mismatch!";
     }
 
-    if (!o.getInfo().hasAllFields()) {
+    if (!o->getInfo().hasAllFields()) {
         return "Object info missing some fileds!";
     }
 
@@ -446,13 +496,12 @@ LocalRepo::verifyObject(const string &objId)
 bool
 LocalRepo::purgeObject(const string &objId)
 {
-    string objPath = objIdToPath(objId);
-    LocalObject o;
+    LocalObject::sp o = getLocalObject(objId);
 
-    if (o.open(objPath) < 0)
+    if (!o)
 	return false;
 
-    if (o.purge() < 0)
+    if (o->purge() < 0)
 	return false;
 
     return true;
@@ -464,18 +513,17 @@ LocalRepo::purgeObject(const string &objId)
 bool
 LocalRepo::copyObject(const string &objId, const string &path)
 {
-    string objPath = objIdToPath(objId);
-    LocalObject o;
+    LocalObject::sp o = getLocalObject(objId);
 
     // XXX: Add better error handling
-    if (o.open(objPath) < 0)
+    if (!o)
 	return false;
 
-    bytestream::ap bs(o.getPayloadStream());
-    if (o.getInfo().type == Object::Blob) {
+    bytestream::ap bs(o->getPayloadStream());
+    if (o->getInfo().type == Object::Blob) {
         if (bs->copyToFile(path) < 0)
 	    return false;
-    } else if (o.getInfo().type == Object::LargeBlob) {
+    } else if (o->getInfo().type == Object::LargeBlob) {
         LargeBlob lb = LargeBlob(this);
         lb.fromBlob(bs->readAll());
         lb.extractFile(path);
@@ -537,7 +585,9 @@ LocalRepo::rebuildIndex()
 
     string indexPath = rootPath + ORI_PATH_INDEX;
     index.close();
-    ::unlink(indexPath.c_str());
+
+    Util_DeleteFile(indexPath);
+
     index.open(indexPath);
 
     for (it = l.begin(); it != l.end(); it++)
@@ -589,6 +639,109 @@ LocalRepo::getCommit(const std::string &commitId)
 }
 
 /*
+ * High Level Operations
+ */
+
+/*
+ * Pull changes from the source repository.
+ */
+void
+LocalRepo::pull(Repo *r)
+{
+    SshRepo *sshrepo = NULL;
+    if (dynamic_cast<SshRepo*>(r))
+        sshrepo = (SshRepo *)r;
+
+    vector<Commit> remoteCommits = r->listCommits();
+    deque<string> toPull;
+
+    for (size_t i = 0; i < remoteCommits.size(); i++) {
+        string hash = remoteCommits[i].hash();
+        if (!hasObject(hash)) {
+            toPull.push_back(hash);
+            // TODO: partial pull
+        }
+    }
+
+    if (sshrepo)
+        sshrepo->preload(toPull.begin(), toPull.end());
+
+    LocalRepoLock::ap _lock(lock());
+
+    // Perform the pull
+    while (!toPull.empty()) {
+        string hash = toPull.front();
+        toPull.pop_front();
+
+        Object::sp o(r->getObject(hash));
+        if (!o) {
+            printf("Error getting object %s\n", hash.c_str());
+            continue;
+        }
+
+        // Enqueue the object's references
+        Object::Type t = o->getInfo().type;
+        printf("Pulling object %s (%s)\n", hash.c_str(),
+                Object::getStrForType(t));
+
+        vector<string> newObjs;
+        if (t == Object::Commit) {
+            Commit c;
+            c.fromBlob(o->getPayload());
+            if (!hasObject(c.getTree())) {
+                toPull.push_back(c.getTree());
+                newObjs.push_back(c.getTree());
+            }
+        }
+        else if (t == Object::Tree) {
+            Tree t;
+            t.fromBlob(o->getPayload());
+            for (map<string, TreeEntry>::iterator it = t.tree.begin();
+                    it != t.tree.end();
+                    it++) {
+                const string &entry_hash = (*it).second.hash;
+                if (!hasObject(entry_hash)) {
+                    toPull.push_back(entry_hash);
+                    newObjs.push_back(entry_hash);
+                }
+            }
+        }
+        else if (t == Object::LargeBlob) {
+            LargeBlob lb(this);
+            lb.fromBlob(o->getPayload());
+
+            for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
+                    pit != lb.parts.end();
+                    pit++) {
+                const string &h = (*pit).second.hash;
+                if (!hasObject(h)) {
+                    toPull.push_back(h);
+                    newObjs.push_back(h);
+                }
+            }
+        }
+
+        // Preload new objects
+        if (sshrepo)
+            sshrepo->preload(newObjs.begin(), newObjs.end());
+
+        // Add the object to this repo
+        copyFrom(o.get());
+    }
+}
+
+/*
+ * Garbage Collect. Attempt to reduce wasted space from deleted objects and 
+ * metadata.
+ */
+void
+LocalRepo::gc()
+{
+    // Compact the index
+    index.rewrite();
+}
+
+/*
  * Return true if the repository has the object.
  */
 bool
@@ -600,10 +753,10 @@ LocalRepo::hasObject(const string &objId)
 /*
  * Return ObjectInfo through the fast path.
  */
-ObjectInfo *
+const ObjectInfo &
 LocalRepo::getObjectInfo(const string &objId)
 {
-    return new ObjectInfo(index.getInfo(objId));
+    return index.getInfo(objId);
 }
 
 /*
@@ -621,13 +774,12 @@ map<string, Object::BRState>
 LocalRepo::getRefs(const string &objId)
 {
     string objPath = objIdToPath(objId);
-    LocalObject o;
+    LocalObject::sp o = getLocalObject(objId);
     map<string, Object::BRState> rval;
 
-    if (o.open(objPath) != 0)
+    if (!o)
         return rval;
-    rval = o.getBackref();
-    o.close();
+    rval = o->getBackref();
 
     return rval;
 }
@@ -707,7 +859,7 @@ LocalRepo::computeRefCounts()
             case Object::LargeBlob:
             {
                 LargeBlob lb(this);
-                Object::ap o(getObject(hash));
+                Object::sp o(getObject(hash));
                 lb.fromBlob(o->getPayload());
 
                 for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
@@ -742,43 +894,41 @@ LocalRepo::rewriteReferences(const LocalRepo::ObjReferenceMap &refs)
 
     for (ObjReferenceMap::const_iterator it = refs.begin();
             it != refs.end(); it++) {
-        int status;
-        LocalObject o;
-        Object::Type type;
+        LocalObject::sp o;
 
         if ((*it).first == EMPTY_COMMIT)
             continue;
 
-        status = o.open(objIdToPath((*it).first));
-        if (status < 0) {
+        o = getLocalObject((*it).first);
+        if (!o) {
             LOG("Cannot open object %s", (*it).first.c_str());
             return false;
         }
-        type = o.getInfo().type;
+        Object::Type type = o->getInfo().type;
 
         if (type == Object::Commit ||
             type == Object::Tree ||
             type == Object::Blob ||
             type == Object::LargeBlob) {
-            set<string>::iterator i;
+            set<string>::const_iterator i;
 
-            o.clearMetadata(); // was clearBackref
+            o->clearMetadata(); // was clearBackref
             for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
-                o.addBackref((*i), Object::BRRef);
+                o->addBackref((*i), Object::BRRef);
             }
         } else if (type == Object::Purged) {
             set<string>::iterator i;
 
-            o.clearMetadata(); // was clearBackref
+            o->clearMetadata(); // was clearBackref
             for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
-                o.addBackref((*i), Object::BRPurged);
+                o->addBackref((*i), Object::BRPurged);
             }
         } else {
 
             NOT_IMPLEMENTED(false);
         }
 
-        o.close();
+        //o.close();
     }
 
     return true;
@@ -788,22 +938,19 @@ bool
 LocalRepo::stripMetadata()
 {
     LOG("Stripping metadata");
-    int status;
     LocalRepoLock::ap _lock(lock());
     set<ObjectInfo> obj = listObjects();
     set<ObjectInfo>::iterator it;
 
     for (it = obj.begin(); it != obj.end(); it++) {
-        LocalObject o;
-
-        status = o.open(objIdToPath((*it).hash));
-        if (status < 0) {
+        LocalObject::sp o = getLocalObject((*it).hash);
+        if (!o) {
             LOG("Cannot open object %s", (*it).hash.c_str());
             return false;
         }
 
-        o.clearMetadata();
-        o.close();
+        o->clearMetadata();
+        //o.close();
     }
 
     return true;

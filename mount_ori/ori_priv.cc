@@ -50,8 +50,8 @@ ObjectInfo *
 ori_priv::getObjectInfo(const std::string &hash)
 {
     if (!objInfoCache.hasKey(hash)) {
-        LocalObject lo = repo->getLocalObject(hash);
-        objInfoCache.put(hash, lo.getInfo());
+        LocalObject::sp lo = repo->getLocalObject(hash);
+        objInfoCache.put(hash, lo->getInfo());
     }
     return &objInfoCache.get(hash);
 }

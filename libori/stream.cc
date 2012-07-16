@@ -1,4 +1,5 @@
 #include <cassert>
+#include <string.h>
 
 #include <sys/stat.h>
 #include <sys/param.h>

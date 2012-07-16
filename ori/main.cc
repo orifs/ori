@@ -64,6 +64,7 @@ int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
+int cmd_filelog(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
@@ -72,6 +73,7 @@ int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_findheads(int argc, const char *argv[]);
 int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_rebuildindex(int argc, const char *argv[]);
+int cmd_gc(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_stats(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
@@ -80,7 +82,9 @@ int cmd_stripmetadata(int argc, const char *argv[]); // Debug
 int cmd_sshserver(int argc, const char *argv[]);
 // local
 int cmd_sshclient(int argc, const char *argv[]); // Debug
+#if !defined(WITHOUT_MDNS)
 int cmd_mdnsserver(int argc, const char *argv[]); // Debug
+#endif
 int cmd_httpclient(int argc, const char *argv[]); // Debug
 static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
@@ -135,6 +139,12 @@ static Cmd commands[] = {
 	NULL,
     },
     {
+	"filelog",
+	"Display a log of commits to the repository for the specified file",
+	cmd_filelog,
+	NULL,
+    },
+    {
 	"verify",
 	"Verify the repository",
 	cmd_verify,
@@ -163,6 +173,12 @@ static Cmd commands[] = {
         "Rebuild index",
         cmd_rebuildindex,
         NULL,
+    },
+    {
+	"gc",
+	"Reclaim unused space",
+	cmd_gc,
+	NULL,
     },
     /* Debugging */
     {
@@ -219,12 +235,14 @@ static Cmd commands[] = {
         cmd_sshclient,
         NULL
     },
+#if !defined(WITHOUT_MDNS)
     {
         "mdnsserver",
         "Run the mDNS server (DEBUG)",
         cmd_mdnsserver,
         NULL
     },
+#endif
     {
         "selftest",
         "Built-in unit tests (DEBUG)",

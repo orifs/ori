@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include <deque>
 
 #include "repo.h"
 #include "sshclient.h"
@@ -31,11 +32,12 @@ public:
     SshRepo(SshClient *client);
     ~SshRepo();
 
-    void preload(const std::vector<std::string> &objs);
+    template<typename InputIterator>
+    void preload(InputIterator begin, InputIterator end);
 
     std::string getHead();
 
-    Object *getObject(const std::string &id);
+    Object::sp getObject(const std::string &id);
     bool hasObject(const std::string &id);
     std::set<ObjectInfo> listObjects();
     int addObjectRaw(const ObjectInfo &info, bytestream *bs);

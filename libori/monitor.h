@@ -14,36 +14,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __INDEX_H__
-#define __INDEX_H__
+#ifndef __MONITOR_H__
+#define __MONITOR_H__
 
-#include <assert.h>
+#include "mutex.h"
 
-#include <string>
-#include <map>
-#include <set>
-
-#include "debug.h"
-#include "object.h"
-
-class Index
+class Monitor
 {
 public:
-    Index();
-    ~Index();
-    void open(const std::string &indexFile);
-    void close();
-    void rewrite();
-    void dump();
-    void updateInfo(const std::string &objId, const ObjectInfo &info);
-    const ObjectInfo &getInfo(const std::string &objId) const;
-    bool hasObject(const std::string &objId) const;
-    std::set<ObjectInfo> getList();
+    Monitor(Mutex &l);
+    virtual ~Monitor();
 private:
-    int fd;
-    std::string fileName;
-    std::map<std::string, ObjectInfo> index;
+    Mutex &lock;
 };
 
-#endif /* __INDEX_H__ */
+#endif /* __MONITOR_H__ */
 

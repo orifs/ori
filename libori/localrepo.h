@@ -47,13 +47,13 @@ public:
     int addObjectRaw(const ObjectInfo &info,
             bytestream *bs);
     bool hasObject(const std::string &objId);
-    Object *getObject(const std::string &objId);
-    virtual ObjectInfo *getObjectInfo(const std::string &objId);
+    Object::sp getObject(const std::string &objId);
+    const ObjectInfo &getObjectInfo(const std::string &objId);
     std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
     bool rebuildIndex();
 
-    LocalObject getLocalObject(const std::string &objId);
+    LocalObject::sp getLocalObject(const std::string &objId);
     
     std::vector<Commit> listCommits();
 
@@ -65,12 +65,18 @@ public:
     virtual std::string addTree(const Tree &tree);
     virtual std::string addCommit(/* const */ Commit &commit);
     //std::string addBlob(const std::string &blob, Object::Type type);
+    size_t getObjectLength(const std::string &objId);
+    Object::Type getObjectType(const std::string &objId);
     std::string getPayload(const std::string &objId);
     std::string verifyObject(const std::string &objId);
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
     Commit getCommit(const std::string &commitId);
+    // Clone/pull operations
+    void pull(Repo *r);
+    // Repository Operations
+    void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
     std::map<std::string, std::map<std::string, Object::BRState> >
@@ -107,6 +113,7 @@ public: // Hack to enable rebuild operations
     std::string objIdToPath(const std::string &objId);
 private:
     // Variables
+    bool opened;
     std::string rootPath;
     std::string id;
     std::string version;
@@ -114,6 +121,9 @@ private:
 
     // Caches
     LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;
+    // TODO: ulimit is 256 files open on OSX, need to support 2 repos open at a
+    // time?
+    LRUCache<std::string, LocalObject::sp, 96> _objectCache;
 };
 
 #endif

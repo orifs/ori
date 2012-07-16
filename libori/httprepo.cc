@@ -27,6 +27,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include <iostream>
 
@@ -75,7 +76,7 @@ HttpRepo::getHead()
     return headId;
 }
 
-Object *
+Object::sp
 HttpRepo::getObject(const std::string &id)
 {
     int status;
@@ -86,7 +87,7 @@ HttpRepo::getObject(const std::string &id)
     status = client->getRequest("/objs/" + id, payload);
     if (status < 0) {
         assert(false);
-        return NULL;
+        return Object::sp();
     }
 
     info.setInfo(payload.substr(0, 16));
@@ -94,7 +95,7 @@ HttpRepo::getObject(const std::string &id)
     // TODO: add raw data to cache
     _addPayload(info.hash, payload.substr(16));
 
-    return new HttpObject(this, info);
+    return Object::sp(new HttpObject(this, info));
 }
 
 bool
@@ -146,8 +147,31 @@ HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 vector<Commit>
 HttpRepo::listCommits()
 {
-    NOT_IMPLEMENTED(false);
-    return vector<Commit>();
+    vector<Commit> rval;
+
+    string index;
+    int status = client->getRequest("/commits", index);
+    if (status < 0) {
+        assert(false);
+        return rval;
+    }
+
+    // Parse response
+    for (int offset = 0; offset < index.size();)
+    {
+        int16_t bsize = *(int16_t*)&index[offset];
+        bsize = ntohs(bsize);
+        offset += sizeof(int16_t);
+
+        string blob = index.substr(offset, bsize);
+        offset += bsize;
+
+        Commit c;
+        c.fromBlob(blob);
+        rval.push_back(c);
+    }
+
+    return rval;
 }
 
 

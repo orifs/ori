@@ -15,6 +15,8 @@
  */
 
 #include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include <fcntl.h>
 #include <sys/param.h>
@@ -28,6 +30,7 @@
 #include <iostream>
 
 #include "debug.h"
+#include "util.h"
 #include "object.h"
 #include "index.h"
 
@@ -51,6 +54,8 @@ Index::open(const string &indexFile)
 {
     int i, entries;
     struct stat sb;
+
+    fileName = indexFile;
 
     // Read index
     fd = ::open(indexFile.c_str(), O_RDWR | O_CREAT,
@@ -99,6 +104,11 @@ Index::open(const string &indexFile)
     // Reopen append only
     fd = ::open(indexFile.c_str(), O_WRONLY | O_APPEND);
     assert(fd >= 0); // Assume that the repository lock protects the index
+
+    // Delete temporary index if present
+    if (Util_FileExists(indexFile + ".tmp")) {
+        Util_DeleteFile(indexFile + ".tmp");
+    }
 }
 
 void
@@ -109,6 +119,41 @@ Index::close()
         ::close(fd);
         fd = -1;
     }
+}
+
+void
+Index::rewrite()
+{
+    int fdNew, tmpFd;
+    string newIndex = fileName + ".tmp";
+    map<string, ObjectInfo>::iterator it;
+
+    fdNew = ::open(newIndex.c_str(), O_RDWR | O_CREAT,
+                   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    if (fdNew < 0) {
+        perror("open");
+        cout << "Could not open a temporary index file!" << endl;
+        return;
+    };
+
+    // Write new index
+    for (it = index.begin(); it != index.end(); it++)
+    {
+        int status;
+        string indexLine;
+
+        indexLine = (*it).first;
+        indexLine += (*it).second.getInfo();
+
+        status = write(fdNew, indexLine.data(), indexLine.size());
+        assert(status == indexLine.size());
+    }
+
+    Util_RenameFile(newIndex, fileName);
+
+    tmpFd = fd;
+    fd = fdNew;
+    ::close(tmpFd);
 }
 
 void
@@ -145,23 +190,19 @@ Index::updateInfo(const string &objId, const ObjectInfo &info)
     write(fd, indexLine.data(), indexLine.size());
 }
 
-ObjectInfo
-Index::getInfo(const string &objId)
+const ObjectInfo &
+Index::getInfo(const string &objId) const
 {
-    map<string, ObjectInfo>::iterator it;
+    map<string, ObjectInfo>::const_iterator it = index.find(objId);
+    assert(it != index.end());
 
-    it = index.find(objId);
-
-    if (it != index.end())
-        return (*it).second;
-    else
-        return NULL;
+    return (*it).second;
 }
 
 bool
-Index::hasObject(const string &objId)
+Index::hasObject(const string &objId) const
 {
-    map<string, ObjectInfo>::iterator it;
+    map<string, ObjectInfo>::const_iterator it;
 
     it = index.find(objId);
 
