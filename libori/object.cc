@@ -99,23 +99,22 @@ ObjectInfo::setInfo(const std::string &info)
 }
 
 ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
+    ssize_t status;
+    char header[24];
     const char *type_str = Object::getStrForType(type);
+
     if (type_str == NULL)
         return -1;
 
-    ssize_t status;
     if (seekable) {
-        status = pwrite(fd, type_str, ORI_OBJECT_TYPESIZE, 0);
-        if (status < 0) return status;
-        assert(status == ORI_OBJECT_TYPESIZE);
+	memcpy(header, type_str, ORI_OBJECT_TYPESIZE);
+	memcpy(header + 4, &flags, ORI_OBJECT_FLAGSSIZE);
+	memcpy(header + 8, &payload_size, ORI_OBJECT_SIZE);
+	memset(header + 16, 0, ORI_OBJECT_SIZE);
 
-        status = pwrite(fd, &flags, ORI_OBJECT_FLAGSSIZE, 4);
+        status = pwrite(fd, header, 24, 0);
         if (status < 0) return status;
-        assert(status == ORI_OBJECT_FLAGSSIZE);
-
-        status = pwrite(fd, &payload_size, ORI_OBJECT_SIZE, 8);
-        if (status < 0) return status;
-        assert(status == ORI_OBJECT_SIZE);
+        assert(status == 24);
 
         return 0;
     }
@@ -280,6 +279,7 @@ int
 LocalObject::open(const string &path, const string &hash)
 {
     int status;
+    char header[24];
     char buf[5];
 
     objPath = path;
@@ -291,16 +291,18 @@ LocalObject::open(const string &path, const string &hash)
 	return -errno;
     }
 
-    buf[4] = '\0';
-    status = pread(fd, buf, ORI_OBJECT_TYPESIZE, 0);
+    status = pread(fd, header, 24, 0);
     if (status < 0) {
         int en = errno;
-        perror("pread type");
+        perror("pread object header");
 	close();
 	return -en;
     }
 
-    assert(status == ORI_OBJECT_TYPESIZE);
+    assert(status == 24);
+
+    memcpy(buf, header, 4);
+    buf[4] = '\0';
 
     info.type = getTypeForStr(buf);
     if (info.type == Null) {
@@ -308,29 +310,9 @@ LocalObject::open(const string &path, const string &hash)
         assert(false);
     }
 
-    status = pread(fd, (void *)&info.flags, ORI_OBJECT_FLAGSSIZE, 4);
-    if (status < 0) {
-        int en = errno;
-        perror("pread flags");
-        close();
-        return -en;
-    }
-
-    status = pread(fd, (void *)&info.payload_size, ORI_OBJECT_SIZE, 8);
-    if (status < 0) {
-        int en = errno;
-        perror("pread payload_size");
-	close();
-	return -en;
-    }
-
-    status = pread(fd, (void *)&storedLen, ORI_OBJECT_SIZE, 16);
-    if (status < 0) {
-        int en = errno;
-        perror("pread storedLen");
-        close();
-        return -en;
-    }
+    memcpy(&info.flags, header + 4, ORI_OBJECT_FLAGSSIZE);
+    memcpy(&info.payload_size, header + 8, ORI_OBJECT_SIZE);
+    memcpy(&storedLen, header + 16, ORI_OBJECT_SIZE);
 
     // Read filesize
     struct stat sb;
