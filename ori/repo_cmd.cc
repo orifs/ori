@@ -347,7 +347,7 @@ cmd_snapshot(int argc, const char *argv[])
     Commit commit = Commit();
     string root = LocalRepo::findRootPath();
 
-    if (argc != 1) {
+    if (argc != 2) {
 	cout << "Specify a snapshot name." << endl;
 	cout << "usage: ori snapshot <snapshot name>" << endl;
 	return 1;

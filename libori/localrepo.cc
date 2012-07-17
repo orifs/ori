@@ -86,6 +86,7 @@ LocalRepo::open(const string &root)
     delete ver_str;
 
     index.open(rootPath + ORI_PATH_INDEX);
+    snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
 
     opened = true;
     return true;
@@ -95,6 +96,7 @@ void
 LocalRepo::close()
 {
     index.close();
+    snapshots.close();
     opened = false;
 }
 
@@ -364,6 +366,10 @@ LocalRepo::addCommit(/* const */ Commit &commit)
         }
         o->addBackref(hash, Object::BRRef);
         //o.close();
+    }
+
+    if (commit.getSnapshot() != "") {
+	snapshots.addSnapshot(commit.getSnapshot(), hash);
     }
 
     return addBlob(Object::Commit, blob);
