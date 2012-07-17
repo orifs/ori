@@ -162,15 +162,15 @@ void
 _recFlatten(
         const std::string &prefix,
         const Tree *t,
-        map<string, TreeEntry> *rval,
+        Tree::Flat *rval,
         Repo *r
         )
 {
-    for (map<string, TreeEntry>::const_iterator it = t->tree.begin();
+    for (Tree::Flat::const_iterator it = t->tree.begin();
             it != t->tree.end();
             it++) {
         const TreeEntry &te = (*it).second;
-        rval->insert(pair<string, TreeEntry>(prefix + (*it).first, te));
+        rval->insert(make_pair(prefix + (*it).first, te));
         if (te.type == TreeEntry::Tree) {
             // Recurse further
             Tree t = r->getTree(te.hash);
@@ -180,7 +180,7 @@ _recFlatten(
     }
 }
 
-map<string, TreeEntry>
+Tree::Flat
 Tree::flattened(Repo *r) const
 {
     map<string, TreeEntry> rval;
@@ -188,127 +188,64 @@ Tree::flattened(Repo *r) const
     return rval;
 }
 
-
-
-
-/*
- * TreeDiff
- */
-
-void
-TreeDiff::diffTwoTrees(const Tree &t1, const Tree &t2)
+size_t _num_path_components(const std::string &path)
 {
+    if (path.size() == 0) return 0;
+    size_t cnt = 0;
+    for (size_t i = 0; i < path.size(); i++) {
+        if (path[i] == '/')
+            cnt++;
+    }
+    return 1 + cnt;
 }
 
-struct _scanHelperData {
-    set<string> *wd_paths;
-    map<string, TreeEntry> *flattened_tree;
-    TreeDiff *td;
-
-    size_t cwdLen;
-    Repo *repo;
-};
-
-int _diffToWdHelper(void *arg, const char *path)
+bool _tree_gt(const std::string &t1, const std::string &t2)
 {
-    string fullPath = path;
-    _scanHelperData *sd = (_scanHelperData *)arg;
+    return _num_path_components(t1) > _num_path_components(t2);
+}
 
-    string relPath = fullPath.substr(sd->cwdLen);
-    sd->wd_paths->insert(relPath);
-
-    TreeDiffEntry diffEntry;
-    diffEntry.filepath = relPath;
-
-    map<string, TreeEntry>::iterator it = sd->flattened_tree->find(relPath);
-    if (it == sd->flattened_tree->end()) {
-        // New file/dir
-        if (Util_IsDirectory(fullPath)) {
-            diffEntry.type = TreeDiffEntry::NewDir;
+Tree
+Tree::unflatten(const Flat &flat, Repo *r)
+{
+    map<string, Tree> trees;
+    for (Flat::const_iterator it = flat.begin();
+            it != flat.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        if (te.type == TreeEntry::Tree) {
+            if (trees.find((*it).first) == trees.end()) {
+                trees[(*it).first] = Tree();
+            }
+        }
+        else if (te.type == TreeEntry::Blob ||
+                te.type == TreeEntry::LargeBlob) {
+            string treename = StrUtil_Dirname((*it).first);
+            if (trees.find(treename) == trees.end()) {
+                trees[treename] = Tree();
+            }
+            string basename = StrUtil_Basename((*it).first);
+            trees[treename].tree[basename] = te;
         }
         else {
-            diffEntry.type = TreeDiffEntry::NewFile;
-            diffEntry.newFilename = fullPath;
+            assert(false && "TreeEntry is type Null");
         }
-        sd->td->entries.push_back(diffEntry);
-        return 0;
     }
 
-    // Potentially modified file/dir
-    const TreeEntry &te = (*it).second;
-    if (Util_IsDirectory(fullPath)) {
-        if (te.type != TreeEntry::Tree) {
-            // File replaced by dir
-            diffEntry.type = TreeDiffEntry::Deleted;
-            sd->td->entries.push_back(diffEntry);
-            diffEntry.type = TreeDiffEntry::NewDir;
-            sd->td->entries.push_back(diffEntry);
-        }
-        return 0;
-    }
-
-    if (te.type == TreeEntry::Tree) {
-        // Dir replaced by file
-        diffEntry.type = TreeDiffEntry::Deleted;
-        sd->td->entries.push_back(diffEntry);
-        diffEntry.type = TreeDiffEntry::NewFile;
-        diffEntry.newFilename = fullPath;
-        sd->td->entries.push_back(diffEntry);
-        return 0;
-    }
-
-    // Check if file is modified
-    // TODO: heuristic for determining whether a file has been modified
-    std::string newHash = Util_HashFile(fullPath);
-    bool modified = false;
-    if (te.type == TreeEntry::Blob) {
-        modified = newHash == te.hash;
-    }
-    else if (te.type == TreeEntry::LargeBlob) {
-        modified = newHash == te.largeHash;
-    }
-
-    if (modified) {
-        diffEntry.type = TreeDiffEntry::Modified;
-        diffEntry.newFilename = fullPath;
-        sd->td->entries.push_back(diffEntry);
-        return 0;
-    }
-
-    return 0;
-}
-
-void
-TreeDiff::diffToWD(Tree src, Repo *r)
-{
-    char *cwd = (char *)malloc(PATH_MAX);
-    getcwd(cwd, PATH_MAX);
-
-    set<string> wd_paths;
-    map<string, TreeEntry> flattened_tree = src.flattened(r);
-    _scanHelperData sd = {
-        &wd_paths,
-        &flattened_tree,
-        this,
-        strlen(cwd),
-        r};
-
-    // Find additions and modifications
-    Scan_RTraverse(cwd, &sd, _diffToWdHelper);
-
-    free(cwd);
-
-    // Find deletions
-    for (map<string, TreeEntry>::iterator it = flattened_tree.begin();
-            it != flattened_tree.end();
+    // Get the tree hashes, update parents, add to Repo
+    vector<string> tree_names;
+    for (map<string, Tree>::const_iterator it = trees.begin();
+            it != trees.end();
             it++) {
-        set<string>::iterator wd_it = wd_paths.find((*it).first);
-        if (wd_it == wd_paths.end()) {
-            TreeDiffEntry tde;
-            tde.filepath = (*it).first;
-            tde.type = TreeDiffEntry::Deleted;
-            entries.push_back(tde);
-        }
+        tree_names.push_back((*it).first);
     }
+    // Update leaf trees (no child directories) first
+    std::sort(tree_names.begin(), tree_names.end(), _tree_gt);
+
+    for (size_t i = 0; i < tree_names.size(); i++) {
+        printf("tree: %s (%u)\n", tree_names[i].c_str(),
+                trees[tree_names[i]].tree.size());
+    }
+
+    return trees[""];
 }
 

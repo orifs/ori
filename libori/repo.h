@@ -67,6 +67,7 @@ public:
             ObjectInfo *info,
             std::string &data);*/
     virtual Tree getTree(const std::string &treeId);
+    virtual Commit getCommit(const std::string &commitId);
 };
 
 #endif /* __REPO_H__ */

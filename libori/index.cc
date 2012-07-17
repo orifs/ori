@@ -65,7 +65,7 @@ Index::open(const string &indexFile)
         cout << "Could not open the index file!" << endl;
         assert(false);
         return;
-    };
+    }
 
 
     if (::fstat(fd, &sb) < 0) {

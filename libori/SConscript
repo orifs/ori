@@ -23,6 +23,7 @@ src = [
     "localrepo.cc",
     "sshclient.cc",
     "sshrepo.cc",
+    "treediff.cc",
 ]
 
 if os.name == 'posix':

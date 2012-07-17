@@ -51,35 +51,12 @@ public:
                    const std::string &lgObjId = "");
     const std::string getBlob() const;
     void fromBlob(const std::string &blob);
-    std::map<std::string, TreeEntry> flattened(Repo *r) const;
+
+    typedef std::map<std::string, TreeEntry> Flat;
+    Flat flattened(Repo *r) const;
+    static Tree unflatten(const Flat &flat, Repo *r);
 
     std::map<std::string, TreeEntry> tree;
 };
 
-struct TreeDiffEntry
-{
-    enum DiffType {
-        NewFile = 'A',
-        NewDir = 'n',
-        Deleted = 'D',
-        Modified = 'M',
-        ModifiedDiff = 'm'
-    } type;
-
-    std::string filepath; // path relative to repo, with leading '/'
-    // TODO: uint16_t newmode;
-    std::string diff;
-    std::string newFilename; // filename of a file containing the new contents
-};
-
-class TreeDiff
-{
-public:
-    void diffTwoTrees(const Tree &t1, const Tree &t2);
-    void diffToWD(Tree src, Repo *r);
-
-    std::vector<TreeDiffEntry> entries;
-};
-
 #endif /* __TREE_H__ */
-

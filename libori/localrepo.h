@@ -6,6 +6,7 @@
 #include "snapshotindex.h"
 #include "lrucache.h"
 #include "localobject.h"
+#include "treediff.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -75,10 +76,11 @@ public:
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
-    Commit getCommit(const std::string &commitId);
     // Clone/pull operations
     void pull(Repo *r);
     // Repository Operations
+    Tree applyTD(const Tree &src, const TreeDiff &td);
+    std::string commitFromTD(const TreeDiff &td);
     void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);

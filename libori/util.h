@@ -45,6 +45,7 @@ std::string Util_NewUUID();
 bool Util_IsPathRemote(const char *path);
 
 std::string StrUtil_Basename(const std::string &path);
+std::string StrUtil_Dirname(const std::string &path);
 
 #endif /* __UTIL_H__ */
 

@@ -43,6 +43,7 @@
 #include "httprepo.h"
 #include "sshclient.h"
 #include "sshrepo.h"
+#include "treediff.h"
 
 using namespace std;
 
@@ -294,6 +295,19 @@ usage_commit(void)
 int
 cmd_commit(int argc, const char *argv[])
 {
+    string tip = repository.getHead();
+
+    Tree tip_tree;
+    TreeDiff td;
+    if (tip != EMPTY_COMMIT) {
+        Commit c = repository.getCommit(tip);
+        tip_tree = repository.getTree(c.getTree());
+    }
+
+    td.diffToWD(tip_tree, &repository);
+    repository.commitFromTD(td);
+
+    return 0;
     string blob;
     string treeHash, commitHash;
     string msg;

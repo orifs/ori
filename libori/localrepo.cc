@@ -212,6 +212,7 @@ LocalRepo::addSmallFile(const string &path)
 	createObjDirs(hash);
 	if (o.create(objPath, Object::Blob) < 0) {
 	    perror("Unable to create object");
+            printf("objPath: %s\n", objPath.c_str());
 	    return "";
 	}
         diskstream ds(path);
@@ -629,21 +630,6 @@ LocalRepo::listCommits()
     return rval;
 }
 
-Commit
-LocalRepo::getCommit(const std::string &commitId)
-{
-    Commit c = Commit();
-    string blob = getPayload(commitId);
-    if (blob.size() == 0) {
-        printf("Error getting commit blob\n");
-        assert(false);
-        return c;
-    }
-    c.fromBlob(blob);
-
-    return c;
-}
-
 /*
  * High Level Operations
  */
@@ -734,6 +720,72 @@ LocalRepo::pull(Repo *r)
         // Add the object to this repo
         copyFrom(o.get());
     }
+}
+
+/*
+ * Commit from TreeDiff
+ */
+Tree
+LocalRepo::applyTD(const Tree &src, const TreeDiff &td)
+{
+    Tree::Flat flat = src.flattened(this);
+    for (size_t i = 0; i < td.entries.size(); i++) {
+        const TreeDiffEntry &tde = td.entries[i];
+        if (tde.type == TreeDiffEntry::NewFile) {
+            TreeEntry te;
+            pair<string, string> hashes = addFile(tde.newFilename);
+            te.hash = hashes.first;
+            te.largeHash = hashes.second;
+            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                TreeEntry::Blob;
+            // TODO te.mode
+
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::NewDir) {
+            TreeEntry te;
+            te.type = TreeEntry::Tree;
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::Deleted) {
+            flat.erase(tde.filepath);
+        }
+        else if (tde.type == TreeDiffEntry::Modified) {
+            TreeEntry te;
+            pair<string, string> hashes = addFile(tde.newFilename);
+            te.hash = hashes.first;
+            te.largeHash = hashes.second;
+            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                TreeEntry::Blob;
+            // TODO te.mode
+
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::ModifiedDiff) {
+            // TODO: apply diff
+            NOT_IMPLEMENTED(false);
+        }
+        else {
+            assert(false);
+        }
+    }
+
+    for (Tree::Flat::iterator it = flat.begin();
+            it != flat.end();
+            it++) {
+        printf("%s\n", (*it).first.c_str());
+    }
+
+    return Tree::unflatten(flat, this);
+}
+
+string
+LocalRepo::commitFromTD(const TreeDiff &td)
+{
+    Commit tip = getCommit(getHead());
+    Tree tipTree = getTree(tip.getTree());
+    Tree newTree = applyTD(tipTree, td);
+    return "";
 }
 
 /*
