@@ -16,6 +16,7 @@ src = [
     "object.cc",
     "repo.cc",
     "scan.cc",
+    "snapshotindex.cc",
     "tree.cc",
     "util.cc",
     "stream.cc",
