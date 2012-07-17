@@ -60,6 +60,7 @@ int cmd_show(int argc, const char *argv[]);
 int cmd_clone(int argc, const char *argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, const char *argv[]);
+int cmd_snapshot(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
@@ -178,6 +179,12 @@ static Cmd commands[] = {
 	"gc",
 	"Reclaim unused space",
 	cmd_gc,
+	NULL,
+    },
+    {
+	"snapshot",
+	"Create a repository snapshot",
+	cmd_snapshot,
 	NULL,
     },
     /* Debugging */

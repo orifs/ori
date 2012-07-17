@@ -9,9 +9,8 @@
 #include <fcntl.h>
 
 #include "debug.h"
+#include "tuneables.h"
 #include "stream.h"
-
-#define COPYFILE_BUFSZ (256 * 1024)
 
 std::string bytestream::readAll() {
     std::string rval;

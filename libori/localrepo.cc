@@ -86,6 +86,7 @@ LocalRepo::open(const string &root)
     delete ver_str;
 
     index.open(rootPath + ORI_PATH_INDEX);
+    snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
 
     opened = true;
     return true;
@@ -95,6 +96,7 @@ void
 LocalRepo::close()
 {
     index.close();
+    snapshots.close();
     opened = false;
 }
 
@@ -161,7 +163,7 @@ LocalRepo::createObjDirs(const string &objId)
     path += ORI_PATH_OBJS;
     path += objId.substr(0,2);
 
-    mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    //mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 
     path += "/";
     path += objId.substr(2,2);
@@ -364,6 +366,10 @@ LocalRepo::addCommit(/* const */ Commit &commit)
         }
         o->addBackref(hash, Object::BRRef);
         //o.close();
+    }
+
+    if (commit.getSnapshot() != "") {
+	snapshots.addSnapshot(commit.getSnapshot(), hash);
     }
 
     return addBlob(Object::Commit, blob);

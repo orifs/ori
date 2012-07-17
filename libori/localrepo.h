@@ -3,12 +3,15 @@
 
 #include "repo.h"
 #include "index.h"
+#include "snapshotindex.h"
 #include "lrucache.h"
+#include "localobject.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
 #define ORI_PATH_UUID "/.ori/id"
 #define ORI_PATH_INDEX "/.ori/index"
+#define ORI_PATH_SNAPSHOTS "/.ori/snapshots"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
 #define ORI_PATH_HEAD "/.ori/HEAD"
 #define ORI_PATH_LOG "/.ori/ori.log"
@@ -118,6 +121,7 @@ private:
     std::string id;
     std::string version;
     Index index;
+    SnapshotIndex snapshots;
 
     // Caches
     LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;

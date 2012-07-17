@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <iomanip>
 #include <tr1/memory>
@@ -105,6 +106,17 @@ cmd_init(int argc, const char *argv[])
     if (mkdir(tmpDir.c_str(), 0755) < 0) {
         perror("Could not create '.ori/objs' directory");
         return 1;
+    }
+
+    for (int i = 0; i < 256; i++)
+    {
+	stringstream hexval;
+	string path = rootPath + ORI_PATH_OBJS;
+
+	hexval << hex << setw(2) << setfill('0') << i;
+	path += hexval.str();
+
+	mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
     }
 
     // Construct UUID
@@ -305,6 +317,54 @@ cmd_commit(int argc, const char *argv[])
     commit.setParents(repository.getHead());
     commit.setMessage(msg);
     commit.setTime(time(NULL));
+
+    user = Util_GetFullname();
+    if (user != "")
+        commit.setUser(user);
+
+    commitHash = repository.addCommit(commit);
+
+    // Update .ori/HEAD
+    repository.updateHead(commitHash);
+
+    printf("Commit Hash: %s\nTree Hash: %s\n%s",
+	   commitHash.c_str(),
+	   treeHash.c_str(),
+	   blob.c_str());
+
+    return 0;
+}
+
+int
+cmd_snapshot(int argc, const char *argv[])
+{
+    string blob;
+    string treeHash, commitHash;
+    string snapshotName;
+    string msg;
+    string user;
+    Tree tree = Tree();
+    Commit commit = Commit();
+    string root = LocalRepo::findRootPath();
+
+    if (argc != 2) {
+	cout << "Specify a snapshot name." << endl;
+	cout << "usage: ori snapshot <snapshot name>" << endl;
+	return 1;
+    }
+    snapshotName = argv[1];
+    msg = "Created snapshot."; // XXX: Allow users to specify a snapshot
+
+    Scan_Traverse(root.c_str(), &tree, commitHelper);
+
+    treeHash = repository.addTree(tree);
+
+    // XXX: Get parents
+    commit.setTree(treeHash);
+    commit.setParents(repository.getHead());
+    commit.setMessage(msg);
+    commit.setTime(time(NULL));
+    commit.setSnapshot(snapshotName);
 
     user = Util_GetFullname();
     if (user != "")

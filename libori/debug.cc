@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <time.h>
 
+#include <unistd.h>
 #include <sys/time.h>
 
 #ifdef __MACH__

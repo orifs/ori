@@ -25,34 +25,30 @@
 #include <unistd.h>
 
 #include <string>
+#include <sstream>
+#include <iostream>
 #include <map>
 #include <set>
-#include <iostream>
 
 #include "debug.h"
 #include "util.h"
-#include "object.h"
-#include "index.h"
+#include "snapshotindex.h"
 
 using namespace std;
 
-/// Entry consist of the object hash, object info, and a checksum.
-#define INDEX_ENTRYSIZE (64 + 16 + 16)
-
-Index::Index()
+SnapshotIndex::SnapshotIndex()
 {
     fd = -1;
 }
 
-Index::~Index()
+SnapshotIndex::~SnapshotIndex()
 {
     close();
 }
 
 void
-Index::open(const string &indexFile)
+SnapshotIndex::open(const string &indexFile)
 {
-    int i, entries;
     struct stat sb;
 
     fileName = indexFile;
@@ -73,44 +69,23 @@ Index::open(const string &indexFile)
         return;
     }
 
-    if (sb.st_size % INDEX_ENTRYSIZE != 0) {
-	// XXX: Attempt truncating last entries
-        cout << "Index seems dirty please rebuild it!" << endl;
-        ::close(fd);
-        fd = -1;
-        exit(1);
-        return;
-    }
+    int len = sb.st_size;
+    char *buf = new char[len];
 
-    entries = sb.st_size / INDEX_ENTRYSIZE;
-    for (i = 0; i < entries; i++) {
-        int status;
-        char entry[INDEX_ENTRYSIZE];
-        string hash, info;
-        ObjectInfo objInfo;
+    int status = read(fd, &buf, len);
+    assert(status == len);
 
-        status = read(fd, &entry, INDEX_ENTRYSIZE);
-        assert(status == INDEX_ENTRYSIZE);
+    string blob = string().assign(buf, len);
+    string line;
+    stringstream ss(blob);
 
-        hash.assign(entry, 64);
-        info.assign(entry + 64, 16);
+    while (getline(ss, line, '\n')) {
+	string hash, name;
 
-	string entryStr = string().assign(entry, 64 + 16);
-	string chksum = string().assign(entry + 64 + 16, 16);
-	string chksumComputed = Util_HashString(entryStr).substr(0, 16);
-	if (chksum != chksumComputed) {
-	    // XXX: Attempt truncating last entries
-	    cout << "Index has corrupt entries please rebuild it!" << endl;
-	    ::close(fd);
-	    fd = -1;
-	    exit(1);
-	    return;
-	}
+        hash = line.substr(0, 64);
+        name = line.substr(65);
 
-        objInfo = ObjectInfo(hash.c_str());
-        objInfo.setInfo(info);
-
-        index[hash] = objInfo;
+        snapshots[name] = hash;
     }
     ::close(fd);
 
@@ -125,7 +100,7 @@ Index::open(const string &indexFile)
 }
 
 void
-Index::close()
+SnapshotIndex::close()
 {
     if (fd != -1) {
         ::fsync(fd);
@@ -135,11 +110,11 @@ Index::close()
 }
 
 void
-Index::rewrite()
+SnapshotIndex::rewrite()
 {
     int fdNew, tmpFd;
     string newIndex = fileName + ".tmp";
-    map<string, ObjectInfo>::iterator it;
+    map<string, string>::iterator it;
 
     fdNew = ::open(newIndex.c_str(), O_RDWR | O_CREAT,
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -150,17 +125,12 @@ Index::rewrite()
     };
 
     // Write new index
-    for (it = index.begin(); it != index.end(); it++)
+    for (it = snapshots.begin(); it != snapshots.end(); it++)
     {
         int status;
         string indexLine;
-	string hash;
 
-        indexLine = (*it).first;
-        indexLine += (*it).second.getInfo();
-
-	hash = Util_HashString(indexLine);
-	indexLine += hash.substr(0, 16);
+        indexLine = (*it).second + " " + (*it).second + "\n";
 
         status = write(fdNew, indexLine.data(), indexLine.size());
         assert(status == indexLine.size());
@@ -174,25 +144,11 @@ Index::rewrite()
 }
 
 void
-Index::dump()
-{
-    map<string, ObjectInfo>::iterator it;
-
-    cout << "***** BEGIN REPOSITORY INDEX *****" << endl;
-    for (it = index.begin(); it != index.end(); it++)
-    {
-        cout << (*it).first << endl;
-    }
-    cout << "***** END REPOSITORY INDEX *****" << endl;
-}
-
-void
-Index::updateInfo(const string &objId, const ObjectInfo &info)
+SnapshotIndex::addSnapshot(const string &name, const string &commitId)
 {
     string indexLine;
-    string hash;
 
-    assert(objId.size() == 64);
+    assert(commitId.size() == 64);
 
     /*
      * XXX: Extra sanity checking for the hash string
@@ -202,45 +158,31 @@ Index::updateInfo(const string &objId, const ObjectInfo &info)
      * }
      */
 
-    indexLine = objId;
-    indexLine += info.getInfo();
-
-    hash = Util_HashString(indexLine);
-    indexLine += hash.substr(0, 16);
+    indexLine = commitId + " " + name + "\n";
 
     write(fd, indexLine.data(), indexLine.size());
 }
 
-const ObjectInfo &
-Index::getInfo(const string &objId) const
+void
+SnapshotIndex::delSnapshot(const std::string &name)
 {
-    map<string, ObjectInfo>::const_iterator it = index.find(objId);
-    assert(it != index.end());
+    // delete in map
+
+    rewrite();
+}
+
+const string &
+SnapshotIndex::getSnapshot(const string &name) const
+{
+    map<string, string>::const_iterator it = snapshots.find(name);
+    assert(it != snapshots.end());
 
     return (*it).second;
 }
 
-bool
-Index::hasObject(const string &objId) const
+map<string, string>
+SnapshotIndex::getList()
 {
-    map<string, ObjectInfo>::const_iterator it;
-
-    it = index.find(objId);
-
-    return it != index.end();
-}
-
-set<ObjectInfo>
-Index::getList()
-{
-    set<ObjectInfo> lst;
-    map<string, ObjectInfo>::iterator it;
-
-    for (it = index.begin(); it != index.end(); it++)
-    {
-        lst.insert((*it).second);
-    }
-
-    return lst;
+    return snapshots;
 }
 

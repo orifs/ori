@@ -2,3 +2,5 @@ build
 Local.sc
 .sconsign.dblite
 .*.swp
+.sconf_temp
+config.log
