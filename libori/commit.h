@@ -36,6 +36,8 @@ public:
     std::string getTree() const;
     void setUser(const std::string &user);
     std::string getUser() const;
+    void setSnapshot(const std::string &snapshot);
+    std::string getSnapshot() const;
     void setTime(time_t t);
     time_t getTime() const;
     void setGraft(const std::string &repo,
@@ -52,6 +54,7 @@ private:
     std::string message;
     std::string treeObjId;
     std::string user;
+    std::string snapshotName;
     time_t date;
     std::string graftRepo;
     std::string graftPath;

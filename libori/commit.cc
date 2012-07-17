@@ -39,6 +39,10 @@ using namespace std;
 
 Commit::Commit()
 {
+    snapshotName = "";
+    graftRepo = "";
+    graftPath = "";
+    graftCommitId = "";
 }
 
 Commit::~Commit()
@@ -95,6 +99,18 @@ Commit::getUser() const
 }
 
 void
+Commit::setSnapshot(const std::string &snapshot)
+{
+    snapshotName = snapshot;
+}
+
+std::string
+Commit::getSnapshot() const
+{
+    return snapshotName;
+}
+
+void
 Commit::setTime(time_t t)
 {
     date = t;
@@ -145,6 +161,7 @@ Commit::getBlob() const
     }
     ss << date;
     blob += "date " + ss.str() + "\n";
+    blob += "snapshot " + snapshotName + "\n";
     if (graftRepo != "") {
 	assert(graftPath != "");
 	assert(graftCommitId != "");
@@ -173,9 +190,11 @@ Commit::fromBlob(const string &blob)
 	    parents.first = line.substr(7);
 	} else if (line.substr(0, 5) == "user ") {
 	    user = line.substr(5);
-    } else if (line.substr(0, 5) == "date ") {
-        string dateStr = line.substr(5);
-        date = strtoull(dateStr.c_str(), NULL, 10);
+	} else if (line.substr(0, 5) == "date ") {
+	    string dateStr = line.substr(5);
+	    date = strtoull(dateStr.c_str(), NULL, 10);
+	} else if (line.substr(0, 9) == "snapshot ") {
+	    snapshotName = line.substr(9);
 	} else if (line.substr(0, 11) == "graft-repo ") {
 	    graftRepo = line.substr(11);
 	} else if (line.substr(0, 11) == "graft-path ") {
