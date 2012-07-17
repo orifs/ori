@@ -336,6 +336,54 @@ cmd_commit(int argc, const char *argv[])
 }
 
 int
+cmd_snapshot(int argc, const char *argv[])
+{
+    string blob;
+    string treeHash, commitHash;
+    string snapshotName;
+    string msg;
+    string user;
+    Tree tree = Tree();
+    Commit commit = Commit();
+    string root = LocalRepo::findRootPath();
+
+    if (argc != 1) {
+	cout << "Specify a snapshot name." << endl;
+	cout << "usage: ori snapshot <snapshot name>" << endl;
+	return 1;
+    }
+    snapshotName = argv[1];
+    msg = "Created snapshot."; // XXX: Allow users to specify a snapshot
+
+    Scan_Traverse(root.c_str(), &tree, commitHelper);
+
+    treeHash = repository.addTree(tree);
+
+    // XXX: Get parents
+    commit.setTree(treeHash);
+    commit.setParents(repository.getHead());
+    commit.setMessage(msg);
+    commit.setTime(time(NULL));
+    commit.setSnapshot(snapshotName);
+
+    user = Util_GetFullname();
+    if (user != "")
+        commit.setUser(user);
+
+    commitHash = repository.addCommit(commit);
+
+    // Update .ori/HEAD
+    repository.updateHead(commitHash);
+
+    printf("Commit Hash: %s\nTree Hash: %s\n%s",
+	   commitHash.c_str(),
+	   treeHash.c_str(),
+	   blob.c_str());
+
+    return 0;
+}
+
+int
 StatusDirectoryCB(void *arg, const char *path)
 {
     string repoRoot = LocalRepo::findRootPath();
