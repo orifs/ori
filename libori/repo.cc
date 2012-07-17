@@ -94,7 +94,7 @@ Repo::getTree(const std::string &treeId)
     Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
-    assert(o->getInfo().type == Object::Tree);
+    assert(treeId == EMPTY_HASH || o->getInfo().type == Object::Tree);
 
     Tree t;
     t.fromBlob(blob);

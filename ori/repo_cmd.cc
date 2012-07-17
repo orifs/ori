@@ -379,45 +379,21 @@ StatusTreeIter(map<string, pair<string, string> > *tipState,
 int
 cmd_status(int argc, const char *argv[])
 {
-    map<string, string> dirState;
-    map<string, pair<string, string> > tipState;
-    map<string, string>::iterator it;
-    map<string, pair<string, string> >::iterator tipIt;
-    Commit c;
     string tip = repository.getHead();
 
+    Tree tip_tree;
     TreeDiff td;
     if (tip != EMPTY_COMMIT) {
-        c = repository.getCommit(tip);
-        Tree t = repository.getTree(c.getTree());
-        td.diffToWD(t, &repository);
-        return 0;
+        Commit c = repository.getCommit(tip);
+        tip_tree = repository.getTree(c.getTree());
     }
 
-    if (tip != EMPTY_COMMIT) {
-        c = repository.getCommit(tip);
-	StatusTreeIter(&tipState, "", c.getTree());
-    }
+    td.diffToWD(tip_tree, &repository);
 
-    Scan_RTraverse(LocalRepo::findRootPath().c_str(),
-		   (void *)&dirState,
-	           StatusDirectoryCB);
-
-    for (it = dirState.begin(); it != dirState.end(); it++) {
-	tipIt = tipState.find((*it).first);
-	if (tipIt == tipState.end()) {
-	    printf("A	%s\n", (*it).first.c_str());
-	} else if ((*tipIt).second.first != (*it).second) {
-	    // XXX: Handle replace a file <-> directory with same name
-	    printf("M	%s\n", (*it).first.c_str());
-	}
-    }
-
-    for (tipIt = tipState.begin(); tipIt != tipState.end(); tipIt++) {
-	it = dirState.find((*tipIt).first);
-	if (it == dirState.end()) {
-	    printf("D	%s\n", (*tipIt).first.c_str());
-	}
+    for (size_t i = 0; i < td.entries.size(); i++) {
+        printf("%c\t%s\n",
+                td.entries[i].type,
+                td.entries[i].filepath.c_str());
     }
 
     return 0;

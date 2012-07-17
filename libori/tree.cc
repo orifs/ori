@@ -92,7 +92,7 @@ Tree::addObject(const char *path, const string &objId, const string &lgObjId)
         entry.largeHash = lgObjId;
     }
 
-    fileName = fileName.substr(fileName.rfind("/") + 1);
+    fileName = StrUtil_Basename(fileName);
     tree[fileName] = entry;
 }
 
@@ -158,6 +158,36 @@ Tree::fromBlob(const string &blob)
     }
 }
 
+void
+_recFlatten(
+        const std::string &prefix,
+        const Tree *t,
+        map<string, TreeEntry> *rval,
+        Repo *r
+        )
+{
+    for (map<string, TreeEntry>::const_iterator it = t->tree.begin();
+            it != t->tree.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        rval->insert(pair<string, TreeEntry>(prefix + (*it).first, te));
+        if (te.type == TreeEntry::Tree) {
+            // Recurse further
+            Tree t = r->getTree(te.hash);
+            _recFlatten(prefix + (*it).first + "/",
+                    &t, rval, r);
+        }
+    }
+}
+
+map<string, TreeEntry>
+Tree::flattened(Repo *r) const
+{
+    map<string, TreeEntry> rval;
+    _recFlatten("/", this, &rval, r);
+    return rval;
+}
+
 
 
 
@@ -171,10 +201,10 @@ TreeDiff::diffTwoTrees(const Tree &t1, const Tree &t2)
 }
 
 struct _scanHelperData {
-    const Tree *t1, *t2;
+    set<string> *wd_paths;
+    map<string, TreeEntry> *flattened_tree;
     TreeDiff *td;
 
-    set<string> *pathset;
     size_t cwdLen;
     Repo *repo;
 };
@@ -183,73 +213,66 @@ int _diffToWdHelper(void *arg, const char *path)
 {
     string fullPath = path;
     _scanHelperData *sd = (_scanHelperData *)arg;
-    const Tree *tree = sd->t1;
 
     string relPath = fullPath.substr(sd->cwdLen);
-    sd->pathset->insert(relPath);
+    sd->wd_paths->insert(relPath);
 
     TreeDiffEntry diffEntry;
     diffEntry.filepath = relPath;
 
-    if (tree == NULL) {
-        // Every file/dir is new
-        if (!Util_IsDirectory(fullPath)) {
+    map<string, TreeEntry>::iterator it = sd->flattened_tree->find(relPath);
+    if (it == sd->flattened_tree->end()) {
+        // New file/dir
+        if (Util_IsDirectory(fullPath)) {
+            diffEntry.type = TreeDiffEntry::NewDir;
+        }
+        else {
             diffEntry.type = TreeDiffEntry::NewFile;
-            sd->td->entries.push_back(diffEntry);
+            diffEntry.newFilename = fullPath;
         }
-        else {
-            diffEntry.type = TreeDiffEntry::NewDir;
-            sd->td->entries.push_back(diffEntry);
-            Scan_Traverse(path, sd, _diffToWdHelper);
-        }
-        return 0;
-    }
-
-    string filename = StrUtil_Basename(relPath);
-    map<string, TreeEntry>::const_iterator it = tree->tree.find(filename);
-
-    if (Util_IsDirectory(fullPath)) {
-        if (it == tree->tree.end()) {
-            // New dir
-            diffEntry.type = TreeDiffEntry::NewDir;
-            sd->td->entries.push_back(diffEntry);
-
-            _scanHelperData new_sd = *sd;
-            new_sd.t1 = NULL;
-            return Scan_Traverse(path, &new_sd, _diffToWdHelper);
-        }
-        else {
-            const TreeEntry &te = (*it).second;
-            if (te.type != TreeEntry::Tree) {
-                // TODO: was a file
-                assert(false);
-            }
-            _scanHelperData new_sd = *sd;
-            Tree new_tree = sd->repo->getTree(te.hash);
-            new_sd.t1 = &new_tree;
-            return Scan_Traverse(path, &new_sd, _diffToWdHelper);
-        }
-
-        return 0;
-    }
-
-    if (it == tree->tree.end()) {
-        // New file
-        diffEntry.type = TreeDiffEntry::NewFile;
         sd->td->entries.push_back(diffEntry);
+        return 0;
     }
-    else {
-        if ((*it).second.type == TreeEntry::Tree) {
-            // TODO: was a dir
-            assert(false);
-        }
 
-        string fileHash = Util_HashFile(fullPath);
-        if (fileHash != (*it).second.hash) {
-            // Modified
-            diffEntry.type = TreeDiffEntry::Modified;
+    // Potentially modified file/dir
+    const TreeEntry &te = (*it).second;
+    if (Util_IsDirectory(fullPath)) {
+        if (te.type != TreeEntry::Tree) {
+            // File replaced by dir
+            diffEntry.type = TreeDiffEntry::Deleted;
+            sd->td->entries.push_back(diffEntry);
+            diffEntry.type = TreeDiffEntry::NewDir;
             sd->td->entries.push_back(diffEntry);
         }
+        return 0;
+    }
+
+    if (te.type == TreeEntry::Tree) {
+        // Dir replaced by file
+        diffEntry.type = TreeDiffEntry::Deleted;
+        sd->td->entries.push_back(diffEntry);
+        diffEntry.type = TreeDiffEntry::NewFile;
+        diffEntry.newFilename = fullPath;
+        sd->td->entries.push_back(diffEntry);
+        return 0;
+    }
+
+    // Check if file is modified
+    // TODO: heuristic for determining whether a file has been modified
+    std::string newHash = Util_HashFile(fullPath);
+    bool modified = false;
+    if (te.type == TreeEntry::Blob) {
+        modified = newHash == te.hash;
+    }
+    else if (te.type == TreeEntry::LargeBlob) {
+        modified = newHash == te.largeHash;
+    }
+
+    if (modified) {
+        diffEntry.type = TreeDiffEntry::Modified;
+        diffEntry.newFilename = fullPath;
+        sd->td->entries.push_back(diffEntry);
+        return 0;
     }
 
     return 0;
@@ -261,14 +284,31 @@ TreeDiff::diffToWD(Tree src, Repo *r)
     char *cwd = (char *)malloc(PATH_MAX);
     getcwd(cwd, PATH_MAX);
 
-    set<string> pathset;
-    _scanHelperData sd = {&src, NULL, this, &pathset, strlen(cwd), r};
-    Scan_Traverse(cwd, &sd, _diffToWdHelper);
+    set<string> wd_paths;
+    map<string, TreeEntry> flattened_tree = src.flattened(r);
+    _scanHelperData sd = {
+        &wd_paths,
+        &flattened_tree,
+        this,
+        strlen(cwd),
+        r};
+
+    // Find additions and modifications
+    Scan_RTraverse(cwd, &sd, _diffToWdHelper);
 
     free(cwd);
 
-    for (size_t i = 0; i < entries.size(); i++) {
-        printf("%c %s\n", entries[i].type, entries[i].filepath.c_str());
+    // Find deletions
+    for (map<string, TreeEntry>::iterator it = flattened_tree.begin();
+            it != flattened_tree.end();
+            it++) {
+        set<string>::iterator wd_it = wd_paths.find((*it).first);
+        if (wd_it == wd_paths.end()) {
+            TreeDiffEntry tde;
+            tde.filepath = (*it).first;
+            tde.type = TreeDiffEntry::Deleted;
+            entries.push_back(tde);
+        }
     }
 }
 
