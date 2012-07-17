@@ -25,7 +25,7 @@ export TEST_RESULTS=$ORIG_DIR/ori_test_results.txt
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
 mkdir -p $SOURCE_FILES
-for i in {1..13}; do
+for i in {1..8}; do
     SIZE=$((2**(i+1)))
     echo "Creating random file size ${SIZE}k"
     #dd if=/dev/urandom of="$SOURCE_FILES/file$i.tst" bs=2k count=$SIZE
@@ -36,20 +36,12 @@ echo "Hello, world!" > $SOURCE_FILES/a/a.txt
 touch $SOURCE_FILES/a/empty
 
 # Initialize source repository
-$ORI_EXE init $SOURCE_REPO
-cd $SOURCE_REPO
-cp -R $SOURCE_FILES/* $SOURCE_REPO/
-$ORI_EXE status
-echo "Committing"
-$ORI_EXE commit
-#gdb $ORI_EXE -x $SCRIPTS/commit.gdb
-$ORI_EXE verify
-rm -rf $SOURCE_REPO/*
-$ORI_EXE stats
-echo "Checking out files again"
-$ORI_EXE checkout
-$PYTHON $SCRIPTS/compare.py "$SOURCE_FILES" "$SOURCE_REPO"
-$ORI_EXE verify
+bash -ex $SCRIPTS/repo_init.sh
+if [ "$?" -ne "0" ] ; then
+    echo "Couldn't initialize source repo!"
+    exit 1
+    # TODO: to keep directory state
+fi
 
 # Run tests
 echo "runtests.sh test results" > $TEST_RESULTS
@@ -68,7 +60,7 @@ for t in `find $ORI_TESTS -name '*.sh' | sort`; do
 
     echo Running $TEST_NAME
     cd $TEMP_DIR
-    bash -e $t
+    bash -ex $t
     # -e switch to quit on error
 
     if [ "$?" -ne "0" ] ; then

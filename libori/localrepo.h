@@ -80,7 +80,7 @@ public:
     void pull(Repo *r);
     // Repository Operations
     Tree applyTD(const Tree &src, const TreeDiff &td);
-    std::string commitFromTD(const TreeDiff &td);
+    std::string commitFromTD(const TreeDiff &td, const std::string &msg);
     void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);

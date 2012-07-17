@@ -780,12 +780,36 @@ LocalRepo::applyTD(const Tree &src, const TreeDiff &td)
 }
 
 string
-LocalRepo::commitFromTD(const TreeDiff &td)
+LocalRepo::commitFromTD(const TreeDiff &td, const string &msg)
 {
-    Commit tip = getCommit(getHead());
-    Tree tipTree = getTree(tip.getTree());
+    string head = getHead();
+    Tree tipTree;
+    if (head != EMPTY_COMMIT) {
+        Commit tip = getCommit(head);
+        tipTree = getTree(tip.getTree());
+    }
+
     Tree newTree = applyTD(tipTree, td);
-    return "";
+    string treeHash = addBlob(Object::Tree, newTree.getBlob());
+    
+    Commit c;
+    c.setTree(treeHash);
+    c.setParents(getHead());
+    c.setMessage(msg);
+    c.setTime(time(NULL));
+
+    string user = Util_GetFullname();
+    if (user != "")
+        c.setUser(user);
+
+    string commitHash = addCommit(c);
+
+    // Update .ori/HEAD
+    updateHead(commitHash);
+
+    printf("Commit Hash: %s\nTree Hash: %s\n",
+	   commitHash.c_str(),
+	   treeHash.c_str());
 }
 
 /*

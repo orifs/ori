@@ -242,8 +242,32 @@ Tree::unflatten(const Flat &flat, Repo *r)
     std::sort(tree_names.begin(), tree_names.end(), _tree_gt);
 
     for (size_t i = 0; i < tree_names.size(); i++) {
-        printf("tree: %s (%u)\n", tree_names[i].c_str(),
-                trees[tree_names[i]].tree.size());
+        const string &tn = tree_names[i];
+        if (tn.size() == 0) continue;
+        string blob = trees[tn].getBlob();
+        string hash = Util_HashString(blob);
+
+        // Add to parent
+        TreeEntry te;
+        te.hash = hash;
+        te.type = TreeEntry::Tree;
+
+        string parent = StrUtil_Dirname(tn);
+        trees[parent].tree[StrUtil_Basename(tn)] = te;
+
+        // Add to Repo
+        r->addBlob(Object::Tree, blob);
+    }
+
+    for (size_t i = 0; i < tree_names.size(); i++) {
+        const string &tn = tree_names[i];
+        printf("tree %s %lu\n", tn.c_str(), trees[tn].tree.size());
+    }
+
+    for (map<string, TreeEntry>::iterator it = trees[""].tree.begin();
+            it != trees[""].tree.end();
+            it++) {
+        printf("root tree %s\n", (*it).first.c_str());
     }
 
     return trees[""];

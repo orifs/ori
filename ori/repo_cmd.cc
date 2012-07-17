@@ -295,6 +295,13 @@ usage_commit(void)
 int
 cmd_commit(int argc, const char *argv[])
 {
+    string msg;
+    if (argc == 1) {
+        msg = "No message.";
+    } else if (argc == 2) {
+        msg = argv[1];
+    }
+
     string tip = repository.getHead();
 
     Tree tip_tree;
@@ -305,12 +312,12 @@ cmd_commit(int argc, const char *argv[])
     }
 
     td.diffToWD(tip_tree, &repository);
-    repository.commitFromTD(td);
+    repository.commitFromTD(td, msg);
 
     return 0;
     string blob;
     string treeHash, commitHash;
-    string msg;
+    //string msg;
     string user;
     Tree tree = Tree();
     Commit commit = Commit();
