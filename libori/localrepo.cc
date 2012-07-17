@@ -731,6 +731,7 @@ LocalRepo::applyTD(const Tree &src, const TreeDiff &td)
     Tree::Flat flat = src.flattened(this);
     for (size_t i = 0; i < td.entries.size(); i++) {
         const TreeDiffEntry &tde = td.entries[i];
+        printf("Applying %c\t%s\n", tde.type, tde.filepath.c_str());
         if (tde.type == TreeDiffEntry::NewFile) {
             TreeEntry te;
             pair<string, string> hashes = addFile(tde.newFilename);
@@ -782,6 +783,8 @@ LocalRepo::applyTD(const Tree &src, const TreeDiff &td)
 string
 LocalRepo::commitFromTD(const TreeDiff &td, const string &msg)
 {
+    assert(opened);
+
     string head = getHead();
     Tree tipTree;
     if (head != EMPTY_COMMIT) {
@@ -810,6 +813,7 @@ LocalRepo::commitFromTD(const TreeDiff &td, const string &msg)
     printf("Commit Hash: %s\nTree Hash: %s\n",
 	   commitHash.c_str(),
 	   treeHash.c_str());
+    return commitHash;
 }
 
 /*

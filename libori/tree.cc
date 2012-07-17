@@ -173,9 +173,9 @@ _recFlatten(
         rval->insert(make_pair(prefix + (*it).first, te));
         if (te.type == TreeEntry::Tree) {
             // Recurse further
-            Tree t = r->getTree(te.hash);
+            Tree subtree = r->getTree(te.hash);
             _recFlatten(prefix + (*it).first + "/",
-                    &t, rval, r);
+                    &subtree, rval, r);
         }
     }
 }
@@ -183,7 +183,7 @@ _recFlatten(
 Tree::Flat
 Tree::flattened(Repo *r) const
 {
-    map<string, TreeEntry> rval;
+    Tree::Flat rval;
     _recFlatten("/", this, &rval, r);
     return rval;
 }

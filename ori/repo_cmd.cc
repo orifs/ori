@@ -311,13 +311,13 @@ cmd_commit(int argc, const char *argv[])
         tip_tree = repository.getTree(c.getTree());
     }
 
-    td.diffToWD(tip_tree, &repository);
+    td.diffToDir(tip_tree, repository.getRootPath(), &repository);
     repository.commitFromTD(td, msg);
 
     return 0;
-    string blob;
+    /*string blob;
     string treeHash, commitHash;
-    //string msg;
+    string msg;
     string user;
     Tree tree = Tree();
     Commit commit = Commit();
@@ -353,7 +353,7 @@ cmd_commit(int argc, const char *argv[])
 	   treeHash.c_str(),
 	   blob.c_str());
 
-    return 0;
+    return 0;*/
 }
 
 int
@@ -469,7 +469,7 @@ cmd_status(int argc, const char *argv[])
         tip_tree = repository.getTree(c.getTree());
     }
 
-    td.diffToWD(tip_tree, &repository);
+    td.diffToDir(tip_tree, repository.getRootPath(), &repository);
 
     for (size_t i = 0; i < td.entries.size(); i++) {
         printf("%c\t%s\n",
