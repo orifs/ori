@@ -94,11 +94,30 @@ Repo::getTree(const std::string &treeId)
     Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
-    assert(o->getInfo().type == Object::Tree);
+    assert(treeId == EMPTY_HASH || o->getInfo().type == Object::Tree);
 
     Tree t;
     t.fromBlob(blob);
 
     return t;
+}
+
+Commit
+Repo::getCommit(const std::string &commitId)
+{
+    Object::sp o(getObject(commitId));
+    string blob = o->getPayload();
+
+    assert(commitId == EMPTY_HASH || o->getInfo().type == Object::Commit);
+
+    Commit c;
+    if (blob.size() == 0) {
+        printf("Error getting commit blob\n");
+        assert(false);
+        return c;
+    }
+    c.fromBlob(blob);
+
+    return c;
 }
 

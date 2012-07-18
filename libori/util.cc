@@ -519,6 +519,31 @@ Util_IsPathRemote(const char *path) {
     return true;
 }
 
+
+/*
+ * String utilities
+ */
+std::string
+StrUtil_Basename(const std::string &path)
+{
+    size_t ix = path.rfind('/');
+    if (ix == std::string::npos) {
+        return path;
+    }
+    return path.substr(ix+1);
+}
+
+std::string
+StrUtil_Dirname(const std::string &path)
+{
+    size_t ix = path.rfind('/');
+    if (ix == std::string::npos) {
+        return path;
+    }
+    return path.substr(0, ix);
+}
+
+
 // XXX: Debug Only
 
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)
@@ -586,6 +611,16 @@ util_selftest(void)
     uint8_t b;
     bs->read(&b, 1);
     assert(b == 'e');
+
+    // Tests for string utilities
+    std::string path("hello.txt");
+    assert(StrUtil_Basename(path) == "hello.txt");
+    path = "a/hello.txt";
+    assert(StrUtil_Basename(path) == "hello.txt");
+    path = "/hello.txt";
+    assert(StrUtil_Basename(path) == "hello.txt");
+    path = "/a/b/c/hello.txt";
+    assert(StrUtil_Basename(path) == "hello.txt");
 
     printf("Test Succeeded!\n");
     return 0;

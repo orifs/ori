@@ -27,6 +27,7 @@
 #include "object.h"
 
 #define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
+#define EMPTY_HASH "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 #define LARGEFILE_MINIMUM (1024 * 1024)
 
@@ -66,6 +67,7 @@ public:
             ObjectInfo *info,
             std::string &data);*/
     virtual Tree getTree(const std::string &treeId);
+    virtual Commit getCommit(const std::string &commitId);
 };
 
 #endif /* __REPO_H__ */

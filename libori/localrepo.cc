@@ -212,6 +212,7 @@ LocalRepo::addSmallFile(const string &path)
 	createObjDirs(hash);
 	if (o.create(objPath, Object::Blob) < 0) {
 	    perror("Unable to create object");
+            printf("objPath: %s\n", objPath.c_str());
 	    return "";
 	}
         diskstream ds(path);
@@ -537,6 +538,29 @@ LocalRepo::copyObject(const string &objId, const string &path)
     return true;
 }
 
+void
+LocalRepo::addBackref(const std::string &referer, const std::string &refers_to)
+{
+    if (refers_to == EMPTY_COMMIT) return;
+    LocalObject::sp o(getLocalObject(refers_to));
+    o->addBackref(referer, Object::BRRef);
+}
+
+void
+LocalRepo::addTreeBackrefs(const std::string &thash, const Tree &t)
+{
+    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
+            it != t.tree.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        addBackref(thash, te.hash);
+        if (te.type == TreeEntry::Tree) {
+            Tree subtree = getTree(te.hash);
+            addTreeBackrefs(te.hash, subtree);
+        }
+    }
+}
+
 int
 Repo_GetObjectsCB(void *arg, const char *path)
 {
@@ -629,21 +653,6 @@ LocalRepo::listCommits()
     return rval;
 }
 
-Commit
-LocalRepo::getCommit(const std::string &commitId)
-{
-    Commit c = Commit();
-    string blob = getPayload(commitId);
-    if (blob.size() == 0) {
-        printf("Error getting commit blob\n");
-        assert(false);
-        return c;
-    }
-    c.fromBlob(blob);
-
-    return c;
-}
-
 /*
  * High Level Operations
  */
@@ -734,6 +743,92 @@ LocalRepo::pull(Repo *r)
         // Add the object to this repo
         copyFrom(o.get());
     }
+}
+
+/*
+ * Commit from TreeDiff
+ */
+Tree
+LocalRepo::applyTD(const Tree &src, const TreeDiff &td)
+{
+    Tree::Flat flat = src.flattened(this);
+    for (size_t i = 0; i < td.entries.size(); i++) {
+        const TreeDiffEntry &tde = td.entries[i];
+        printf("Applying %c\t%s\n", tde.type, tde.filepath.c_str());
+        if (tde.type == TreeDiffEntry::NewFile) {
+            TreeEntry te;
+            pair<string, string> hashes = addFile(tde.newFilename);
+            te.hash = hashes.first;
+            te.largeHash = hashes.second;
+            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                TreeEntry::Blob;
+            // TODO te.mode
+
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::NewDir) {
+            TreeEntry te;
+            te.type = TreeEntry::Tree;
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::Deleted) {
+            flat.erase(tde.filepath);
+        }
+        else if (tde.type == TreeDiffEntry::Modified) {
+            TreeEntry te;
+            pair<string, string> hashes = addFile(tde.newFilename);
+            te.hash = hashes.first;
+            te.largeHash = hashes.second;
+            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                TreeEntry::Blob;
+            // TODO te.mode
+
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::ModifiedDiff) {
+            // TODO: apply diff
+            NOT_IMPLEMENTED(false);
+        }
+        else {
+            assert(false);
+        }
+    }
+
+    for (Tree::Flat::iterator it = flat.begin();
+            it != flat.end();
+            it++) {
+        printf("%s\n", (*it).first.c_str());
+    }
+
+    return Tree::unflatten(flat, this);
+}
+
+string
+LocalRepo::commitFromTD(const TreeDiff &td, const string &msg)
+{
+    assert(opened);
+
+    Tree tipTree = getHeadTree();
+    
+    Tree newTree = applyTD(tipTree, td);
+    string treeHash = addBlob(Object::Tree, newTree.getBlob());
+    
+    string user = Util_GetFullname();
+    Commit c(msg, treeHash, user);
+    c.setParents(getHead());
+
+    string commitHash = addCommit(c);
+    addBackref(commitHash, getHead());
+    addBackref(commitHash, treeHash);
+    addTreeBackrefs(treeHash, newTree);
+
+    // Update .ori/HEAD
+    updateHead(commitHash);
+
+    printf("Commit Hash: %s\nTree Hash: %s\n",
+	   commitHash.c_str(),
+	   treeHash.c_str());
+    return commitHash;
 }
 
 /*
@@ -1153,6 +1248,21 @@ LocalRepo::updateHead(const string &commitId)
     assert(commitId.length() == 64);
 
     Util_WriteFile(commitId.c_str(), commitId.size(), headPath);
+}
+
+/*
+ * Get the tree associated with the current HEAD
+ */
+Tree
+LocalRepo::getHeadTree()
+{
+    Tree t;
+    string head = getHead();
+    if (head != EMPTY_COMMIT) {
+        Commit headCommit = getCommit(head);
+        t = getTree(headCommit.getTree());
+    }
+    return t;
 }
 
 /*

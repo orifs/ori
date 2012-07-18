@@ -4,6 +4,7 @@ cd $TEST_REPO2
 $ORI_EXE checkout
 $PYTHON $SCRIPTS/compare.py "$SOURCE_REPO" "$TEST_REPO2"
 $ORI_EXE verify
+$ORI_EXE status
 $ORI_EXE stats
 
 cd $TEMP_DIR
