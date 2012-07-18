@@ -538,6 +538,29 @@ LocalRepo::copyObject(const string &objId, const string &path)
     return true;
 }
 
+void
+LocalRepo::addBackref(const std::string &referer, const std::string &refers_to)
+{
+    if (refers_to == EMPTY_COMMIT) return;
+    LocalObject::sp o(getLocalObject(refers_to));
+    o->addBackref(referer, Object::BRRef);
+}
+
+void
+LocalRepo::addTreeBackrefs(const std::string &thash, const Tree &t)
+{
+    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
+            it != t.tree.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        addBackref(thash, te.hash);
+        if (te.type == TreeEntry::Tree) {
+            Tree subtree = getTree(te.hash);
+            addTreeBackrefs(te.hash, subtree);
+        }
+    }
+}
+
 int
 Repo_GetObjectsCB(void *arg, const char *path)
 {
@@ -785,27 +808,19 @@ LocalRepo::commitFromTD(const TreeDiff &td, const string &msg)
 {
     assert(opened);
 
-    string head = getHead();
-    Tree tipTree;
-    if (head != EMPTY_COMMIT) {
-        Commit tip = getCommit(head);
-        tipTree = getTree(tip.getTree());
-    }
-
+    Tree tipTree = getHeadTree();
+    
     Tree newTree = applyTD(tipTree, td);
     string treeHash = addBlob(Object::Tree, newTree.getBlob());
     
-    Commit c;
-    c.setTree(treeHash);
-    c.setParents(getHead());
-    c.setMessage(msg);
-    c.setTime(time(NULL));
-
     string user = Util_GetFullname();
-    if (user != "")
-        c.setUser(user);
+    Commit c(msg, treeHash, user);
+    c.setParents(getHead());
 
     string commitHash = addCommit(c);
+    addBackref(commitHash, getHead());
+    addBackref(commitHash, treeHash);
+    addTreeBackrefs(treeHash, newTree);
 
     // Update .ori/HEAD
     updateHead(commitHash);
@@ -1233,6 +1248,21 @@ LocalRepo::updateHead(const string &commitId)
     assert(commitId.length() == 64);
 
     Util_WriteFile(commitId.c_str(), commitId.size(), headPath);
+}
+
+/*
+ * Get the tree associated with the current HEAD
+ */
+Tree
+LocalRepo::getHeadTree()
+{
+    Tree t;
+    string head = getHead();
+    if (head != EMPTY_COMMIT) {
+        Commit headCommit = getCommit(head);
+        t = getTree(headCommit.getTree());
+    }
+    return t;
 }
 
 /*

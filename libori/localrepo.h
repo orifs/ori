@@ -76,6 +76,8 @@ public:
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
+    void addBackref(const std::string &referer, const std::string &refers_to);
+    void addTreeBackrefs(const std::string &thash, const Tree &t);
     // Clone/pull operations
     void pull(Repo *r);
     // Repository Operations
@@ -103,6 +105,7 @@ public:
     // Working Directory Operations
     std::string getHead();
     void updateHead(const std::string &commitId);
+    Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit
     // General Operations
     std::string getRootPath();
     std::string getLogPath();

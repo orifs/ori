@@ -45,6 +45,20 @@ Commit::Commit()
     graftCommitId = "";
 }
 
+Commit::Commit(
+        const string &msg,
+        const string &tree,
+        const string &user
+        )
+    : message(msg), treeObjId(tree), user(user)
+{
+    snapshotName = "";
+    graftRepo = "";
+    graftPath = "";
+    graftCommitId = "";
+    date = time(NULL);
+}
+
 Commit::~Commit()
 {
 }
