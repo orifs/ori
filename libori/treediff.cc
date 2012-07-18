@@ -99,11 +99,11 @@ TreeDiff::diffToDir(Tree src, const std::string &dir, Repo *r)
 {
     set<string> wd_paths;
     Tree::Flat flattened_tree = src.flattened(r);
-    for (Tree::Flat::iterator it = flattened_tree.begin();
+    /*for (Tree::Flat::iterator it = flattened_tree.begin();
             it != flattened_tree.end();
             it++) {
         printf("%s\n", (*it).first.c_str());
-    }
+    }*/
 
     size_t dir_size = dir.size();
     if (dir[dir_size-1] == '/')
