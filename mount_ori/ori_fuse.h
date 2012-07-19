@@ -7,6 +7,7 @@
 #include "localrepo.h"
 #include "commit.h"
 #include "tree.h"
+#include "treediff.h"
 #include "largeblob.h"
 #include "lrucache.h"
 
@@ -32,13 +33,16 @@ struct ori_priv
     LargeBlob *getLargeBlob(const std::string &hash);
     ObjectInfo *getObjectInfo(const std::string &hash);
 
+    LRUCache<std::string, Tree, 128> treeCache;
+    LRUCache<std::string, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
+    LRUCache<std::string, ObjectInfo, 128> objInfoCache;
+
     LocalRepo *repo;
     Commit *head;
     Tree *headtree;
 
-    LRUCache<std::string, Tree, 128> treeCache;
-    LRUCache<std::string, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
-    LRUCache<std::string, ObjectInfo, 128> objInfoCache;
+    // Holding temporary written data
+    TreeDiff *currTreeDiff;
 };
 
 ori_priv *ori_getpriv();

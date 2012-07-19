@@ -1269,6 +1269,21 @@ LocalRepo::getHeadTree()
  * General Operations
  */
 
+TempDir::sp
+LocalRepo::newTempDir()
+{
+    string dir_templ = getRootPath() + ORI_PATH_TMP + "tmp.XXXXXX";
+    char templ[PATH_MAX];
+    strncpy(templ, dir_templ.c_str(), PATH_MAX);
+
+    if (mkdtemp(templ) == NULL) {
+        perror("mkdtemp");
+        return TempDir::sp();
+    }
+    printf("Temporary directory at %s\n", dir_templ.c_str());
+    return TempDir::sp(new TempDir(templ));
+}
+
 string
 LocalRepo::getUUID()
 {

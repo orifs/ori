@@ -7,6 +7,7 @@
 #include "lrucache.h"
 #include "localobject.h"
 #include "treediff.h"
+#include "tempdir.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -83,6 +84,7 @@ public:
     // Repository Operations
     Tree applyTD(const Tree &src, const TreeDiff &td);
     std::string commitFromTD(const TreeDiff &td, const std::string &msg);
+    std::string commitFromObjects(TempDir::sp td);
     void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
@@ -107,6 +109,7 @@ public:
     void updateHead(const std::string &commitId);
     Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit
     // General Operations
+    TempDir::sp newTempDir();
     std::string getRootPath();
     std::string getLogPath();
     std::string getTmpFile();

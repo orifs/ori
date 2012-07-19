@@ -213,6 +213,8 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
         }
         return total;
     }
+
+    return -EIO;
 }
 
 static int
@@ -273,6 +275,20 @@ ori_releasedir(const char *path, struct fuse_file_info *fi)
     return 0;
 }
 
+static int
+ori_write(const char *path, const char *buf, size_t size, off_t offset,
+         struct fuse_file_info *fi)
+{
+    FUSE_LOG("FUSE ori_write(path=\"%s\", size=%d, offset=%d)", path, size, offset);
+
+    ori_priv *p = ori_getpriv();
+    TreeEntry *e = _getTreeEntry(p, path);
+    if (e == NULL) return -ENOENT;
+
+    return -EIO;
+}
+
+
 /**
  * Initialize the filesystem.
  */
@@ -325,7 +341,7 @@ ori_setup_ori_oper()
     //ori_oper.utime
     ori_oper.open = ori_open;
     ori_oper.read = ori_read;
-    //ori_oper.write
+    ori_oper.write = ori_write;
     //ori_oper.statfs = ori_statfs;
     //ori_oper.flush
     //ori_oper.release = ori_release;
