@@ -79,9 +79,11 @@ if not conf.CheckLibWithHeader('lzma','lzma.h','C','lzma_version_string();'):
     Exit(1)
 
 # Library is libevent.so or libevent-2.0.so depending on the system
-has_event2 = conf.CheckLibWithHeader('event-2.0', 'event.h', 'C', 'event_init();')
-has_event = conf.CheckLibWithHeader('event', 'event.h', 'C', 'event_init();')
-if not has_event or has_event2:
+has_event2 = conf.CheckLibWithHeader('event-2.0', 'event2/event.h', 'C', 
+'event_init();')
+has_event = conf.CheckLibWithHeader('event', 'event2/event.h', 'C', 
+'event_init();')
+if not (has_event or has_event2):
     print 'Please install libevent 2.0+'
     Exit(1)
 
