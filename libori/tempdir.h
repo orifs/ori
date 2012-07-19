@@ -5,12 +5,16 @@
 #include <vector>
 #include <string>
 #include <tr1/memory>
+#include <tr1/unordered_map>
 
 #include "repo.h"
 #include "commit.h"
 #include "debug.h"
 #include "index.h"
 
+/** Class for managing a temporary directory of objects.
+  * Uses an append-only log for keeping track of objects.
+  */
 class TempDir : public Repo
 {
 public:
@@ -35,6 +39,7 @@ public:
 
 private:
     Index index;
+    std::tr1::unordered_map<std::string, uint64_t> offsets;
 };
 
 #endif

@@ -667,6 +667,20 @@ LocalRepo::pull(Repo *r)
 void
 LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
 {
+    for (map<uint64_t, LBlobEntry>::const_iterator it = lb.parts.begin();
+            it != lb.parts.end();
+            it++) {
+        const LBlobEntry &lbe = (*it).second;
+        if (hasObject(lbe.hash)) {
+            continue;
+        }
+
+        Object::sp o(other->getObject(lbe.hash));
+        assert(o->getInfo().type == Object::Blob);
+        assert(o->getInfo().payload_size == lbe.length);
+        copyFrom(o.get());
+        addBackref(lb.hash, lbe.hash);
+    }
 }
 
 void

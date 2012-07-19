@@ -320,10 +320,16 @@ cmd_commit(int argc, const char *argv[])
     TempDir::sp tempdir(repository.newTempDir());
     Tree new_tree = diff.applyTo(tip_tree.flattened(&repository),
             tempdir.get());
+    printf("Committing from temp dir\n");
     repository.commitFromObjects(new_tree.hash(), tempdir, msg);
 
     return 0;
-    /*string blob;
+}
+
+int
+cmd_oldcommit(int argc, const char *argv[])
+{
+    string blob;
     string treeHash, commitHash;
     string msg;
     string user;
@@ -361,7 +367,7 @@ cmd_commit(int argc, const char *argv[])
 	   treeHash.c_str(),
 	   blob.c_str());
 
-    return 0;*/
+    return 0;
 }
 
 int
