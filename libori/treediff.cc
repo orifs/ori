@@ -1,4 +1,5 @@
 #include "treediff.h"
+#include "debug.h"
 #include "util.h"
 #include "scan.h"
 
@@ -133,3 +134,59 @@ TreeDiff::diffToDir(Tree src, const std::string &dir, Repo *r)
     }
 }
 
+
+Tree
+TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
+{
+    for (size_t i = 0; i < entries.size(); i++) {
+        const TreeDiffEntry &tde = entries[i];
+        printf("Applying %c   %s\n", tde.type, tde.filepath.c_str());
+        if (tde.type == TreeDiffEntry::NewFile) {
+            TreeEntry te;
+            pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
+            te.hash = hashes.first;
+            te.largeHash = hashes.second;
+            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                TreeEntry::Blob;
+            // TODO te.mode
+
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::NewDir) {
+            TreeEntry te;
+            te.type = TreeEntry::Tree;
+            flat.insert(make_pair(tde.filepath, te));
+        }
+        else if (tde.type == TreeDiffEntry::Deleted) {
+            flat.erase(tde.filepath);
+        }
+        else if (tde.type == TreeDiffEntry::Modified) {
+            TreeEntry te;
+            pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
+            te.hash = hashes.first;
+            te.largeHash = hashes.second;
+            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                TreeEntry::Blob;
+            // TODO te.mode
+
+            flat[tde.filepath] = te;
+        }
+        else if (tde.type == TreeDiffEntry::ModifiedDiff) {
+            // TODO: apply diff
+            NOT_IMPLEMENTED(false);
+        }
+        else {
+            assert(false);
+        }
+    }
+
+    /*for (Tree::Flat::iterator it = flat.begin();
+            it != flat.end();
+            it++) {
+        printf("%s %s\n", (*it).first.c_str(), (*it).second.hash.c_str());
+    }*/
+
+    Tree rval = Tree::unflatten(flat, dest_repo);
+    dest_repo->addBlob(Object::Tree, rval.getBlob());
+    return rval;
+}

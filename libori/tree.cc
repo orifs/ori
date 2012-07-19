@@ -259,17 +259,11 @@ Tree::unflatten(const Flat &flat, Repo *r)
         r->addBlob(Object::Tree, blob);
     }
 
-    for (size_t i = 0; i < tree_names.size(); i++) {
-        const string &tn = tree_names[i];
-        printf("tree %s %lu\n", tn.c_str(), trees[tn].tree.size());
-    }
-
-    for (map<string, TreeEntry>::iterator it = trees[""].tree.begin();
-            it != trees[""].tree.end();
-            it++) {
-        printf("root tree %s\n", (*it).first.c_str());
-    }
-
     return trees[""];
 }
 
+std::string
+Tree::hash() const
+{
+    return Util_HashString(getBlob());
+}

@@ -136,6 +136,12 @@ int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
     return -1;
 }
 
+void SshRepo::addBackref(const std::string &referer, const std::string
+        &refers_to)
+{
+    NOT_IMPLEMENTED(false);
+}
+
 std::vector<Commit> SshRepo::listCommits()
 {
     client->sendCommand("list commits");

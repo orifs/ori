@@ -305,14 +305,22 @@ cmd_commit(int argc, const char *argv[])
     string tip = repository.getHead();
 
     Tree tip_tree;
-    TreeDiff td;
+    TreeDiff diff;
     if (tip != EMPTY_COMMIT) {
         Commit c = repository.getCommit(tip);
         tip_tree = repository.getTree(c.getTree());
     }
 
-    td.diffToDir(tip_tree, repository.getRootPath(), &repository);
-    repository.commitFromTD(td, msg);
+    diff.diffToDir(tip_tree, repository.getRootPath(), &repository);
+    if (diff.entries.size() == 0) {
+        printf("Nothing to commit!\n");
+        return 0;
+    }
+
+    TempDir::sp tempdir(repository.newTempDir());
+    Tree new_tree = diff.applyTo(tip_tree.flattened(&repository),
+            tempdir.get());
+    repository.commitFromObjects(new_tree.hash(), tempdir, msg);
 
     return 0;
     /*string blob;
@@ -472,7 +480,7 @@ cmd_status(int argc, const char *argv[])
     td.diffToDir(tip_tree, repository.getRootPath(), &repository);
 
     for (size_t i = 0; i < td.entries.size(); i++) {
-        printf("%c\t%s\n",
+        printf("%c   %s\n",
                 td.entries[i].type,
                 td.entries[i].filepath.c_str());
     }

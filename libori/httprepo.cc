@@ -144,6 +144,12 @@ HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
     return -1;
 }
 
+void
+HttpRepo::addBackref(const std::string &referer, const std::string &refers_to)
+{
+    NOT_IMPLEMENTED(false);
+}
+
 vector<Commit>
 HttpRepo::listCommits()
 {

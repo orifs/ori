@@ -8,6 +8,7 @@
 #include "localobject.h"
 #include "treediff.h"
 #include "tempdir.h"
+#include "largeblob.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -62,13 +63,8 @@ public:
     
     std::vector<Commit> listCommits();
 
-    std::string addSmallFile(const std::string &path);
-    std::pair<std::string, std::string>
-        addLargeFile(const std::string &path);
-    std::pair<std::string, std::string>
-        addFile(const std::string &path);
-    virtual std::string addTree(const Tree &tree);
-    virtual std::string addCommit(/* const */ Commit &commit);
+    std::string addTree(const Tree &tree);
+    std::string addCommit(/* const */ Commit &commit);
     //std::string addBlob(const std::string &blob, Object::Type type);
     size_t getObjectLength(const std::string &objId);
     Object::Type getObjectType(const std::string &objId);
@@ -82,9 +78,10 @@ public:
     // Clone/pull operations
     void pull(Repo *r);
     // Repository Operations
-    Tree applyTD(const Tree &src, const TreeDiff &td);
-    std::string commitFromTD(const TreeDiff &td, const std::string &msg);
-    std::string commitFromObjects(TempDir::sp td);
+    void copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb);
+    void copyObjectsFromTree(Repo *other, const Tree &t);
+    std::string commitFromObjects(const std::string &treeHash,
+            TempDir::sp objects, const std::string &msg);
     void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);

@@ -189,91 +189,6 @@ LocalRepo::objIdToPath(const string &objId)
     return rval;
 }
 
-/*
- * Add a file to the repository. This is a low-level interface.
- */
-string
-LocalRepo::addSmallFile(const string &path)
-{
-    string hash = Util_HashFile(path);
-    string objPath;
-
-    if (hash == "") {
-	perror("Unable to hash file");
-	return "";
-    }
-    objPath = objIdToPath(hash);
-
-    // Check if in tree
-    if (!Util_FileExists(objPath)) {
-	// Copy to object tree
-	LocalObject o;
-
-	createObjDirs(hash);
-	if (o.create(objPath, Object::Blob) < 0) {
-	    perror("Unable to create object");
-            printf("objPath: %s\n", objPath.c_str());
-	    return "";
-	}
-        diskstream ds(path);
-	if (o.setPayload(&ds) < 0) {
-	    perror("Unable to copy file");
-	    return "";
-	}
-
-        index.updateInfo(hash, o.getInfo());
-    }
-
-    return hash;
-}
-
-/*
- * Add a file to the repository. This is a low-level interface.
- */
-pair<string, string>
-LocalRepo::addLargeFile(const string &path)
-{
-    string blob;
-    string hash;
-    LargeBlob lb = LargeBlob(this);
-
-    lb.chunkFile(path);
-    blob = lb.getBlob();
-    hash = Util_HashString(blob);
-
-    if (!hasObject(hash)) {
-        map<uint64_t, LBlobEntry>::iterator it;
-
-        for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
-            LocalObject::sp o = getLocalObject((*it).second.hash);
-            if (!o) {
-                perror("Cannot open object");
-                assert(false);
-            }
-            o->addBackref(hash, Object::BRRef);
-            //o->close();
-        }
-    }
-
-    return make_pair(addBlob(Object::LargeBlob, blob), lb.hash);
-}
-
-/*
- * Add a file to the repository. This is an internal interface that pusheds the
- * work to addLargeFile or addSmallFile based on our size threshold.
- */
-pair<string, string>
-LocalRepo::addFile(const string &path)
-{
-    assert(opened);
-    size_t sz = Util_FileSize(path);
-
-    if (sz > LARGEFILE_MINIMUM)
-        return addLargeFile(path);
-    else
-        return make_pair(addSmallFile(path), "");
-}
-
 int
 LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
@@ -546,7 +461,7 @@ LocalRepo::addBackref(const std::string &referer, const std::string &refers_to)
     o->addBackref(referer, Object::BRRef);
 }
 
-void
+/*void
 LocalRepo::addTreeBackrefs(const std::string &thash, const Tree &t)
 {
     for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
@@ -559,7 +474,7 @@ LocalRepo::addTreeBackrefs(const std::string &thash, const Tree &t)
             addTreeBackrefs(te.hash, subtree);
         }
     }
-}
+}*/
 
 int
 Repo_GetObjectsCB(void *arg, const char *path)
@@ -748,79 +663,67 @@ LocalRepo::pull(Repo *r)
 /*
  * Commit from TreeDiff
  */
-Tree
-LocalRepo::applyTD(const Tree &src, const TreeDiff &td)
+
+void
+LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
 {
-    Tree::Flat flat = src.flattened(this);
-    for (size_t i = 0; i < td.entries.size(); i++) {
-        const TreeDiffEntry &tde = td.entries[i];
-        printf("Applying %c\t%s\n", tde.type, tde.filepath.c_str());
-        if (tde.type == TreeDiffEntry::NewFile) {
-            TreeEntry te;
-            pair<string, string> hashes = addFile(tde.newFilename);
-            te.hash = hashes.first;
-            te.largeHash = hashes.second;
-            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
-                TreeEntry::Blob;
-            // TODO te.mode
+}
 
-            flat.insert(make_pair(tde.filepath, te));
-        }
-        else if (tde.type == TreeDiffEntry::NewDir) {
-            TreeEntry te;
-            te.type = TreeEntry::Tree;
-            flat.insert(make_pair(tde.filepath, te));
-        }
-        else if (tde.type == TreeDiffEntry::Deleted) {
-            flat.erase(tde.filepath);
-        }
-        else if (tde.type == TreeDiffEntry::Modified) {
-            TreeEntry te;
-            pair<string, string> hashes = addFile(tde.newFilename);
-            te.hash = hashes.first;
-            te.largeHash = hashes.second;
-            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
-                TreeEntry::Blob;
-            // TODO te.mode
-
-            flat.insert(make_pair(tde.filepath, te));
-        }
-        else if (tde.type == TreeDiffEntry::ModifiedDiff) {
-            // TODO: apply diff
-            NOT_IMPLEMENTED(false);
-        }
-        else {
-            assert(false);
-        }
-    }
-
-    for (Tree::Flat::iterator it = flat.begin();
-            it != flat.end();
+void
+LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
+{
+    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
+            it != t.tree.end();
             it++) {
-        printf("%s\n", (*it).first.c_str());
-    }
+        const TreeEntry &te = (*it).second;
+        if (hasObject(te.hash)) {
+            continue;
+        }
 
-    return Tree::unflatten(flat, this);
+        Object::sp o(other->getObject(te.hash));
+        if (!o) {
+            LOG("Couldn't get object %s\n", te.hash.c_str());
+            continue;
+        }
+
+        copyFrom(o.get());
+        addBackref(t.hash(), te.hash);
+
+        if (te.type == TreeEntry::Tree) {
+            Tree subtree;
+            subtree.fromBlob(o->getPayload());
+            copyObjectsFromTree(other, subtree);
+        }
+        else if (te.type == TreeEntry::LargeBlob) {
+            LargeBlob lb(this);
+            lb.fromBlob(o->getPayload());
+            copyObjectsFromLargeBlob(other, lb);
+        }
+    }
 }
 
 string
-LocalRepo::commitFromTD(const TreeDiff &td, const string &msg)
+LocalRepo::commitFromObjects(const string &treeHash, TempDir::sp objects, const string &msg)
 {
     assert(opened);
 
-    Tree tipTree = getHeadTree();
+    Object::sp newTreeObj(objects->getObject(treeHash));
+    assert(newTreeObj->getInfo().type == Object::Tree);
+
+    LocalRepoLock::ap _lock(lock());
+    copyFrom(newTreeObj.get());
+
+    Tree newTree;
+    newTree.fromBlob(newTreeObj->getPayload());
+    copyObjectsFromTree(objects.get(), newTree);
     
-    Tree newTree = applyTD(tipTree, td);
-    string treeHash = addBlob(Object::Tree, newTree.getBlob());
-    
+    // Make the commit object
     string user = Util_GetFullname();
     Commit c(msg, treeHash, user);
     c.setParents(getHead());
 
     string commitHash = addCommit(c);
-    addBackref(commitHash, getHead());
-    addBackref(commitHash, treeHash);
-    addTreeBackrefs(treeHash, newTree);
+    //addTreeBackrefs(treeHash, newTree);
 
     // Update .ori/HEAD
     updateHead(commitHash);
@@ -1280,7 +1183,7 @@ LocalRepo::newTempDir()
         perror("mkdtemp");
         return TempDir::sp();
     }
-    printf("Temporary directory at %s\n", dir_templ.c_str());
+    printf("Temporary directory at %s\n", templ);
     return TempDir::sp(new TempDir(templ));
 }
 
