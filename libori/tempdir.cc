@@ -22,7 +22,7 @@ TempDir::TempDir(const std::string &dirpath)
 TempDir::~TempDir()
 {
     if (objects_fd > 0) {
-        printf("Closing temp dir");
+        printf("Closing temp dir\n");
         close(objects_fd);
         objects_fd = -1;
     }

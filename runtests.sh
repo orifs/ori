@@ -25,7 +25,7 @@ export TEST_RESULTS=$ORIG_DIR/ori_test_results.txt
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
 mkdir -p $SOURCE_FILES
-for i in {12..15}; do
+for i in {10..11}; do
     SIZE=$((2**(i+1)))
     echo "Creating random file size ${SIZE}k"
     #dd if=/dev/urandom of="$SOURCE_FILES/file$i.tst" bs=2k count=$SIZE
@@ -34,14 +34,20 @@ done
 mkdir -p $SOURCE_FILES/a
 echo "Hello, world!" > $SOURCE_FILES/a/a.txt
 touch $SOURCE_FILES/a/empty
+mkdir $SOURCE_FILES/a/empty_dir
+mkdir $SOURCE_FILES/b
+echo "Foo" > $SOURCE_FILES/b/b.txt
 
-# Initialize source repository
-bash -ex $SCRIPTS/repo_init.sh
-if [ "$?" -ne "0" ] ; then
-    echo "Couldn't initialize source repo!"
-    exit 1
-    # TODO: to keep directory state
-fi
+# Initial tests/initialize source repo
+for script in repo_init.sh commit_again.sh; do
+    bash -ex $SCRIPTS/$script
+    if [ "$?" -ne "0" ] ; then
+        echo "Script $script failed!"
+        exit 1
+    fi
+done
+
+printf "\n\n----------\nRUNNING TESTS\n----------\n"
 
 # Run tests
 echo "runtests.sh test results" > $TEST_RESULTS
