@@ -115,7 +115,7 @@ ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
         if (status < 0) return status;
         assert(status == 24);
 
-        return 0;
+        return status;
     }
     else {
         // TODO!!! use write() instead

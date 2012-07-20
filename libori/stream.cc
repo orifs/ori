@@ -116,7 +116,7 @@ size_t strstream::read(uint8_t *out, size_t n)
 
 size_t strstream::sizeHint() const
 {
-    return 0;
+    return buf.size();
 }
 
 /*

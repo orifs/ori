@@ -193,7 +193,9 @@ int
 LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
     assert(opened);
+    assert(info.hasAllFields());
     string hash = info.hash;
+    assert(hash.size() == 64);
     string objPath = objIdToPath(hash);
 
     if (!Util_FileExists(objPath)) {

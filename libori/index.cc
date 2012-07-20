@@ -209,6 +209,9 @@ Index::updateInfo(const string &objId, const ObjectInfo &info)
     indexLine += hash.substr(0, 16);
 
     write(fd, indexLine.data(), indexLine.size());
+
+    // Add to in-memory index
+    index[info.hash] = info;
 }
 
 const ObjectInfo &

@@ -39,7 +39,23 @@ public:
 
 private:
     Index index;
-    std::tr1::unordered_map<std::string, uint64_t> offsets;
+    int objects_fd;
+    std::tr1::unordered_map<std::string, off_t> offsets;
+};
+
+class TempObject : public Object
+{
+public:
+    TempObject(int fd, off_t off, size_t len, const ObjectInfo &info);
+
+    bytestream::ap getPayloadStream();
+    bytestream::ap getStoredPayloadStream();
+    size_t getStoredPayloadSize();
+
+private:
+    int fd;
+    off_t off;
+    size_t len;
 };
 
 #endif
