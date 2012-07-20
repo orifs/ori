@@ -20,10 +20,11 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <iostream>
-#include <sstream>
 #include <string>
 #include <set>
+#include <sstream>
+#include <iostream>
+#include <algorithm>
 
 #include "tree.h"
 #include "util.h"
