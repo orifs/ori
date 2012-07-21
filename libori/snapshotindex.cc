@@ -72,7 +72,7 @@ SnapshotIndex::open(const string &indexFile)
     int len = sb.st_size;
     char *buf = new char[len];
 
-    int status = read(fd, &buf, len);
+    int status = read(fd, buf, len);
     assert(status == len);
 
     string blob = string().assign(buf, len);
