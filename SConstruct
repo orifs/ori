@@ -90,7 +90,7 @@ if not (has_event or has_event2):
     print 'Please install libevent 2.0+'
     Exit(1)
 
-if env["WITH_MDNS"] == "1":
+if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
     if not conf.CheckLibWithHeader('dns_sd','dns_sd.h','C'):
 	print 'Please install libdns_sd'
 	Exit(1)
