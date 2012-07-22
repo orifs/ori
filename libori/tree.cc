@@ -20,11 +20,16 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include <iostream>
-#include <sstream>
 #include <string>
+#include <set>
+#include <sstream>
+#include <iostream>
+#include <algorithm>
 
 #include "tree.h"
+#include "util.h"
+#include "scan.h"
+#include "repo.h"
 
 using namespace std;
 
@@ -88,7 +93,7 @@ Tree::addObject(const char *path, const string &objId, const string &lgObjId)
         entry.largeHash = lgObjId;
     }
 
-    fileName = fileName.substr(fileName.rfind("/") + 1);
+    fileName = StrUtil_Basename(fileName);
     tree[fileName] = entry;
 }
 
@@ -154,3 +159,112 @@ Tree::fromBlob(const string &blob)
     }
 }
 
+void
+_recFlatten(
+        const std::string &prefix,
+        const Tree *t,
+        Tree::Flat *rval,
+        Repo *r
+        )
+{
+    for (Tree::Flat::const_iterator it = t->tree.begin();
+            it != t->tree.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        rval->insert(make_pair(prefix + (*it).first, te));
+        if (te.type == TreeEntry::Tree) {
+            // Recurse further
+            Tree subtree = r->getTree(te.hash);
+            _recFlatten(prefix + (*it).first + "/",
+                    &subtree, rval, r);
+        }
+    }
+}
+
+Tree::Flat
+Tree::flattened(Repo *r) const
+{
+    Tree::Flat rval;
+    _recFlatten("/", this, &rval, r);
+    return rval;
+}
+
+size_t _num_path_components(const std::string &path)
+{
+    if (path.size() == 0) return 0;
+    size_t cnt = 0;
+    for (size_t i = 0; i < path.size(); i++) {
+        if (path[i] == '/')
+            cnt++;
+    }
+    return 1 + cnt;
+}
+
+bool _tree_gt(const std::string &t1, const std::string &t2)
+{
+    return _num_path_components(t1) > _num_path_components(t2);
+}
+
+Tree
+Tree::unflatten(const Flat &flat, Repo *r)
+{
+    map<string, Tree> trees;
+    for (Flat::const_iterator it = flat.begin();
+            it != flat.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        if (te.type == TreeEntry::Tree) {
+            if (trees.find((*it).first) == trees.end()) {
+                trees[(*it).first] = Tree();
+            }
+        }
+        else if (te.type == TreeEntry::Blob ||
+                te.type == TreeEntry::LargeBlob) {
+            string treename = StrUtil_Dirname((*it).first);
+            if (trees.find(treename) == trees.end()) {
+                trees[treename] = Tree();
+            }
+            string basename = StrUtil_Basename((*it).first);
+            trees[treename].tree[basename] = te;
+        }
+        else {
+            assert(false && "TreeEntry is type Null");
+        }
+    }
+
+    // Get the tree hashes, update parents, add to Repo
+    vector<string> tree_names;
+    for (map<string, Tree>::const_iterator it = trees.begin();
+            it != trees.end();
+            it++) {
+        tree_names.push_back((*it).first);
+    }
+    // Update leaf trees (no child directories) first
+    std::sort(tree_names.begin(), tree_names.end(), _tree_gt);
+
+    for (size_t i = 0; i < tree_names.size(); i++) {
+        const string &tn = tree_names[i];
+        if (tn.size() == 0) continue;
+        string blob = trees[tn].getBlob();
+        string hash = Util_HashString(blob);
+
+        // Add to parent
+        TreeEntry te;
+        te.hash = hash;
+        te.type = TreeEntry::Tree;
+
+        string parent = StrUtil_Dirname(tn);
+        trees[parent].tree[StrUtil_Basename(tn)] = te;
+
+        // Add to Repo
+        r->addBlob(Object::Tree, blob);
+    }
+
+    return trees[""];
+}
+
+std::string
+Tree::hash() const
+{
+    return Util_HashString(getBlob());
+}

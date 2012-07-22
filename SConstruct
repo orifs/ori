@@ -30,9 +30,12 @@ Help(opts.GenerateHelpText(env))
 #env.Append(CXXFLAGS = [ "-Wno-non-template-friend", "-Woverloaded-virtual",
 #                        "-Wcast-qual", "-Wcast-align", "-Wconversion",
 #                        "-Weffc++", "-std=c++0x", "-Werror" ])
-env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
+if sys.platform != "darwin":
+    env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
+    env.Append(LIBPATH = [ "/usr/local/lib/event2" ])
+
 env.Append(CPPPATH = [ "/usr/local/include" ])
-env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib", "/usr/local/lib/event2" ])
+env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
 if env["WITH_MDNS"] != "1":
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
@@ -86,6 +89,11 @@ has_event = conf.CheckLibWithHeader('event', 'event2/event.h', 'C',
 if not (has_event or has_event2):
     print 'Please install libevent 2.0+'
     Exit(1)
+
+if env["WITH_MDNS"] == "1":
+    if not conf.CheckLibWithHeader('dns_sd','dns_sd.h','C'):
+	print 'Please install libdns_sd'
+	Exit(1)
 
 conf.Finish()
 

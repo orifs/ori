@@ -38,3 +38,4 @@ for fn in set1:
     if f1 != f2:
         print("File contents not identical!")
         print(fn)
+        sys.exit(1)

@@ -21,7 +21,9 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
+class Repo;
 class TreeEntry
 {
 public:
@@ -49,8 +51,14 @@ public:
                    const std::string &lgObjId = "");
     const std::string getBlob() const;
     void fromBlob(const std::string &blob);
+    std::string hash() const; // TODO: cache this
+
+    typedef std::map<std::string, TreeEntry> Flat;
+    Flat flattened(Repo *r) const;
+    static Tree unflatten(const Flat &flat, Repo *r);
+
+
     std::map<std::string, TreeEntry> tree;
 };
 
 #endif /* __TREE_H__ */
-

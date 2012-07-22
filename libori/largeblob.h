@@ -22,7 +22,7 @@
 #include <string>
 #include <map>
 
-#include "localrepo.h"
+#include "repo.h"
 
 class LBlobEntry
 {
@@ -39,7 +39,7 @@ class Repo;
 class LargeBlob
 {
 public:
-    LargeBlob(LocalRepo *r);
+    LargeBlob(Repo *r);
     ~LargeBlob();
     void chunkFile(const std::string &path);
     void extractFile(const std::string &path);
@@ -56,7 +56,7 @@ public:
      */
     std::string hash;
     std::map<uint64_t, LBlobEntry> parts;
-    LocalRepo *repo;
+    Repo *repo;
 };
 
 #endif /* __LARGEBLOB_H__ */

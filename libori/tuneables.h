@@ -20,5 +20,7 @@
 #define COPYFILE_BUFSZ	(256 * 1024)
 #define HASHFILE_BUFSZ	(256 * 1024)
 
+#define LARGEFILE_MINIMUM (1024 * 1024)
+
 #endif /* __TUNEABLES_H__ */
 

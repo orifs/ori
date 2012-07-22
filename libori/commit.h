@@ -27,6 +27,7 @@ class Commit
 {
 public:
     Commit();
+    Commit(const std::string &msg, const std::string &tree, const std::string &user);
     ~Commit();
     void setParents(std::string p1, std::string p2 = "");
     std::pair<std::string, std::string> getParents();

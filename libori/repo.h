@@ -27,8 +27,7 @@
 #include "object.h"
 
 #define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
-
-#define LARGEFILE_MINIMUM (1024 * 1024)
+#define EMPTY_HASH "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 class Repo
 {
@@ -44,6 +43,8 @@ public:
             const std::string &id
             ) = 0;
     virtual bool hasObject(const std::string &id) = 0;
+    virtual void addBackref(const std::string &referer, const std::string
+            &refers_to) = 0;
 
     // Object queries
     virtual std::set<ObjectInfo> listObjects() = 0;
@@ -52,20 +53,27 @@ public:
     /// does not take ownership of bs
     virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;
 
-    // High-level operations
+    // Wrappers
     virtual std::string addBlob(Object::Type type, const std::string &blob);
     virtual int addObject(
-            const ObjectInfo &info,
+            Object::Type type,
+            const std::string &hash,
             const std::string &payload
             );
+
+    std::string addSmallFile(const std::string &path);
+    std::pair<std::string, std::string>
+        addLargeFile(const std::string &path);
+    std::pair<std::string, std::string>
+        addFile(const std::string &path);
+
+    virtual Tree getTree(const std::string &treeId);
+    virtual Commit getCommit(const std::string &commitId);
+
+    // High level operations
     virtual void copyFrom(
             Object *other
             );
-
-    /*virtual int getData(
-            ObjectInfo *info,
-            std::string &data);*/
-    virtual Tree getTree(const std::string &treeId);
 };
 
 #endif /* __REPO_H__ */

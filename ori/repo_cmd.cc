@@ -43,6 +43,7 @@
 #include "httprepo.h"
 #include "sshclient.h"
 #include "sshrepo.h"
+#include "treediff.h"
 
 using namespace std;
 
@@ -294,6 +295,40 @@ usage_commit(void)
 int
 cmd_commit(int argc, const char *argv[])
 {
+    string msg;
+    if (argc == 1) {
+        msg = "No message.";
+    } else if (argc == 2) {
+        msg = argv[1];
+    }
+
+    string tip = repository.getHead();
+
+    Tree tip_tree;
+    TreeDiff diff;
+    if (tip != EMPTY_COMMIT) {
+        Commit c = repository.getCommit(tip);
+        tip_tree = repository.getTree(c.getTree());
+    }
+
+    diff.diffToDir(tip_tree, repository.getRootPath(), &repository);
+    if (diff.entries.size() == 0) {
+        printf("Nothing to commit!\n");
+        return 0;
+    }
+
+    TempDir::sp tempdir(repository.newTempDir());
+    Tree new_tree = diff.applyTo(tip_tree.flattened(&repository),
+            tempdir.get());
+    printf("Committing from temp dir\n");
+    repository.commitFromObjects(new_tree.hash(), tempdir, msg);
+
+    return 0;
+}
+
+int
+cmd_oldcommit(int argc, const char *argv[])
+{
     string blob;
     string treeHash, commitHash;
     string msg;
@@ -439,37 +474,21 @@ StatusTreeIter(map<string, pair<string, string> > *tipState,
 int
 cmd_status(int argc, const char *argv[])
 {
-    map<string, string> dirState;
-    map<string, pair<string, string> > tipState;
-    map<string, string>::iterator it;
-    map<string, pair<string, string> >::iterator tipIt;
-    Commit c;
     string tip = repository.getHead();
 
+    Tree tip_tree;
+    TreeDiff td;
     if (tip != EMPTY_COMMIT) {
-        c = repository.getCommit(tip);
-	StatusTreeIter(&tipState, "", c.getTree());
+        Commit c = repository.getCommit(tip);
+        tip_tree = repository.getTree(c.getTree());
     }
 
-    Scan_RTraverse(LocalRepo::findRootPath().c_str(),
-		   (void *)&dirState,
-	           StatusDirectoryCB);
+    td.diffToDir(tip_tree, repository.getRootPath(), &repository);
 
-    for (it = dirState.begin(); it != dirState.end(); it++) {
-	tipIt = tipState.find((*it).first);
-	if (tipIt == tipState.end()) {
-	    printf("A	%s\n", (*it).first.c_str());
-	} else if ((*tipIt).second.first != (*it).second) {
-	    // XXX: Handle replace a file <-> directory with same name
-	    printf("M	%s\n", (*it).first.c_str());
-	}
-    }
-
-    for (tipIt = tipState.begin(); tipIt != tipState.end(); tipIt++) {
-	it = dirState.find((*tipIt).first);
-	if (it == dirState.end()) {
-	    printf("D	%s\n", (*tipIt).first.c_str());
-	}
+    for (size_t i = 0; i < td.entries.size(); i++) {
+        printf("%c   %s\n",
+                td.entries[i].type,
+                td.entries[i].filepath.c_str());
     }
 
     return 0;

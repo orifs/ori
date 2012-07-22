@@ -22,6 +22,7 @@
 #include <queue>
 #include <iostream>
 
+#include "tuneables.h"
 #include "debug.h"
 #include "util.h"
 #include "object.h"
@@ -48,12 +49,16 @@ Repo::~Repo() {
  * High-level operations
  */
 
-int Repo::addObject(const ObjectInfo &in_info, const string &payload)
+int
+Repo::addObject(Object::Type type, const string &hash, const string &payload)
 {
-    ObjectInfo info = in_info;
-    assert(info.hash != ""); // hash must be included
-    assert(info.type != Object::Null);
+    assert(hash != ""); // hash must be included
+    assert(type != Object::Null);
+
+    ObjectInfo info(hash.c_str());
+    info.type = type;
     info.payload_size = payload.size();
+    assert(info.hasAllFields());
 
     if (info.getCompressed()) {
         bytestream *ss = new strstream(payload);
@@ -80,12 +85,75 @@ string
 Repo::addBlob(Object::Type type, const string &blob)
 {
     string hash = Util_HashString(blob);
-    ObjectInfo info(hash.c_str());
-    info.type = type;
-    //info.flags = ...;
-    addObject(info, blob);
+    addObject(type, hash, blob);
     return hash;
 }
+
+
+/*
+ * Add a file to the repository. This is a low-level interface.
+ */
+string
+Repo::addSmallFile(const string &path)
+{
+    string hash = Util_HashFile(path);
+    string objPath;
+
+    if (hash == "") {
+	perror("Unable to hash file");
+	return "";
+    }
+
+    diskstream ds(path);
+    if (addObject(Object::Blob, hash, ds.readAll()) < 0) {
+        perror("Unable to copy file");
+        return "";
+    }
+
+    return hash;
+}
+
+/*
+ * Add a file to the repository. This is a low-level interface.
+ */
+pair<string, string>
+Repo::addLargeFile(const string &path)
+{
+    string blob;
+    string hash;
+    LargeBlob lb = LargeBlob(this);
+
+    lb.chunkFile(path);
+    blob = lb.getBlob();
+    hash = Util_HashString(blob);
+
+    if (!hasObject(hash)) {
+        map<uint64_t, LBlobEntry>::iterator it;
+
+        for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
+            addBackref(hash, (*it).second.hash);
+        }
+    }
+
+    return make_pair(addBlob(Object::LargeBlob, blob), lb.hash);
+}
+
+/*
+ * Add a file to the repository. This is an internal interface that pusheds the
+ * work to addLargeFile or addSmallFile based on our size threshold.
+ */
+pair<string, string>
+Repo::addFile(const string &path)
+{
+    size_t sz = Util_FileSize(path);
+
+    if (sz > LARGEFILE_MINIMUM)
+        return addLargeFile(path);
+    else
+        return make_pair(addSmallFile(path), "");
+}
+
+
 
 
 Tree
@@ -94,11 +162,30 @@ Repo::getTree(const std::string &treeId)
     Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
-    assert(o->getInfo().type == Object::Tree);
+    assert(treeId == EMPTY_HASH || o->getInfo().type == Object::Tree);
 
     Tree t;
     t.fromBlob(blob);
 
     return t;
+}
+
+Commit
+Repo::getCommit(const std::string &commitId)
+{
+    Object::sp o(getObject(commitId));
+    string blob = o->getPayload();
+
+    assert(commitId == EMPTY_HASH || o->getInfo().type == Object::Commit);
+
+    Commit c;
+    if (blob.size() == 0) {
+        printf("Error getting commit blob\n");
+        assert(false);
+        return c;
+    }
+    c.fromBlob(blob);
+
+    return c;
 }
 

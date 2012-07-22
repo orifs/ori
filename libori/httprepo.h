@@ -38,6 +38,7 @@ public:
     bool hasObject(const std::string &id);
     std::set<ObjectInfo> listObjects();
     int addObjectRaw(const ObjectInfo &info, bytestream *bs);
+    void addBackref(const std::string &referer, const std::string &refers_to);
     std::vector<Commit> listCommits();
 
 private:

@@ -6,6 +6,9 @@
 #include "snapshotindex.h"
 #include "lrucache.h"
 #include "localobject.h"
+#include "treediff.h"
+#include "tempdir.h"
+#include "largeblob.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -60,13 +63,8 @@ public:
     
     std::vector<Commit> listCommits();
 
-    std::string addSmallFile(const std::string &path);
-    std::pair<std::string, std::string>
-        addLargeFile(const std::string &path);
-    std::pair<std::string, std::string>
-        addFile(const std::string &path);
-    virtual std::string addTree(const Tree &tree);
-    virtual std::string addCommit(/* const */ Commit &commit);
+    std::string addTree(const Tree &tree);
+    std::string addCommit(/* const */ Commit &commit);
     //std::string addBlob(const std::string &blob, Object::Type type);
     size_t getObjectLength(const std::string &objId);
     Object::Type getObjectType(const std::string &objId);
@@ -75,10 +73,15 @@ public:
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
-    Commit getCommit(const std::string &commitId);
+    void addBackref(const std::string &referer, const std::string &refers_to);
+    void addTreeBackrefs(const std::string &thash, const Tree &t);
     // Clone/pull operations
     void pull(Repo *r);
     // Repository Operations
+    void copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb);
+    void copyObjectsFromTree(Repo *other, const Tree &t);
+    std::string commitFromObjects(const std::string &treeHash,
+            TempDir::sp objects, const std::string &msg);
     void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
@@ -101,7 +104,9 @@ public:
     // Working Directory Operations
     std::string getHead();
     void updateHead(const std::string &commitId);
+    Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit
     // General Operations
+    TempDir::sp newTempDir();
     std::string getRootPath();
     std::string getLogPath();
     std::string getTmpFile();

@@ -41,7 +41,7 @@
 #include "util.h"
 #include "largeblob.h"
 #include "chunker.h"
-#include "repo.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -75,7 +75,7 @@ LBlobEntry::~LBlobEntry()
  *
  ********************************************************************/
 
-LargeBlob::LargeBlob(LocalRepo *r)
+LargeBlob::LargeBlob(Repo *r)
 {
     repo = r;
 }
@@ -285,7 +285,9 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off)
 
     size_t to_read = MIN(left, s);
 
-    const std::string &payload = repo->getPayload((*it).second.hash);
+    Object::sp o(repo->getObject((*it).second.hash));
+    assert(o->getInfo().type == Object::Blob);
+    const std::string &payload = o->getPayload();
     memcpy(buf, payload.data()+part_off, to_read);
 
     return to_read;

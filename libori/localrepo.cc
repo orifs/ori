@@ -189,95 +189,13 @@ LocalRepo::objIdToPath(const string &objId)
     return rval;
 }
 
-/*
- * Add a file to the repository. This is a low-level interface.
- */
-string
-LocalRepo::addSmallFile(const string &path)
-{
-    string hash = Util_HashFile(path);
-    string objPath;
-
-    if (hash == "") {
-	perror("Unable to hash file");
-	return "";
-    }
-    objPath = objIdToPath(hash);
-
-    // Check if in tree
-    if (!Util_FileExists(objPath)) {
-	// Copy to object tree
-	LocalObject o;
-
-	createObjDirs(hash);
-	if (o.create(objPath, Object::Blob) < 0) {
-	    perror("Unable to create object");
-	    return "";
-	}
-        diskstream ds(path);
-	if (o.setPayload(&ds) < 0) {
-	    perror("Unable to copy file");
-	    return "";
-	}
-
-        index.updateInfo(hash, o.getInfo());
-    }
-
-    return hash;
-}
-
-/*
- * Add a file to the repository. This is a low-level interface.
- */
-pair<string, string>
-LocalRepo::addLargeFile(const string &path)
-{
-    string blob;
-    string hash;
-    LargeBlob lb = LargeBlob(this);
-
-    lb.chunkFile(path);
-    blob = lb.getBlob();
-    hash = Util_HashString(blob);
-
-    if (!hasObject(hash)) {
-        map<uint64_t, LBlobEntry>::iterator it;
-
-        for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
-            LocalObject::sp o = getLocalObject((*it).second.hash);
-            if (!o) {
-                perror("Cannot open object");
-                assert(false);
-            }
-            o->addBackref(hash, Object::BRRef);
-            //o->close();
-        }
-    }
-
-    return make_pair(addBlob(Object::LargeBlob, blob), lb.hash);
-}
-
-/*
- * Add a file to the repository. This is an internal interface that pusheds the
- * work to addLargeFile or addSmallFile based on our size threshold.
- */
-pair<string, string>
-LocalRepo::addFile(const string &path)
-{
-    assert(opened);
-    size_t sz = Util_FileSize(path);
-
-    if (sz > LARGEFILE_MINIMUM)
-        return addLargeFile(path);
-    else
-        return make_pair(addSmallFile(path), "");
-}
-
 int
 LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
     assert(opened);
+    assert(info.hasAllFields());
     string hash = info.hash;
+    assert(hash.size() == 64);
     string objPath = objIdToPath(hash);
 
     if (!Util_FileExists(objPath)) {
@@ -537,6 +455,29 @@ LocalRepo::copyObject(const string &objId, const string &path)
     return true;
 }
 
+void
+LocalRepo::addBackref(const std::string &referer, const std::string &refers_to)
+{
+    if (refers_to == EMPTY_COMMIT) return;
+    LocalObject::sp o(getLocalObject(refers_to));
+    o->addBackref(referer, Object::BRRef);
+}
+
+/*void
+LocalRepo::addTreeBackrefs(const std::string &thash, const Tree &t)
+{
+    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
+            it != t.tree.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        addBackref(thash, te.hash);
+        if (te.type == TreeEntry::Tree) {
+            Tree subtree = getTree(te.hash);
+            addTreeBackrefs(te.hash, subtree);
+        }
+    }
+}*/
+
 int
 Repo_GetObjectsCB(void *arg, const char *path)
 {
@@ -629,21 +570,6 @@ LocalRepo::listCommits()
     return rval;
 }
 
-Commit
-LocalRepo::getCommit(const std::string &commitId)
-{
-    Commit c = Commit();
-    string blob = getPayload(commitId);
-    if (blob.size() == 0) {
-        printf("Error getting commit blob\n");
-        assert(false);
-        return c;
-    }
-    c.fromBlob(blob);
-
-    return c;
-}
-
 /*
  * High Level Operations
  */
@@ -734,6 +660,94 @@ LocalRepo::pull(Repo *r)
         // Add the object to this repo
         copyFrom(o.get());
     }
+}
+
+/*
+ * Commit from TreeDiff
+ */
+
+void
+LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
+{
+    for (map<uint64_t, LBlobEntry>::const_iterator it = lb.parts.begin();
+            it != lb.parts.end();
+            it++) {
+        const LBlobEntry &lbe = (*it).second;
+        if (hasObject(lbe.hash)) {
+            continue;
+        }
+
+        Object::sp o(other->getObject(lbe.hash));
+        assert(o->getInfo().type == Object::Blob);
+        assert(o->getInfo().payload_size == lbe.length);
+        copyFrom(o.get());
+        addBackref(lb.hash, lbe.hash);
+    }
+}
+
+void
+LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
+{
+    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
+            it != t.tree.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+        if (hasObject(te.hash)) {
+            continue;
+        }
+
+        Object::sp o(other->getObject(te.hash));
+        if (!o) {
+            LOG("Couldn't get object %s\n", te.hash.c_str());
+            continue;
+        }
+
+        copyFrom(o.get());
+        addBackref(t.hash(), te.hash);
+
+        if (te.type == TreeEntry::Tree) {
+            Tree subtree;
+            subtree.fromBlob(o->getPayload());
+            copyObjectsFromTree(other, subtree);
+        }
+        else if (te.type == TreeEntry::LargeBlob) {
+            LargeBlob lb(this);
+            lb.fromBlob(o->getPayload());
+            copyObjectsFromLargeBlob(other, lb);
+        }
+    }
+}
+
+string
+LocalRepo::commitFromObjects(const string &treeHash, TempDir::sp objects, const string &msg)
+{
+    assert(opened);
+
+    Object::sp newTreeObj(objects->getObject(treeHash));
+    assert(newTreeObj->getInfo().type == Object::Tree);
+
+    LocalRepoLock::ap _lock(lock());
+    copyFrom(newTreeObj.get());
+
+    Tree newTree;
+    newTree.fromBlob(newTreeObj->getPayload());
+    copyObjectsFromTree(objects.get(), newTree);
+    
+    // Make the commit object
+    string user = Util_GetFullname();
+    Commit c(msg, treeHash, user);
+    c.setParents(getHead());
+
+    string commitHash = addCommit(c);
+    //addTreeBackrefs(treeHash, newTree);
+
+    // Update .ori/HEAD
+    updateHead(commitHash);
+
+    printf("Commit Hash: %s\nTree Hash: %s\n",
+	   commitHash.c_str(),
+	   treeHash.c_str());
+    return commitHash;
 }
 
 /*
@@ -1156,8 +1170,38 @@ LocalRepo::updateHead(const string &commitId)
 }
 
 /*
+ * Get the tree associated with the current HEAD
+ */
+Tree
+LocalRepo::getHeadTree()
+{
+    Tree t;
+    string head = getHead();
+    if (head != EMPTY_COMMIT) {
+        Commit headCommit = getCommit(head);
+        t = getTree(headCommit.getTree());
+    }
+    return t;
+}
+
+/*
  * General Operations
  */
+
+TempDir::sp
+LocalRepo::newTempDir()
+{
+    string dir_templ = getRootPath() + ORI_PATH_TMP + "tmp.XXXXXX";
+    char templ[PATH_MAX];
+    strncpy(templ, dir_templ.c_str(), PATH_MAX);
+
+    if (mkdtemp(templ) == NULL) {
+        perror("mkdtemp");
+        return TempDir::sp();
+    }
+    printf("Temporary directory at %s\n", templ);
+    return TempDir::sp(new TempDir(templ));
+}
 
 string
 LocalRepo::getUUID()
