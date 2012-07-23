@@ -75,8 +75,19 @@ void
 ori_priv::commitWrite()
 {
     if (currTreeDiff != NULL) {
-        // TODO
         FUSE_LOG("committing");
+
+        std::string tip = repo->getHead();
+
+        Tree tip_tree;
+        if (tip != EMPTY_COMMIT) {
+            Commit c = repo->getCommit(tip);
+            tip_tree = repo->getTree(c.getTree());
+        }
+        Tree new_tree = currTreeDiff->applyTo(tip_tree.flattened(repo),
+                currTempDir.get());
+        repo->commitFromObjects(new_tree.hash(), currTempDir,
+                "Commit from FUSE.");
 
         delete currTreeDiff;
         currTempDir.reset();

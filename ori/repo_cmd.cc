@@ -305,12 +305,12 @@ cmd_commit(int argc, const char *argv[])
     string tip = repository.getHead();
 
     Tree tip_tree;
-    TreeDiff diff;
     if (tip != EMPTY_COMMIT) {
         Commit c = repository.getCommit(tip);
         tip_tree = repository.getTree(c.getTree());
     }
 
+    TreeDiff diff;
     diff.diffToDir(tip_tree, repository.getRootPath(), &repository);
     if (diff.entries.size() == 0) {
         printf("Nothing to commit!\n");
