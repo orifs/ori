@@ -495,6 +495,33 @@ cmd_status(int argc, const char *argv[])
 }
 
 int
+cmd_treediff(int argc, const char *argv[])
+{
+    if (argc != 3) {
+	cout << "treediff takes two arguments!" << endl;
+	cout << "usage: ori treediff <commit 1> <commit 2>" << endl;
+	return 1;
+    }
+    TreeDiff td;
+
+    Commit c1 = repository.getCommit(argv[1]);
+    Commit c2 = repository.getCommit(argv[2]);
+
+    Tree t1 = repository.getTree(c1.getTree());
+    Tree t2 = repository.getTree(c2.getTree());
+
+    td.diffTwoTrees(t1.flattened(&repository), t2.flattened(&repository));
+
+    for (size_t i = 0; i < td.entries.size(); i++) {
+        printf("%c   %s\n",
+                td.entries[i].type,
+                td.entries[i].filepath.c_str());
+    }
+
+    return 0;
+}
+
+int
 cmd_checkout(int argc, const char *argv[])
 {
     map<string, string> dirState;
@@ -587,7 +614,7 @@ cmd_filelog(int argc, const char *argv[])
     string lastHash = "";
 
     if (argc != 2) {
-	cout << "Wrong number of arguements!" << endl;
+	cout << "Wrong number of arguments!" << endl;
 	return 1;
     }
 

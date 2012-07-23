@@ -30,7 +30,7 @@ struct TreeDiffEntry
         NewDir = 'N',
         Deleted = 'D',
         Modified = 'm',
-        ModifiedDiff = 'M'
+	// ModifiedDiff = 'M'
     } type;
 
     std::string filepath; // path relative to repo, with leading '/'
@@ -43,7 +43,7 @@ class TreeDiff
 {
 public:
     TreeDiff();
-    void diffTwoTrees(const Tree &t1, const Tree &t2);
+    void diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2);
     void diffToDir(Tree src, const std::string &dir, Repo *r);
 
     Tree applyTo(Tree::Flat flat, Repo *dest_repo);
