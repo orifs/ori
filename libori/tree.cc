@@ -29,6 +29,8 @@
 #include "util.h"
 #include "scan.h"
 #include "repo.h"
+#include "largeblob.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -42,11 +44,29 @@ using namespace std;
 
 TreeEntry::TreeEntry()
 {
-    mode = Null;
+    type = Null;
 }
 
 TreeEntry::~TreeEntry()
 {
+}
+
+void
+TreeEntry::extractToFile(const std::string &filename, Repo *src)
+{
+    Object::sp o(src->getObject(hash));
+    if (type == Blob) {
+        bytestream::ap bs(o->getPayloadStream());
+        bs->copyToFile(filename);
+    }
+    else if (type == LargeBlob) {
+        ::LargeBlob lb(src);
+        lb.fromBlob(o->getPayload());
+        lb.extractFile(filename);
+    }
+    else {
+        NOT_IMPLEMENTED(false);
+    }
 }
 
 /********************************************************************

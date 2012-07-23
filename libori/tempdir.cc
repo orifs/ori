@@ -36,6 +36,21 @@ TempDir::pathTo(const std::string &file)
     return dirpath + "/" + file;
 }
 
+std::string
+TempDir::newTempFile()
+{
+    std::string templStr = pathTo("tmpfile.XXXXXX");
+    char templ[PATH_MAX];
+    strcpy(templ, templStr.c_str());
+    int fd = mkstemp(templ);
+    if (fd < 0) {
+        perror("TempDir::newTempFile mkstemp");
+        return "";
+    }
+    close(fd);
+    return templ;
+}
+
 /*
  * Repo implementation
  */

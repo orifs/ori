@@ -24,6 +24,8 @@ public:
     typedef std::tr1::shared_ptr<TempDir> sp;
 
     std::string pathTo(const std::string &file);
+    /// Temp files are deleted along with the directory
+    std::string newTempFile();
     
     // Repo implementation
     std::string getHead() { NOT_IMPLEMENTED(false); }

@@ -39,6 +39,9 @@ public:
     uint16_t	mode;
     std::string hash;
     std::string largeHash;
+
+    // TODO: not sure this is the best place
+    void extractToFile(const std::string &filename, Repo *src);
 };
 
 class Tree

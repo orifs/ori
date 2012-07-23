@@ -6,7 +6,7 @@ void
 ori_fuse_log(const char *what, ...)
 {
     if (logfd == 0) {
-        logfd = open("ori_fuse.log", O_CREAT|O_WRONLY|O_TRUNC, 0660);
+        logfd = open("fuse.log", O_CREAT|O_WRONLY|O_TRUNC, 0660);
         if (logfd == -1) {
             perror("open");
             exit(1);

@@ -29,6 +29,9 @@
 #include <dirent.h>
 
 #include "debug.h"
+#include "util.h"
+
+#define NULL_FH 0
 
 int _numComponents(const char *path)
 {
@@ -42,12 +45,21 @@ int _numComponents(const char *path)
     return cnt;
 }
 
+static TreeDiffEntry *
+_getTreeDiffEntry(ori_priv *priv, const char *path)
+{
+    if (priv->currTreeDiff != NULL) {
+        TreeDiffEntry *tde = priv->currTreeDiff->getLatestEntry(path);
+        printf("_getTreeDiffEntry %s %p\n", path, tde);
+        return tde;
+    }
+    return NULL;
+}
+
 static TreeEntry *
 _getTreeEntry(ori_priv *priv, const char *path)
 {
-    FUSE_LOG("FUSE _getTreeEntry(path=\"%s\")", path);
     int numc = _numComponents(path);
-    FUSE_LOG("num components %d", numc);
 
     Tree *t = priv->headtree;
     TreeEntry *e = NULL;
@@ -71,7 +83,7 @@ _getTreeEntry(ori_priv *priv, const char *path)
             end = path+plen;
         }
         char *comp = strndup(start, end-start);
-        FUSE_LOG("finding %s", comp);
+        //FUSE_LOG("finding %s", comp);
 
         std::map<std::string, TreeEntry>::iterator it =
             t->tree.find(comp);
@@ -105,26 +117,53 @@ ori_getattr(const char *path, struct stat *stbuf)
     stbuf->st_gid = getegid();
 
     if (strcmp(path, "/") == 0) {
-        stbuf->st_mode = 0555 | S_IFDIR;
+        stbuf->st_mode = 0755 | S_IFDIR;
         stbuf->st_nlink = 2;
-        FUSE_LOG("stat root");
         return 0;
     }
 
     ori_priv *p = ori_getpriv();
     TreeEntry *e = _getTreeEntry(p, path);
-    if (e == NULL) {
+    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
+    if (e == NULL && tde == NULL) {
         FUSE_LOG("getattr couldn't find file");
         return -ENOENT;
     }
-        
-    // TODO: e->mode is not implemented yet in tree.cc
-    // so just fake the mode here
-    if (e->type == TreeEntry::Tree) {
-        stbuf->st_mode = 0555 | S_IFDIR;
+    if (tde != NULL && (tde->type == TreeDiffEntry::DeletedFile ||
+                        tde->type == TreeDiffEntry::DeletedDir)) {
+        FUSE_LOG("%s was deleted", path);
+        return -ENOENT;
+    }
+
+    if ((e != NULL && e->type == TreeEntry::Tree) ||
+            (tde != NULL && tde->type == TreeDiffEntry::NewDir))
+    {
+        FUSE_LOG("getattr directory");
+        stbuf->st_mode = 0755 | S_IFDIR;
         stbuf->st_nlink = 2;
     }
-    else if (e->type == TreeEntry::Blob) {
+
+    if (tde != NULL &&
+            (tde->type == TreeDiffEntry::NewFile ||
+                tde->type == TreeDiffEntry::Modified)) {
+        int res = lstat(tde->newFilename.c_str(), stbuf);
+        if (res < 0) return -errno;
+        return res;
+    }
+    else if (tde != NULL &&
+            tde->type == TreeDiffEntry::ModifiedDiff) {
+        FUSE_LOG("ori_getattr: ModifiedDiff not implemented");
+        NOT_IMPLEMENTED(false);
+    }
+
+    if (e == NULL) {
+        FUSE_LOG("ori_getattr: not sure how we got here");
+        return -EIO;
+    }
+
+    // TODO: e->mode is not implemented yet in tree.cc
+    // so just fake the mode here
+    if (e->type == TreeEntry::Blob) {
         stbuf->st_mode = 0444 | S_IFREG;
         stbuf->st_nlink = 1;
 
@@ -171,9 +210,52 @@ ori_open(const char *path, struct fuse_file_info *fi)
 {
     FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
 
+    fi->fh = NULL_FH;
+
     ori_priv *p = ori_getpriv();
     TreeEntry *e = _getTreeEntry(p, path);
-    if (e == NULL) return -ENOENT;
+    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
+    if (e == NULL && tde == NULL) return -ENOENT;
+    if (tde != NULL && tde->type == TreeDiffEntry::DeletedFile)
+        return -ENOENT;
+
+    if (fi->flags & O_WRONLY || fi->flags & O_RDWR) {
+        p->startWrite();
+
+        // TODO: keep a diff in memory
+        std::string tempFile;
+        if (tde != NULL &&
+                (tde->type == TreeDiffEntry::NewFile ||
+                 tde->type == TreeDiffEntry::Modified)) {
+            tempFile = tde->newFilename;
+        }
+        else if (tde != NULL &&
+                tde->type == TreeDiffEntry::ModifiedDiff) {
+            FUSE_LOG("ori_open: ModifiedDiff not implemented");
+            NOT_IMPLEMENTED(false);
+        }
+        else if (tde == NULL && e != NULL) {
+            tempFile = p->currTempDir->newTempFile();
+            if (tempFile == "")
+                return -EIO;
+            e->extractToFile(tempFile, p->repo);
+        }
+        else {
+            FUSE_LOG("ori_open: Not sure how we got here");
+            NOT_IMPLEMENTED(false);
+        }
+
+        TreeDiffEntry tde;
+        tde.type = TreeDiffEntry::Modified;
+        tde.filepath = path;
+        tde.newFilename = tempFile;
+        if (p->currTreeDiff->merge(tde)) {
+            FUSE_LOG("ori_open: can't restart write here!");
+            NOT_IMPLEMENTED(false);
+        }
+
+        fi->fh = open(tempFile.c_str(), fi->flags);
+    }
 
     return 0;
 }
@@ -182,7 +264,15 @@ static int
 ori_read(const char *path, char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
+    // TODO: deal with diffs
     FUSE_LOG("FUSE ori_read(path=\"%s\", size=%d, offset=%d)", path, size, offset);
+
+    if (fi->fh != NULL_FH) {
+        int res = pread(fi->fh, buf, size, offset);
+        if (res < 0)
+            return -errno;
+        return res;
+    }
 
     ori_priv *p = ori_getpriv();
     TreeEntry *e = _getTreeEntry(p, path);
@@ -222,8 +312,168 @@ ori_release(const char *path, struct fuse_file_info *fi)
 {
     FUSE_LOG("FUSE ori_release(path=\"%s\")", path);
 
-    return close(fi->fh);
+    if (fi->fh != NULL_FH) {
+        return close(fi->fh);
+    }
+    return 0;
 }
+
+static int
+ori_mknod(const char *path, mode_t mode, dev_t dev)
+{
+    FUSE_LOG("FUSE ori_mknod(path=\"%s\")", path);
+
+    ori_priv *p = ori_getpriv();
+    p->startWrite();
+
+    std::string tempFile = p->currTempDir->newTempFile();
+    if (tempFile == "")
+        return -EIO;
+
+    TreeDiffEntry tde;
+    tde.type = TreeDiffEntry::NewFile;
+    tde.filepath = path;
+    tde.newFilename = tempFile;
+
+    if (p->currTreeDiff->merge(tde)) {
+        FUSE_LOG("committing");
+        p->commitWrite();
+        p->startWrite();
+    }
+
+    return 0;
+}
+
+static int
+ori_unlink(const char *path)
+{
+    FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
+
+    // TODO: check for open files?
+
+    ori_priv *p = ori_getpriv();
+    TreeEntry *e = _getTreeEntry(p, path);
+    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
+    if (e == NULL && tde == NULL) return -ENOENT;
+    if (tde != NULL && tde->type == TreeDiffEntry::DeletedFile)
+        return -ENOENT;
+
+    p->startWrite();
+
+    TreeDiffEntry newTde;
+    newTde.filepath = path;
+    if ((e != NULL && e->type == TreeEntry::Tree) ||
+        (tde != NULL && tde->type == TreeDiffEntry::NewDir)) {
+        FUSE_LOG("deleted dir");
+        newTde.type = TreeDiffEntry::DeletedDir;
+    }
+    else {
+        FUSE_LOG("deleted file");
+        newTde.type = TreeDiffEntry::DeletedFile;
+    }
+
+    if (p->currTreeDiff->merge(newTde)) {
+        p->commitWrite();
+        p->startWrite();
+    }
+    
+    return 0;
+}
+
+static int
+ori_write(const char *path, const char *buf, size_t size, off_t offset,
+         struct fuse_file_info *fi)
+{
+    FUSE_LOG("FUSE ori_write(path=\"%s\", size=%d, offset=%d)", path, size, offset);
+
+    if (fi->fh == NULL_FH)
+        return -EIO;
+
+    int res = pwrite(fi->fh, buf, size, offset);
+    if (res < 0)
+        return -errno;
+    return res;
+}
+
+static int
+ori_truncate(const char *path, off_t length)
+{
+    FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%s)", path, length);
+
+    ori_priv *p = ori_getpriv();
+    TreeEntry *e = _getTreeEntry(p, path);
+    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
+    if (e == NULL && tde == NULL) return -ENOENT;
+    if (tde != NULL && tde->type == TreeDiffEntry::DeletedFile)
+        return -ENOENT;
+
+    p->startWrite();
+
+    // TODO: keep a diff in memory
+    std::string tempFile;
+    if (tde != NULL &&
+            (tde->type == TreeDiffEntry::NewFile ||
+                tde->type == TreeDiffEntry::Modified)) {
+        tempFile = tde->newFilename;
+    }
+    else if (tde != NULL &&
+            tde->type == TreeDiffEntry::ModifiedDiff) {
+        FUSE_LOG("ori_open: ModifiedDiff not implemented");
+        NOT_IMPLEMENTED(false);
+    }
+    else if (tde == NULL && e != NULL) {
+        tempFile = p->currTempDir->newTempFile();
+        if (tempFile == "")
+            return -EIO;
+        e->extractToFile(tempFile, p->repo);
+    }
+    else {
+        FUSE_LOG("ori_open: Not sure how we got here");
+        NOT_IMPLEMENTED(false);
+    }
+
+    int res = truncate(tempFile.c_str(), length);
+    if (res < 0) return -errno;
+
+    TreeDiffEntry newTde;
+    newTde.filepath = path;
+    newTde.type = TreeDiffEntry::Modified;
+    newTde.newFilename = tempFile;
+    if (p->currTreeDiff->merge(newTde)) {
+        p->commitWrite();
+        p->startWrite();
+    }
+
+    return res;
+}
+
+static int
+ori_chmod(const char *path, mode_t mode)
+{
+    FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
+    // TODO
+    return 0;
+}
+
+static int
+ori_chown(const char *path, uid_t uid, gid_t gid)
+{
+    FUSE_LOG("FUSE ori_chown(path=\"%s\")", path);
+    // TODO
+    return 0;
+}
+
+static int
+ori_utimens(const char *path, const struct timespec tv[2])
+{
+    FUSE_LOG("FUSE ori_utimens(path=\"%s\")", path);
+    // TODO
+    return 0;
+}
+
+
+
+
 
 static int
 ori_opendir(const char *path, struct fuse_file_info *fi)
@@ -258,8 +508,34 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     for (std::map<std::string, TreeEntry>::iterator it = t->tree.begin();
             it != t->tree.end();
             it++) {
+        // Check for deletions
         FUSE_LOG("readdir entry %s", (*it).first.c_str());
+        if (p->currTreeDiff != NULL) {
+            std::string fullPath = std::string(path) + "/";
+            if (fullPath.size() == 2)
+                fullPath.resize(1); // for root dir '//'
+            fullPath += (*it).first;
+            FUSE_LOG("fullpath %s", fullPath.c_str());
+
+            TreeDiffEntry *tde = p->currTreeDiff->getLatestEntry(fullPath);
+            if (tde != NULL && (tde->type == TreeDiffEntry::DeletedFile ||
+                                tde->type == TreeDiffEntry::DeletedDir)) {
+                continue;
+            }
+        }
+
         filler(buf, (*it).first.c_str(), NULL, 0);
+    }
+
+    // Check for additions
+    if (p->currTreeDiff != NULL) {
+        for (size_t i = 0; i < p->currTreeDiff->entries.size(); i++) {
+            const TreeDiffEntry &tde = p->currTreeDiff->entries[i];
+            if (tde.type == TreeDiffEntry::NewFile ||
+                tde.type == TreeDiffEntry::NewDir) {
+                filler(buf, StrUtil_Basename(tde.filepath).c_str(), NULL, 0);
+            }
+        }
     }
 
     return 0;
@@ -275,18 +551,6 @@ ori_releasedir(const char *path, struct fuse_file_info *fi)
     return 0;
 }
 
-static int
-ori_write(const char *path, const char *buf, size_t size, off_t offset,
-         struct fuse_file_info *fi)
-{
-    FUSE_LOG("FUSE ori_write(path=\"%s\", size=%d, offset=%d)", path, size, offset);
-
-    ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    if (e == NULL) return -ENOENT;
-
-    return -EIO;
-}
 
 
 /**
@@ -314,9 +578,10 @@ static void
 ori_destroy(void *userdata)
 {
     ori_priv *priv = ori_getpriv();
+    priv->commitWrite();
     delete priv;
 
-    LOG("finished");
+    FUSE_LOG("finished");
 }
 
 // C++ doesn't allow designated initializers
@@ -328,16 +593,16 @@ ori_setup_ori_oper()
     ori_oper.getattr = ori_getattr;
     //ori_oper.readlink
     //ori_oper.getdir
-    //ori_oper.mknod
+    ori_oper.mknod = ori_mknod;
     //ori_oper.mkdir
-    //ori_oper.unlink
+    ori_oper.unlink = ori_unlink;
     //ori_oper.rmdir
     //ori_oper.symlink
     //ori_oper.rename
     //ori_oper.link
-    //ori_oper.chmod
-    //ori_oper.chown
-    //ori_oper.truncate
+    ori_oper.chmod = ori_chmod;
+    ori_oper.chown = ori_chown;
+    ori_oper.truncate = ori_truncate;
     //ori_oper.utime
     ori_oper.open = ori_open;
     ori_oper.read = ori_read;
@@ -356,6 +621,8 @@ ori_setup_ori_oper()
     //ori_oper.fsyncdir
     ori_oper.init = ori_init;
     ori_oper.destroy = ori_destroy;
+
+    ori_oper.utimens = ori_utimens;
 }
 
 int

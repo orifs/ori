@@ -43,6 +43,13 @@ struct ori_priv
 
     // Holding temporary written data
     TreeDiff *currTreeDiff;
+    TempDir::sp currTempDir;
+    //std::map<std::string, std::string> checkedOutFiles;
+
+    // Initialize temporary written data
+    void startWrite();
+    // Commit temp data to repo
+    void commitWrite();
 };
 
 ori_priv *ori_getpriv();
