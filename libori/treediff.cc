@@ -282,6 +282,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
 void
 TreeDiff::_resetLatestEntry(const std::string &filepath)
 {
+    latestEntries.erase(filepath);
     for (size_t i = 0; i < entries.size(); i++) {
         const TreeDiffEntry &tde = entries[i];
         if (tde.filepath == filepath && tde.type != TreeDiffEntry::Noop)

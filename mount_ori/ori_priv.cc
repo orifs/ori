@@ -18,8 +18,7 @@ ori_priv::ori_priv(const std::string &repoPath)
         exit(1);
     }
 
-    head->fromBlob(repo->getPayload(repo->getHead()));
-    headtree->fromBlob(repo->getPayload(head->getTree()));
+    _resetHead();
 }
 
 ori_priv::~ori_priv()
@@ -27,6 +26,17 @@ ori_priv::~ori_priv()
     delete headtree;
     delete head;
     delete repo;
+}
+
+void
+ori_priv::_resetHead()
+{
+    if (repo->getHead() != EMPTY_COMMIT) {
+        *head = Commit();
+        head->fromBlob(repo->getPayload(repo->getHead()));
+        *headtree = Tree();
+        headtree->fromBlob(repo->getPayload(head->getTree()));
+    }
 }
 
 Tree *
@@ -89,7 +99,10 @@ ori_priv::commitWrite()
         repo->commitFromObjects(new_tree.hash(), currTempDir,
                 "Commit from FUSE.");
 
+        _resetHead();
+
         delete currTreeDiff;
+        currTreeDiff = NULL;
         currTempDir.reset();
     }
     else {

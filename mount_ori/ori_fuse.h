@@ -28,6 +28,8 @@ struct ori_priv
     ori_priv(const std::string &repoPath);
     ~ori_priv();
 
+    void _resetHead();
+
     // Functions to access the cache
     Tree *getTree(const std::string &hash);
     LargeBlob *getLargeBlob(const std::string &hash);
