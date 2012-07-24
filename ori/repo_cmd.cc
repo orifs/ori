@@ -589,7 +589,7 @@ cmd_branch(int argc, const char *argv[])
 	return 0;
     }
 
-    repository.setBranch(argv[2]);
+    repository.setBranch(argv[1]);
 
     return 0;
 }

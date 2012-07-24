@@ -1173,10 +1173,25 @@ LocalRepo::getBranch()
     return branch;
 }
 
+/*
+ * Create or select the current branch.
+ *
+ * XXX: Validate branch name
+ */
 void
 LocalRepo::setBranch(const std::string &name)
 {
     // Verify branch name
+    set<string> branches = listBranches();
+    set<string>::iterator e = branches.find(name);
+
+    if (e == branches.end()) {
+	string branchFile = rootPath + ORI_PATH_HEADS + name;
+	string head = getHead();
+	printf("Creating branch '%s'\n", name.c_str());
+
+	Util_WriteFile(head.c_str(), head.size(), branchFile);
+    }
 
     Util_WriteFile(name.c_str(), name.size(), rootPath + ORI_PATH_BRANCH);
 }
