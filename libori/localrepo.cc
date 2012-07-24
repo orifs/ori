@@ -1139,10 +1139,25 @@ LocalRepo::graftSubtree(LocalRepo *r,
  * Working Directory Operations
  */
 
-set<string>
-listBranches()
+int
+listBranchesHelper(void *arg, const char *path)
 {
+    string name = path;
+    set<string> *rval = (set<string> *)arg;
+
+    name = name.substr(name.find_last_of("/") + 1);
+    rval->insert(name);
+
+    return 0;
+}
+
+set<string>
+LocalRepo::listBranches()
+{
+    string path = rootPath + ORI_PATH_HEADS;
     set<string> rval;
+
+    Scan_Traverse(path.c_str(), &rval, listBranchesHelper);
 
     return rval;
 }

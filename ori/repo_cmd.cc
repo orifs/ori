@@ -127,8 +127,10 @@ cmd_init(int argc, const char *argv[])
     }
 
     // Create default branch
-    if (!Util_WriteFile(EMPTY_COMMIT, sizeof(EMPTY_COMMIT), tmpDir + "/default")) {
-	perror("Could not create default branch file");
+    tmpDir = rootPath + ORI_PATH_HEADS + "/default";
+    if (!Util_WriteFile(EMPTY_COMMIT, sizeof(EMPTY_COMMIT) - 1, tmpDir))
+    {
+	perror("Could not create default branch");
 	return 1;
     }
 
@@ -554,6 +556,40 @@ cmd_treediff(int argc, const char *argv[])
                 td.entries[i].type,
                 td.entries[i].filepath.c_str());
     }
+
+    return 0;
+}
+
+int
+cmd_branches(int argc, const char *argv[])
+{
+    string currentBranch = repository.getBranch();
+    set<string> branches = repository.listBranches();
+    set<string>::iterator it;
+
+    for (it = branches.begin(); it != branches.end(); it++)
+    {
+	if (currentBranch == (*it))
+	    cout << (*it) << "*" << endl;
+	else 
+	    cout << (*it) << endl;
+    }
+
+    return 0;
+}
+
+int
+cmd_branch(int argc, const char *argv[])
+{
+    if (argc == 1) {
+	string branch = repository.getBranch();
+
+	cout << branch << endl;
+
+	return 0;
+    }
+
+    repository.setBranch(argv[2]);
 
     return 0;
 }
