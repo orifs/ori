@@ -1139,6 +1139,33 @@ LocalRepo::graftSubtree(LocalRepo *r,
  * Working Directory Operations
  */
 
+set<string>
+listBranches()
+{
+    set<string> rval;
+
+    return rval;
+}
+
+string
+LocalRepo::getBranch()
+{
+    char *branch = Util_ReadFile(rootPath + ORI_PATH_BRANCH, NULL);
+
+    if (branch == NULL)
+	return "";
+
+    return branch;
+}
+
+void
+LocalRepo::setBranch(const std::string &name)
+{
+    // Verify branch name
+
+    Util_WriteFile(name.c_str(), name.size(), rootPath + ORI_PATH_BRANCH);
+}
+
 /*
  * Get the working repository version.
  */

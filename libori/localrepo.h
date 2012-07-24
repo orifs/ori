@@ -10,6 +10,7 @@
 #include "tempdir.h"
 #include "largeblob.h"
 
+
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
 #define ORI_PATH_UUID "/.ori/id"
@@ -17,9 +18,12 @@
 #define ORI_PATH_SNAPSHOTS "/.ori/snapshots"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
 #define ORI_PATH_HEAD "/.ori/HEAD"
+#define ORI_PATH_BRANCH "/.ori/BRANCH"
 #define ORI_PATH_LOG "/.ori/ori.log"
 #define ORI_PATH_TMP "/.ori/tmp/"
 #define ORI_PATH_OBJS "/.ori/objs/"
+#define ORI_PATH_HEADS "/.ori/refs/heads/"
+#define ORI_PATH_REMOTES "/.ori/refs/remotes/"
 #define ORI_PATH_LOCK "/.ori/lock"
 
 
@@ -102,6 +106,9 @@ public:
                              const std::string &srcPath,
                              const std::string &dstPath);
     // Working Directory Operations
+    std::set<std::string> listBranches();
+    std::string getBranch();
+    void setBranch(const std::string &name);
     std::string getHead();
     void updateHead(const std::string &commitId);
     Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit

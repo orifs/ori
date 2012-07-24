@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _WITH_DPRINTF
-
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -58,6 +56,11 @@ LocalRepo repository;
  ********************************************************************/
 
 
+/*
+ * Create a new repository.
+ *
+ * TODO: Destroy partially created repository to handle errors better.
+ */
 int
 cmd_init(int argc, const char *argv[])
 {
@@ -109,6 +112,40 @@ cmd_init(int argc, const char *argv[])
         return 1;
     }
 
+    // Create refs directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs' directory");
+        return 1;
+    }
+
+    // Create refs/heads directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs/heads";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs/heads' directory");
+        return 1;
+    }
+
+    // Create default branch
+    if (!Util_WriteFile(EMPTY_COMMIT, sizeof(EMPTY_COMMIT), tmpDir + "/default")) {
+	perror("Could not create default branch file");
+	return 1;
+    }
+
+    // Set branch name
+    if (!Util_WriteFile("default", 7, rootPath + ORI_PATH_BRANCH)) {
+	perror("Could not create branch file");
+	return 1;
+    }
+
+    // Create refs/remotes directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs/remotes";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs/remotes' directory");
+        return 1;
+    }
+
+    // Create first level of object sub-directories
     for (int i = 0; i < 256; i++)
     {
 	stringstream hexval;
@@ -140,7 +177,7 @@ cmd_init(int argc, const char *argv[])
         perror("Could not create version file");
         return 1;
     }
-    dprintf(fd, "ORI1.0");
+    write(fd, "ORI1.0", 6);
     close(fd);
 
     return 0;
