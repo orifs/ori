@@ -17,7 +17,6 @@
 #define ORI_PATH_INDEX "/.ori/index"
 #define ORI_PATH_SNAPSHOTS "/.ori/snapshots"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
-#define ORI_PATH_HEAD "/.ori/HEAD"
 #define ORI_PATH_BRANCH "/.ori/BRANCH"
 #define ORI_PATH_LOG "/.ori/ori.log"
 #define ORI_PATH_TMP "/.ori/tmp/"

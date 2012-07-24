@@ -1202,7 +1202,7 @@ LocalRepo::setBranch(const std::string &name)
 string
 LocalRepo::getHead()
 {
-    string headPath = rootPath + ORI_PATH_HEAD;
+    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
     char *commitId = Util_ReadFile(headPath, NULL);
     // XXX: Leak!
 
@@ -1219,7 +1219,7 @@ LocalRepo::getHead()
 void
 LocalRepo::updateHead(const string &commitId)
 {
-    string headPath = rootPath + ORI_PATH_HEAD;
+    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
 
     assert(commitId.length() == 64);
 
@@ -1238,6 +1238,7 @@ LocalRepo::getHeadTree()
         Commit headCommit = getCommit(head);
         t = getTree(headCommit.getTree());
     }
+
     return t;
 }
 
