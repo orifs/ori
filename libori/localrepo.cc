@@ -1139,13 +1139,70 @@ LocalRepo::graftSubtree(LocalRepo *r,
  * Working Directory Operations
  */
 
+int
+listBranchesHelper(void *arg, const char *path)
+{
+    string name = path;
+    set<string> *rval = (set<string> *)arg;
+
+    name = name.substr(name.find_last_of("/") + 1);
+    rval->insert(name);
+
+    return 0;
+}
+
+set<string>
+LocalRepo::listBranches()
+{
+    string path = rootPath + ORI_PATH_HEADS;
+    set<string> rval;
+
+    Scan_Traverse(path.c_str(), &rval, listBranchesHelper);
+
+    return rval;
+}
+
+string
+LocalRepo::getBranch()
+{
+    char *branch = Util_ReadFile(rootPath + ORI_PATH_BRANCH, NULL);
+
+    if (branch == NULL)
+	return "";
+
+    return branch;
+}
+
+/*
+ * Create or select the current branch.
+ *
+ * XXX: Validate branch name
+ */
+void
+LocalRepo::setBranch(const std::string &name)
+{
+    // Verify branch name
+    set<string> branches = listBranches();
+    set<string>::iterator e = branches.find(name);
+
+    if (e == branches.end()) {
+	string branchFile = rootPath + ORI_PATH_HEADS + name;
+	string head = getHead();
+	printf("Creating branch '%s'\n", name.c_str());
+
+	Util_WriteFile(head.c_str(), head.size(), branchFile);
+    }
+
+    Util_WriteFile(name.c_str(), name.size(), rootPath + ORI_PATH_BRANCH);
+}
+
 /*
  * Get the working repository version.
  */
 string
 LocalRepo::getHead()
 {
-    string headPath = rootPath + ORI_PATH_HEAD;
+    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
     char *commitId = Util_ReadFile(headPath, NULL);
     // XXX: Leak!
 
@@ -1162,7 +1219,7 @@ LocalRepo::getHead()
 void
 LocalRepo::updateHead(const string &commitId)
 {
-    string headPath = rootPath + ORI_PATH_HEAD;
+    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
 
     assert(commitId.length() == 64);
 
@@ -1181,6 +1238,7 @@ LocalRepo::getHeadTree()
         Commit headCommit = getCommit(head);
         t = getTree(headCommit.getTree());
     }
+
     return t;
 }
 

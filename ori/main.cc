@@ -65,6 +65,9 @@ int cmd_snapshot(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
+int cmd_treediff(int argc, const char *argv[]);
+int cmd_branches(int argc, const char *argv[]);
+int cmd_branch(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
 int cmd_filelog(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
@@ -108,6 +111,24 @@ static Cmd commands[] = {
         "status",
         "Scan for changes since last commit",
         cmd_status,
+        NULL,
+    },
+    {
+        "treediff",
+        "Compare two commits",
+        cmd_treediff,
+        NULL,
+    },
+    {
+        "branch",
+        "Set or print current branch",
+        cmd_branch,
+        NULL,
+    },
+    {
+        "branches",
+        "List all available branches",
+        cmd_branches,
         NULL,
     },
     {

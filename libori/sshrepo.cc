@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _WITH_DPRINTF
-
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>

@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _WITH_DPRINTF
-
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
@@ -221,7 +219,7 @@ cmd_httpclient(int argc, const char *argv[])
         exit(1);
     }
 
-    dprintf(STDOUT_FILENO, "Connected\n");
+    cout << "Connected\n" << endl;
 
     string repoId;
     string ver;

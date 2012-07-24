@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _WITH_DPRINTF
-
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

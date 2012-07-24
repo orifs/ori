@@ -176,7 +176,7 @@ Util_WriteFile(const char *blob, size_t len, const string &path)
     bytesWritten = fwrite(blob, len, 1, f);
     fclose(f);
 
-    return (bytesWritten == len);
+    return (bytesWritten == 1);
 }
 
 /*

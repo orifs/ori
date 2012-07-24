@@ -1,3 +1,22 @@
+/*
+ * Copyright (c) 2012 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#include <unistd.h>
+#include <sys/types.h>
+
 #include "treediff.h"
 #include "debug.h"
 #include "util.h"
@@ -13,8 +32,92 @@ TreeDiff::TreeDiff()
 }
 
 void
-TreeDiff::diffTwoTrees(const Tree &t1, const Tree &t2)
+TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 {
+    map<string, TreeEntry>::const_iterator it;
+
+    for (it = t1.begin(); it != t1.end(); it++) {
+	string path = (*it).first;
+	TreeEntry entry = (*it).second;
+	map<string, TreeEntry>::const_iterator it2;
+
+	it2 = t2.find(path);
+	if (it2 == t2.end()) {
+	    TreeDiffEntry diffEntry;
+
+	    // New file or directory
+	    diffEntry.filepath = path;
+	    if (entry.type == TreeEntry::Tree) {
+		diffEntry.type = TreeDiffEntry::NewDir;
+	    } else {
+		diffEntry.type = TreeDiffEntry::NewFile;
+		// diffEntry.newFilename = ...
+	    }
+
+	    entries.push_back(diffEntry);
+	} else {
+	    TreeEntry entry2 = (*it2).second;
+
+	    if (entry.type != TreeEntry::Tree && entry2.type == TreeEntry::Tree) {
+		// Replaced file with directory
+		TreeDiffEntry diffEntry;
+
+		diffEntry.filepath = path;
+		diffEntry.type = TreeDiffEntry::Deleted;
+		entries.push_back(diffEntry);
+
+		diffEntry.type = TreeDiffEntry::NewFile;
+		entries.push_back(diffEntry);
+		// diffEntry.newFilename = ...
+	    } else if (entry.type == TreeEntry::Tree &&
+		       entry2.type != TreeEntry::Tree) {
+		// Replaced directory with file
+		TreeDiffEntry diffEntry;
+
+		diffEntry.filepath = path;
+		diffEntry.type = TreeDiffEntry::Deleted;
+		entries.push_back(diffEntry);
+
+		diffEntry.type = TreeDiffEntry::NewDir;
+		entries.push_back(diffEntry);
+	    } else {
+		// Check for mismatch
+		TreeEntry entry2 = (*it2).second;
+
+		// XXX: This should do the right thing even if for some reason
+		// the file was a small file and became a large file.  That 
+		// should never happen though!
+		if (entry.type != TreeEntry::Tree && entry.hash != entry2.hash) {
+		    TreeDiffEntry diffEntry;
+
+		    diffEntry.filepath = path;
+		    diffEntry.type = TreeDiffEntry::Modified;
+		    // diffEntry.newFilename = ...
+
+		    entries.push_back(diffEntry);
+		}
+	    }
+	}
+    }
+
+    for (it = t2.begin(); it != t2.end(); it++) {
+	string path = (*it).first;
+	TreeEntry entry = (*it).second;
+	map<string, TreeEntry>::const_iterator it1;
+
+	it1 = t1.find(path);
+	if (it1 == t1.end()) {
+	    TreeDiffEntry diffEntry;
+
+	    // Deleted file or directory
+	    diffEntry.filepath = path;
+	    diffEntry.type = TreeDiffEntry::Deleted;
+
+	    entries.push_back(diffEntry);
+	}
+    }
+
+    return;
 }
 
 struct _scanHelperData {
@@ -266,10 +369,10 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
 
             flat[tde.filepath] = te;
         }
-        else if (tde.type == TreeDiffEntry::ModifiedDiff) {
-            // TODO: apply diff
+	/* else if (tde.type == TreeDiffEntry::ModifiedDiff) {
+	    // TODO: apply diff
             NOT_IMPLEMENTED(false);
-        }
+        } */
         else {
             assert(false);
         }

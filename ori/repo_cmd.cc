@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _WITH_DPRINTF
-
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -58,6 +56,11 @@ LocalRepo repository;
  ********************************************************************/
 
 
+/*
+ * Create a new repository.
+ *
+ * TODO: Destroy partially created repository to handle errors better.
+ */
 int
 cmd_init(int argc, const char *argv[])
 {
@@ -109,6 +112,42 @@ cmd_init(int argc, const char *argv[])
         return 1;
     }
 
+    // Create refs directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs' directory");
+        return 1;
+    }
+
+    // Create refs/heads directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs/heads";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs/heads' directory");
+        return 1;
+    }
+
+    // Create default branch
+    tmpDir = rootPath + ORI_PATH_HEADS + "/default";
+    if (!Util_WriteFile(EMPTY_COMMIT, sizeof(EMPTY_COMMIT) - 1, tmpDir))
+    {
+	perror("Could not create default branch");
+	return 1;
+    }
+
+    // Set branch name
+    if (!Util_WriteFile("default", 7, rootPath + ORI_PATH_BRANCH)) {
+	perror("Could not create branch file");
+	return 1;
+    }
+
+    // Create refs/remotes directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs/remotes";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs/remotes' directory");
+        return 1;
+    }
+
+    // Create first level of object sub-directories
     for (int i = 0; i < 256; i++)
     {
 	stringstream hexval;
@@ -140,7 +179,7 @@ cmd_init(int argc, const char *argv[])
         perror("Could not create version file");
         return 1;
     }
-    dprintf(fd, "ORI1.0");
+    write(fd, "ORI1.0", 6);
     close(fd);
 
     return 0;
@@ -495,6 +534,67 @@ cmd_status(int argc, const char *argv[])
 }
 
 int
+cmd_treediff(int argc, const char *argv[])
+{
+    if (argc != 3) {
+	cout << "treediff takes two arguments!" << endl;
+	cout << "usage: ori treediff <commit 1> <commit 2>" << endl;
+	return 1;
+    }
+    TreeDiff td;
+
+    Commit c1 = repository.getCommit(argv[1]);
+    Commit c2 = repository.getCommit(argv[2]);
+
+    Tree t1 = repository.getTree(c1.getTree());
+    Tree t2 = repository.getTree(c2.getTree());
+
+    td.diffTwoTrees(t1.flattened(&repository), t2.flattened(&repository));
+
+    for (size_t i = 0; i < td.entries.size(); i++) {
+        printf("%c   %s\n",
+                td.entries[i].type,
+                td.entries[i].filepath.c_str());
+    }
+
+    return 0;
+}
+
+int
+cmd_branches(int argc, const char *argv[])
+{
+    string currentBranch = repository.getBranch();
+    set<string> branches = repository.listBranches();
+    set<string>::iterator it;
+
+    for (it = branches.begin(); it != branches.end(); it++)
+    {
+	if (currentBranch == (*it))
+	    cout << (*it) << "*" << endl;
+	else 
+	    cout << (*it) << endl;
+    }
+
+    return 0;
+}
+
+int
+cmd_branch(int argc, const char *argv[])
+{
+    if (argc == 1) {
+	string branch = repository.getBranch();
+
+	cout << branch << endl;
+
+	return 0;
+    }
+
+    repository.setBranch(argv[1]);
+
+    return 0;
+}
+
+int
 cmd_checkout(int argc, const char *argv[])
 {
     map<string, string> dirState;
@@ -587,7 +687,7 @@ cmd_filelog(int argc, const char *argv[])
     string lastHash = "";
 
     if (argc != 2) {
-	cout << "Wrong number of arguements!" << endl;
+	cout << "Wrong number of arguments!" << endl;
 	return 1;
     }
 
