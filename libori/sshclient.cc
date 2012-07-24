@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _WITH_DPRINTF
-
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -291,7 +289,7 @@ int cmd_sshclient(int argc, const char *argv[]) {
         exit(1);
     }
 
-    dprintf(STDOUT_FILENO, "Connected\n");
+    printf("Connected\n");
 
     SshRepo repo(&client);
     std::vector<Commit> commits = repo.listCommits();
