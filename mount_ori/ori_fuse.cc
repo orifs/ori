@@ -184,11 +184,6 @@ ori_getattr(const char *path, struct stat *stbuf)
         if (res < 0) return -errno;
         return res;
     }
-    else if (tde != NULL &&
-            tde->type == TreeDiffEntry::ModifiedDiff) {
-        FUSE_LOG("ori_getattr: ModifiedDiff not implemented");
-        NOT_IMPLEMENTED(false);
-    }
 
     if (e == NULL) {
         FUSE_LOG("ori_getattr: not sure how we got here");

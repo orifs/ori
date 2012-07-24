@@ -63,7 +63,7 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 		TreeDiffEntry diffEntry;
 
 		diffEntry.filepath = path;
-		diffEntry.type = TreeDiffEntry::Deleted;
+		diffEntry.type = TreeDiffEntry::DeletedDir;
 		entries.push_back(diffEntry);
 
 		diffEntry.type = TreeDiffEntry::NewFile;
@@ -75,7 +75,7 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 		TreeDiffEntry diffEntry;
 
 		diffEntry.filepath = path;
-		diffEntry.type = TreeDiffEntry::Deleted;
+		diffEntry.type = TreeDiffEntry::DeletedFile;
 		entries.push_back(diffEntry);
 
 		diffEntry.type = TreeDiffEntry::NewDir;
@@ -111,7 +111,8 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 
 	    // Deleted file or directory
 	    diffEntry.filepath = path;
-	    diffEntry.type = TreeDiffEntry::Deleted;
+	    diffEntry.type = entry.type == TreeEntry::Tree ?
+                TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile;
 
 	    entries.push_back(diffEntry);
 	}
@@ -269,11 +270,6 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
         append(to_merge);
         return false;
     }
-
-    // TODO: merge diffs
-    if (e->type == TreeDiffEntry::ModifiedDiff || to_merge.type ==
-            TreeDiffEntry::ModifiedDiff)
-        NOT_IMPLEMENTED(false);
 
     if ((e->type == TreeDiffEntry::NewFile ||
          e->type == TreeDiffEntry::Modified) &&
