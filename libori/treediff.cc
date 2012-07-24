@@ -241,6 +241,14 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         else if (tde.type == TreeDiffEntry::DeletedDir) {
             assert(flat[tde.filepath].type == TreeEntry::Tree);
             flat.erase(tde.filepath);
+#ifdef DEBUG
+            // Check that no files still exist in this directory
+            for (Tree::Flat::iterator it = flat.begin();
+                    it != flat.end();
+                    it++) {
+                // TODO
+            }
+#endif
         }
         else if (tde.type == TreeDiffEntry::DeletedFile) {
             assert(flat[tde.filepath].type == TreeEntry::Blob ||
