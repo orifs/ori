@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include "ori_fuse.h"
 
 static int logfd = 0;

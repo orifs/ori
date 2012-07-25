@@ -1,5 +1,7 @@
+
 #include "ori_fuse.h"
 
+#include <string.h>
 #include <errno.h>
 
 ori_priv::ori_priv(const std::string &repoPath)
