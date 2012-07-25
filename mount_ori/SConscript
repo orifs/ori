@@ -16,7 +16,8 @@ libs = [
         ]
 
 env.ParseConfig('pkg-config --libs --cflags fuse')
-libs += ['rt']
+if sys.platform != "darwin":
+    libs += ['rt']
     
 env.Append(
         LIBS = libs,
