@@ -8,8 +8,11 @@ system operations in a platform independent way.
 Installation
 ============
 
-Dependences:
+Build Dependencies:
  - scons 2.0+
+ - pkg-config
+
+Dependences:
  - openssl
  - liblzma (XZ Utils)
  - libevent 2.0

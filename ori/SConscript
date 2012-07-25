@@ -16,7 +16,7 @@ libs = [
        ]
 
 if sys.platform != "darwin":
-    libs += ['rt', 'event-2.0']
+    libs += ['rt']
     if env["WITH_MDNS"] == "1":
         libs += ['dns_sd']
 

@@ -15,10 +15,8 @@ libs = [
         "ori",
         ]
 
-if sys.platform == "darwin":
-    env.ParseConfig('pkg-config --libs --cflags fuse')
-else:
-    libs += ['fuse', 'rt']
+env.ParseConfig('pkg-config --libs --cflags fuse')
+libs += ['rt']
     
 env.Append(
         LIBS = libs,
