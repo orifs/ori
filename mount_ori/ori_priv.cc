@@ -96,7 +96,7 @@ ori_priv::commitWrite()
         }
         Tree new_tree = currTreeDiff->applyTo(tip_tree.flattened(repo),
                 currTempDir.get());
-        repo->commitFromObjects(new_tree.hash(), currTempDir,
+        repo->commitFromObjects(new_tree.hash(), currTempDir.get(),
                 "Commit from FUSE.");
 
         _resetHead();

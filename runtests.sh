@@ -22,10 +22,17 @@ export TEST_RESULTS=$ORIG_DIR/ori_test_results.txt
 
 . $ORIG_DIR/runtests_config.sh
 
+# Check for tempdir
+if [ -d $TEMP_DIR ]; then
+    echo "Directory $TEMP_DIR already exists,"
+    echo "please delete before running tests"
+    exit
+fi
+
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
 mkdir -p $SOURCE_FILES
-for i in {10..11}; do
+for i in {9..12}; do
     SIZE=$((2**(i+1)))
     echo "Creating random file size ${SIZE}k"
     #dd if=/dev/urandom of="$SOURCE_FILES/file$i.tst" bs=2k count=$SIZE

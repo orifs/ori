@@ -33,12 +33,13 @@ struct TreeDiffEntry
         DeletedFile = 'D',
         DeletedDir = 'd',
         Modified = 'm',
+        Renamed = 'R'
 	// ModifiedDiff = 'M'
     } type;
 
     std::string filepath; // path relative to repo, with leading '/'
     // TODO: uint16_t newmode;
-    std::string diff;
+    // std::string diff;
     std::string newFilename; // filename of a file containing the new contents
 };
 
@@ -47,7 +48,7 @@ class TreeDiff
 public:
     TreeDiff();
     void diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2);
-    void diffToDir(Tree src, const std::string &dir, Repo *r);
+    void diffToDir(Commit from, const std::string &dir, Repo *r);
     TreeDiffEntry *getLatestEntry(const std::string &path);
     void append(const TreeDiffEntry &to_append);
     /** @returns true if merge causes TreeDiff to grow a layer

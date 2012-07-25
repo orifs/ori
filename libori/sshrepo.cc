@@ -104,6 +104,13 @@ Object::sp SshRepo::getObject(const std::string &id)
     return Object::sp(new SshObject(this, info));
 }
 
+ObjectInfo
+SshRepo::getObjectInfo(const std::string &id)
+{
+    NOT_IMPLEMENTED(false);
+    return ObjectInfo();
+}
+
 bool SshRepo::hasObject(const std::string &id) {
     NOT_IMPLEMENTED(false);
     return false;

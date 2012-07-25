@@ -13,6 +13,8 @@ def filenames(dname):
             continue
 
         for fn in files:
+            if fn.startswith('.ori'):
+                continue
             fullfn = os.path.join(relroot, fn)
             rval.add(fullfn)
     return rval
@@ -29,7 +31,11 @@ if len(diff) > 0:
 # Check file contents
 def readall(fname):
     with open(fname, 'rb') as f:
-        return f.read()
+        try:
+            return f.read()
+        except IOError as e:
+            print("{}: {}".format(fname, e.strerror))
+            return ''
 
 print("Checking file contents")
 for fn in set1:

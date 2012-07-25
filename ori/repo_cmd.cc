@@ -341,26 +341,24 @@ cmd_commit(int argc, const char *argv[])
         msg = argv[1];
     }
 
-    string tip = repository.getHead();
-
+    Commit c;
     Tree tip_tree;
+    string tip = repository.getHead();
     if (tip != EMPTY_COMMIT) {
-        Commit c = repository.getCommit(tip);
+        c = repository.getCommit(tip);
         tip_tree = repository.getTree(c.getTree());
     }
 
     TreeDiff diff;
-    diff.diffToDir(tip_tree, repository.getRootPath(), &repository);
+    diff.diffToDir(c, repository.getRootPath(), &repository);
     if (diff.entries.size() == 0) {
         printf("Nothing to commit!\n");
         return 0;
     }
 
-    TempDir::sp tempdir(repository.newTempDir());
     Tree new_tree = diff.applyTo(tip_tree.flattened(&repository),
-            tempdir.get());
-    printf("Committing from temp dir\n");
-    repository.commitFromObjects(new_tree.hash(), tempdir, msg);
+            &repository);
+    repository.commitFromTree(new_tree.hash(), msg);
 
     return 0;
 }
@@ -513,16 +511,14 @@ StatusTreeIter(map<string, pair<string, string> > *tipState,
 int
 cmd_status(int argc, const char *argv[])
 {
+    Commit c;
     string tip = repository.getHead();
-
-    Tree tip_tree;
-    TreeDiff td;
     if (tip != EMPTY_COMMIT) {
-        Commit c = repository.getCommit(tip);
-        tip_tree = repository.getTree(c.getTree());
+        c = repository.getCommit(tip);
     }
 
-    td.diffToDir(tip_tree, repository.getRootPath(), &repository);
+    TreeDiff td;
+    td.diffToDir(c, repository.getRootPath(), &repository);
 
     for (size_t i = 0; i < td.entries.size(); i++) {
         printf("%c   %s\n",

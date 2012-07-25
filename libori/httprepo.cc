@@ -96,6 +96,13 @@ HttpRepo::getObject(const std::string &id)
     return Object::sp(new HttpObject(this, info));
 }
 
+ObjectInfo
+HttpRepo::getObjectInfo(const std::string &id)
+{
+    NOT_IMPLEMENTED(false);
+    return ObjectInfo();
+}
+
 bool
 HttpRepo::hasObject(const std::string &id) {
     NOT_IMPLEMENTED(false);

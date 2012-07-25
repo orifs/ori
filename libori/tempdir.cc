@@ -114,6 +114,13 @@ TempDir::getObject(const std::string &objId)
     return Object::sp(new TempObject(objects_fd, off+24, stored_len, info));
 }
 
+ObjectInfo
+TempDir::getObjectInfo(const std::string &objId)
+{
+    assert(objId.length() == 64);
+    return index.getInfo(objId);
+}
+
 bool
 TempDir::hasObject(const std::string &objId)
 {

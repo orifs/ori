@@ -42,6 +42,9 @@ public:
     virtual Object::sp getObject(
             const std::string &id
             ) = 0;
+    virtual ObjectInfo getObjectInfo(
+            const std::string &id
+            ) = 0;
     virtual bool hasObject(const std::string &id) = 0;
     virtual void addBackref(const std::string &referer, const std::string
             &refers_to) = 0;

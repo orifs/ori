@@ -311,7 +311,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     }
     else if (e->type == TreeEntry::LargeBlob) {
         LargeBlob *lb = p->getLargeBlob(e->hash);
-        lb->extractFile("temp.tst");
+        //lb->extractFile("temp.tst");
         size_t total = 0;
         while (total < size) {
             ssize_t res = lb->read((uint8_t*)(buf + total),
@@ -356,7 +356,6 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
     if (p->currTreeDiff->merge(tde)) {
         FUSE_LOG("committing");
         p->commitWrite();
-        p->startWrite();
     }
 
     return 0;
@@ -395,7 +394,6 @@ ori_unlink(const char *path)
 
     if (p->currTreeDiff->merge(newTde)) {
         p->commitWrite();
-        p->startWrite();
     }
     
     return 0;
@@ -454,7 +452,6 @@ ori_truncate(const char *path, off_t length)
     newTde.newFilename = tempFile;
     if (p->currTreeDiff->merge(newTde)) {
         p->commitWrite();
-        p->startWrite();
     }
 
     return res;
@@ -587,7 +584,6 @@ ori_mkdir(const char *path, mode_t mode)
     newTde.filepath = path;
     if (p->currTreeDiff->merge(newTde)) {
         p->commitWrite();
-        p->startWrite();
     }
 
     return 0;
@@ -613,7 +609,32 @@ ori_rmdir(const char *path)
     newTde.filepath = path;
     if (p->currTreeDiff->merge(newTde)) {
         p->commitWrite();
-        p->startWrite();
+    }
+
+    return 0;
+}
+
+static int
+ori_rename(const char *from_path, const char *to_path)
+{
+    ori_priv *p = ori_getpriv();
+    TreeEntry *e = _getTreeEntry(p, from_path);
+    TreeDiffEntry *tde = _getTreeDiffEntry(p, from_path);
+    if (e == NULL && tde == NULL) return -ENOENT;
+    if (tde != NULL && tde->type == TreeDiffEntry::DeletedDir)
+        return -ENOENT;
+
+    /*bool is_dir = (e != NULL && e->type == TreeEntry::Tree) ||
+        (tde != NULL && tde->type == TreeDiffEntry::NewDir);*/
+
+    p->startWrite();
+
+    TreeDiffEntry newTde;
+    newTde.type = TreeDiffEntry::Renamed;
+    newTde.filepath = from_path;
+    newTde.newFilename = to_path;
+    if (p->currTreeDiff->merge(newTde)) {
+        p->commitWrite();
     }
 
     return 0;
@@ -666,7 +687,7 @@ ori_setup_ori_oper()
     ori_oper.unlink = ori_unlink;
     ori_oper.rmdir = ori_rmdir;
     //ori_oper.symlink
-    //ori_oper.rename
+    ori_oper.rename = ori_rename;
     //ori_oper.link
     ori_oper.chmod = ori_chmod;
     ori_oper.chown = ori_chown;

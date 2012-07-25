@@ -57,7 +57,7 @@ public:
             bytestream *bs);
     bool hasObject(const std::string &objId);
     Object::sp getObject(const std::string &objId);
-    const ObjectInfo &getObjectInfo(const std::string &objId);
+    ObjectInfo getObjectInfo(const std::string &objId);
     std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
     bool rebuildIndex();
@@ -77,14 +77,13 @@ public:
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
     void addBackref(const std::string &referer, const std::string &refers_to);
-    void addTreeBackrefs(const std::string &thash, const Tree &t);
     // Clone/pull operations
     void pull(Repo *r);
     // Repository Operations
     void copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb);
     void copyObjectsFromTree(Repo *other, const Tree &t);
-    std::string commitFromObjects(const std::string &treeHash,
-            TempDir::sp objects, const std::string &msg);
+    std::string commitFromTree(const std::string &treeHash, const std::string &msg);
+    std::string commitFromObjects(const std::string &treeHash, Repo *objects, const std::string &msg);
     void gc();
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);

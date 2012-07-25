@@ -613,8 +613,8 @@ LocalRepo::pull(Repo *r)
 
         // Enqueue the object's references
         Object::Type t = o->getInfo().type;
-        printf("Pulling object %s (%s)\n", hash.c_str(),
-                Object::getStrForType(t));
+        /*printf("Pulling object %s (%s)\n", hash.c_str(),
+                Object::getStrForType(t));*/
 
         vector<string> newObjs;
         if (t == Object::Commit) {
@@ -719,7 +719,33 @@ LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
 }
 
 string
-LocalRepo::commitFromObjects(const string &treeHash, TempDir::sp objects, const string &msg)
+LocalRepo::commitFromTree(const string &treeHash, const string &msg)
+{
+    assert(opened);
+
+    Object::sp treeObj(getObject(treeHash));
+    assert(treeObj->getInfo().type == Object::Tree);
+
+    //LocalRepoLock::ap _lock(lock());
+
+    // Make the commit object
+    string user = Util_GetFullname();
+    Commit c(msg, treeHash, user);
+    c.setParents(getHead());
+
+    string commitHash = addCommit(c);
+
+    // Update .ori/HEAD
+    updateHead(commitHash);
+
+    printf("Commit Hash: %s\nTree Hash: %s\n",
+	   commitHash.c_str(),
+	   treeHash.c_str());
+    return commitHash;
+}
+
+string
+LocalRepo::commitFromObjects(const string &treeHash, Repo *objects, const string &msg)
 {
     assert(opened);
 
@@ -729,25 +755,10 @@ LocalRepo::commitFromObjects(const string &treeHash, TempDir::sp objects, const 
     LocalRepoLock::ap _lock(lock());
     copyFrom(newTreeObj.get());
 
-    Tree newTree;
-    newTree.fromBlob(newTreeObj->getPayload());
-    copyObjectsFromTree(objects.get(), newTree);
-    
-    // Make the commit object
-    string user = Util_GetFullname();
-    Commit c(msg, treeHash, user);
-    c.setParents(getHead());
+    Tree newTree = getTree(treeHash);
+    copyObjectsFromTree(objects, newTree);
 
-    string commitHash = addCommit(c);
-    //addTreeBackrefs(treeHash, newTree);
-
-    // Update .ori/HEAD
-    updateHead(commitHash);
-
-    printf("Commit Hash: %s\nTree Hash: %s\n",
-	   commitHash.c_str(),
-	   treeHash.c_str());
-    return commitHash;
+    return commitFromTree(treeHash, msg);
 }
 
 /*
@@ -773,7 +784,7 @@ LocalRepo::hasObject(const string &objId)
 /*
  * Return ObjectInfo through the fast path.
  */
-const ObjectInfo &
+ObjectInfo
 LocalRepo::getObjectInfo(const string &objId)
 {
     return index.getInfo(objId);

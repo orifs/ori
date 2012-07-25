@@ -46,6 +46,7 @@ public:
     // Repo implementation
     std::string getHead() { NOT_IMPLEMENTED(false); }
     Object::sp getObject(const std::string &objId);
+    ObjectInfo getObjectInfo(const std::string &objId);
     bool hasObject(const std::string &objId);
     std::set<ObjectInfo> listObjects();
     std::vector<Commit> listCommits() { NOT_IMPLEMENTED(false); }

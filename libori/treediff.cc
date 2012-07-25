@@ -16,11 +16,13 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #include "treediff.h"
 #include "debug.h"
 #include "util.h"
 #include "scan.h"
+#include "largeblob.h"
 
 using namespace std;
 
@@ -125,6 +127,7 @@ struct _scanHelperData {
     set<string> *wd_paths;
     map<string, TreeEntry> *flattened_tree;
     TreeDiff *td;
+    Commit *commit;
 
     size_t cwdLen;
     Repo *repo;
@@ -179,14 +182,33 @@ int _diffToDirHelper(void *arg, const char *path)
     }
 
     // Check if file is modified
-    // TODO: heuristic (mtime, filesize) for determining whether a file has been modified
-    std::string newHash = Util_HashFile(fullPath);
+    
+    struct stat st_buf;
+    if (lstat(path, &st_buf) < 0) {
+        perror("lstat");
+        return 0;
+    }
+
     bool modified = false;
     if (te.type == TreeEntry::Blob) {
-        modified = newHash != te.hash;
+        ObjectInfo info = sd->repo->getObjectInfo(te.hash);
+        if (info.payload_size != (size_t)st_buf.st_size ||
+                st_buf.st_mtime >= sd->commit->getTime()) {
+
+            std::string newHash = Util_HashFile(fullPath);
+            modified = newHash != te.hash;
+        }
     }
     else if (te.type == TreeEntry::LargeBlob) {
-        modified = newHash != te.largeHash;
+        LargeBlob lb(sd->repo);
+        Object::sp lbObj(sd->repo->getObject(te.hash));
+        lb.fromBlob(lbObj->getPayload());
+        if (lb.totalSize() != (size_t)st_buf.st_size ||
+                st_buf.st_mtime >= sd->commit->getTime()) {
+
+            std::string newHash = Util_HashFile(fullPath);
+            modified = newHash != te.largeHash;
+        }
     }
 
     if (modified) {
@@ -200,24 +222,23 @@ int _diffToDirHelper(void *arg, const char *path)
 }
 
 void
-TreeDiff::diffToDir(Tree src, const std::string &dir, Repo *r)
+TreeDiff::diffToDir(Commit from, const std::string &dir, Repo *r)
 {
-    set<string> wd_paths;
+    Tree src;
+    if (from.getTree() != "")
+        src = r->getTree(from.getTree());
     Tree::Flat flattened_tree = src.flattened(r);
-    /*for (Tree::Flat::iterator it = flattened_tree.begin();
-            it != flattened_tree.end();
-            it++) {
-        printf("%s\n", (*it).first.c_str());
-    }*/
 
     size_t dir_size = dir.size();
     if (dir[dir_size-1] == '/')
         dir_size--;
 
+    set<string> wd_paths;
     _scanHelperData sd = {
         &wd_paths,
         &flattened_tree,
         this,
+        &from,
         dir_size,
         r};
 
@@ -263,6 +284,19 @@ void TreeDiff::append(const TreeDiffEntry &to_append)
 bool TreeDiff::merge(const TreeDiffEntry &to_merge)
 {
     assert(to_merge.filepath != "");
+
+    // Special case for rename
+    if (to_merge.type == TreeDiffEntry::Renamed) {
+        TreeDiffEntry *dest_e = getLatestEntry(to_merge.newFilename);
+        if (dest_e != NULL && dest_e->type != TreeDiffEntry::DeletedFile &&
+                dest_e->type != TreeDiffEntry::DeletedDir) {
+            printf("TreeDiff::merge: cannot replace an existing file with Renamed\n");
+            NOT_IMPLEMENTED(false);
+        }
+
+        append(to_merge);
+        return true;
+    }
 
     TreeDiffEntry *e = getLatestEntry(to_merge.filepath);
     if (e == NULL) {
@@ -320,7 +354,8 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         const TreeDiffEntry &tde = entries[i];
         if (tde.type == TreeDiffEntry::Noop) continue;
 
-        printf("Applying %c   %s\n", tde.type, tde.filepath.c_str());
+        //printf("Applying %c   %s\n", tde.type, tde.filepath.c_str());
+        putc(tde.type, stdout);
         if (tde.type == TreeDiffEntry::NewFile) {
             TreeEntry te;
             pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
@@ -345,7 +380,10 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
             for (Tree::Flat::iterator it = flat.begin();
                     it != flat.end();
                     it++) {
-                // TODO
+                if (strncmp(tde.filepath.c_str(), (*it).first.c_str(),
+                            tde.filepath.size()) == 0) {
+                    assert(false);
+                }
             }
 #endif
         }
@@ -365,13 +403,19 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
 
             flat[tde.filepath] = te;
         }
-	/* else if (tde.type == TreeDiffEntry::ModifiedDiff) {
-	    // TODO: apply diff
-            NOT_IMPLEMENTED(false);
-        } */
+        else if (tde.type == TreeDiffEntry::Renamed) {
+            assert(flat.find(tde.filepath) != flat.end());
+            assert(flat.find(tde.newFilename) == flat.end());
+
+            TreeEntry te = flat[tde.filepath];
+            flat.erase(tde.filepath);
+            flat[tde.newFilename] = te;
+        }
         else {
             assert(false);
         }
+
+        if (i % 80 == 0) putc('\n', stdout);
     }
 
     /*for (Tree::Flat::iterator it = flat.begin();
@@ -379,6 +423,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
             it++) {
         printf("%s %s\n", (*it).first.c_str(), (*it).second.hash.c_str());
     }*/
+    putc('\n', stdout);
 
     Tree rval = Tree::unflatten(flat, dest_repo);
     dest_repo->addBlob(Object::Tree, rval.getBlob());
