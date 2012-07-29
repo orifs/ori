@@ -124,13 +124,36 @@ LocalRepo::lock()
 }
 
 /*
+ * Remote Operations
+ */
+void
+LocalRepo::setRemote(Repo *r)
+{
+    remoteRepo = r;
+}
+
+void
+LocalRepo::clearRemote()
+{
+    remoteRepo = NULL;
+}
+
+/*
  * Object Operations
  */
 
 Object::sp LocalRepo::getObject(const std::string &objId)
 {
     LocalObject::sp o(getLocalObject(objId));
-    if (!o) return Object::sp();
+
+    if (!o) {
+	if (remoteRepo != NULL)
+	    // XXX: Save object locally
+	    return remoteRepo->getObject(objId);
+	else
+	    return Object::sp();
+    }
+
     return Object::sp(o);
 }
 
@@ -778,7 +801,13 @@ LocalRepo::gc()
 bool
 LocalRepo::hasObject(const string &objId)
 {
-    return index.hasObject(objId);
+    bool val = index.hasObject(objId);
+
+    if (!val && remoteRepo != NULL) {
+	val = remoteRepo->hasObject(objId);
+    }
+
+    return val;
 }
 
 /*
@@ -787,7 +816,13 @@ LocalRepo::hasObject(const string &objId)
 ObjectInfo
 LocalRepo::getObjectInfo(const string &objId)
 {
-    return index.getInfo(objId);
+    if (index.hasObject(objId)) {
+	return index.getInfo(objId);
+    }
+    if (remoteRepo != NULL) {
+	return remoteRepo->getObjectInfo(objId);
+    }
+    return ObjectInfo();
 }
 
 /*

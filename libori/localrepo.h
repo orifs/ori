@@ -52,6 +52,10 @@ public:
     void save();
     LocalRepoLock *lock();
 
+    // Remote Repository (Thin/Insta-clone)
+    void setRemote(Repo *r);
+    void clearRemote();
+
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,
             bytestream *bs);
@@ -132,6 +136,9 @@ private:
     std::string version;
     Index index;
     SnapshotIndex snapshots;
+
+    // Remote Operations
+    Repo *remoteRepo;
 
     // Caches
     LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;
