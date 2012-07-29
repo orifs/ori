@@ -28,13 +28,24 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include <string>
+#include <tr1/memory>
+
+using namespace std;
+
 #include "debug.h"
 #include "util.h"
+#include "sshclient.h"
+#include "sshrepo.h"
+#include "httpclient.h"
+#include "httprepo.h"
 
 #define NULL_FH 0
 
 #define CONTROL_FILENAME ".ori_control"
 #define CONTROL_FILEPATH "/" CONTROL_FILENAME
+
+std::tr1::shared_ptr<Repo> remoteRepo;
 
 int _numComponents(const char *path)
 {
@@ -640,6 +651,30 @@ ori_rename(const char *from_path, const char *to_path)
     return 0;
 }
 
+/// XXX: Copied from ori/repo_cmd.cc
+int
+getRepoFromURL(const string &url,
+	       std::tr1::shared_ptr<Repo> &r,
+	       std::tr1::shared_ptr<HttpClient> &hc,
+	       std::tr1::shared_ptr<SshClient> &sc)
+{
+    if (Util_IsPathRemote(url.c_str())) {
+	if (strncmp(url.c_str(), "http://", 7) == 0) {
+	    hc.reset(new HttpClient(url));
+	    r.reset(new HttpRepo(hc.get()));
+	    hc->connect();
+	} else {
+	    sc.reset(new SshClient(url));
+	    r.reset(new SshRepo(sc.get()));
+	    sc->connect();
+	}
+    } else {
+	r.reset(new LocalRepo(url));
+	((LocalRepo *)r.get())->open(url);
+    }
+
+    return 0; // TODO: errors?
+}
 
 
 /**
@@ -648,13 +683,34 @@ ori_rename(const char *from_path, const char *to_path)
 static void *
 ori_init(struct fuse_conn_info *conn)
 {
-    char *datastore = (char *)fuse_get_context()->private_data;
-    if (datastore == NULL) {
+    mount_ori_config *config =
+		    (mount_ori_config *)fuse_get_context()->private_data;
+    if (config->repo_path == NULL) {
         FUSE_LOG("no repo selected");
         exit(1);
     }
-    
-    ori_priv *priv = new ori_priv(datastore);
+
+    if (config->clone_path != NULL) {
+	LocalRepo dstRepo;
+	std::tr1::shared_ptr<HttpClient> httpClient;
+	std::tr1::shared_ptr<SshClient> sshClient;
+
+	LocalRepo_Init(config->repo_path);
+
+	// Construct remote and set head
+	getRepoFromURL(config->clone_path, remoteRepo, httpClient, sshClient);
+
+	dstRepo.open(config->repo_path);
+	dstRepo.updateHead(remoteRepo->getHead());
+	dstRepo.close();
+    }
+
+    ori_priv *priv = new ori_priv(config->repo_path);
+
+    if (config->clone_path != NULL) {
+	priv->repo->setRemote(remoteRepo.get());
+    }
+
     FUSE_LOG("ori filesystem starting ...");
 
     return priv;
@@ -714,6 +770,14 @@ ori_setup_ori_oper()
     ori_oper.utimens = ori_utimens;
 }
 
+void
+usage()
+{
+    printf("Usage:\n");
+    printf("mount_ori -o repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("mount_ori -o clone=[REMOTE PATH],repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -725,15 +789,15 @@ main(int argc, char *argv[])
     memset(&conf, 0, sizeof(mount_ori_config));
     mount_ori_parse_opt(&args, &conf);
 
-    if (conf.repo_path == NULL) {
-        printf("Usage:\n");
+    if (conf.repo_path == NULL && conf.clone_path == NULL) {
+	usage();
         exit(1);
     }
 
     printf("Opening repo at %s\n", conf.repo_path);
 
     // Set the repo path
-    char *datastore = realpath(conf.repo_path, NULL);
+    conf.repo_path = realpath(conf.repo_path, NULL);
     //ori_priv *priv = new ori_priv();
     //priv->datastore = realpath(conf.repo_path, NULL);
 
@@ -742,6 +806,6 @@ main(int argc, char *argv[])
     for (int i = 0; i < args.argc; i++)
         FUSE_LOG("%s", args.argv[i]);
 
-    return fuse_main(args.argc, args.argv, &ori_oper, datastore);
+    return fuse_main(args.argc, args.argv, &ori_oper, &conf);
 }
 
