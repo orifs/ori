@@ -138,6 +138,9 @@ private:
     Index index;
     SnapshotIndex snapshots;
 
+    // Remote Operations
+    Repo *remoteRepo;
+
     // Caches
     LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;
     // TODO: ulimit is 256 files open on OSX, need to support 2 repos open at a
