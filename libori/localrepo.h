@@ -25,6 +25,7 @@
 #define ORI_PATH_REMOTES "/.ori/refs/remotes/"
 #define ORI_PATH_LOCK "/.ori/lock"
 
+int LocalRepo_Init(const std::string &path);
 
 class HistoryCB
 {
@@ -51,6 +52,10 @@ public:
     void close();
     void save();
     LocalRepoLock *lock();
+
+    // Remote Repository (Thin/Insta-clone)
+    void setRemote(Repo *r);
+    void clearRemote();
 
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,

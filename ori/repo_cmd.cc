@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
 
 #include <unistd.h>
 #include <sys/param.h>
@@ -28,10 +27,8 @@
 #include <sys/stat.h>
 
 #include <string>
-#include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <tr1/memory>
 
 #include "debug.h"
 #include "scan.h"
@@ -65,12 +62,6 @@ int
 cmd_init(int argc, const char *argv[])
 {
     string rootPath;
-    string oriDir;
-    string tmpDir;
-    string objDir;
-    string versionFile;
-    string uuidFile;
-    int fd;
     
     if (argc == 1) {
         char *cwd = getcwd(NULL, MAXPATHLEN);
@@ -91,98 +82,7 @@ cmd_init(int argc, const char *argv[])
         return 1;
     }
 
-    // Create directory
-    oriDir = rootPath + ORI_PATH_DIR;
-    if (mkdir(oriDir.c_str(), 0755) < 0) {
-        perror("Could not create '.ori' directory");
-        return 1;
-    }
-
-    // Create tmp directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/tmp";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
-        perror("Could not create '.ori/tmp' directory");
-        return 1;
-    }
-
-    // Create objs directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/objs";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
-        perror("Could not create '.ori/objs' directory");
-        return 1;
-    }
-
-    // Create refs directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/refs";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
-        perror("Could not create '.ori/refs' directory");
-        return 1;
-    }
-
-    // Create refs/heads directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/refs/heads";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
-        perror("Could not create '.ori/refs/heads' directory");
-        return 1;
-    }
-
-    // Create default branch
-    tmpDir = rootPath + ORI_PATH_HEADS + "/default";
-    if (!Util_WriteFile(EMPTY_COMMIT, sizeof(EMPTY_COMMIT) - 1, tmpDir))
-    {
-	perror("Could not create default branch");
-	return 1;
-    }
-
-    // Set branch name
-    if (!Util_WriteFile("default", 7, rootPath + ORI_PATH_BRANCH)) {
-	perror("Could not create branch file");
-	return 1;
-    }
-
-    // Create refs/remotes directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/refs/remotes";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
-        perror("Could not create '.ori/refs/remotes' directory");
-        return 1;
-    }
-
-    // Create first level of object sub-directories
-    for (int i = 0; i < 256; i++)
-    {
-	stringstream hexval;
-	string path = rootPath + ORI_PATH_OBJS;
-
-	hexval << hex << setw(2) << setfill('0') << i;
-	path += hexval.str();
-
-	mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-    }
-
-    // Construct UUID
-    uuidFile = rootPath + ORI_PATH_UUID;
-    fd = open(uuidFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0660);
-    if (fd < 0) {
-        perror("Could not create UUID file");
-        return 1;
-    }
-
-    std::string generated_uuid = Util_NewUUID();
-    write(fd, generated_uuid.data(), generated_uuid.length());
-    close(fd);
-    chmod(uuidFile.c_str(), 0440);
-
-    // Construct version file
-    versionFile = rootPath + ORI_PATH_VERSION;
-    fd = open(versionFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0660);
-    if (fd < 0) {
-        perror("Could not create version file");
-        return 1;
-    }
-    write(fd, "ORI1.0", 6);
-    close(fd);
-
-    return 0;
+    return LocalRepo_Init(rootPath);
 }
 
 int
@@ -753,9 +653,9 @@ getRepoFromURL(const string &url,
 int
 cmd_clone(int argc, const char *argv[])
 {
+    int status;
     string srcRoot;
     string newRoot;
-    const char *initArgs[2] = { NULL, NULL };
 
     if (argc != 2 && argc != 3) {
 	printf("Specify a repository to clone.\n");
@@ -769,8 +669,11 @@ cmd_clone(int argc, const char *argv[])
     } else {
 	newRoot = argv[2];
     }
-    initArgs[1] = newRoot.c_str();
-    cmd_init(2, initArgs);
+    status = LocalRepo_Init(newRoot);
+    if (status != 0) {
+        printf("Failed to construct an empty repository!\n");
+        return 1;
+    }
 
     printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
 
