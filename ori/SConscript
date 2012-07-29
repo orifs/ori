@@ -3,8 +3,32 @@ import sys
 Import('env')
 
 src = [
+    "cmd_branch.cc",
+    "cmd_branches.cc",
+    "cmd_catobj.cc",
+    "cmd_checkout.cc",
+    "cmd_clone.cc",
+    "cmd_commit.cc",
+    "cmd_filelog.cc",
+    "cmd_findheads.cc",
+    "cmd_gc.cc",
+    "cmd_graft.cc",
+    "cmd_init.cc",
+    "cmd_listobj.cc",
+    "cmd_log.cc",
+    "cmd_pull.cc",
+    "cmd_purgeobj.cc",
+    "cmd_rebuildindex.cc",
+    "cmd_rebuildrefs.cc",
+    "cmd_refcount.cc",
+    "cmd_show.cc",
+    "cmd_snapshot.cc",
+    "cmd_stats.cc",
+    "cmd_status.cc",
+    "cmd_stripmetadata.cc",
+    "cmd_treediff.cc",
+    "cmd_verify.cc",
     "main.cc",
-    "repo_cmd.cc",
     "server.cc",
 ]
 
