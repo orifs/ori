@@ -47,6 +47,8 @@ using namespace std;
 
 mount_ori_config config;
 std::tr1::shared_ptr<Repo> remoteRepo;
+std::tr1::shared_ptr<HttpClient> httpClient;
+std::tr1::shared_ptr<SshClient> sshClient;
 
 int _numComponents(const char *path)
 {
@@ -695,21 +697,27 @@ ori_init(struct fuse_conn_info *conn)
 
     if (config.clone_path != NULL) {
 	LocalRepo dstRepo;
-	std::tr1::shared_ptr<HttpClient> httpClient;
-	std::tr1::shared_ptr<SshClient> sshClient;
 
         // Construct remote and set head
 	getRepoFromURL(config.clone_path, remoteRepo, httpClient, sshClient);
 
-	dstRepo.open(config.repo_path);
-	dstRepo.updateHead(remoteRepo->getHead());
+	if (!dstRepo.open(config.repo_path)) {
+            FUSE_LOG("Cannot open repository.");
+            exit(1);
+        }
+	string revId = remoteRepo->getHead();
+        dstRepo.updateHead(revId);
 	dstRepo.close();
+
+        FUSE_LOG("InstaClone: Updating repository head %s", revId.c_str());
     }
 
     ori_priv *priv = new ori_priv(config.repo_path);
 
     if (config.clone_path != NULL) {
 	priv->repo->setRemote(remoteRepo.get());
+
+        FUSE_LOG("InstaClone: Enabled!");
     }
 
     FUSE_LOG("ori filesystem starting ...");
