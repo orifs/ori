@@ -22,6 +22,8 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include <unistd.h>
 #include <sys/param.h>
@@ -60,17 +62,6 @@ int _numComponents(const char *path)
             cnt++;
     }
     return cnt;
-}
-
-static TreeDiffEntry *
-_getTreeDiffEntry(ori_priv *priv, const char *path)
-{
-    if (priv->currTreeDiff != NULL) {
-        TreeDiffEntry *tde = priv->currTreeDiff->getLatestEntry(path);
-        printf("_getTreeDiffEntry %s %p\n", path, tde);
-        return tde;
-    }
-    return NULL;
 }
 
 static TreeEntry *
@@ -124,25 +115,77 @@ _getTreeEntry(ori_priv *priv, const char *path)
     return e;
 }
 
+static ExtendedTreeEntry *
+_getETE(ori_priv *priv, const char *path)
+{
+    if (priv->eteCache.hasKey(path)) {
+        return &priv->eteCache.get(path);
+    }
+
+    TreeEntry *te = _getTreeEntry(priv, path);
+    TreeDiffEntry *tde = NULL;
+    if (priv->currTreeDiff != NULL) {
+        tde = priv->currTreeDiff->getLatestEntry(path);
+    }
+
+    if (te == NULL && tde == NULL) {
+        return NULL;
+    }
+    else if (tde != NULL && (tde->type == TreeDiffEntry::DeletedFile ||
+                             tde->type == TreeDiffEntry::DeletedDir)) {
+        return NULL;
+    }
+    else if (tde != NULL && tde->type == TreeDiffEntry::Renamed) {
+        NOT_IMPLEMENTED(false);
+    }
+
+    ExtendedTreeEntry ete;
+    if (te != NULL) {
+        ete.te = *te;
+    }
+    /*else {
+        assert(tde != NULL);
+        assert(tde->type == TreeDiffEntry::NewFile ||
+               tde->type == TreeDiffEntry::NewDir);
+        if (tde->type == TreeDiffEntry::NewDir) {
+            ete.te.type = TreeEntry::Tree;
+        }
+    }*/
+
+    if (tde != NULL) {
+        if (tde->newFilename != "")
+            ete.changedData = true;
+        ete.tde = *tde;
+        if (tde->type == TreeDiffEntry::NewDir)
+            ete.te.type = TreeEntry::Tree;
+        ete.te.attrs.mergeFrom(tde->newAttrs);
+    }
+
+    if (!ete.te.hasBasicAttrs()) {
+        FUSE_LOG("TreeEntry missing attrs!");
+        return NULL;
+    }
+
+    priv->eteCache.put(path, ete);
+    return &priv->eteCache.get(path);
+}
+
+
 std::string
-_openTempFile(ori_priv *priv, TreeEntry *e, TreeDiffEntry *tde)
+_openTempFile(ori_priv *priv, ExtendedTreeEntry *ete)
 {
     priv->startWrite();
     std::string tempFile = "";
-    if (tde != NULL &&
-            (tde->type == TreeDiffEntry::NewFile ||
-                tde->type == TreeDiffEntry::Modified)) {
-        tempFile = tde->newFilename;
+    if (ete->changedData &&
+            (ete->tde.type == TreeDiffEntry::NewFile ||
+                ete->tde.type == TreeDiffEntry::Modified)) {
+        tempFile = ete->tde.newFilename;
     }
-    else if (tde == NULL && e != NULL) {
+    else {
         tempFile = priv->currTempDir->newTempFile();
         if (tempFile == "")
             return "";
-        e->extractToFile(tempFile, priv->repo);
-    }
-    else {
-        FUSE_LOG("ori_open: Not sure how we got here");
-        NOT_IMPLEMENTED(false);
+        ete->te.extractToFile(tempFile, priv->repo);
     }
     return tempFile;
 }
@@ -153,15 +196,17 @@ ori_getattr(const char *path, struct stat *stbuf)
     FUSE_LOG("FUSE ori_getattr(path=\"%s\")", path);
 
     memset(stbuf, 0, sizeof(struct stat));
-    stbuf->st_uid = geteuid();
-    stbuf->st_gid = getegid();
 
     if (strcmp(path, "/") == 0) {
+        stbuf->st_uid = geteuid();
+        stbuf->st_gid = getegid();
         stbuf->st_mode = 0755 | S_IFDIR;
         stbuf->st_nlink = 2;
         return 0;
     }
     else if (strcmp(path, CONTROL_FILEPATH) == 0) {
+        stbuf->st_uid = geteuid();
+        stbuf->st_gid = getegid();
         stbuf->st_mode = 0200 | S_IFREG;
         stbuf->st_nlink = 1;
         stbuf->st_size = 0;
@@ -169,66 +214,26 @@ ori_getattr(const char *path, struct stat *stbuf)
     }
 
     ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
-    if (e == NULL && tde == NULL) {
-        FUSE_LOG("getattr couldn't find file");
-        return -ENOENT;
-    }
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
 
-    if (tde != NULL && (tde->type == TreeDiffEntry::DeletedFile ||
-                        tde->type == TreeDiffEntry::DeletedDir)) {
-        FUSE_LOG("%s was deleted", path);
-        return -ENOENT;
-    }
-
-    if ((e != NULL && e->type == TreeEntry::Tree) ||
-            (tde != NULL && tde->type == TreeDiffEntry::NewDir))
+    if (ete->te.type == TreeEntry::Tree)
     {
-        FUSE_LOG("getattr directory %p %p", e, tde);
-        stbuf->st_mode = 0755 | S_IFDIR;
+        stbuf->st_mode = S_IFDIR;
         stbuf->st_nlink = 2;
-        return 0;
-    }
-
-    if (tde != NULL &&
-            (tde->type == TreeDiffEntry::NewFile ||
-                tde->type == TreeDiffEntry::Modified)) {
-        int res = lstat(tde->newFilename.c_str(), stbuf);
-        if (res < 0) return -errno;
-        return res;
-    }
-
-    if (e == NULL) {
-        FUSE_LOG("ori_getattr: not sure how we got here");
-        return -EIO;
-    }
-
-    ///////////////////////
-    // Files
-
-    // TODO: e->mode is not implemented yet in tree.cc
-    // so just fake the mode here
-    if (e->type == TreeEntry::Blob) {
-        stbuf->st_mode = 0644 | S_IFREG;
-        stbuf->st_nlink = 1;
-
-        // Get the ObjectInfo
-        ObjectInfo *oi = p->getObjectInfo(e->hash);
-        stbuf->st_size = oi->payload_size;
-    }
-    else if (e->type == TreeEntry::LargeBlob) {
-        stbuf->st_mode = 0644 | S_IFREG;
-        stbuf->st_nlink = 1;
-
-        LargeBlob *lb = p->getLargeBlob(e->hash);
-        stbuf->st_size = lb->totalSize();
     }
     else {
-        // TreeEntry::Null
-        FUSE_LOG("entry type Null");
-        return -EIO;
+        stbuf->st_mode = S_IFREG;
+        stbuf->st_nlink = 1;
     }
+
+    stbuf->st_mode |= ete->te.attrs.getAs<mode_t>(ATTR_PERMS);
+    struct passwd *pw = getpwnam(ete->te.attrs.getAs<const char *>(ATTR_USERNAME));
+    stbuf->st_uid = pw->pw_uid;
+    stbuf->st_gid = pw->pw_gid; // TODO: process running as diff. group?
+    stbuf->st_size = ete->te.attrs.getAs<size_t>(ATTR_FILESIZE);
+    stbuf->st_mtime = ete->te.attrs.getAs<time_t>(ATTR_MTIME);
+    stbuf->st_ctime = ete->te.attrs.getAs<time_t>(ATTR_CTIME);
 
     return 0;
 }
@@ -262,28 +267,29 @@ ori_open(const char *path, struct fuse_file_info *fi)
     fi->fh = NULL_FH;
 
     ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
-    if (e == NULL && tde == NULL) return -ENOENT;
-    if (tde != NULL && tde->type == TreeDiffEntry::DeletedFile)
-        return -ENOENT;
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
 
     if (fi->flags & O_WRONLY || fi->flags & O_RDWR) {
         p->startWrite();
 
-        std::string tempFile = _openTempFile(p, e, tde);
+        std::string tempFile = _openTempFile(p, ete);
         if (tempFile == "") return -EIO;
 
         TreeDiffEntry tde;
         tde.type = TreeDiffEntry::Modified;
         tde.filepath = path;
         tde.newFilename = tempFile;
-        if (p->currTreeDiff->merge(tde)) {
+        if (p->merge(tde)) {
             FUSE_LOG("ori_open: can't restart write here!");
             NOT_IMPLEMENTED(false);
         }
 
         fi->fh = open(tempFile.c_str(), fi->flags);
+    }
+
+    if (ete->changedData) {
+        fi->fh = open(ete->tde.newFilename.c_str(), fi->flags);
     }
 
     return 0;
@@ -307,14 +313,15 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     }
 
     ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    if (e == NULL) return -ENOENT;
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
+    assert(!ete->changedData);
 
-    if (e->type == TreeEntry::Blob) {
+    if (ete->te.type == TreeEntry::Blob) {
         // Read the payload to memory
         // TODO: too inefficient
         std::string payload;
-        payload = p->repo->getPayload(e->hash);
+        payload = p->repo->getPayload(ete->te.hash);
 
         size_t left = payload.size() - offset;
         size_t real_read = MIN(size, left);
@@ -323,8 +330,8 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
 
         return real_read;
     }
-    else if (e->type == TreeEntry::LargeBlob) {
-        LargeBlob *lb = p->getLargeBlob(e->hash);
+    else if (ete->te.type == TreeEntry::LargeBlob) {
+        LargeBlob *lb = p->getLargeBlob(ete->te.hash);
         //lb->extractFile("temp.tst");
         size_t total = 0;
         while (total < size) {
@@ -362,12 +369,11 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
     if (tempFile == "")
         return -EIO;
 
-    TreeDiffEntry tde;
-    tde.type = TreeDiffEntry::NewFile;
-    tde.filepath = path;
+    TreeDiffEntry tde(path, TreeDiffEntry::NewFile);
     tde.newFilename = tempFile;
+    tde.newAttrs.setCreation(0644);
 
-    if (p->currTreeDiff->merge(tde)) {
+    if (p->merge(tde)) {
         FUSE_LOG("committing");
         p->commitWrite();
     }
@@ -386,18 +392,14 @@ ori_unlink(const char *path)
     // TODO: check for open files?
 
     ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
-    if (e == NULL && tde == NULL) return -ENOENT;
-    if (tde != NULL && tde->type == TreeDiffEntry::DeletedFile)
-        return -ENOENT;
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
 
     p->startWrite();
 
     TreeDiffEntry newTde;
     newTde.filepath = path;
-    if ((e != NULL && e->type == TreeEntry::Tree) ||
-        (tde != NULL && tde->type == TreeDiffEntry::NewDir)) {
+    if (ete->te.type == TreeEntry::Tree) {
         FUSE_LOG("deleted dir");
         newTde.type = TreeDiffEntry::DeletedDir;
     }
@@ -406,7 +408,7 @@ ori_unlink(const char *path)
         newTde.type = TreeDiffEntry::DeletedFile;
     }
 
-    if (p->currTreeDiff->merge(newTde)) {
+    if (p->merge(newTde)) {
         p->commitWrite();
     }
     
@@ -434,6 +436,19 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
     int res = pwrite(fi->fh, buf, size, offset);
     if (res < 0)
         return -errno;
+
+    struct stat sb;
+    if (fstat(fi->fh, &sb) < 0) {
+        return -errno;
+    }
+
+    // TODO: do this once per commit?
+    TreeDiffEntry tde(path, TreeDiffEntry::Modified);
+    tde.newAttrs.setAs<size_t>(ATTR_FILESIZE, sb.st_size);
+    if (p->merge(tde)) {
+        p->commitWrite();
+    }
+
     return res;
 }
 
@@ -446,25 +461,22 @@ ori_truncate(const char *path, off_t length)
     }
 
     ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
-    if (e == NULL && tde == NULL) return -ENOENT;
-    if (tde != NULL && tde->type == TreeDiffEntry::DeletedFile)
-        return -ENOENT;
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
+    if (ete->te.type == TreeEntry::Tree) return -EIO;
 
     p->startWrite();
 
-    std::string tempFile = _openTempFile(p, e, tde);
+    std::string tempFile = _openTempFile(p, ete);
     if (tempFile == "") return -EIO;
 
     int res = truncate(tempFile.c_str(), length);
     if (res < 0) return -errno;
 
-    TreeDiffEntry newTde;
-    newTde.filepath = path;
-    newTde.type = TreeDiffEntry::Modified;
+    TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
     newTde.newFilename = tempFile;
-    if (p->currTreeDiff->merge(newTde)) {
+    newTde.newAttrs.setAs<size_t>(ATTR_FILESIZE, (size_t)length);
+    if (p->merge(newTde)) {
         p->commitWrite();
     }
 
@@ -478,7 +490,20 @@ ori_chmod(const char *path, mode_t mode)
     if (strcmp(path, CONTROL_FILEPATH) == 0) {
         return -EACCES;
     }
-    // TODO
+
+    ori_priv *p = ori_getpriv();
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
+
+    p->startWrite();
+
+    TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
+    newTde.newAttrs.setAs<mode_t>(ATTR_PERMS, mode);
+
+    if (p->merge(newTde)) {
+        p->commitWrite();
+    }
+
     return 0;
 }
 
@@ -489,7 +514,27 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
     if (strcmp(path, CONTROL_FILEPATH) == 0) {
         return -EACCES;
     }
-    // TODO
+
+    ori_priv *p = ori_getpriv();
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
+
+    p->startWrite();
+
+    TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
+
+    struct passwd *pw = getpwuid(uid);
+    if (pw != NULL)
+        newTde.newAttrs.attrs[ATTR_USERNAME] = pw->pw_name;
+
+    struct group *grp = getgrgid(gid);
+    if (grp != NULL)
+        newTde.newAttrs.attrs[ATTR_GROUPNAME] = grp->gr_name;
+
+    if (p->merge(newTde)) {
+        p->commitWrite();
+    }
+
     return 0;
 }
 
@@ -500,7 +545,20 @@ ori_utimens(const char *path, const struct timespec tv[2])
     if (strcmp(path, CONTROL_FILEPATH) == 0) {
         return -EACCES;
     }
-    // TODO
+
+    ori_priv *p = ori_getpriv();
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
+
+    p->startWrite();
+    // access: tv[0], modify: tv[1]
+    TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
+    newTde.newAttrs.setAs<time_t>(ATTR_MTIME, tv[1].tv_sec);
+
+    if (p->merge(newTde)) {
+        p->commitWrite();
+    }
+
     return 0;
 }
 
@@ -542,8 +600,9 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     for (std::map<std::string, TreeEntry>::iterator it = t->tree.begin();
             it != t->tree.end();
             it++) {
-        // Check for deletions
         FUSE_LOG("readdir entry %s", (*it).first.c_str());
+
+        // Check for deletions
         if (p->currTreeDiff != NULL) {
             std::string fullPath = std::string(path) + "/";
             if (fullPath.size() == 2)
@@ -593,10 +652,9 @@ ori_mkdir(const char *path, mode_t mode)
     ori_priv *p = ori_getpriv();
     p->startWrite();
 
-    TreeDiffEntry newTde;
-    newTde.type = TreeDiffEntry::NewDir;
-    newTde.filepath = path;
-    if (p->currTreeDiff->merge(newTde)) {
+    TreeDiffEntry newTde(path, TreeDiffEntry::NewDir);
+    newTde.newAttrs.setCreation(0755);
+    if (p->merge(newTde)) {
         p->commitWrite();
     }
 
@@ -610,18 +668,13 @@ ori_rmdir(const char *path)
 
     // TODO: is this stuff necessary?
     ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, path);
-    TreeDiffEntry *tde = _getTreeDiffEntry(p, path);
-    if (e == NULL && tde == NULL) return -ENOENT;
-    if (tde != NULL && tde->type == TreeDiffEntry::DeletedDir)
-        return -ENOENT;
+    ExtendedTreeEntry *ete = _getETE(p, path);
+    if (ete == NULL) return -ENOENT;
 
     p->startWrite();
 
-    TreeDiffEntry newTde;
-    newTde.type = TreeDiffEntry::DeletedDir;
-    newTde.filepath = path;
-    if (p->currTreeDiff->merge(newTde)) {
+    TreeDiffEntry newTde(path, TreeDiffEntry::DeletedDir);
+    if (p->merge(newTde)) {
         p->commitWrite();
     }
 
@@ -631,23 +684,28 @@ ori_rmdir(const char *path)
 static int
 ori_rename(const char *from_path, const char *to_path)
 {
-    ori_priv *p = ori_getpriv();
-    TreeEntry *e = _getTreeEntry(p, from_path);
-    TreeDiffEntry *tde = _getTreeDiffEntry(p, from_path);
-    if (e == NULL && tde == NULL) return -ENOENT;
-    if (tde != NULL && tde->type == TreeDiffEntry::DeletedDir)
-        return -ENOENT;
+    FUSE_LOG("FUSE ori_rename(from_path=\"%s\", to_path=\"%s\")",
+            from_path, to_path);
 
-    /*bool is_dir = (e != NULL && e->type == TreeEntry::Tree) ||
-        (tde != NULL && tde->type == TreeDiffEntry::NewDir);*/
+    ori_priv *p = ori_getpriv();
+    ExtendedTreeEntry *ete = _getETE(p, from_path);
+    if (ete == NULL) return -ENOENT;
 
     p->startWrite();
 
-    TreeDiffEntry newTde;
-    newTde.type = TreeDiffEntry::Renamed;
-    newTde.filepath = from_path;
+    // Check if file exists (can't rename to existing file)
+    ExtendedTreeEntry *dest_ete = _getETE(p, to_path);
+    if (dest_ete != NULL) {
+        TreeDiffEntry tde(to_path, dest_ete->te.type == TreeEntry::Tree ?
+                TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile);
+        p->merge(tde);
+        p->commitWrite();
+        p->startWrite();
+    }
+
+    TreeDiffEntry newTde(from_path, TreeDiffEntry::Renamed);
     newTde.newFilename = to_path;
-    if (p->currTreeDiff->merge(newTde)) {
+    if (p->merge(newTde)) {
         p->commitWrite();
     }
 
@@ -813,10 +871,10 @@ main(int argc, char *argv[])
     if (config.repo_path != NULL) {
         if (!Util_FileExists(config.repo_path)) {
             mkdir(config.repo_path, 0755);
-        }
-        FUSE_LOG("Creating new repository %s", config.repo_path);
-	if (LocalRepo_Init(config.repo_path) != 0) {
-            return 1;
+            FUSE_LOG("Creating new repository %s", config.repo_path);
+            if (LocalRepo_Init(config.repo_path) != 0) {
+                return 1;
+            }
         }
     }
 

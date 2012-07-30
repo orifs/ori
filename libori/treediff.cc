@@ -19,6 +19,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include "treediff.h"
 #include "debug.h"
@@ -28,6 +30,30 @@
 
 using namespace std;
 
+TreeDiffEntry::TreeDiffEntry()
+    : type(Noop)
+{
+}
+
+TreeDiffEntry::TreeDiffEntry(const std::string &filepath, DiffType t)
+    : type(t), filepath(filepath)
+{
+}
+
+void TreeDiffEntry::_diffAttrs(const AttrMap &a_old, const AttrMap &a_new)
+{
+    for (AttrMap::const_iterator it = a_new.begin();
+            it != a_new.end();
+            it++) {
+        // TODO: handle deletion of attrs?
+        AttrMap::const_iterator old_it = a_old.find((*it).first);
+        if (old_it == a_old.end())
+            newAttrs.insert((*it));
+        if ((*old_it).second != (*it).second)
+            newAttrs.insert(*it);
+    }
+}
+
 /*
  * TreeDiff
  */
@@ -35,6 +61,7 @@ TreeDiff::TreeDiff()
 {
 }
 
+// TODO: 
 void
 TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 {
@@ -156,6 +183,7 @@ int _diffToDirHelper(void *arg, const char *path)
             diffEntry.type = TreeDiffEntry::NewFile;
             diffEntry.newFilename = fullPath;
         }
+        diffEntry.newAttrs.setFromFile(fullPath);
         sd->td->append(diffEntry);
         return 0;
     }
@@ -168,6 +196,7 @@ int _diffToDirHelper(void *arg, const char *path)
             diffEntry.type = TreeDiffEntry::DeletedFile;
             sd->td->append(diffEntry);
             diffEntry.type = TreeDiffEntry::NewDir;
+            diffEntry.newAttrs.setFromFile(fullPath);
             sd->td->append(diffEntry);
         }
         return 0;
@@ -179,23 +208,21 @@ int _diffToDirHelper(void *arg, const char *path)
         sd->td->append(diffEntry);
         diffEntry.type = TreeDiffEntry::NewFile;
         diffEntry.newFilename = fullPath;
+        diffEntry.newAttrs.setFromFile(fullPath);
         sd->td->append(diffEntry);
         return 0;
     }
 
     // Check if file is modified
-    
-    struct stat st_buf;
-    if (lstat(path, &st_buf) < 0) {
-        perror("lstat");
-        return 0;
-    }
+
+    AttrMap newAttrs;
+    newAttrs.setFromFile(fullPath);
 
     bool modified = false;
     if (te.type == TreeEntry::Blob) {
         ObjectInfo info = sd->repo->getObjectInfo(te.hash);
-        if (info.payload_size != (size_t)st_buf.st_size ||
-                st_buf.st_mtime >= sd->commit->getTime()) {
+        if (info.payload_size != newAttrs.getAs<size_t>(ATTR_FILESIZE) ||
+                newAttrs.getAs<time_t>(ATTR_MTIME) >= sd->commit->getTime()) {
 
             std::string newHash = Util_HashFile(fullPath);
             modified = newHash != te.hash;
@@ -205,8 +232,8 @@ int _diffToDirHelper(void *arg, const char *path)
         LargeBlob lb(sd->repo);
         Object::sp lbObj(sd->repo->getObject(te.hash));
         lb.fromBlob(lbObj->getPayload());
-        if (lb.totalSize() != (size_t)st_buf.st_size ||
-                st_buf.st_mtime >= sd->commit->getTime()) {
+        if (lb.totalSize() != newAttrs.getAs<size_t>(ATTR_FILESIZE) ||
+                newAttrs.getAs<time_t>(ATTR_MTIME) >= sd->commit->getTime()) {
 
             std::string newHash = Util_HashFile(fullPath);
             modified = newHash != te.largeHash;
@@ -216,6 +243,9 @@ int _diffToDirHelper(void *arg, const char *path)
     if (modified) {
         diffEntry.type = TreeDiffEntry::Modified;
         diffEntry.newFilename = fullPath;
+
+        diffEntry._diffAttrs(te.attrs, newAttrs);
+
         sd->td->append(diffEntry);
         return 0;
     }
@@ -285,6 +315,7 @@ void TreeDiff::append(const TreeDiffEntry &to_append)
 
 bool TreeDiff::merge(const TreeDiffEntry &to_merge)
 {
+    assert(to_merge.type != TreeDiffEntry::Noop);
     assert(to_merge.filepath != "");
 
     // Special case for rename
@@ -312,7 +343,9 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
         (to_merge.type == TreeDiffEntry::Modified)
        )
     {
-        e->newFilename = to_merge.newFilename;
+        if (e->newFilename == "" || to_merge.newFilename != "")
+            e->newFilename = to_merge.newFilename;
+        e->newAttrs.mergeFrom(to_merge.newAttrs);
         return false;
     }
     else if ((e->type == TreeDiffEntry::NewFile &&
@@ -327,8 +360,7 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
     else if (e->type == TreeDiffEntry::Modified &&
              to_merge.type == TreeDiffEntry::DeletedFile)
     {
-        e->type = TreeDiffEntry::Noop;
-        _resetLatestEntry(e->filepath);
+        e->type = TreeDiffEntry::DeletedFile;
         return false;
     }
     else if ((e->type == TreeDiffEntry::DeletedFile &&
@@ -356,22 +388,23 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         const TreeDiffEntry &tde = entries[i];
         if (tde.type == TreeDiffEntry::Noop) continue;
 
-        //printf("Applying %c   %s\n", tde.type, tde.filepath.c_str());
-        putc(tde.type, stdout);
+        printf("Applying %c   %s (%s)\n", tde.type, tde.filepath.c_str(),
+                tde.newFilename.c_str());
+        //if (i % 80 == 0 && i > 0) putc('\n', stdout);
+        //putc(tde.type, stdout);
         if (tde.type == TreeDiffEntry::NewFile) {
-            TreeEntry te;
             pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
-            te.hash = hashes.first;
-            te.largeHash = hashes.second;
-            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
-                TreeEntry::Blob;
-            // TODO te.mode
-
+            TreeEntry te = TreeEntry::fromFile(tde.newFilename, hashes.first,
+                    hashes.second);
+            te.attrs.mergeFrom(tde.newAttrs);
+            assert(te.hasBasicAttrs());
             flat.insert(make_pair(tde.filepath, te));
         }
         else if (tde.type == TreeDiffEntry::NewDir) {
             TreeEntry te;
             te.type = TreeEntry::Tree;
+            te.attrs.mergeFrom(tde.newAttrs);
+            assert(te.hasBasicAttrs());
             flat.insert(make_pair(tde.filepath, te));
         }
         else if (tde.type == TreeDiffEntry::DeletedDir) {
@@ -395,13 +428,20 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
             flat.erase(tde.filepath);
         }
         else if (tde.type == TreeDiffEntry::Modified) {
-            TreeEntry te;
-            pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
-            te.hash = hashes.first;
-            te.largeHash = hashes.second;
-            te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
-                TreeEntry::Blob;
-            // TODO te.mode
+            TreeEntry te = flat[tde.filepath];
+            if (tde.newFilename != "") {
+                pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
+                te.hash = hashes.first;
+                te.largeHash = hashes.second;
+                te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                    TreeEntry::Blob;
+            }
+            else {
+                LOG("attribute-only diff");
+            }
+            
+            te.attrs.mergeFrom(tde.newAttrs);
+            assert(te.hasBasicAttrs());
 
             flat[tde.filepath] = te;
         }
@@ -416,8 +456,6 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         else {
             assert(false);
         }
-
-        if (i % 80 == 0) putc('\n', stdout);
     }
 
     /*for (Tree::Flat::iterator it = flat.begin();

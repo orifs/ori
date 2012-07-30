@@ -17,31 +17,86 @@
 #ifndef __TREE_H__
 #define __TREE_H__
 
+#include <cassert>
 #include <stdint.h>
 
 #include <string>
 #include <map>
 #include <vector>
 
+#define ATTR_FILESIZE "Ssize"
+#define ATTR_PERMS "Sperms"
+#define ATTR_USERNAME "Suser"
+#define ATTR_GROUPNAME "Sgroup"
+#define ATTR_CTIME "Sctime"
+#define ATTR_MTIME "Smtime"
+
+class AttrMap {
+    typedef std::map<std::string, std::string> _MapType;
+public:
+    AttrMap();
+
+    template <typename T>
+    T getAs(const std::string &attrName) {
+        assert(attrs.find(attrName) != attrs.end());
+        assert(attrs[attrName].size() >= sizeof(T));
+        return *(T *)attrs[attrName].data();
+    }
+
+    template <typename T>
+    void setAs(const std::string &attrName, const T &value) {
+        attrs[attrName].resize(sizeof(T));
+        memcpy(&attrs[attrName][0], &value, sizeof(T));
+    }
+
+    void setFromFile(const std::string &filename);
+    void setCreation(mode_t perms);
+    void mergeFrom(const AttrMap &other);
+
+
+    _MapType attrs;
+
+    // Mirrorring std::map functions
+    typedef _MapType::iterator iterator;
+    typedef _MapType::const_iterator const_iterator;
+    iterator begin() { return attrs.begin(); }
+    const_iterator begin() const { return attrs.begin(); }
+    iterator end() { return attrs.end(); }
+    const_iterator end() const { return attrs.end(); }
+
+    const_iterator find(const std::string &key) const { return attrs.find(key); }
+    void insert(const _MapType::value_type &val) { attrs.insert(val); }
+};
+
 class Repo;
+class Tree;
 class TreeEntry
 {
 public:
-    TreeEntry();
-    ~TreeEntry();
     enum EntryType {
 	Null,
 	Blob,
         LargeBlob,
 	Tree
     };
+
+    TreeEntry();
+    TreeEntry(EntryType, size_t, std::string, std::string, std::string objHash);
+    ~TreeEntry();
+    static TreeEntry fromFile(const std::string &filename,
+            const std::string &hash,
+            const std::string &largeHash);
+
     EntryType	type;
-    uint16_t	mode;
+    AttrMap attrs;
+
     std::string hash;
     std::string largeHash;
 
     // TODO: not sure this is the best place
     void extractToFile(const std::string &filename, Repo *src);
+
+    bool hasBasicAttrs();
 };
 
 class Tree
