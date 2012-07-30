@@ -241,7 +241,12 @@ size_t SshResponseParser::getDataLength(const std::string &line) const {
 }
 
 std::string SshResponseParser::getData(size_t len) {
-    assert(len > 0);
+    /*
+     * XXX: Replace this assert once we guarentee that the empty object
+     * e3b0.... is never transmitted over the wire.
+     *
+     * assert(len > 0);
+     */
     assert(off + len <= text.size());
     size_t oldOff = off;
     off += len;
