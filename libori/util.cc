@@ -373,14 +373,14 @@ Util_RawHashToHex(uint8_t hash[SHA256_DIGEST_LENGTH])
 vector<string>
 Util_PathToVector(const string &path)
 {
-    int pos = 0;
+    size_t pos = 0;
     vector<string> rval;
 
     if (path[0] == '/')
         pos = 1;
 
     while (pos < path.length()) {
-        int end = path.find('/', pos);
+        size_t end = path.find('/', pos);
         if (end == path.npos) {
             rval.push_back(path.substr(pos));
             break;
@@ -434,7 +434,7 @@ int Util_SetBlocking(int fd, bool block) {
 void
 Util_PrintHex(const std::string &data, off_t off, size_t limit)
 {
-    const int row_size = 16;
+    const size_t row_size = 16;
     bool stop = false;
 
     //size_t num_printed = 0;

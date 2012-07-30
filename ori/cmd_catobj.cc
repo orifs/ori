@@ -32,7 +32,7 @@ extern LocalRepo repository;
 int
 cmd_catobj(int argc, const char *argv[])
 {
-    size_t len;
+    long len;
     const unsigned char *rawBuf;
     string buf;
     bool hex = false;

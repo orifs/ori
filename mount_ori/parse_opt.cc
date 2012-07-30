@@ -8,7 +8,7 @@
 static struct fuse_opt mount_ori_opts[] = {
     MOUNT_ORI_OPT("repo=%s", repo_path, 0),
     MOUNT_ORI_OPT("clone=%s", clone_path, 0),
-    FUSE_OPT_END
+    { NULL, 0, 0 }, // FUSE_OPT_END: Macro incompatible with C++
 };
 
 static int mount_ori_opt_proc(void *data, const char *arg, int key, struct
