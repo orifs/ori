@@ -83,6 +83,14 @@ ori_priv::startWrite()
     }
 }
 
+bool
+ori_priv::merge(const TreeDiffEntry &tde)
+{
+    assert(currTreeDiff != NULL);
+    eteCache.invalidate(tde.filepath);
+    return currTreeDiff->merge(tde);
+}
+
 void
 ori_priv::commitWrite()
 {
@@ -106,6 +114,7 @@ ori_priv::commitWrite()
         delete currTreeDiff;
         currTreeDiff = NULL;
         currTempDir.reset();
+        eteCache.clear();
     }
     else {
         FUSE_LOG("commitWrite: nothing to commit");

@@ -26,6 +26,17 @@ public:
     std::string readAll();
     int copyToFile(const std::string &path);
     int copyToFd(int dstFd);
+
+    // High-level I/O
+    template <typename T>
+    T readNext() {
+        T rval;
+        read((uint8_t*)&rval, sizeof(T));
+        return rval;
+    }
+
+    /// Read Pascal-style string (1 byte length)
+    void readPStr(std::string &out);
 protected:
     std::string last_error;
     int last_errnum;
@@ -97,6 +108,21 @@ private:
     uint8_t in_buf[XZ_READ_BY];
 
     void setLzmaErr(const char *msg, lzma_ret ret);
+};
+
+
+
+// Writable strstream
+class strwstream
+{
+public:
+    strwstream();
+    strwstream(const std::string &);
+    void write(const void *, size_t);
+    void writePStr(const std::string &str);
+    const std::string &str() const;
+private:
+    std::string buf;
 };
 
 #endif

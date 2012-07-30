@@ -37,10 +37,14 @@ struct TreeDiffEntry
 	// ModifiedDiff = 'M'
     } type;
 
+    TreeDiffEntry();
+    TreeDiffEntry(const std::string &filepath, DiffType t);
+
     std::string filepath; // path relative to repo, with leading '/'
-    // TODO: uint16_t newmode;
-    // std::string diff;
     std::string newFilename; // filename of a file containing the new contents
+    AttrMap newAttrs;
+
+    void _diffAttrs(const AttrMap &a_old, const AttrMap &a_new);
 };
 
 class TreeDiff

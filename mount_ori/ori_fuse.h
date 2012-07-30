@@ -22,6 +22,15 @@ struct mount_ori_config {
 
 void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf);
 
+struct ExtendedTreeEntry
+{
+    ExtendedTreeEntry() : changedData(false){}
+    bool changedData;
+
+    TreeEntry te;
+    TreeDiffEntry tde;
+};
+
 // ori_priv.cc
 struct ori_priv
 {
@@ -38,6 +47,7 @@ struct ori_priv
     LRUCache<std::string, Tree, 128> treeCache;
     LRUCache<std::string, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
     LRUCache<std::string, ObjectInfo, 128> objInfoCache;
+    LRUCache<std::string, ExtendedTreeEntry, 128> eteCache;
 
     LocalRepo *repo;
     Commit *head;
@@ -50,6 +60,7 @@ struct ori_priv
 
     // Initialize temporary written data
     void startWrite();
+    bool merge(const TreeDiffEntry &tde);
     // Commit temp data to repo
     void commitWrite();
 };

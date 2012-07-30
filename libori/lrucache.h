@@ -64,7 +64,15 @@ public:
         return it != cache.end();
     }
     void invalidate(K key) {
-        NOT_IMPLEMENTED(false);
+        typename lru_cache::iterator it = cache.find(key);
+        if (it == cache.end()) return;
+
+        lru.erase((*it).second.second);
+        cache.erase(it);
+    }
+    void clear() {
+        lru.clear();
+        cache.clear();
     }
 private:
     void evict()

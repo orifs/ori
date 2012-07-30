@@ -76,6 +76,17 @@ retryWrite:
     return totalWritten;
 }
 
+// High-level I/O
+void bytestream::readPStr(std::string &out)
+{
+    uint8_t len;
+    read(&len, 1);
+    out.resize(len);
+    read((uint8_t*)&out[0], len);
+}
+
+
+// Error handling
 
 void bytestream::setErrno(const char *msg) {
     char buf[512];
@@ -294,4 +305,41 @@ void lzmastream::setLzmaErr(const char *msg, lzma_ret ret)
     snprintf(buf, 512, "lzmastream %s: %s (%d)\n", msg, lzma_ret_str(ret), ret);
     last_error.assign(buf);
     last_errnum = ret;
+}
+
+
+/*
+ * strwstream
+ */
+
+strwstream::strwstream()
+{
+}
+
+strwstream::strwstream(const std::string &initial)
+    : buf(initial)
+{
+}
+
+void strwstream::write(const void *bytes, size_t n)
+{
+    if (buf.capacity() - buf.size() < n)
+        buf.reserve(buf.capacity()+n);
+
+    size_t oldSize = buf.size();
+    buf.resize(oldSize+n);
+    memcpy(&buf[oldSize], bytes, n);
+}
+
+void strwstream::writePStr(const std::string &str)
+{
+    assert(str.size() <= 255);
+    uint8_t size = str.size();
+    write(&size, 1);
+    write(str.data(), size);
+}
+
+const std::string &strwstream::str() const
+{
+    return buf;
 }

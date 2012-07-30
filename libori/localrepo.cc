@@ -375,6 +375,15 @@ LocalRepo::verifyObject(const string &objId)
 	    if (o->computeHash() != objId)
 		return "Object hash mismatch!"; 
 
+            Tree t;
+            t.fromBlob(o->getPayload());
+            for (map<string, TreeEntry>::iterator it = t.tree.begin();
+                    it != t.tree.end();
+                    it++) {
+                if (!(*it).second.hasBasicAttrs())
+                    return string("TreeEntry ") + (*it).first + " missing basic attrs";
+            }
+
 	    // XXX: Verify subtrees and blobs exist
 	    break;
 	}
