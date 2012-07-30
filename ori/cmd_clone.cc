@@ -86,6 +86,9 @@ cmd_clone(int argc, const char *argv[])
     } else {
 	newRoot = argv[2];
     }
+    if (!Util_FileExists(newRoot)) {
+        mkdir(newRoot.c_str(), 0755);
+    }
     status = LocalRepo_Init(newRoot);
     if (status != 0) {
         printf("Failed to construct an empty repository!\n");
