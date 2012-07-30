@@ -77,7 +77,7 @@ cmd_filelog(int argc, const char *argv[])
 	cout << "Author:  " << c.getUser() << endl;
 	// XXX: print file id?
 	cout << "Date:    " << timeStr << endl;
-	cout << "%s" << c.getMessage() << endl << endl;
+	cout << c.getMessage() << endl << endl;
     }
 
     return 0;

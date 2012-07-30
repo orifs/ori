@@ -45,7 +45,7 @@ cmd_log(int argc, const char *argv[])
 	cout << "Parents: " << c.getParents().first << endl;
 	cout << "Author:  " << c.getUser() << endl;
 	cout << "Date:    " << timeStr << endl;
-	cout << "%s" << c.getMessage() << endl << endl;
+	cout << c.getMessage() << endl << endl;
 
 	commit = c.getParents().first;
 	// XXX: Handle merge cases
