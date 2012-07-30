@@ -133,7 +133,7 @@ SnapshotIndex::rewrite()
         indexLine = (*it).second + " " + (*it).second + "\n";
 
         status = write(fdNew, indexLine.data(), indexLine.size());
-        assert(status == indexLine.size());
+        assert(status == (int)indexLine.size());
     }
 
     Util_RenameFile(newIndex, fileName);

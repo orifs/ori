@@ -175,7 +175,7 @@ public:
             assert(false);
             return -1;
         }
-        assert(status == toRead);
+        assert(status == (int)toRead);
 
         fileOff += status;
         *l += status;
@@ -245,7 +245,7 @@ LargeBlob::extractFile(const string &path)
             return;
         }
 
-        assert(status == tmp.length());
+        assert(status == (int)tmp.length());
     }
 
 #ifdef DEBUG
@@ -283,7 +283,7 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off)
         return -EIO;
     }
 
-    size_t to_read = MIN(left, s);
+    size_t to_read = MIN((size_t)left, s);
 
     Object::sp o(repo->getObject((*it).second.hash));
     assert(o->getInfo().type == Object::Blob);

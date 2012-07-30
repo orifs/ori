@@ -123,7 +123,7 @@ HttpRepo::listObjects()
     }
 
     // Parse response
-    for (int offset = 0; offset < index.size();)
+    for (size_t offset = 0; offset < index.size();)
     {
         string hash;
         string objInfo;
@@ -168,7 +168,7 @@ HttpRepo::listCommits()
     }
 
     // Parse response
-    for (int offset = 0; offset < index.size();)
+    for (size_t offset = 0; offset < index.size();)
     {
         int16_t bsize = *(int16_t*)&index[offset];
         bsize = ntohs(bsize);

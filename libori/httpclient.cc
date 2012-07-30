@@ -61,14 +61,14 @@ HttpClient::HttpClient(const std::string &remotePath)
 
     portPos = tmp.find(':');
     pathPos = tmp.find('/');
-    if (portPos != -1) {
+    if (portPos != string::npos) {
         assert(portPos < pathPos);
         remotePort = tmp.substr(portPos + 1, pathPos - portPos - 1);
     } else {
         portPos = pathPos;
         remotePort = "80";
     }
-    assert(pathPos != -1);
+    assert(pathPos != string::npos);
 
     remoteHost = tmp.substr(0, portPos);
     remoteRepo = tmp.substr(pathPos + 1);

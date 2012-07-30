@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fcntl.h>
 
 #include <unistd.h>
 #include <sys/param.h>
@@ -15,6 +16,9 @@
 #include <queue>
 #include <set>
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
+
 using namespace std;
 
 #include "localrepo.h"
@@ -23,6 +27,110 @@ using namespace std;
 #include "scan.h"
 #include "debug.h"
 #include "sshrepo.h"
+
+int
+LocalRepo_Init(const std::string &rootPath)
+{
+    string oriDir;
+    string tmpDir;
+    string objDir;
+    string versionFile;
+    string uuidFile;
+    int fd;
+
+    // Create directory
+    oriDir = rootPath + ORI_PATH_DIR;
+    if (mkdir(oriDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori' directory");
+        return 1;
+    }
+
+    // Create tmp directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/tmp";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/tmp' directory");
+        return 1;
+    }
+
+    // Create objs directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/objs";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/objs' directory");
+        return 1;
+    }
+
+    // Create refs directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs' directory");
+        return 1;
+    }
+
+    // Create refs/heads directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs/heads";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs/heads' directory");
+        return 1;
+    }
+
+    // Create default branch
+    tmpDir = rootPath + ORI_PATH_HEADS + "/default";
+    if (!Util_WriteFile(EMPTY_COMMIT, sizeof(EMPTY_COMMIT) - 1, tmpDir))
+    {
+	perror("Could not create default branch");
+	return 1;
+    }
+
+    // Set branch name
+    if (!Util_WriteFile("default", 7, rootPath + ORI_PATH_BRANCH)) {
+	perror("Could not create branch file");
+	return 1;
+    }
+
+    // Create refs/remotes directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/refs/remotes";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/refs/remotes' directory");
+        return 1;
+    }
+
+    // Create first level of object sub-directories
+    for (int i = 0; i < 256; i++)
+    {
+	stringstream hexval;
+	string path = rootPath + ORI_PATH_OBJS;
+
+	hexval << hex << setw(2) << setfill('0') << i;
+	path += hexval.str();
+
+	mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+    }
+
+    // Construct UUID
+    uuidFile = rootPath + ORI_PATH_UUID;
+    fd = open(uuidFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0660);
+    if (fd < 0) {
+        perror("Could not create UUID file");
+        return 1;
+    }
+
+    std::string generated_uuid = Util_NewUUID();
+    write(fd, generated_uuid.data(), generated_uuid.length());
+    close(fd);
+    chmod(uuidFile.c_str(), 0440);
+
+    // Construct version file
+    versionFile = rootPath + ORI_PATH_VERSION;
+    fd = open(versionFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0660);
+    if (fd < 0) {
+        perror("Could not create version file");
+        return 1;
+    }
+    write(fd, "ORI1.0", 6);
+    close(fd);
+
+    return 0;
+}
 
 /*
  * LocalRepoLock
@@ -50,7 +158,8 @@ LocalRepoLock::~LocalRepoLock()
  ********************************************************************/
 
 LocalRepo::LocalRepo(const string &root)
-    : opened(false)
+    : opened(false),
+      remoteRepo(NULL)
 {
     rootPath = (root == "") ? findRootPath() : root;
 }
@@ -124,13 +233,36 @@ LocalRepo::lock()
 }
 
 /*
+ * Remote Operations
+ */
+void
+LocalRepo::setRemote(Repo *r)
+{
+    remoteRepo = r;
+}
+
+void
+LocalRepo::clearRemote()
+{
+    remoteRepo = NULL;
+}
+
+/*
  * Object Operations
  */
 
 Object::sp LocalRepo::getObject(const std::string &objId)
 {
     LocalObject::sp o(getLocalObject(objId));
-    if (!o) return Object::sp();
+
+    if (!o) {
+	if (remoteRepo != NULL)
+	    // XXX: Save object locally
+	    return remoteRepo->getObject(objId);
+	else
+	    return Object::sp();
+    }
+
     return Object::sp(o);
 }
 
@@ -787,7 +919,13 @@ LocalRepo::gc()
 bool
 LocalRepo::hasObject(const string &objId)
 {
-    return index.hasObject(objId);
+    bool val = index.hasObject(objId);
+
+    if (val && remoteRepo != NULL) {
+	val = remoteRepo->hasObject(objId);
+    }
+
+    return val;
 }
 
 /*
@@ -796,7 +934,13 @@ LocalRepo::hasObject(const string &objId)
 ObjectInfo
 LocalRepo::getObjectInfo(const string &objId)
 {
-    return index.getInfo(objId);
+    if (index.hasObject(objId)) {
+	return index.getInfo(objId);
+    }
+    if (remoteRepo != NULL) {
+	return remoteRepo->getObjectInfo(objId);
+    }
+    return ObjectInfo();
 }
 
 /*

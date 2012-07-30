@@ -18,6 +18,7 @@ void ori_fuse_log(const char *what, ...);
 // parse_opt.cc
 struct mount_ori_config {
     char *repo_path;
+    char *clone_path;
 };
 
 void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf);

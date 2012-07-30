@@ -30,13 +30,27 @@
 #include <sys/types.h>
 #include <dirent.h>
 
+#include <string>
+#include <tr1/memory>
+
+using namespace std;
+
 #include "debug.h"
 #include "util.h"
+#include "sshclient.h"
+#include "sshrepo.h"
+#include "httpclient.h"
+#include "httprepo.h"
 
 #define NULL_FH 0
 
 #define CONTROL_FILENAME ".ori_control"
 #define CONTROL_FILEPATH "/" CONTROL_FILENAME
+
+mount_ori_config config;
+Repo *remoteRepo;
+std::tr1::shared_ptr<HttpClient> httpClient;
+std::tr1::shared_ptr<SshClient> sshClient;
 
 int _numComponents(const char *path)
 {
@@ -698,6 +712,32 @@ ori_rename(const char *from_path, const char *to_path)
     return 0;
 }
 
+/// XXX: Copied from ori/repo_cmd.cc
+int
+getRepoFromURL(const string &url,
+               Repo **r,
+	       std::tr1::shared_ptr<HttpClient> &hc,
+	       std::tr1::shared_ptr<SshClient> &sc)
+{
+    if (Util_IsPathRemote(url.c_str())) {
+	if (strncmp(url.c_str(), "http://", 7) == 0) {
+	    hc.reset(new HttpClient(url));
+	    *r = new HttpRepo(hc.get());
+	    hc->connect();
+	} else {
+	    sc.reset(new SshClient(url));
+	    *r = new SshRepo(sc.get());
+	    sc->connect();
+	}
+    } else {
+	char *path = realpath(url.c_str(), NULL);
+	*r = new LocalRepo(path);
+	((LocalRepo *)*r)->open(path);
+	free(path);
+    }
+
+    return 0; // TODO: errors?
+}
 
 
 /**
@@ -706,13 +746,32 @@ ori_rename(const char *from_path, const char *to_path)
 static void *
 ori_init(struct fuse_conn_info *conn)
 {
-    char *datastore = (char *)fuse_get_context()->private_data;
-    if (datastore == NULL) {
+    //mount_ori_config *config =
+    // (mount_ori_config *)fuse_get_context()->private_data;
+
+    if (config.repo_path == NULL) {
         FUSE_LOG("no repo selected");
         exit(1);
     }
-    
-    ori_priv *priv = new ori_priv(datastore);
+
+    if (config.clone_path != NULL) {
+        // Construct remote and set head
+	getRepoFromURL(config.clone_path, &remoteRepo, httpClient, sshClient);
+    }
+
+    ori_priv *priv = new ori_priv(config.repo_path);
+
+    if (config.clone_path != NULL) {
+	string revId = remoteRepo->getHead();
+        priv->repo->updateHead(revId);
+        FUSE_LOG("InstaClone: Updating repository head %s", revId.c_str());
+
+	priv->repo->setRemote(remoteRepo);
+        priv->_resetHead();
+
+        FUSE_LOG("InstaClone: Enabled!");
+    }
+
     FUSE_LOG("ori filesystem starting ...");
 
     return priv;
@@ -772,6 +831,14 @@ ori_setup_ori_oper()
     ori_oper.utimens = ori_utimens;
 }
 
+void
+usage()
+{
+    printf("Usage:\n");
+    printf("mount_ori -o repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("mount_ori -o clone=[REMOTE PATH],repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -779,27 +846,38 @@ main(int argc, char *argv[])
 
     // Parse command line arguments
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-    mount_ori_config conf;
-    memset(&conf, 0, sizeof(mount_ori_config));
-    mount_ori_parse_opt(&args, &conf);
+    memset(&config, 0, sizeof(mount_ori_config));
+    mount_ori_parse_opt(&args, &config);
 
-    if (conf.repo_path == NULL) {
-        printf("Usage:\n");
+    if (config.repo_path == NULL) {
+	usage();
         exit(1);
     }
 
-    printf("Opening repo at %s\n", conf.repo_path);
+    if (config.clone_path != NULL)
+	printf("InstaCloning from %s\n", config.clone_path);
+    printf("Opening repo at %s\n", config.repo_path);
 
     // Set the repo path
-    char *datastore = realpath(conf.repo_path, NULL);
+    config.repo_path = realpath(config.repo_path, NULL);
     //ori_priv *priv = new ori_priv();
     //priv->datastore = realpath(conf.repo_path, NULL);
 
     FUSE_LOG("main");
-    FUSE_LOG("%d", args.argc);
-    for (int i = 0; i < args.argc; i++)
-        FUSE_LOG("%s", args.argv[i]);
+    //FUSE_LOG("%d", args.argc);
+    //for (int i = 0; i < args.argc; i++)
+    //    FUSE_LOG("%s", args.argv[i]);
 
-    return fuse_main(args.argc, args.argv, &ori_oper, datastore);
+    if (config.repo_path != NULL) {
+        if (!Util_FileExists(config.repo_path)) {
+            mkdir(config.repo_path, 0755);
+        }
+        FUSE_LOG("Creating new repository %s", config.repo_path);
+	if (LocalRepo_Init(config.repo_path) != 0) {
+            return 1;
+        }
+    }
+
+    return fuse_main(args.argc, args.argv, &ori_oper, &config);
 }
 
