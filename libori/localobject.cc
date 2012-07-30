@@ -215,7 +215,7 @@ LocalObject::getFileSize()
         perror("fstat");
         return 0;
     }
-    assert(fileSize == sb.st_size);
+    assert(fileSize == (size_t)sb.st_size);
 #endif
 
     return fileSize;
@@ -593,11 +593,11 @@ LocalObject::getBackref()
     std::vector<uint8_t> buf;
     buf.resize(backrefSize);
     int status = pread(fd, &buf[0], backrefSize, md_off);
-    assert(status == backrefSize);
+    assert(status == (int)backrefSize);
 
     // XXX: more generic way to iterate over metadata
     uint8_t *ptr = &buf[0];
-    while ((ptr - &buf[0]) < backrefSize) {
+    while ((ptr - &buf[0]) < (int)backrefSize) {
         MdType md_type = _getMdTypeForStr((const char *)ptr);
         size_t md_len = *((uint16_t*)(ptr+2));
 
