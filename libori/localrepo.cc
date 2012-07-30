@@ -247,6 +247,12 @@ LocalRepo::clearRemote()
     remoteRepo = NULL;
 }
 
+bool
+LocalRepo::hasRemote()
+{
+    return (remoteRepo != NULL);
+}
+
 /*
  * Object Operations
  */

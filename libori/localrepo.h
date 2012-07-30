@@ -56,6 +56,7 @@ public:
     // Remote Repository (Thin/Insta-clone)
     void setRemote(Repo *r);
     void clearRemote();
+    bool hasRemote();
 
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,
