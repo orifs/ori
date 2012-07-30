@@ -871,10 +871,10 @@ main(int argc, char *argv[])
     if (config.repo_path != NULL) {
         if (!Util_FileExists(config.repo_path)) {
             mkdir(config.repo_path, 0755);
-        }
-        FUSE_LOG("Creating new repository %s", config.repo_path);
-	if (LocalRepo_Init(config.repo_path) != 0) {
-            return 1;
+            FUSE_LOG("Creating new repository %s", config.repo_path);
+            if (LocalRepo_Init(config.repo_path) != 0) {
+                return 1;
+            }
         }
     }
 
