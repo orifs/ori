@@ -158,7 +158,8 @@ LocalRepoLock::~LocalRepoLock()
  ********************************************************************/
 
 LocalRepo::LocalRepo(const string &root)
-    : opened(false)
+    : opened(false),
+      remoteRepo(NULL)
 {
     rootPath = (root == "") ? findRootPath() : root;
 }
@@ -911,7 +912,7 @@ LocalRepo::hasObject(const string &objId)
 {
     bool val = index.hasObject(objId);
 
-    if (!val && remoteRepo != NULL) {
+    if (val && remoteRepo != NULL) {
 	val = remoteRepo->hasObject(objId);
     }
 

@@ -46,7 +46,7 @@ using namespace std;
 #define CONTROL_FILEPATH "/" CONTROL_FILENAME
 
 mount_ori_config config;
-std::tr1::shared_ptr<Repo> remoteRepo;
+Repo *remoteRepo;
 std::tr1::shared_ptr<HttpClient> httpClient;
 std::tr1::shared_ptr<SshClient> sshClient;
 
@@ -657,24 +657,24 @@ ori_rename(const char *from_path, const char *to_path)
 /// XXX: Copied from ori/repo_cmd.cc
 int
 getRepoFromURL(const string &url,
-	       std::tr1::shared_ptr<Repo> &r,
+               Repo **r,
 	       std::tr1::shared_ptr<HttpClient> &hc,
 	       std::tr1::shared_ptr<SshClient> &sc)
 {
     if (Util_IsPathRemote(url.c_str())) {
 	if (strncmp(url.c_str(), "http://", 7) == 0) {
 	    hc.reset(new HttpClient(url));
-	    r.reset(new HttpRepo(hc.get()));
+	    *r = new HttpRepo(hc.get());
 	    hc->connect();
 	} else {
 	    sc.reset(new SshClient(url));
-	    r.reset(new SshRepo(sc.get()));
+	    *r = new SshRepo(sc.get());
 	    sc->connect();
 	}
     } else {
 	char *path = realpath(url.c_str(), NULL);
-	r.reset(new LocalRepo(path));
-	((LocalRepo *)r.get())->open(path);
+	*r = new LocalRepo(path);
+	((LocalRepo *)*r)->open(path);
 	free(path);
     }
 
@@ -690,32 +690,26 @@ ori_init(struct fuse_conn_info *conn)
 {
     //mount_ori_config *config =
     // (mount_ori_config *)fuse_get_context()->private_data;
+
     if (config.repo_path == NULL) {
         FUSE_LOG("no repo selected");
         exit(1);
     }
 
     if (config.clone_path != NULL) {
-	LocalRepo dstRepo;
-
         // Construct remote and set head
-	getRepoFromURL(config.clone_path, remoteRepo, httpClient, sshClient);
-
-	if (!dstRepo.open(config.repo_path)) {
-            FUSE_LOG("Cannot open repository.");
-            exit(1);
-        }
-	string revId = remoteRepo->getHead();
-        dstRepo.updateHead(revId);
-	dstRepo.close();
-
-        FUSE_LOG("InstaClone: Updating repository head %s", revId.c_str());
+	getRepoFromURL(config.clone_path, &remoteRepo, httpClient, sshClient);
     }
 
     ori_priv *priv = new ori_priv(config.repo_path);
 
     if (config.clone_path != NULL) {
-	priv->repo->setRemote(remoteRepo.get());
+	string revId = remoteRepo->getHead();
+        priv->repo->updateHead(revId);
+        FUSE_LOG("InstaClone: Updating repository head %s", revId.c_str());
+
+	priv->repo->setRemote(remoteRepo);
+        priv->_resetHead();
 
         FUSE_LOG("InstaClone: Enabled!");
     }
@@ -820,7 +814,7 @@ main(int argc, char *argv[])
         if (!Util_FileExists(config.repo_path)) {
             mkdir(config.repo_path, 0755);
         }
-        FUSE_LOG("Creating new repository %s\n", config.repo_path);
+        FUSE_LOG("Creating new repository %s", config.repo_path);
 	if (LocalRepo_Init(config.repo_path) != 0) {
             return 1;
         }

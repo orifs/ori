@@ -143,7 +143,6 @@ LocalObject::open(const string &path, const string &hash)
     if (fd < 0) {
         perror("open");
         printf("object open error %s\n", path.c_str());
-        assert(false);
 	return -errno;
     }
 
