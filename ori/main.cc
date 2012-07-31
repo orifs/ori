@@ -36,6 +36,7 @@ using namespace std;
 #include "repo.h"
 #include "localrepo.h"
 #include "server.h"
+#include "fuse_cmd.h"
 
 LocalRepo repository;
 
@@ -364,21 +365,31 @@ main(int argc, char *argv[])
     }
 
     // Open the repository for all command except the following
+    bool has_repo = false;
     if (strcmp(argv[1], "clone") != 0 &&
         strcmp(argv[1], "help") != 0 &&
         strcmp(argv[1], "init") != 0 &&
         strcmp(argv[1], "selftest") != 0 &&
         strcmp(argv[1], "sshserver") != 0)
     {
-        if (!repository.open()) {
-            printf("No repository found!\n");
-            exit(1);
+        if (repository.open()) {
+            has_repo = true;
+            if (ori_open_log(&repository) < 0) {
+                printf("Couldn't open log!\n");
+                exit(1);
+            }
         }
+    }
 
-        if (ori_open_log(&repository) < 0) {
-            printf("Couldn't open log!\n");
-            exit(1);
-        }
+    if (strcmp(argv[1], "status") == 0 ||
+        strcmp(argv[1], "commit") == 0) {
+        if (OF_ControlPath().size() > 0)
+            has_repo = true;
+    }
+
+    if (!has_repo) {
+        printf("No repository found!\n");
+        exit(1);
     }
 
     idx = lookupcmd(argv[1]);

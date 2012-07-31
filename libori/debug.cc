@@ -56,6 +56,7 @@ ori_log(const char *fmt, ...)
     if (logfd == -1) {
 #ifdef DEBUG
         logfd = STDERR_FILENO;
+        return;
 #else
         return;
 #endif

@@ -25,6 +25,7 @@
 #include "scan.h"
 #include "util.h"
 #include "localrepo.h"
+#include "fuse_cmd.h"
 
 using namespace std;
 
@@ -43,6 +44,9 @@ usage_commit(void)
 int
 cmd_commit(int argc, const char *argv[])
 {
+    if (OF_RunCommand("commit"))
+        return 0;
+
     string msg;
     if (argc == 1) {
         msg = "No message.";

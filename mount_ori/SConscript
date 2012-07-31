@@ -7,6 +7,8 @@ src = [
     "parse_opt.cc",
     "ori_priv.cc",
     "logging.cc",
+    "ori_cmdoutput.cc",
+    "repo_cmd.cc",
 ]
 
 libs = [

@@ -23,6 +23,7 @@ struct mount_ori_config {
 
 void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf);
 
+// ori_priv.cc
 struct ExtendedTreeEntry
 {
     ExtendedTreeEntry() : changedData(false){}
@@ -32,7 +33,6 @@ struct ExtendedTreeEntry
     TreeDiffEntry tde;
 };
 
-// ori_priv.cc
 struct ori_priv
 {
     ori_priv(const std::string &repoPath);
@@ -64,7 +64,21 @@ struct ori_priv
     bool merge(const TreeDiffEntry &tde);
     // Commit temp data to repo
     void commitWrite();
+
+
+    // Output buffer for commands (ori_cmdoutput.cc)
+    std::string outputBuffer;
+    void printf(const char *fmt, ...);
+    size_t readOutput(char *buf, size_t n);
 };
 
 ori_priv *ori_getpriv();
 
+
+// repo_cmd.cc
+struct RepoCmd {
+    const char *cmd_name;
+    void (*func)(ori_priv *);
+};
+
+extern RepoCmd _commands[];

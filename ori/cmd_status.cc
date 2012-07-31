@@ -21,6 +21,7 @@
 #include <iostream>
 #include <iomanip>
 
+#include "fuse_cmd.h"
 #include "debug.h"
 #include "util.h"
 #include "localrepo.h"
@@ -32,6 +33,9 @@ extern LocalRepo repository;
 int
 cmd_status(int argc, const char *argv[])
 {
+    if (OF_RunCommand("status"))
+        return 0;
+
     Commit c;
     string tip = repository.getHead();
     if (tip != EMPTY_COMMIT) {

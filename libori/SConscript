@@ -25,6 +25,7 @@ src = [
     "sshrepo.cc",
     "treediff.cc",
     "tempdir.cc",
+    "fuse_cmd.cc",
 ]
 
 if os.name == 'posix':

@@ -41,11 +41,10 @@ using namespace std;
 #include "sshrepo.h"
 #include "httpclient.h"
 #include "httprepo.h"
+#include "fuse_cmd.h"
 
 #define NULL_FH 0
-
-#define CONTROL_FILENAME ".ori_control"
-#define CONTROL_FILEPATH "/" CONTROL_FILENAME
+#define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME
 
 mount_ori_config config;
 Repo *remoteRepo;
@@ -197,6 +196,7 @@ ori_getattr(const char *path, struct stat *stbuf)
 
     memset(stbuf, 0, sizeof(struct stat));
 
+    ori_priv *p = ori_getpriv();
     if (strcmp(path, "/") == 0) {
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
@@ -204,16 +204,15 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 2;
         return 0;
     }
-    else if (strcmp(path, CONTROL_FILEPATH) == 0) {
+    else if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
-        stbuf->st_mode = 0200 | S_IFREG;
+        stbuf->st_mode = 0600 | S_IFREG;
         stbuf->st_nlink = 1;
-        stbuf->st_size = 0;
+        stbuf->st_size = p->outputBuffer.size();
         return 0;
     }
 
-    ori_priv *p = ori_getpriv();
     ExtendedTreeEntry *ete = _getETE(p, path);
     if (ete == NULL) return -ENOENT;
 
@@ -260,7 +259,7 @@ static int
 ori_open(const char *path, struct fuse_file_info *fi)
 {
     FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
     }
 
@@ -301,8 +300,11 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
 {
     // TODO: deal with diffs
     FUSE_LOG("FUSE ori_read(path=\"%s\", size=%d, offset=%d)", path, size, offset);
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
-        return 0;
+
+    ori_priv *p = ori_getpriv();
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        size_t n = p->readOutput(buf, size);
+        return n;
     }
 
     if (fi->fh != NULL_FH) {
@@ -312,7 +314,6 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
         return res;
     }
 
-    ori_priv *p = ori_getpriv();
     ExtendedTreeEntry *ete = _getETE(p, path);
     if (ete == NULL) return -ENOENT;
     assert(!ete->changedData);
@@ -385,7 +386,7 @@ static int
 ori_unlink(const char *path)
 {
     FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
     }
 
@@ -422,10 +423,23 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
     FUSE_LOG("FUSE ori_write(path=\"%s\", size=%d, offset=%d)", path, size, offset);
 
     ori_priv *p = ori_getpriv();
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
-        // TODO
-        if (strncmp(buf, "commit", 6) == 0) {
-            p->commitWrite();
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        RepoCmd *cmd = &_commands[0];
+        while (true) {
+            if (cmd->cmd_name == NULL) {
+                char buffer[256];
+                sprintf(buffer, "Unrecognized command \"%%.%lus\"\n", size);
+                p->printf(buffer, buf);
+                printf(buffer, buf);
+                break;
+            }
+
+            if (strcmp(buf, cmd->cmd_name) == 0) {
+                cmd->func(p);
+                break;
+            }
+
+            cmd++;
         }
         return size;
     }
@@ -442,8 +456,8 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
         return -errno;
     }
 
-    // TODO: do this once per commit?
     TreeDiffEntry tde(path, TreeDiffEntry::Modified);
+    // TODO: do this once per commit?
     tde.newAttrs.setAs<size_t>(ATTR_FILESIZE, sb.st_size);
     if (p->merge(tde)) {
         p->commitWrite();
@@ -456,7 +470,7 @@ static int
 ori_truncate(const char *path, off_t length)
 {
     FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%s)", path, length);
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
     }
 
@@ -487,7 +501,7 @@ static int
 ori_chmod(const char *path, mode_t mode)
 {
     FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
     }
 
@@ -511,7 +525,7 @@ static int
 ori_chown(const char *path, uid_t uid, gid_t gid)
 {
     FUSE_LOG("FUSE ori_chown(path=\"%s\")", path);
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
     }
 
@@ -542,7 +556,7 @@ static int
 ori_utimens(const char *path, const struct timespec tv[2])
 {
     FUSE_LOG("FUSE ori_utimens(path=\"%s\")", path);
-    if (strcmp(path, CONTROL_FILEPATH) == 0) {
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
     }
 
@@ -587,7 +601,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     Tree *t = NULL;
     if (strcmp(path, "/") == 0) {
         t = p->headtree;
-        filler(buf, CONTROL_FILENAME, NULL, 0);
+        filler(buf, ORI_CONTROL_FILENAME, NULL, 0);
     }
     else {
         TreeEntry *e = _getTreeEntry(p, path);
