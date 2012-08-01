@@ -96,21 +96,8 @@ Repo::addBlob(Object::Type type, const string &blob)
 string
 Repo::addSmallFile(const string &path)
 {
-    string hash = Util_HashFile(path);
-    string objPath;
-
-    if (hash == "") {
-	perror("Unable to hash file");
-	return "";
-    }
-
     diskstream ds(path);
-    if (addObject(Object::Blob, hash, ds.readAll()) < 0) {
-        perror("Unable to copy file");
-        return "";
-    }
-
-    return hash;
+    return addBlob(Object::Blob, ds.readAll());
 }
 
 /*
@@ -126,13 +113,15 @@ Repo::addLargeFile(const string &path)
     lb.chunkFile(path);
     blob = lb.getBlob();
 
-    if (!hasObject(hash)) {
+    // TODO: this should only be called when committing,
+    // we'll take care of backrefs then
+    /*if (!hasObject(hash)) {
         map<uint64_t, LBlobEntry>::iterator it;
 
         for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
             addBackref((*it).second.hash);
         }
-    }
+    }*/
 
     return make_pair(addBlob(Object::LargeBlob, blob), lb.hash);
 }

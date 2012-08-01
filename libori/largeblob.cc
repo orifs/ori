@@ -135,14 +135,16 @@ public:
 	    ss << hex << setw(2) << setfill('0') << (int)hash[i];
 	}
 
+        const string &asc_hash = ss.str();
         // Add the fragment into the repository
         // XXX: Journal for cleanup!
         string blob = string((const char *)b, l);
         //blob.set(b, l);
-        lb->repo->addBlob(Object::Blob, blob);
+        //lb->repo->addBlob(Object::Blob, blob);
+        lb->repo->addObject(Object::Blob, asc_hash, blob);
 
         // Add the fragment to the LargeBlob object.
-	lb->parts.insert(make_pair(lbOff, LBlobEntry(ss.str(), l)));
+	lb->parts.insert(make_pair(lbOff, LBlobEntry(asc_hash, l)));
 	lbOff += l;
     }
     virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
