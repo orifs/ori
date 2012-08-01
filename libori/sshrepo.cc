@@ -141,8 +141,7 @@ int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
     return -1;
 }
 
-void SshRepo::addBackref(const std::string &referer, const std::string
-        &refers_to)
+void SshRepo::addBackref(const std::string &refers_to)
 {
     NOT_IMPLEMENTED(false);
 }

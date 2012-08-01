@@ -42,13 +42,11 @@ cmd_stats(int argc, const char *argv[])
     uint64_t blobRefs = 0;
     uint64_t largeBlobs = 0;
     uint64_t purgedBlobs = 0;
-    map<string, map<string, Object::BRState> > refs;
-    map<string, map<string, Object::BRState> >::iterator it;
 
-    refs = repository.getRefCounts();
+    set<ObjectInfo> objs = repository.listObjects();
 
-    for (it = refs.begin(); it != refs.end(); it++) {
-        Object::Type type = repository.getObjectType((*it).first);
+    for (set<ObjectInfo>::iterator it = objs.begin(); it != objs.end(); it++) {
+        Object::Type type = (*it).type;
 
         switch (type) {
         case Object::Commit:
@@ -64,10 +62,12 @@ cmd_stats(int argc, const char *argv[])
         case Object::Blob:
         {
             blobs++;
-            if ((*it).second.size() == 0) {
+            refcount_t refcount = repository.getMetadata().getRefCount((*it).hash);
+            if (refcount == 0) {
                 danglingBlobs++;
             } else {
-                blobRefs += (*it).second.size();
+                //blobRefs += (*it).second.size();
+                blobRefs += refcount;
             }
             break;
         }

@@ -26,6 +26,7 @@ src = [
     "treediff.cc",
     "tempdir.cc",
     "fuse_cmd.cc",
+    "metadatalog.cc",
 ]
 
 if os.name == 'posix':

@@ -118,8 +118,10 @@ class strwstream
 public:
     strwstream();
     strwstream(const std::string &);
+    strwstream(size_t reserved);
     void write(const void *, size_t);
     void writePStr(const std::string &str);
+
     const std::string &str() const;
 private:
     std::string buf;

@@ -380,6 +380,9 @@ main(int argc, char *argv[])
             }
         }
     }
+    else {
+        has_repo = true;
+    }
 
     if (strcmp(argv[1], "status") == 0 ||
         strcmp(argv[1], "commit") == 0) {

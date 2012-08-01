@@ -41,8 +41,6 @@
 class Object {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
-    enum MdType { MdNull, MdBackref };
-    enum BRState { BRNull, BRRef, BRPurged };
 
     typedef std::tr1::shared_ptr<Object> sp;
 

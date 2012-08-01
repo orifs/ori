@@ -39,7 +39,7 @@ env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
 if env["WITH_MDNS"] != "1":
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
-
+    
 if env["BUILDTYPE"] == "DEBUG":
     env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
 	"-Wno-deprecated-declarations" ])

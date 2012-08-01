@@ -51,15 +51,6 @@ public:
     int setPayload(bytestream *bs);
     int setPayload(const std::string &blob);
     std::string computeHash();
-    // Metadata
-    void addMetadataEntry(MdType type, const std::string &data);
-    std::string computeMetadataHash();
-    bool checkMetadata();
-    void clearMetadata();
-    // Backreferences
-    void addBackref(const std::string &objId, BRState state);
-    void updateBackref(const std::string &objId, BRState state);
-    std::map<std::string, BRState> getBackref();
 
 private:
     int fd;
@@ -69,9 +60,6 @@ private:
 
     void setupLzma(lzma_stream *strm, bool encode);
     bool appendLzma(int dstFd, lzma_stream *strm, lzma_action action);
-
-    const char *_getIdForMdType(MdType);
-    MdType _getMdTypeForStr(const char *);
 };
 
 

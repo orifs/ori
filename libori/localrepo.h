@@ -4,6 +4,7 @@
 #include "repo.h"
 #include "index.h"
 #include "snapshotindex.h"
+#include "metadatalog.h"
 #include "lrucache.h"
 #include "localobject.h"
 #include "treediff.h"
@@ -16,6 +17,7 @@
 #define ORI_PATH_UUID "/.ori/id"
 #define ORI_PATH_INDEX "/.ori/index"
 #define ORI_PATH_SNAPSHOTS "/.ori/snapshots"
+#define ORI_PATH_METADATA "/.ori/metadata"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
 #define ORI_PATH_BRANCH "/.ori/BRANCH"
 #define ORI_PATH_LOG "/.ori/ori.log"
@@ -82,7 +84,7 @@ public:
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
-    void addBackref(const std::string &referer, const std::string &refers_to);
+    void addBackref(const std::string &refers_to);
     // Clone/pull operations
     void pull(Repo *r);
     // Repository Operations
@@ -92,14 +94,10 @@ public:
     std::string commitFromObjects(const std::string &treeHash, Repo *objects, const std::string &msg);
     void gc();
     // Reference Counting Operations
-    std::map<std::string, Object::BRState> getRefs(const std::string &objId);
-    std::map<std::string, std::map<std::string, Object::BRState> >
-        getRefCounts();
-
-    typedef std::map<std::string, std::set<std::string> > ObjReferenceMap;
-    ObjReferenceMap computeRefCounts();
-    bool rewriteReferences(const ObjReferenceMap &refs);
-    bool stripMetadata();
+    const MetadataLog &getMetadata() const;
+    RefcountMap recomputeRefCounts();
+    bool rewriteRefCounts(const RefcountMap &refs);
+    
     // Pruning Operations
     // void pruneObject(const std::string &objId);
     // Grafting Operations
@@ -138,6 +136,7 @@ private:
     std::string version;
     Index index;
     SnapshotIndex snapshots;
+    MetadataLog metadata;
 
     // Remote Operations
     Repo *remoteRepo;

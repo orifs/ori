@@ -125,13 +125,12 @@ Repo::addLargeFile(const string &path)
 
     lb.chunkFile(path);
     blob = lb.getBlob();
-    hash = Util_HashString(blob);
 
     if (!hasObject(hash)) {
         map<uint64_t, LBlobEntry>::iterator it;
 
         for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
-            addBackref(hash, (*it).second.hash);
+            addBackref((*it).second.hash);
         }
     }
 

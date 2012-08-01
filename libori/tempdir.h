@@ -51,8 +51,8 @@ public:
     std::set<ObjectInfo> listObjects();
     std::vector<Commit> listCommits() { NOT_IMPLEMENTED(false); }
     int addObjectRaw(const ObjectInfo &info, bytestream *bs);
-    void addBackref(const std::string &referer, const std::string &refers_to)
-    { return; } // TODO
+    void addBackref(const std::string &refers_to)
+    { return; }
 
     std::string dirpath;
 

@@ -321,6 +321,11 @@ strwstream::strwstream(const std::string &initial)
 {
 }
 
+strwstream::strwstream(size_t reserved)
+{
+    buf.reserve(reserved);
+}
+
 void strwstream::write(const void *bytes, size_t n)
 {
     if (buf.capacity() - buf.size() < n)

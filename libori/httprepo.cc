@@ -150,7 +150,7 @@ HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 }
 
 void
-HttpRepo::addBackref(const std::string &referer, const std::string &refers_to)
+HttpRepo::addBackref(const std::string &refers_to)
 {
     NOT_IMPLEMENTED(false);
 }

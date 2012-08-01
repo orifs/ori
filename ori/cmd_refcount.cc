@@ -36,25 +36,18 @@ extern LocalRepo repository;
 int
 cmd_refcount(int argc, const char *argv[])
 {
+    const MetadataLog &md = repository.getMetadata();
     if (argc == 1) {
-        map<string, map<string, Object::BRState> > refs;
-        map<string, map<string, Object::BRState> >::iterator it;
-
-        refs = repository.getRefCounts();
-
         cout << left << setw(64) << "Object" << " Count" << endl;
-        for (it = refs.begin(); it != refs.end(); it++) {
-            cout << (*it).first << " " << (*it).second.size() << endl;
+
+        set<ObjectInfo> objs = repository.listObjects();
+        for (set<ObjectInfo>::iterator it = objs.begin();
+                it != objs.end();
+                it++) {
+            cout << (*it).hash << " " << md.getRefCount((*it).hash) << endl;
         }
     } else if (argc == 2) {
-        map<string, Object::BRState> refs;
-        map<string, Object::BRState>::iterator it;
-
-        refs = repository.getRefs(argv[1]);
-
-        for (it = refs.begin(); it != refs.end(); it++) {
-            cout << (*it).first << endl;
-        }
+        cout << argv[1] << " " << md.getRefCount(argv[1]) << endl;
     } else {
         cout << "Invalid number of arguements." << endl;
         cout << "ori refcount [OBJID]" << endl;

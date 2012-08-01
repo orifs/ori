@@ -196,6 +196,8 @@ LocalRepo::open(const string &root)
 
     index.open(rootPath + ORI_PATH_INDEX);
     snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
+    if (!metadata.open(rootPath + ORI_PATH_METADATA))
+        return false;
 
     opened = true;
     return true;
@@ -371,7 +373,7 @@ LocalRepo::addTree(const Tree &tree)
             perror("Cannot open object");
             assert(false);
         }
-        o->addBackref(hash, Object::BRRef);
+        addBackref((*it).second.hash);
         //o.close();
     }
 
@@ -392,35 +394,16 @@ LocalRepo::addCommit(/* const */ Commit &commit)
         return hash;
     }
 
-    LocalObject::sp o;
-    o = getLocalObject(commit.getTree());
-    if (!o) {
-        perror("Cannot open object");
-        return "";
-    }
-    o->addBackref(hash, Object::BRRef);
-    //o.close();
+    addBackref(commit.getTree());
 
     refPath = commit.getParents().first;
     if (refPath != EMPTY_COMMIT) {
-        o = getLocalObject(commit.getParents().first);
-        if (!o) {
-            printf("%s\n", refPath.c_str());
-            perror("Cannot open object");
-            return "";
-        }
-        o->addBackref(hash, Object::BRRef);
-        //o.close();
+        addBackref(refPath);
     }
 
     refPath = commit.getParents().second;
     if (refPath != "") {
-        o = getLocalObject(commit.getParents().second);
-        if (!o) {
-            perror("Cannot open object");
-            return "";
-        }
-        o->addBackref(hash, Object::BRRef);
+        addBackref(refPath);
         //o.close();
     }
 
@@ -548,9 +531,10 @@ LocalRepo::verifyObject(const string &objId)
     }
 
     // Check object metadata
-    if (!o->checkMetadata()) {
+    /*if (!o->checkMetadata()) {
         return "Object metadata hash mismatch!";
-    }
+    }*/
+    // TODO
 
     if (!o->getInfo().hasAllFields()) {
         return "Object info missing some fileds!";
@@ -603,11 +587,10 @@ LocalRepo::copyObject(const string &objId, const string &path)
 }
 
 void
-LocalRepo::addBackref(const std::string &referer, const std::string &refers_to)
+LocalRepo::addBackref(const std::string &refers_to)
 {
     if (refers_to == EMPTY_COMMIT) return;
-    LocalObject::sp o(getLocalObject(refers_to));
-    o->addBackref(referer, Object::BRRef);
+    metadata.addRef(refers_to);
 }
 
 /*void
@@ -828,7 +811,7 @@ LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
         assert(o->getInfo().type == Object::Blob);
         assert(o->getInfo().payload_size == lbe.length);
         copyFrom(o.get());
-        addBackref(lb.hash, lbe.hash);
+        addBackref(lbe.hash);
     }
 }
 
@@ -850,7 +833,7 @@ LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
         }
 
         copyFrom(o.get());
-        addBackref(t.hash(), te.hash);
+        addBackref(te.hash);
 
         if (te.type == TreeEntry::Tree) {
             Tree subtree;
@@ -957,77 +940,37 @@ LocalRepo::getObjectInfo(const string &objId)
  * Reference Counting Operations
  */
 
-/*
- * Return the references for a given object.
- */
-map<string, Object::BRState>
-LocalRepo::getRefs(const string &objId)
+const MetadataLog &
+LocalRepo::getMetadata() const
 {
-    string objPath = objIdToPath(objId);
-    LocalObject::sp o = getLocalObject(objId);
-    map<string, Object::BRState> rval;
-
-    if (!o)
-        return rval;
-    rval = o->getBackref();
-
-    return rval;
-}
-
-/*
- * Return reference counts for all objects.
- */
-map<string, map<string, Object::BRState> >
-LocalRepo::getRefCounts()
-{
-    set<ObjectInfo> obj = listObjects();
-    set<ObjectInfo>::iterator it;
-    map<string, map<string, Object::BRState> > rval;
-
-    for (it = obj.begin(); it != obj.end(); it++) {
-        rval[(*it).hash] = getRefs((*it).hash);
-    }
-
-    return rval;
+    return metadata;
 }
 
 /*
  * Construct a raw set of references. This is the slow path and should only
  * be used as part of recovery.
  */
-LocalRepo::ObjReferenceMap
-LocalRepo::computeRefCounts()
+RefcountMap
+LocalRepo::recomputeRefCounts()
 {
     set<ObjectInfo> obj = listObjects();
-    set<ObjectInfo>::iterator it;
-    map<string, set<string> > rval;
-    map<string, set<string> >::iterator key;
+    RefcountMap rval;
 
-    for (it = obj.begin(); it != obj.end(); it++) {
+    for (set<ObjectInfo>::iterator it = obj.begin();
+            it != obj.end();
+            it++) {
         const std::string &hash = (*it).hash;
-        key = rval.find(hash);
-        if (key == rval.end())
-            rval[hash] = set<string>();
         switch ((*it).type) {
             case Object::Commit:
             {
                 Commit c = getCommit(hash);
                 
-                key = rval.find(c.getTree());
-                if (key == rval.end())
-                    rval[c.getTree()] = set<string>();
-                rval[c.getTree()].insert(hash);
-                
-                key = rval.find(c.getParents().first);
-                if (key == rval.end())
-                    rval[c.getParents().first] = set<string>();
-                rval[c.getParents().first].insert(hash);
-                
+                rval[c.getTree()] += 1;
+                if (c.getParents().first != EMPTY_COMMIT) {
+                    rval[c.getParents().first] += 1;
+                }
                 if (c.getParents().second != "") {
-                    key = rval.find(c.getParents().second);
-                    if (key == rval.end())
-                        rval[c.getTree()] = set<string>();
-                    rval[c.getParents().second].insert(hash);
+                    rval[c.getParents().second] += 1;
                 }
                 
                 break;
@@ -1039,10 +982,7 @@ LocalRepo::computeRefCounts()
 
                 for  (tt = t.tree.begin(); tt != t.tree.end(); tt++) {
                     string h = (*tt).second.hash;
-                    key = rval.find(h);
-                    if (key == rval.end())
-                        rval[h] = set<string>();
-                    rval[h].insert(hash);
+                    rval[h] += 1;
                 }
                 break;
             }
@@ -1056,10 +996,7 @@ LocalRepo::computeRefCounts()
                         pit != lb.parts.end();
                         pit++) {
                     string h = (*pit).second.hash;
-                    key = rval.find(h);
-                    if (key == rval.end())
-                        rval[h] = set<string>();
-                    rval[h].insert(hash);
+                    rval[h] += 1;
                 }
                 break;
             }
@@ -1077,72 +1014,9 @@ LocalRepo::computeRefCounts()
 }
 
 bool
-LocalRepo::rewriteReferences(const LocalRepo::ObjReferenceMap &refs)
+LocalRepo::rewriteRefCounts(const RefcountMap &refs)
 {
-    LOG("Rebuilding references");
-    LocalRepoLock::ap _lock(lock());
-
-    for (ObjReferenceMap::const_iterator it = refs.begin();
-            it != refs.end(); it++) {
-        LocalObject::sp o;
-
-        if ((*it).first == EMPTY_COMMIT)
-            continue;
-
-        o = getLocalObject((*it).first);
-        if (!o) {
-            LOG("Cannot open object %s", (*it).first.c_str());
-            return false;
-        }
-        Object::Type type = o->getInfo().type;
-
-        if (type == Object::Commit ||
-            type == Object::Tree ||
-            type == Object::Blob ||
-            type == Object::LargeBlob) {
-            set<string>::const_iterator i;
-
-            o->clearMetadata(); // was clearBackref
-            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
-                o->addBackref((*i), Object::BRRef);
-            }
-        } else if (type == Object::Purged) {
-            set<string>::iterator i;
-
-            o->clearMetadata(); // was clearBackref
-            for (i = (*it).second.begin(); i != (*it).second.end(); i++) {
-                o->addBackref((*i), Object::BRPurged);
-            }
-        } else {
-
-            NOT_IMPLEMENTED(false);
-        }
-
-        //o.close();
-    }
-
-    return true;
-}
-
-bool
-LocalRepo::stripMetadata()
-{
-    LOG("Stripping metadata");
-    LocalRepoLock::ap _lock(lock());
-    set<ObjectInfo> obj = listObjects();
-    set<ObjectInfo>::iterator it;
-
-    for (it = obj.begin(); it != obj.end(); it++) {
-        LocalObject::sp o = getLocalObject((*it).hash);
-        if (!o) {
-            LOG("Cannot open object %s", (*it).hash.c_str());
-            return false;
-        }
-
-        o->clearMetadata();
-        //o.close();
-    }
-
+    metadata.rewrite(&refs);
     return true;
 }
 
