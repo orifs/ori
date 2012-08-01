@@ -367,7 +367,7 @@ LocalRepo::addTree(const Tree &tree)
         return hash;
     }
 
-    for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
+    /*for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
         LocalObject::sp o(getLocalObject((*it).second.hash));
         if (!o) {
             perror("Cannot open object");
@@ -375,7 +375,7 @@ LocalRepo::addTree(const Tree &tree)
         }
         addBackref((*it).second.hash);
         //o.close();
-    }
+    }*/
 
     return addBlob(Object::Tree, blob);
 }
@@ -394,7 +394,7 @@ LocalRepo::addCommit(/* const */ Commit &commit)
         return hash;
     }
 
-    addBackref(commit.getTree());
+    /*addBackref(commit.getTree());
 
     refPath = commit.getParents().first;
     if (refPath != EMPTY_COMMIT) {
@@ -405,7 +405,7 @@ LocalRepo::addCommit(/* const */ Commit &commit)
     if (refPath != "") {
         addBackref(refPath);
         //o.close();
-    }
+    }*/
 
     if (commit.getSnapshot() != "") {
 	snapshots.addSnapshot(commit.getSnapshot(), hash);
@@ -586,26 +586,11 @@ LocalRepo::copyObject(const string &objId, const string &path)
     return true;
 }
 
-void
+/*void
 LocalRepo::addBackref(const std::string &refers_to)
 {
     if (refers_to == EMPTY_COMMIT) return;
     metadata.addRef(refers_to);
-}
-
-/*void
-LocalRepo::addTreeBackrefs(const std::string &thash, const Tree &t)
-{
-    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
-            it != t.tree.end();
-            it++) {
-        const TreeEntry &te = (*it).second;
-        addBackref(thash, te.hash);
-        if (te.type == TreeEntry::Tree) {
-            Tree subtree = getTree(te.hash);
-            addTreeBackrefs(te.hash, subtree);
-        }
-    }
 }*/
 
 int
@@ -797,6 +782,58 @@ LocalRepo::pull(Repo *r)
  */
 
 void
+LocalRepo::addLargeBlobBackrefs(const LargeBlob &lb, MdTransaction::sp tr)
+{
+    for (map<uint64_t, LBlobEntry>::const_iterator it = lb.parts.begin();
+            it != lb.parts.end();
+            it++) {
+        const LBlobEntry &lbe = (*it).second;
+
+        metadata.addRef(lbe.hash, tr);
+    }
+}
+
+void
+LocalRepo::addTreeBackrefs(const Tree &t, MdTransaction::sp tr)
+{
+    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
+            it != t.tree.end();
+            it++) {
+        const TreeEntry &te = (*it).second;
+
+        metadata.addRef(te.hash, tr);
+
+        if (metadata.getRefCount(te.hash) == 0) {
+            // Only recurse if the subtree is newly-added
+            if (te.type == TreeEntry::Tree) {
+                Tree subtree = getTree(te.hash);
+                addTreeBackrefs(subtree, tr);
+            }
+            else if (te.type == TreeEntry::LargeBlob) {
+                LargeBlob lb(this);
+                lb.fromBlob(getPayload(te.hash));
+                addLargeBlobBackrefs(lb, tr);
+            }
+        }
+    }
+}
+
+void
+LocalRepo::addCommitBackrefs(const Commit &c, MdTransaction::sp tr)
+{
+    if (c.getParents().first != EMPTY_COMMIT)
+        metadata.addRef(c.getParents().first, tr);
+    if (c.getParents().second != "")
+        metadata.addRef(c.getParents().second, tr);
+    
+    metadata.addRef(c.getTree(), tr);
+    if (metadata.getRefCount(c.getTree()) == 0) {
+        Tree t = getTree(c.getTree());
+        addTreeBackrefs(t, tr);
+    }
+}
+
+void
 LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
 {
     for (map<uint64_t, LBlobEntry>::const_iterator it = lb.parts.begin();
@@ -811,7 +848,6 @@ LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
         assert(o->getInfo().type == Object::Blob);
         assert(o->getInfo().payload_size == lbe.length);
         copyFrom(o.get());
-        addBackref(lbe.hash);
     }
 }
 
@@ -833,7 +869,6 @@ LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
         }
 
         copyFrom(o.get());
-        addBackref(te.hash);
 
         if (te.type == TreeEntry::Tree) {
             Tree subtree;
@@ -867,6 +902,10 @@ LocalRepo::commitFromTree(const string &treeHash, const string &msg)
 
     // Update .ori/HEAD
     updateHead(commitHash);
+
+    // Backrefs
+    MdTransaction::sp tr(metadata.begin());
+    addCommitBackrefs(c, tr);
 
     printf("Commit Hash: %s\nTree Hash: %s\n",
 	   commitHash.c_str(),

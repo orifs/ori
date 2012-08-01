@@ -30,7 +30,7 @@ public:
     Commit(const std::string &msg, const std::string &tree, const std::string &user);
     ~Commit();
     void setParents(std::string p1, std::string p2 = "");
-    std::pair<std::string, std::string> getParents();
+    std::pair<std::string, std::string> getParents() const;
     void setMessage(const std::string &msg);
     std::string getMessage() const;
     void setTree(const std::string &tree);

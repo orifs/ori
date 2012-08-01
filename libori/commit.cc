@@ -69,7 +69,7 @@ Commit::setParents(std::string p1, std::string p2)
 }
 
 pair<string, string>
-Commit::getParents()
+Commit::getParents() const
 {
     return parents;
 }

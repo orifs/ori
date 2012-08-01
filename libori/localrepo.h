@@ -84,14 +84,20 @@ public:
     bool purgeObject(const std::string &objId);
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
-    void addBackref(const std::string &refers_to);
+    // TODO void addBackref(const std::string &refers_to);
     // Clone/pull operations
     void pull(Repo *r);
-    // Repository Operations
+    // Commit-related operations
+    void addLargeBlobBackrefs(const LargeBlob &lb, MdTransaction::sp tr);
+    void addTreeBackrefs(const Tree &lb, MdTransaction::sp tr);
+    void addCommitBackrefs(const Commit &lb, MdTransaction::sp tr);
+
     void copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb);
     void copyObjectsFromTree(Repo *other, const Tree &t);
+
     std::string commitFromTree(const std::string &treeHash, const std::string &msg);
     std::string commitFromObjects(const std::string &treeHash, Repo *objects, const std::string &msg);
+
     void gc();
     // Reference Counting Operations
     const MetadataLog &getMetadata() const;

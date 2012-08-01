@@ -400,20 +400,6 @@ bool _tree_gt(const std::string &t1, const std::string &t2)
     return _num_path_components(t1) > _num_path_components(t2);
 }
 
-void _addTreeBackrefs(const Tree &t, Repo *r)
-{
-    for (map<string, TreeEntry>::const_iterator it = t.tree.begin();
-            it != t.tree.end();
-            it++) {
-        const TreeEntry &te = (*it).second;
-        r->addBackref(te.hash);
-        if (te.type == TreeEntry::Tree) {
-            Tree subtree = r->getTree(te.hash);
-            _addTreeBackrefs(subtree, r);
-        }
-    }
-}
-
 Tree
 Tree::unflatten(const Flat &flat, Repo *r)
 {
@@ -471,9 +457,6 @@ Tree::unflatten(const Flat &flat, Repo *r)
     }
 
     r->addBlob(Object::Tree, trees[""].getBlob());
-
-    // Update backrefs
-    _addTreeBackrefs(trees[""], r);
 
     return trees[""];
 }
