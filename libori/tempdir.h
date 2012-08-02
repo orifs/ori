@@ -44,6 +44,7 @@ public:
     std::string newTempFile();
     
     // Repo implementation
+    std::string getUUID() { NOT_IMPLEMENTED(false); }
     std::string getHead() { NOT_IMPLEMENTED(false); }
     Object::sp getObject(const std::string &objId);
     ObjectInfo getObjectInfo(const std::string &objId);

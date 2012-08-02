@@ -35,6 +35,7 @@ public:
     template<typename InputIterator>
     void preload(InputIterator begin, InputIterator end);
 
+    std::string getUUID();
     std::string getHead();
 
     Object::sp getObject(const std::string &id);

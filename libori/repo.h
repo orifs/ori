@@ -36,6 +36,7 @@ public:
     virtual ~Repo();
 
     // Repo information
+    virtual std::string getUUID() = 0;
     virtual std::string getHead() = 0;
 
     // Objects

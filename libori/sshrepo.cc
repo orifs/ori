@@ -67,6 +67,12 @@ SshRepo::preload<std::deque<std::string>::iterator>(std::deque<std::string>::ite
 template void
 SshRepo::preload<std::vector<std::string>::iterator>(std::vector<std::string>::iterator, std::vector<std::string>::iterator);
 
+std::string SshRepo::getUUID()
+{
+    // XXX: Implement me!
+    return "";
+}
+
 std::string SshRepo::getHead()
 {
     client->sendCommand("show");

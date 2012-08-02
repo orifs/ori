@@ -32,6 +32,7 @@ public:
 
     void preload(const std::vector<std::string> &objs);
 
+    std::string getUUID();
     std::string getHead();
 
     Object::sp getObject(const std::string &id);

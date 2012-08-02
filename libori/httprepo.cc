@@ -60,6 +60,21 @@ HttpRepo::preload(const std::vector<std::string> &objs)
 }
 
 std::string
+HttpRepo::getUUID()
+{
+    int status;
+    string uuid;
+
+    status = client->getRequest("/id", uuid);
+    if (status < 0) {
+        assert(false);
+        return "";
+    }
+
+    return uuid;
+}
+
+std::string
 HttpRepo::getHead()
 {
     int status;
