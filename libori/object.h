@@ -38,6 +38,10 @@
 
 #define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
 
+struct ObjectHash {
+    uint8_t hash[32];
+};
+
 class Object {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
