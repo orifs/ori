@@ -52,6 +52,7 @@ public:
 private:
     friend class MdTransaction;
     int fd;
+    std::string filename;
     RefcountMap refcounts;
     MetadataMap metadata;
 };

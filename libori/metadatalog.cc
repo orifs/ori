@@ -66,6 +66,8 @@ MetadataLog::open(const std::string &filename)
         return false;
     }
 
+    this->filename = filename;
+
     struct stat sb;
     if (fstat(fd, &sb) < 0) {
         perror("MetadataLog::open fstat");
@@ -134,7 +136,16 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
     if (data == NULL)
         data = &metadata;
 
-    // TODO: use rename
+    std::string tmpFilename = filename + ".tmp";
+    int newFd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
+    if (newFd < 0) {
+        perror("MetadataLog::rewrite open");
+        return; // TODO: return false
+    }
+
+    int oldFd = fd;
+    fd = newFd;
+
     ftruncate(fd, 0);
     lseek(fd, 0, SEEK_SET);
     MdTransaction::sp tr = begin();
@@ -143,6 +154,9 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
 
     refcounts.clear();
     metadata.clear();
+
+    Util_RenameFile(tmpFilename, filename);
+    ::close(oldFd);
 }
 
 void
