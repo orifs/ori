@@ -74,6 +74,7 @@ public:
     
     std::vector<Commit> listCommits();
     std::map<std::string, ObjectHash> listSnapshots();
+    ObjectHash lookupSnapshot(const std::string &name);
 
     ObjectHash addTree(const Tree &tree);
     ObjectHash addCommit(/* const */ Commit &commit);
