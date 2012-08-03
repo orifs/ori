@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "ori_fuse.h"
 
