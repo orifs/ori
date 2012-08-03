@@ -79,8 +79,7 @@ retryWrite:
 // High-level I/O
 void bytestream::readPStr(std::string &out)
 {
-    uint8_t len;
-    read(&len, 1);
+    uint8_t len = readInt<uint8_t>();
     out.resize(len);
     read((uint8_t*)&out[0], len);
 }
@@ -346,7 +345,7 @@ void strwstream::writePStr(const std::string &str)
 {
     assert(str.size() <= 255);
     uint8_t size = str.size();
-    write(&size, 1);
+    writeInt(size);
     write(str.data(), size);
 }
 

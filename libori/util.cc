@@ -622,6 +622,33 @@ util_selftest(void)
     path = "/a/b/c/hello.txt";
     assert(StrUtil_Basename(path) == "hello.txt");
 
+    // Test for serialization
+    std::string testStr;
+    uint64_t nums[] = {129, 76, 13892, 45, 16777217, 14877928, UINT32_MAX * 4,
+        24879878};
+    strwstream out_stream;
+    out_stream.writeInt<uint8_t>(nums[0]);
+    out_stream.writeInt<int8_t>(nums[1]);
+    out_stream.writePStr("hello, world!");
+    out_stream.writeInt<uint16_t>(nums[2]);
+    out_stream.writeInt<int16_t>(nums[3]);
+    out_stream.writeInt<uint64_t>(nums[6]);
+    out_stream.writeInt<int64_t>(nums[7]);
+    out_stream.writeInt<uint32_t>(nums[4]);
+    out_stream.writeInt<int32_t>(nums[5]);
+
+    strstream in_stream(out_stream.str());
+    assert(in_stream.readInt<uint8_t>() == nums[0]);
+    assert(in_stream.readInt<int8_t>() == nums[1]);
+    in_stream.readPStr(testStr);
+    assert(testStr == "hello, world!");
+    assert(in_stream.readInt<uint16_t>() == nums[2]);
+    assert(in_stream.readInt<int16_t>() == nums[3]);
+    assert(in_stream.readInt<uint64_t>() == nums[6]);
+    assert(in_stream.readInt<int64_t>() == nums[7]);
+    assert(in_stream.readInt<uint32_t>() == nums[4]);
+    assert(in_stream.readInt<int32_t>() == nums[5]);
+
     printf("Test Succeeded!\n");
     return 0;
 }

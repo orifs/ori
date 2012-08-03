@@ -39,7 +39,8 @@ public:
     template <typename T>
     T readInt() {
         T rval;
-        read((uint8_t*)&rval, sizeof(T));
+        size_t nbytes = read((uint8_t*)&rval, sizeof(T));
+        assert(nbytes == sizeof(T));
         return rval;
     }
 protected:

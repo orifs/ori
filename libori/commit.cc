@@ -36,10 +36,9 @@ using namespace std;
  ********************************************************************/
 
 Commit::Commit()
+    : message(), treeObjId(), user(), snapshotName(),
+      date(0), graftRepo(), graftPath(), graftCommitId()
 {
-    snapshotName = "";
-    graftRepo = "";
-    graftPath = "";
 }
 
 Commit::~Commit()
@@ -202,7 +201,7 @@ Commit::fromBlob(const string &blob)
     ss.readPStr(snapshotName);
 
     uint8_t hasGraft = ss.readInt<uint8_t>();
-    if (hasGraft) {
+    if (hasGraft > 0) {
         ss.readPStr(graftRepo);
         ss.readPStr(graftPath);
         ss.readHash(graftCommitId);

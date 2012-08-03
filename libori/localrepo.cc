@@ -975,6 +975,9 @@ LocalRepo::gc()
 {
     // Compact the index
     index.rewrite();
+
+    // Compact the metadata log
+    metadata.rewrite();
 }
 
 /*
