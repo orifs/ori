@@ -63,9 +63,10 @@ void SshRepo::preload(InputIterator begin, InputIterator end)
 }
 
 template void
-SshRepo::preload<std::deque<std::string>::iterator>(std::deque<std::string>::iterator, std::deque<std::string>::iterator);
+SshRepo::preload<std::deque<ObjectHash>::iterator>(std::deque<ObjectHash>::iterator,
+        std::deque<ObjectHash>::iterator);
 template void
-SshRepo::preload<std::vector<std::string>::iterator>(std::vector<std::string>::iterator, std::vector<std::string>::iterator);
+SshRepo::preload<std::vector<ObjectHash>::iterator>(std::vector<ObjectHash>::iterator, std::vector<ObjectHash>::iterator);
 
 std::string SshRepo::getUUID()
 {
@@ -73,7 +74,7 @@ std::string SshRepo::getUUID()
     return "";
 }
 
-std::string SshRepo::getHead()
+ObjectHash SshRepo::getHead()
 {
     client->sendCommand("show");
     std::string resp;
@@ -85,12 +86,12 @@ std::string SshRepo::getHead()
     p.nextLine(line); // uuid
     p.nextLine(line); // version
     p.nextLine(line); // head
-    return line;
+    return ObjectHash::fromHex(line);
 }
 
-Object::sp SshRepo::getObject(const std::string &id)
+Object::sp SshRepo::getObject(const ObjectHash &id)
 {
-    std::string command = "readobj " + id;
+    std::string command = "readobj " + id.hex();
     client->sendCommand(command);
 
     std::string resp;
@@ -111,13 +112,13 @@ Object::sp SshRepo::getObject(const std::string &id)
 }
 
 ObjectInfo
-SshRepo::getObjectInfo(const std::string &id)
+SshRepo::getObjectInfo(const ObjectHash &id)
 {
     NOT_IMPLEMENTED(false);
     return ObjectInfo();
 }
 
-bool SshRepo::hasObject(const std::string &id) {
+bool SshRepo::hasObject(const ObjectHash &id) {
     NOT_IMPLEMENTED(false);
     return false;
 }
@@ -147,12 +148,6 @@ int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
     return -1;
 }
 
-void SshRepo::addBackref(const std::string &referer, const std::string
-        &refers_to)
-{
-    NOT_IMPLEMENTED(false);
-}
-
 std::vector<Commit> SshRepo::listCommits()
 {
     client->sendCommand("list commits");
@@ -177,17 +172,17 @@ std::vector<Commit> SshRepo::listCommits()
 
 
 
-std::string &SshRepo::_payload(const std::string &id)
+std::string &SshRepo::_payload(const ObjectHash &id)
 {
     return payloads[id];
 }
 
-void SshRepo::_addPayload(const std::string &id, const std::string &payload)
+void SshRepo::_addPayload(const ObjectHash &id, const std::string &payload)
 {
     payloads[id] = payload;
 }
 
-void SshRepo::_clearPayload(const std::string &id)
+void SshRepo::_clearPayload(const ObjectHash &id)
 {
     payloads.erase(id);
 }
@@ -201,7 +196,7 @@ SshObject::SshObject(SshRepo *repo, ObjectInfo info)
     : Object(info), repo(repo)
 {
     assert(repo != NULL);
-    assert(info.hash.size() > 0);
+    assert(!info.hash.isEmpty());
 }
 
 SshObject::~SshObject()

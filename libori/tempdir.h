@@ -45,22 +45,20 @@ public:
     
     // Repo implementation
     std::string getUUID() { NOT_IMPLEMENTED(false); }
-    std::string getHead() { NOT_IMPLEMENTED(false); }
-    Object::sp getObject(const std::string &objId);
-    ObjectInfo getObjectInfo(const std::string &objId);
-    bool hasObject(const std::string &objId);
+    ObjectHash getHead() { NOT_IMPLEMENTED(false); }
+    Object::sp getObject(const ObjectHash &objId);
+    ObjectInfo getObjectInfo(const ObjectHash &objId);
+    bool hasObject(const ObjectHash &objId);
     std::set<ObjectInfo> listObjects();
     std::vector<Commit> listCommits() { NOT_IMPLEMENTED(false); }
     int addObjectRaw(const ObjectInfo &info, bytestream *bs);
-    void addBackref(const std::string &referer, const std::string &refers_to)
-    { return; } // TODO
 
     std::string dirpath;
 
 private:
     Index index;
     int objects_fd;
-    std::tr1::unordered_map<std::string, off_t> offsets;
+    std::tr1::unordered_map<ObjectHash, off_t> offsets;
 };
 
 class TempObject : public Object

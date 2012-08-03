@@ -112,8 +112,8 @@ cmd_clone(int argc, const char *argv[])
     }
 
     // TODO: rebuild references
-    LocalRepo::ObjReferenceMap refs = dstRepo.computeRefCounts();
-    if (!dstRepo.rewriteReferences(refs))
+    RefcountMap refs = dstRepo.recomputeRefCounts();
+    if (!dstRepo.rewriteRefCounts(refs))
         return 1;
 
     return 0;

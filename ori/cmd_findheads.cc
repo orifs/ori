@@ -34,23 +34,22 @@ extern LocalRepo repository;
 int
 cmd_findheads(int argc, const char *argv[])
 {
-    map<string, set<string> > refs;
-    map<string, set<string> >::iterator it;
+    RefcountMap refs = repository.recomputeRefCounts();
 
-    refs = repository.computeRefCounts();
-
-    for (it = refs.begin(); it != refs.end(); it++) {
+    for (RefcountMap::iterator it = refs.begin();
+            it != refs.end();
+            it++) {
         if ((*it).first == EMPTY_COMMIT)
             continue;
 
-        if ((*it).second.size() == 0
+        if ((*it).second == 0
             && repository.getObjectType((*it).first)) {
             Commit c = repository.getCommit((*it).first);
 
             // XXX: Check for existing branch names
 
-            cout << "commit:  " << (*it).first << endl;
-            cout << "parents: " << c.getParents().first << endl;
+            cout << "commit:  " << (*it).first.hex() << endl;
+            cout << "parents: " << c.getParents().first.hex() << endl;
             cout << c.getMessage() << endl;
         }
     }

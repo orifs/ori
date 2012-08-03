@@ -39,8 +39,8 @@ cmd_rebuildrefs(int argc, const char *argv[])
         cout << "Usage: ori rebuildrefs" << endl;
     }
 
-    LocalRepo::ObjReferenceMap refs = repository.computeRefCounts();
-    if (!repository.rewriteReferences(refs))
+    RefcountMap refs = repository.recomputeRefCounts();
+    if (!repository.rewriteRefCounts(refs))
         return 1;
 
     return 0;

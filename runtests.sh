@@ -47,7 +47,7 @@ echo "Foo" > $SOURCE_FILES/b/b.txt
 
 # Initial tests/initialize source repo
 for script in repo_init.sh commit_again.sh; do
-    bash -ex $SCRIPTS/$script
+    bash -e $SCRIPTS/$script
     if [ "$?" -ne "0" ] ; then
         echo "Script $script failed!"
         exit 1

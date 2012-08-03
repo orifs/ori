@@ -96,8 +96,8 @@ cmd_pull(int argc, const char *argv[])
 
     // TODO: more efficient backref tracking
     printf("Rebuilding references\n");
-    LocalRepo::ObjReferenceMap refs = repository.computeRefCounts();
-    if (!repository.rewriteReferences(refs))
+    RefcountMap refs = repository.recomputeRefCounts();
+    if (!repository.rewriteRefCounts(refs))
         return 1;
 
     return 0;

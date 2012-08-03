@@ -7,5 +7,7 @@ $ORI_EXE verify
 $ORI_EXE status
 $ORI_EXE stats
 
+bash -e $SCRIPTS/verify_refcounts.sh
+
 cd $TEMP_DIR
 rm -rf $TEST_REPO2

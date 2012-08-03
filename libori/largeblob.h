@@ -28,9 +28,9 @@ class LBlobEntry
 {
 public:
     LBlobEntry(const LBlobEntry &l);
-    LBlobEntry(const std::string &hash, uint16_t length);
+    LBlobEntry(const ObjectHash &hash, uint16_t length);
     ~LBlobEntry();
-    const std::string hash;
+    const ObjectHash hash;
     const uint16_t length;
 };
 
@@ -54,7 +54,7 @@ public:
      * blob entry object as the value.  It allows O(log n) random access into 
      * the file.
      */
-    std::string hash;
+    ObjectHash totalHash;
     std::map<uint64_t, LBlobEntry> parts;
     Repo *repo;
 };

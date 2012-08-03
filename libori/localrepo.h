@@ -5,6 +5,7 @@
 #include "index.h"
 #include "snapshotindex.h"
 #include "peer.h"
+#include "metadatalog.h"
 #include "lrucache.h"
 #include "localobject.h"
 #include "treediff.h"
@@ -16,6 +17,7 @@
 #define ORI_PATH_UUID "/.ori/id"
 #define ORI_PATH_INDEX "/.ori/index"
 #define ORI_PATH_SNAPSHOTS "/.ori/snapshots"
+#define ORI_PATH_METADATA "/.ori/metadata"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
 #define ORI_PATH_BRANCH "/.ori/BRANCH"
 #define ORI_PATH_LOG "/.ori/ori.log"
@@ -31,7 +33,7 @@ class HistoryCB
 {
 public:
     virtual ~HistoryCB() { };
-    virtual std::string cb(const std::string &commitId, Commit *c) = 0;
+    virtual ObjectHash cb(const ObjectHash &commitId, Commit *c) = 0;
 };
 
 class LocalRepoLock
@@ -61,58 +63,62 @@ public:
     // Object Operations
     int addObjectRaw(const ObjectInfo &info,
             bytestream *bs);
-    bool hasObject(const std::string &objId);
-    Object::sp getObject(const std::string &objId);
-    ObjectInfo getObjectInfo(const std::string &objId);
+    bool hasObject(const ObjectHash &objId);
+    Object::sp getObject(const ObjectHash &objId);
+    ObjectInfo getObjectInfo(const ObjectHash &objId);
     std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
     bool rebuildIndex();
 
-    LocalObject::sp getLocalObject(const std::string &objId);
+    LocalObject::sp getLocalObject(const ObjectHash &objId);
     
     std::vector<Commit> listCommits();
     std::map<std::string, std::string> listSnapshots();
 
-    std::string addTree(const Tree &tree);
-    std::string addCommit(/* const */ Commit &commit);
+    ObjectHash addTree(const Tree &tree);
+    ObjectHash addCommit(/* const */ Commit &commit);
     //std::string addBlob(const std::string &blob, Object::Type type);
-    size_t getObjectLength(const std::string &objId);
-    Object::Type getObjectType(const std::string &objId);
-    std::string getPayload(const std::string &objId);
-    std::string verifyObject(const std::string &objId);
-    bool purgeObject(const std::string &objId);
+    size_t getObjectLength(const ObjectHash &objId);
+    Object::Type getObjectType(const ObjectHash &objId);
+    std::string getPayload(const ObjectHash &objId);
+    std::string verifyObject(const ObjectHash &objId);
+    bool purgeObject(const ObjectHash &objId);
     size_t sendObject(const char *objId);
-    bool copyObject(const std::string &objId, const std::string &path);
-    void addBackref(const std::string &referer, const std::string &refers_to);
+
+    // Repository Operations
+    bool copyObject(const ObjectHash &objId, const std::string &path);
 
     // Clone/pull operations
     void pull(Repo *r);
 
-    // Repository Operations
+    // Commit-related operations
+    void addLargeBlobBackrefs(const LargeBlob &lb, MdTransaction::sp tr);
+    void addTreeBackrefs(const Tree &lb, MdTransaction::sp tr);
+    void addCommitBackrefs(const Commit &lb, MdTransaction::sp tr);
+
     void copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb);
     void copyObjectsFromTree(Repo *other, const Tree &t);
-    std::string commitFromTree(const std::string &treeHash, const std::string &msg);
-    std::string commitFromObjects(const std::string &treeHash, Repo *objects, const std::string &msg);
+
+    /// @returns commit id
+    ObjectHash commitFromTree(const ObjectHash &treeHash, Commit &c);
+    ObjectHash commitFromObjects(const ObjectHash &treeHash, Repo *objects,
+            Commit &c);
+
     void gc();
 
     // Reference Counting Operations
-    std::map<std::string, Object::BRState> getRefs(const std::string &objId);
-    std::map<std::string, std::map<std::string, Object::BRState> >
-        getRefCounts();
-
-    typedef std::map<std::string, std::set<std::string> > ObjReferenceMap;
-    ObjReferenceMap computeRefCounts();
-    bool rewriteReferences(const ObjReferenceMap &refs);
-    bool stripMetadata();
-
+    const MetadataLog &getMetadata() const;
+    RefcountMap recomputeRefCounts();
+    bool rewriteRefCounts(const RefcountMap &refs);
+    
     // Pruning Operations
     // void pruneObject(const std::string &objId);
 
     // Grafting Operations
-    std::set<std::string> getSubtreeObjects(const std::string &treeId);
-    std::set<std::string> walkHistory(HistoryCB &cb);
+    std::set<ObjectHash> getSubtreeObjects(const ObjectHash &treeId);
+    std::set<ObjectHash> walkHistory(HistoryCB &cb);
     TreeEntry lookupTreeEntry(const Commit &c, const std::string &path);
-    std::string lookup(const Commit &c, const std::string &path);
+    ObjectHash lookup(const Commit &c, const std::string &path);
     std::string graftSubtree(LocalRepo *r,
                              const std::string &srcPath,
                              const std::string &dstPath);
@@ -121,8 +127,8 @@ public:
     std::set<std::string> listBranches();
     std::string getBranch();
     void setBranch(const std::string &name);
-    std::string getHead();
-    void updateHead(const std::string &commitId);
+    ObjectHash getHead();
+    void updateHead(const ObjectHash &commitId);
     Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit
 
     // General Operations
@@ -142,9 +148,9 @@ public:
     static std::string findRootPath(const std::string &path = "");
 private:
     // Helper Functions
-    void createObjDirs(const std::string &objId);
+    void createObjDirs(const ObjectHash &objId);
 public: // Hack to enable rebuild operations
-    std::string objIdToPath(const std::string &objId);
+    std::string objIdToPath(const ObjectHash &objId);
 private:
     // Variables
     bool opened;
@@ -154,16 +160,16 @@ private:
     Index index;
     SnapshotIndex snapshots;
     std::map<std::string, Peer> peers;
+    MetadataLog metadata;
 
     // Remote Operations
     Repo *remoteRepo;
 
     // Caches
-    LRUCache<std::string, ObjectInfo, 128> _objectInfoCache;
+    LRUCache<ObjectHash, ObjectInfo, 128> _objectInfoCache;
     // TODO: ulimit is 256 files open on OSX, need to support 2 repos open at a
     // time?
-    LRUCache<std::string, LocalObject::sp, 96> _objectCache;
-
+    LRUCache<ObjectHash, LocalObject::sp, 96> _objectCache;
     // Friends
     friend int LocalRepo_PeerHelper(void *arg, const char *path);
 };

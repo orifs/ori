@@ -13,3 +13,5 @@ echo "Checking out files again"
 $ORI_EXE checkout
 $PYTHON $SCRIPTS/compare.py "$SOURCE_FILES" "$SOURCE_REPO"
 $ORI_EXE verify
+
+bash -e $SCRIPTS/verify_refcounts.sh

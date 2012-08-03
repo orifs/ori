@@ -58,7 +58,7 @@ LBlobEntry::LBlobEntry(const LBlobEntry &l)
 {
 }
 
-LBlobEntry::LBlobEntry(const std::string &h, uint16_t l)
+LBlobEntry::LBlobEntry(const ObjectHash &h, uint16_t l)
     : hash(h), length(l)
 {
 }
@@ -123,26 +123,19 @@ public:
     virtual void match(const uint8_t *b, uint32_t l)
     {
 	SHA256_CTX state;
-	unsigned char hash[SHA256_DIGEST_LENGTH];
-	stringstream ss;
+        ObjectHash hash;
 
 	SHA256_Init(&state);
 	SHA256_Update(&state, b, l);
-	SHA256_Final(hash, &state);
-
-	for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-	{
-	    ss << hex << setw(2) << setfill('0') << (int)hash[i];
-	}
+	SHA256_Final(hash.hash, &state);
 
         // Add the fragment into the repository
         // XXX: Journal for cleanup!
         string blob = string((const char *)b, l);
-        //blob.set(b, l);
-        lb->repo->addBlob(Object::Blob, blob);
+        lb->repo->addObject(Object::Blob, hash, blob);
 
         // Add the fragment to the LargeBlob object.
-	lb->parts.insert(make_pair(lbOff, LBlobEntry(ss.str(), l)));
+	lb->parts.insert(make_pair(lbOff, LBlobEntry(hash, l)));
 	lbOff += l;
     }
     virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
@@ -210,7 +203,7 @@ LargeBlob::chunkFile(const string &path)
 	return;
     }
 
-    hash = Util_HashFile(path);
+    totalHash = Util_HashFile(path);
 
     c.chunk(&cb);
 }
@@ -249,8 +242,8 @@ LargeBlob::extractFile(const string &path)
     }
 
 #ifdef DEBUG
-    string extractedHash = Util_HashFile(path);
-    assert(extractedHash == hash);
+    ObjectHash extractedHash = Util_HashFile(path);
+    assert(extractedHash == totalHash);
 #endif /* DEBUG */
 }
 
@@ -296,48 +289,40 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off)
 const string
 LargeBlob::getBlob()
 {
-    string blob = hash + "\n";
-    map<uint64_t, LBlobEntry>::iterator it;
+    strwstream ss;
+    ss.writeHash(totalHash);
 
-    for (it = parts.begin(); it != parts.end(); it++)
+    size_t num = parts.size();
+    ss.writeInt(num);
+
+    for (map<uint64_t, LBlobEntry>::iterator it = parts.begin();
+            it != parts.end();
+            it++)
     {
-        stringstream ss;
-
-	blob += (*it).second.hash + " ";
-        ss << (*it).second.length;
-        blob += ss.str();
-	blob += "\n";
+        ss.writeHash((*it).second.hash);
+        ss.writeInt((*it).second.length);
     }
 
-    return blob;
+    return ss.str();
 }
 
 void
 LargeBlob::fromBlob(const string &blob)
 {
+    strstream ss(blob);
+    ss.readHash(totalHash);
+
+    size_t num = ss.readInt<size_t>();
+
     uint64_t off = 0;
-    string line;
-    stringstream ss(blob);
+    for (size_t i = 0; i < num; i++) {
+        ObjectHash hash;
+        ss.readHash(hash);
+        size_t length = ss.readInt<uint16_t>();
 
-    getline(ss, line, '\n');
-    hash = line;
+        parts.insert(make_pair(off, LBlobEntry(hash, length)));
 
-    while (getline(ss, line, '\n')) {
-        string hash;
-        string length;
-        uint64_t len;
-
-	hash = line.substr(0, 64);
-        length = line.substr(65);
-        len = strtoul(length.c_str(), NULL, 10);
-        if (len == 0 || (len == ULONG_MAX && errno == ERANGE)) {
-            LOG("error reading blob length");
-            exit(1);
-        }
-
-	parts.insert(make_pair(off, LBlobEntry(hash, len)));
-
-        off += len;
+        off += length;
     }
 }
 

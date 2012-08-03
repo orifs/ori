@@ -58,10 +58,10 @@ cmd_listobj(int argc, const char *argv[])
 		type = "Purged";
 		break;
 	    default:
-		cout << "Unknown object type (id " << (*it).hash << ")!" << endl;
+		cout << "Unknown object type (id " << (*it).hash.hex() << ")!" << endl;
 		assert(false);
 	}
-	cout << (*it).hash << " # " << type << endl;
+	cout << (*it).hash.hex() << " # " << type << endl;
     }
 
     return 0;

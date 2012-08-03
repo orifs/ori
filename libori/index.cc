@@ -37,7 +37,7 @@
 using namespace std;
 
 /// Entry consist of the object hash, object info, and a checksum.
-#define INDEX_ENTRYSIZE (64 + 16 + 16)
+#define INDEX_ENTRYSIZE (32 + 16 + 16)
 
 Index::Index()
 {
@@ -86,19 +86,20 @@ Index::open(const string &indexFile)
     for (i = 0; i < entries; i++) {
         int status;
         char entry[INDEX_ENTRYSIZE];
-        string hash, info;
+        string info;
+        ObjectHash hash;
         ObjectInfo objInfo;
 
         status = read(fd, &entry, INDEX_ENTRYSIZE);
         assert(status == INDEX_ENTRYSIZE);
 
-        hash.assign(entry, 64);
-        info.assign(entry + 64, 16);
+        memcpy(hash.hash, entry, 32);
+        info.assign(entry + 32, 16);
 
-	string entryStr = string().assign(entry, 64 + 16);
-	string chksum = string().assign(entry + 64 + 16, 16);
-	string chksumComputed = Util_HashString(entryStr).substr(0, 16);
-	if (chksum != chksumComputed) {
+	string entryStr = string(entry, 32 + 16);
+	string chksum = string(entry + 32 + 16, 16);
+	ObjectHash chksumComputed = Util_HashString(entryStr);
+	if (memcmp(chksum.data(), chksumComputed.hash, 16) != 0) {
 	    // XXX: Attempt truncating last entries
 	    cout << "Index has corrupt entries please rebuild it!" << endl;
 	    ::close(fd);
@@ -107,7 +108,7 @@ Index::open(const string &indexFile)
 	    return;
 	}
 
-        objInfo = ObjectInfo(hash.c_str());
+        objInfo = ObjectInfo(hash);
         objInfo.setInfo(info);
 
         index[hash] = objInfo;
@@ -139,7 +140,7 @@ Index::rewrite()
 {
     int fdNew, tmpFd;
     string newIndex = fileName + ".tmp";
-    map<string, ObjectInfo>::iterator it;
+    map<ObjectHash, ObjectInfo>::iterator it;
 
     fdNew = ::open(newIndex.c_str(), O_RDWR | O_CREAT,
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -153,14 +154,11 @@ Index::rewrite()
     for (it = index.begin(); it != index.end(); it++)
     {
         int status;
-        string indexLine;
-	string hash;
-
-        indexLine = (*it).first;
+        string indexLine = (*it).first.bin();
         indexLine += (*it).second.getInfo();
 
-	hash = Util_HashString(indexLine);
-	indexLine += hash.substr(0, 16);
+	ObjectHash hash = Util_HashString(indexLine);
+	indexLine += hash.bin().substr(0, 16);
 
         status = write(fdNew, indexLine.data(), indexLine.size());
         assert(status >= 0);
@@ -177,37 +175,28 @@ Index::rewrite()
 void
 Index::dump()
 {
-    map<string, ObjectInfo>::iterator it;
+    map<ObjectHash, ObjectInfo>::iterator it;
 
     cout << "***** BEGIN REPOSITORY INDEX *****" << endl;
     for (it = index.begin(); it != index.end(); it++)
     {
-        cout << (*it).first << endl;
+        cout << (*it).first.hex() << endl;
     }
     cout << "***** END REPOSITORY INDEX *****" << endl;
 }
 
 void
-Index::updateInfo(const string &objId, const ObjectInfo &info)
+Index::updateInfo(const ObjectHash &objId, const ObjectInfo &info)
 {
     string indexLine;
-    string hash;
 
-    assert(objId.size() == 64);
+    assert(!objId.isEmpty());
 
-    /*
-     * XXX: Extra sanity checking for the hash string
-     * for (int i = 0; i < 64; i++) {
-     *     char c = objId[i];
-     *     assert((c >= 'a' && c <= 'f') || (c >= '0' && c <= '9'));
-     * }
-     */
-
-    indexLine = objId;
+    indexLine = objId.bin();
     indexLine += info.getInfo();
 
-    hash = Util_HashString(indexLine);
-    indexLine += hash.substr(0, 16);
+    ObjectHash hash = Util_HashString(indexLine);
+    indexLine += hash.bin().substr(0, 16);
 
     write(fd, indexLine.data(), indexLine.size());
 
@@ -216,18 +205,18 @@ Index::updateInfo(const string &objId, const ObjectInfo &info)
 }
 
 const ObjectInfo &
-Index::getInfo(const string &objId) const
+Index::getInfo(const ObjectHash &objId) const
 {
-    map<string, ObjectInfo>::const_iterator it = index.find(objId);
+    map<ObjectHash, ObjectInfo>::const_iterator it = index.find(objId);
     assert(it != index.end());
 
     return (*it).second;
 }
 
 bool
-Index::hasObject(const string &objId) const
+Index::hasObject(const ObjectHash &objId) const
 {
-    map<string, ObjectInfo>::const_iterator it;
+    map<ObjectHash, ObjectInfo>::const_iterator it;
 
     it = index.find(objId);
 
@@ -238,7 +227,7 @@ set<ObjectInfo>
 Index::getList()
 {
     set<ObjectInfo> lst;
-    map<string, ObjectInfo>::iterator it;
+    map<ObjectHash, ObjectInfo>::iterator it;
 
     for (it = index.begin(); it != index.end(); it++)
     {

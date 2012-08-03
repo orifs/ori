@@ -259,7 +259,7 @@ bool SshResponseParser::loadObjectInfo(ObjectInfo &info) {
     if (line == "DONE") return false;
 
     assert(line.size() == 64); // 2*SHA256_DIGEST_LENGTH
-    info.hash = line.data();
+    info.hash = ObjectHash::fromHex(line);
 
     nextLine(line); // type
     info.type = Object::getTypeForStr(line.c_str());

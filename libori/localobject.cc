@@ -63,7 +63,7 @@ LocalObject::~LocalObject()
 /*
  * Create a new object.
  */
-int
+/*int
 LocalObject::create(const string &path, Type type, uint32_t flags)
 {
     int status;
@@ -91,7 +91,7 @@ LocalObject::create(const string &path, Type type, uint32_t flags)
     fileSize = ORI_OBJECT_HDRSIZE;
 
     return 0;
-}
+}*/
 
 /*
  * Create a new object from existing raw data
@@ -131,7 +131,7 @@ LocalObject::createFromRawData(const string &path, const ObjectInfo &info,
  * Open an existing object read-only.
  */
 int
-LocalObject::open(const string &path, const string &hash)
+LocalObject::open(const string &path, const ObjectHash &hash)
 {
     int status;
     char header[24];
@@ -179,8 +179,7 @@ LocalObject::open(const string &path, const string &hash)
     }
     fileSize = sb.st_size;
 
-    if (hash.size() > 0) {
-        assert(hash.size() == 64);
+    if (!hash.isEmpty()) {
         info.hash = hash;
     }
 
@@ -375,15 +374,14 @@ LocalObject::setPayload(const string &blob)
 /*
  * Recompute the SHA-256 hash to verify the file.
  */
-string
+ObjectHash
 LocalObject::computeHash()
 {
     std::auto_ptr<bytestream> bs(getPayloadStream());
-    if (bs->error()) return "";
+    if (bs->error()) return ObjectHash();
 
     uint8_t buf[COPYFILE_BUFSZ];
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    stringstream rval;
+    ObjectHash hash;
 
     SHA256_CTX state;
     SHA256_Init(&state);
@@ -391,21 +389,15 @@ LocalObject::computeHash()
     while(!bs->ended()) {
         size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
         if (bs->error()) {
-            return "";
+            return ObjectHash();
         }
 
         SHA256_Update(&state, buf, bytesRead);
     }
 
-    SHA256_Final(hash, &state);
+    SHA256_Final(hash.hash, &state);
 
-    // Convert into string.
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-	rval << hex << setw(2) << setfill('0') << (int)hash[i];
-    }
-
-    return rval.str();
+    return hash;
 }
 
 bytestream::ap LocalObject::getPayloadStream() {
@@ -421,210 +413,6 @@ bytestream::ap LocalObject::getPayloadStream() {
 bytestream::ap LocalObject::getStoredPayloadStream() {
     return bytestream::ap(new fdstream(fd, ORI_OBJECT_HDRSIZE, storedLen));
 }
-
-
-/*
- * Metadata operations
- */
-
-#define OFF_MD_HASH (ORI_OBJECT_HDRSIZE + getStoredPayloadSize())
-
-/* Organization of metadata on disk: immediately following the stored data, the
- * SHA256 checksum of all the metadata (size ORI_MD_HASHSIZE); following that, a
- * plain unpadded array of metadata entries. Each entry begins with a 2-byte
- * identifier followed by 2 bytes denoting the length in bytes of the entry
- * followed by the entry itself.
- */
-void LocalObject::addMetadataEntry(MdType type, const std::string &data) {
-    assert(checkMetadata());
-
-    off_t offset = getFileSize();
-    if (offset == (off_t)OFF_MD_HASH) {
-        offset += ORI_MD_HASHSIZE;
-        fileSize += ORI_MD_HASHSIZE;
-    }
-
-    int err = pwrite(fd, _getIdForMdType(type), 2, offset);
-    assert(err == 2);
-    assert(data.length() <= UINT16_MAX);
-    uint16_t len = data.length();
-    err = pwrite(fd, &len, 2, offset + 2);
-    assert(err == 2);
-
-    err = pwrite(fd, data.data(), data.length(), offset + 4);
-    assert((size_t)err == data.length());
-
-    fileSize += 4 + data.length();
-
-    std::string hash = computeMetadataHash();
-    assert(hash != "");
-    err = pwrite(fd, hash.data(), ORI_MD_HASHSIZE, OFF_MD_HASH);
-    assert(err == ORI_MD_HASHSIZE);
-}
-
-std::string LocalObject::computeMetadataHash() {
-    off_t offset = OFF_MD_HASH + ORI_MD_HASHSIZE;
-    if (lseek(fd, offset, SEEK_SET) != offset) {
-        return "";
-    }
-
-    SHA256_CTX state;
-    SHA256_Init(&state);
-
-    if ((off_t)getFileSize() < offset)
-        return "";
-
-    size_t bytesLeft = getFileSize() - offset;
-    while(bytesLeft > 0) {
-        uint8_t buf[COPYFILE_BUFSZ];
-        int bytesRead = read(fd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
-        if (bytesRead < 0) {
-            if (errno == EINTR)
-                continue;
-            return "";
-        }
-
-        SHA256_Update(&state, buf, bytesRead);
-        bytesLeft -= bytesRead;
-    }
-
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256_Final(hash, &state);
-
-    std::string rval;
-    rval.assign((char *)hash, SHA256_DIGEST_LENGTH);
-    return rval;
-}
-
-bool
-LocalObject::checkMetadata()
-{
-    if (getFileSize() <= OFF_MD_HASH) {
-        // No metadata to check
-        return true;
-    }
-
-    char disk_hash[ORI_MD_HASHSIZE+1];
-    int status = pread(fd, disk_hash, ORI_MD_HASHSIZE, OFF_MD_HASH);
-    if (status < 0) {
-        perror("pread");
-        return false;
-    }
-    disk_hash[ORI_MD_HASHSIZE] = '\0';
-
-    std::string computed_hash = computeMetadataHash();
-
-    if (strcmp(computed_hash.c_str(), disk_hash) == 0)
-        return true;
-    return false;
-}
-
-void
-LocalObject::clearMetadata()
-{
-    int status;
-
-    status = ftruncate(fd, OFF_MD_HASH);
-    assert(status == 0);
-    fileSize = ORI_OBJECT_HDRSIZE + storedLen;
-}
-
-
-void
-LocalObject::addBackref(const string &objId, LocalObject::BRState state)
-{
-    string buf = objId;
-
-    assert(objId.length() == 2 * SHA256_DIGEST_LENGTH);
-    assert(state == BRRef || state == BRPurged);
-
-    if (state == BRRef) {
-        buf += "R";
-    }
-    if (state == BRPurged) {
-        buf += "P";
-    }
-
-    addMetadataEntry(MdBackref, buf);
-}
-
-void
-LocalObject::updateBackref(const string &objId, LocalObject::BRState state)
-{
-    map<string, BRState> backrefs;
-    map<string, BRState>::iterator it;
-
-    assert(objId.length() == SHA256_DIGEST_LENGTH);
-    assert(state == BRRef || state == BRPurged);
-
-    backrefs = getBackref();
-    backrefs[objId] = state;
-
-    /*
-     * XXX: Crash Recovery
-     *
-     * Either we can log here to make crash recovery easier, otherwise
-     * we should just write the single modified byte.  That should always
-     * translate to a single sector write, which is atomic.
-     */
-
-    clearMetadata(); // was clearBackref
-
-    for (it = backrefs.begin(); it != backrefs.end(); it++) {
-	addBackref((*it).first, (*it).second);
-    }
-}
-
-map<string, LocalObject::BRState>
-LocalObject::getBackref()
-{
-    map<string, BRState> rval;
-
-    off_t md_off = OFF_MD_HASH + ORI_MD_HASHSIZE;
-    if ((off_t)getFileSize() < md_off) {
-        // No metadata
-        return rval;
-    }
-
-    // Load all metadata into memory
-    size_t backrefSize = getFileSize() - md_off;
-
-    std::vector<uint8_t> buf;
-    buf.resize(backrefSize);
-    int status = pread(fd, &buf[0], backrefSize, md_off);
-    assert(status == (int)backrefSize);
-
-    // XXX: more generic way to iterate over metadata
-    uint8_t *ptr = &buf[0];
-    while ((ptr - &buf[0]) < (int)backrefSize) {
-        MdType md_type = _getMdTypeForStr((const char *)ptr);
-        size_t md_len = *((uint16_t*)(ptr+2));
-
-        ptr += 4;
-        assert(ptr + md_len <= &buf[0] + backrefSize);
-
-        if (md_type == MdBackref) {
-            assert(md_len == 2*SHA256_DIGEST_LENGTH + 1);
-
-            string objId;
-            objId.assign((char *)ptr, 2*SHA256_DIGEST_LENGTH);
-
-            char ref_type = *(ptr + 2*SHA256_DIGEST_LENGTH);
-            if (ref_type == 'R') {
-                rval[objId] = BRRef;
-            } else if (ref_type == 'P') {
-                rval[objId] = BRPurged;
-            } else {
-                assert(false);
-            }
-        }
-
-        ptr += md_len;
-    }
-
-    return rval;
-}
-
 
 
 /*
@@ -674,20 +462,3 @@ bool LocalObject::appendLzma(int dstFd, lzma_stream *strm, lzma_action action) {
     return true;
 }
 
-const char *LocalObject::_getIdForMdType(MdType type) {
-    switch (type) {
-    case MdBackref:
-        return "BR";
-    default:
-        return NULL;
-    }
-}
-
-LocalObject::MdType LocalObject::_getMdTypeForStr(const char *str) {
-    if (str[0] == 'B') {
-        if (str[1] == 'R') {
-            return MdBackref;
-        }
-    }
-    return MdNull;
-}

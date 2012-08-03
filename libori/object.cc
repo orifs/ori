@@ -52,14 +52,11 @@ using namespace std;
 ObjectInfo::ObjectInfo()
     : type(Object::Null), flags(0), payload_size((size_t)-1)
 {
-    hash.resize(SHA256_DIGEST_LENGTH*2);
 }
 
-ObjectInfo::ObjectInfo(const char *in_hash)
-    : type(Object::Null), flags(0), payload_size(0)
+ObjectInfo::ObjectInfo(const ObjectHash &hash)
+    : type(Object::Null), flags(0), payload_size(0), hash(hash)
 {
-    hash.resize(SHA256_DIGEST_LENGTH*2);
-    memcpy(&hash[0], in_hash, hash.size());
 }
 
 std::string
@@ -128,7 +125,7 @@ ObjectInfo::hasAllFields() const
 {
     if (type == Object::Null)
         return false;
-    if (hash == "")
+    if (hash.isEmpty())
         return false; // hash shouldn't be all zeros
     if (payload_size == (size_t)-1)
         return false; // no objects should be that large, due to LargeBlob

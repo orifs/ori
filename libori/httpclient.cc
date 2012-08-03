@@ -237,7 +237,7 @@ cmd_httpclient(int argc, const char *argv[])
     for (set<ObjectInfo>::iterator it = objs.begin();
          it != objs.end();
          it++) {
-        printf("%s\n", (*it).hash.c_str());
+        printf("%s\n", (*it).hash.hex().c_str());
     }
 
     printf("Terminating HTTP connection...\n");

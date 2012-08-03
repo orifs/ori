@@ -39,8 +39,13 @@ cmd_stripmetadata(int argc, const char *argv[])
         cout << "Usage: ori stripmetadata" << endl;
     }
 
-    if (!repository.stripMetadata())
-        return 1;
-    return 0;
+    //if (!repository.stripMetadata())
+    //    return 1;
+    //return 0;
+
+    // TODO
+    printf("Strip metadata not supported!!!!");
+    NOT_IMPLEMENTED(false);
+    return 1;
 }
 

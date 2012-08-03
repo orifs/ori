@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 
+#include "objecthash.h"
+
 bool Util_FileExists(const std::string &path);
 bool Util_IsDirectory(const std::string &path);
 size_t Util_FileSize(const std::string &path);
@@ -33,9 +35,11 @@ int Util_CopyFile(const std::string &origPath, const std::string &newPath);
 int Util_MoveFile(const std::string &origPath, const std::string &newPath);
 int Util_DeleteFile(const std::string &path);
 int Util_RenameFile(const std::string &from, const std::string &to);
-std::string Util_HashString(const std::string &str);
-std::string Util_HashFile(const std::string &path);
-std::string Util_RawHashToHex(uint8_t hash[32]);
+
+ObjectHash Util_HashString(const std::string &str);
+ObjectHash Util_HashFile(const std::string &path);
+std::string Util_RawHashToHex(const ObjectHash &hash);
+
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
 int Util_SetBlocking(int fd, bool block);

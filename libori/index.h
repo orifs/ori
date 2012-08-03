@@ -35,14 +35,14 @@ public:
     void close();
     void rewrite();
     void dump();
-    void updateInfo(const std::string &objId, const ObjectInfo &info);
-    const ObjectInfo &getInfo(const std::string &objId) const;
-    bool hasObject(const std::string &objId) const;
+    void updateInfo(const ObjectHash &objId, const ObjectInfo &info);
+    const ObjectInfo &getInfo(const ObjectHash &objId) const;
+    bool hasObject(const ObjectHash &objId) const;
     std::set<ObjectInfo> getList();
 private:
     int fd;
     std::string fileName;
-    std::map<std::string, ObjectInfo> index;
+    std::map<ObjectHash, ObjectInfo> index;
 };
 
 #endif /* __INDEX_H__ */

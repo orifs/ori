@@ -776,9 +776,9 @@ ori_init(struct fuse_conn_info *conn)
     ori_priv *priv = new ori_priv(config.repo_path);
 
     if (config.clone_path != NULL) {
-	string revId = remoteRepo->getHead();
+	ObjectHash revId = remoteRepo->getHead();
         priv->repo->updateHead(revId);
-        FUSE_LOG("InstaClone: Updating repository head %s", revId.c_str());
+        FUSE_LOG("InstaClone: Updating repository head %s", revId.hex().c_str());
 
 	priv->repo->setRemote(remoteRepo);
         priv->_resetHead();

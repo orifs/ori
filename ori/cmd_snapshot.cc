@@ -33,7 +33,7 @@ using namespace std;
 
 extern LocalRepo repository;
 
-int
+/*int
 commitHelper(void *arg, const char *path)
 {
     string filePath = path;
@@ -97,12 +97,47 @@ cmd_oldcommit(int argc, const char *argv[])
 	   blob.c_str());
 
     return 0;
-}
+}*/
 
 int
 cmd_snapshot(int argc, const char *argv[])
 {
-    string blob;
+    /*if (OF_RunCommand("snapshot"))
+        return 0;*/
+
+    if (argc != 2) {
+	cout << "Specify a snapshot name." << endl;
+	cout << "usage: ori snapshot <snapshot name>" << endl;
+	return 1;
+    }
+
+    string snapshotName = argv[1];
+
+    Commit c;
+    Tree tip_tree;
+    ObjectHash tip = repository.getHead();
+    if (tip != EMPTY_COMMIT) {
+        c = repository.getCommit(tip);
+        tip_tree = repository.getTree(c.getTree());
+    }
+
+    TreeDiff diff;
+    diff.diffToDir(c, repository.getRootPath(), &repository);
+    if (diff.entries.size() == 0) {
+        cout << "Note: nothing to commit" << endl;
+    }
+
+    Tree new_tree = diff.applyTo(tip_tree.flattened(&repository),
+            &repository);
+
+    Commit newCommit;
+    newCommit.setMessage("Created snapshot."); // TODO: allow user to specify message
+    newCommit.setSnapshot(snapshotName);
+    repository.commitFromTree(new_tree.hash(), newCommit);
+
+
+
+    /*string blob;
     string treeHash, commitHash;
     string snapshotName;
     string msg;
@@ -111,11 +146,6 @@ cmd_snapshot(int argc, const char *argv[])
     Commit commit = Commit();
     string root = LocalRepo::findRootPath();
 
-    if (argc != 2) {
-	cout << "Specify a snapshot name." << endl;
-	cout << "usage: ori snapshot <snapshot name>" << endl;
-	return 1;
-    }
     snapshotName = argv[1];
     msg = "Created snapshot."; // XXX: Allow users to specify a snapshot
 
@@ -142,7 +172,7 @@ cmd_snapshot(int argc, const char *argv[])
     printf("Commit Hash: %s\nTree Hash: %s\n%s",
 	   commitHash.c_str(),
 	   treeHash.c_str(),
-	   blob.c_str());
+	   blob.c_str());*/
 
     return 0;
 }

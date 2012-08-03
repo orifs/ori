@@ -27,6 +27,9 @@ src = [
     "tree.cc",
     "treediff.cc",
     "util.cc",
+    "fuse_cmd.cc",
+    "metadatalog.cc",
+    "objecthash.cc",
 ]
 
 if os.name == 'posix':

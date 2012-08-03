@@ -39,7 +39,7 @@ env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
 if env["WITH_MDNS"] != "1":
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
-
+    
 if env["BUILDTYPE"] == "DEBUG":
     env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
 	"-Wno-deprecated-declarations" ])
@@ -68,7 +68,8 @@ def GetNumCPUs():
             return 2
     return 2*int(os.popen2("sysctl -n hw.ncpu")[1].read())
 
-env.SetOption('num_jobs', GetNumCPUs())
+#env.SetOption('num_jobs', GetNumCPUs())
+env.SetOption('num_jobs', 1)
 
 # Add pkg-config options (TODO)
 env.ParseConfig('pkg-config --libs --cflags libevent')

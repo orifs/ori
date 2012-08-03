@@ -36,25 +36,23 @@ public:
     void preload(InputIterator begin, InputIterator end);
 
     std::string getUUID();
-    std::string getHead();
+    ObjectHash getHead();
 
-    Object::sp getObject(const std::string &id);
-    ObjectInfo getObjectInfo(const std::string &id);
-    bool hasObject(const std::string &id);
+    Object::sp getObject(const ObjectHash &id);
+    ObjectInfo getObjectInfo(const ObjectHash &id);
+    bool hasObject(const ObjectHash &id);
     std::set<ObjectInfo> listObjects();
     int addObjectRaw(const ObjectInfo &info, bytestream *bs);
-    void addBackref(const std::string &referer, const std::string &refers_to);
-
     std::vector<Commit> listCommits();
 
 private:
     SshClient *client;
     
-    std::string &_payload(const std::string &id);
-    void _addPayload(const std::string &id, const std::string &payload);
-    void _clearPayload(const std::string &id);
+    std::string &_payload(const ObjectHash &id);
+    void _addPayload(const ObjectHash &id, const std::string &payload);
+    void _clearPayload(const ObjectHash &id);
 
-    std::map<std::string, std::string> payloads;
+    std::map<ObjectHash, std::string> payloads;
 };
 
 class SshObject : public Object

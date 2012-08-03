@@ -75,9 +75,9 @@ TempDir::newTempFile()
  * Repo implementation
  */
 Object::sp
-TempDir::getObject(const std::string &objId)
+TempDir::getObject(const ObjectHash &objId)
 {
-    assert(objId.length() == 64);
+    assert(!objId.isEmpty());
     assert(objects_fd > 0);
     /*std::string path = pathTo(objId);
     if (Util_FileExists(path)) {
@@ -87,7 +87,7 @@ TempDir::getObject(const std::string &objId)
     }
     return Object::sp();*/
     if (!hasObject(objId)) {
-        printf("Temp objects do not contain %s\n", objId.c_str());
+        printf("Temp objects do not contain %s\n", objId.hex().c_str());
         index.dump();
         return Object::sp();
     }
@@ -107,7 +107,7 @@ TempDir::getObject(const std::string &objId)
         return Object::sp();
     }
 
-    ObjectInfo info(objId.c_str());
+    ObjectInfo info(objId);
     info.setInfo(info_ser);
 
     uint64_t stored_len;
@@ -117,16 +117,16 @@ TempDir::getObject(const std::string &objId)
 }
 
 ObjectInfo
-TempDir::getObjectInfo(const std::string &objId)
+TempDir::getObjectInfo(const ObjectHash &objId)
 {
-    assert(objId.length() == 64);
+    assert(!objId.isEmpty());
     return index.getInfo(objId);
 }
 
 bool
-TempDir::hasObject(const std::string &objId)
+TempDir::hasObject(const ObjectHash &objId)
 {
-    assert(objId.length() == 64);
+    assert(!objId.isEmpty());
     return index.hasObject(objId);
 }
 
@@ -140,7 +140,7 @@ int
 TempDir::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
     assert(info.hasAllFields());
-    assert(info.hash.size() == 64);
+    assert(!info.hash.isEmpty());
     if (!index.hasObject(info.hash)) {
         /*std::string objPath = pathTo(info.hash);
 

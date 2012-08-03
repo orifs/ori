@@ -224,7 +224,7 @@ int _diffToDirHelper(void *arg, const char *path)
         if (info.payload_size != newAttrs.getAs<size_t>(ATTR_FILESIZE) ||
                 newAttrs.getAs<time_t>(ATTR_MTIME) >= sd->commit->getTime()) {
 
-            std::string newHash = Util_HashFile(fullPath);
+            ObjectHash newHash = Util_HashFile(fullPath);
             modified = newHash != te.hash;
         }
     }
@@ -235,7 +235,7 @@ int _diffToDirHelper(void *arg, const char *path)
         if (lb.totalSize() != newAttrs.getAs<size_t>(ATTR_FILESIZE) ||
                 newAttrs.getAs<time_t>(ATTR_MTIME) >= sd->commit->getTime()) {
 
-            std::string newHash = Util_HashFile(fullPath);
+            ObjectHash newHash = Util_HashFile(fullPath);
             modified = newHash != te.largeHash;
         }
     }
@@ -257,7 +257,7 @@ void
 TreeDiff::diffToDir(Commit from, const std::string &dir, Repo *r)
 {
     Tree src;
-    if (from.getTree() != "")
+    if (!from.getTree().isEmpty())
         src = r->getTree(from.getTree());
     Tree::Flat flattened_tree = src.flattened(r);
 
@@ -393,9 +393,8 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         //if (i % 80 == 0 && i > 0) putc('\n', stdout);
         //putc(tde.type, stdout);
         if (tde.type == TreeDiffEntry::NewFile) {
-            pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
-            TreeEntry te = TreeEntry::fromFile(tde.newFilename, hashes.first,
-                    hashes.second);
+            pair<ObjectHash, ObjectHash> hashes = dest_repo->addFile(tde.newFilename);
+            TreeEntry te(hashes.first, hashes.second);
             te.attrs.mergeFrom(tde.newAttrs);
             assert(te.hasBasicAttrs());
             flat.insert(make_pair(tde.filepath, te));
@@ -430,10 +429,10 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         else if (tde.type == TreeDiffEntry::Modified) {
             TreeEntry te = flat[tde.filepath];
             if (tde.newFilename != "") {
-                pair<string, string> hashes = dest_repo->addFile(tde.newFilename);
+                pair<ObjectHash, ObjectHash> hashes = dest_repo->addFile(tde.newFilename);
                 te.hash = hashes.first;
                 te.largeHash = hashes.second;
-                te.type = (hashes.second != "") ? TreeEntry::LargeBlob :
+                te.type = (!hashes.second.isEmpty()) ? TreeEntry::LargeBlob :
                     TreeEntry::Blob;
             }
             else {

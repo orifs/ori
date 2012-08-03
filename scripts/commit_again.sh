@@ -40,3 +40,5 @@ cd $SOURCE_REPO
 rm -rf $SOURCE_REPO/*
 $ORI_EXE checkout
 $PYTHON $SCRIPTS/compare.py "$SOURCE_FILES" "$SOURCE_REPO"
+
+bash -e $SCRIPTS/verify_refcounts.sh

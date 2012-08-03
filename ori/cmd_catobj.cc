@@ -37,13 +37,15 @@ cmd_catobj(int argc, const char *argv[])
     string buf;
     bool hex = false;
 
-    len = repository.getObjectLength(argv[1]);
+    ObjectHash id = ObjectHash::fromHex(argv[1]);
+
+    len = repository.getObjectLength(id);
     if (len == -1) {
 	printf("Object does not exist.\n");
 	return 1;
     }
 
-    buf = repository.getPayload(argv[1]);
+    buf = repository.getPayload(id);
     rawBuf = (const unsigned char *)buf.data();
 
     for (int i = 0; i < len; i++) {
