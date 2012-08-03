@@ -80,9 +80,10 @@ SnapshotIndex::open(const string &indexFile)
     stringstream ss(blob);
 
     while (getline(ss, line, '\n')) {
-	string hash, name;
+	ObjectHash hash;
+        string name;
 
-        hash = line.substr(0, 64);
+        hash = ObjectHash::fromHex(line.substr(0, 64));
         name = line.substr(65);
 
         snapshots[name] = hash;
@@ -114,7 +115,7 @@ SnapshotIndex::rewrite()
 {
     int fdNew, tmpFd;
     string newIndex = fileName + ".tmp";
-    map<string, string>::iterator it;
+    map<string, ObjectHash>::iterator it;
 
     fdNew = ::open(newIndex.c_str(), O_RDWR | O_CREAT,
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -130,7 +131,7 @@ SnapshotIndex::rewrite()
         int status;
         string indexLine;
 
-        indexLine = (*it).second + " " + (*it).second + "\n";
+        indexLine = (*it).second.hex() + " " + (*it).first + "\n";
 
         status = write(fdNew, indexLine.data(), indexLine.size());
         assert(status == (int)indexLine.size());
@@ -144,21 +145,13 @@ SnapshotIndex::rewrite()
 }
 
 void
-SnapshotIndex::addSnapshot(const string &name, const string &commitId)
+SnapshotIndex::addSnapshot(const string &name, const ObjectHash &commitId)
 {
     string indexLine;
 
-    assert(commitId.size() == 64);
+    assert(!commitId.isEmpty());
 
-    /*
-     * XXX: Extra sanity checking for the hash string
-     * for (int i = 0; i < 64; i++) {
-     *     char c = objId[i];
-     *     assert((c >= 'a' && c <= 'f') || (c >= '0' && c <= '9'));
-     * }
-     */
-
-    indexLine = commitId + " " + name + "\n";
+    indexLine = commitId.hex() + " " + name + "\n";
 
     write(fd, indexLine.data(), indexLine.size());
 }
@@ -171,16 +164,16 @@ SnapshotIndex::delSnapshot(const std::string &name)
     rewrite();
 }
 
-const string &
+const ObjectHash &
 SnapshotIndex::getSnapshot(const string &name) const
 {
-    map<string, string>::const_iterator it = snapshots.find(name);
+    map<string, ObjectHash>::const_iterator it = snapshots.find(name);
     assert(it != snapshots.end());
 
     return (*it).second;
 }
 
-map<string, string>
+map<string, ObjectHash>
 SnapshotIndex::getList()
 {
     return snapshots;

@@ -44,7 +44,7 @@ cmd_verify(int argc, const char *argv[])
     {
 	error = repository.verifyObject((*it).hash);
 	if (error != "") {
-	    cout << "Object " << (*it).hash << endl;
+	    cout << "Object " << (*it).hash.hex() << endl;
 	    cout << error << endl;
 	    status = 1;
 	}

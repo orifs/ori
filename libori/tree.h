@@ -25,6 +25,8 @@
 #include <map>
 #include <vector>
 
+#include "objecthash.h"
+
 #define ATTR_FILESIZE "Ssize"
 #define ATTR_PERMS "Sperms"
 #define ATTR_USERNAME "Suser"
@@ -82,17 +84,14 @@ public:
     };
 
     TreeEntry();
-    TreeEntry(EntryType, size_t, std::string, std::string, std::string objHash);
+    TreeEntry(const ObjectHash &hash, const ObjectHash &lhash);
     ~TreeEntry();
-    static TreeEntry fromFile(const std::string &filename,
-            const std::string &hash,
-            const std::string &largeHash);
 
     EntryType	type;
     AttrMap attrs;
 
-    std::string hash;
-    std::string largeHash;
+    ObjectHash hash;
+    ObjectHash largeHash;
 
     // TODO: not sure this is the best place
     void extractToFile(const std::string &filename, Repo *src);
@@ -105,12 +104,9 @@ class Tree
 public:
     Tree();
     ~Tree();
-    void addObject(const char *path,
-                   const std::string &objId,
-                   const std::string &lgObjId = "");
     const std::string getBlob() const;
     void fromBlob(const std::string &blob);
-    std::string hash() const; // TODO: cache this
+    ObjectHash hash() const; // TODO: cache this
 
     typedef std::map<std::string, TreeEntry> Flat;
     Flat flattened(Repo *r) const;

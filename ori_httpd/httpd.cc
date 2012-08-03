@@ -122,8 +122,8 @@ Httpd_getVersion(struct evhttp_request *req, void *arg)
 void
 Httpd_head(struct evhttp_request *req, void *arg)
 {
-    string headId = repository.getHead();
-    assert(headId.size() == 64);
+    ObjectHash headId = repository.getHead();
+    assert(!headId.isEmpty());
     struct evbuffer *buf;
 
     LOG("httpd: gethead");
@@ -134,7 +134,7 @@ Httpd_head(struct evhttp_request *req, void *arg)
         return;
     }
 
-    evbuffer_add_printf(buf, "%s", headId.c_str());
+    evbuffer_add_printf(buf, "%s", headId.hex().c_str());
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
@@ -158,9 +158,9 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
         int status;
         string objInfo = (*it).getInfo();
 
-        LOG("hash = %s\n", (*it).hash.c_str());
+        LOG("hash = %s\n", (*it).hash.hex().c_str());
 
-        status = evbuffer_add(buf, (*it).hash.c_str(), (*it).hash.size());
+        status = evbuffer_add(buf, (*it).hash.hex().c_str(), ObjectHash::SIZE*2);
         if (status != 0) {
             assert(status == -1);
             LOG("evbuffer_add failed while adding hash!");
@@ -243,28 +243,28 @@ Httpd_stringDeleteCB(const void *data, size_t len, void *extra)
 void
 Httpd_getObj(struct evhttp_request *req, void *arg)
 {
-    string objId;
+    string sobjId;
     auto_ptr<bytestream> bs;
     string *payload = new string();
     string objInfo;
     struct evbuffer *buf;
 
-    objId = evhttp_request_get_uri(req);
-    objId = objId.substr(6);
+    sobjId = evhttp_request_get_uri(req);
+    sobjId = sobjId.substr(6);
 
     buf = evbuffer_new();
     if (buf == NULL) {
         LOG("httpd_getobj: evbuffer_new failed!");
     }
 
-    if (objId.size() != 64) {
+    if (sobjId.size() != 64) {
         evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", buf);
         return;
     }
     
-    LOG("httpd: getobj %s", objId.c_str());
+    LOG("httpd: getobj %s", sobjId.c_str());
 
-    Object::sp obj = repository.getObject(objId.c_str());
+    Object::sp obj = repository.getObject(ObjectHash::fromHex(sobjId));
     if (obj == NULL) {
         evhttp_send_reply(req, HTTP_NOTFOUND, "Object Not Found", buf);
         return;

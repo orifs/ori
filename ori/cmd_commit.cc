@@ -47,16 +47,9 @@ cmd_commit(int argc, const char *argv[])
     if (OF_RunCommand("commit"))
         return 0;
 
-    string msg;
-    if (argc == 1) {
-        msg = "No message.";
-    } else if (argc == 2) {
-        msg = argv[1];
-    }
-
     Commit c;
     Tree tip_tree;
-    string tip = repository.getHead();
+    ObjectHash tip = repository.getHead();
     if (tip != EMPTY_COMMIT) {
         c = repository.getCommit(tip);
         tip_tree = repository.getTree(c.getTree());
@@ -71,7 +64,12 @@ cmd_commit(int argc, const char *argv[])
 
     Tree new_tree = diff.applyTo(tip_tree.flattened(&repository),
             &repository);
-    repository.commitFromTree(new_tree.hash(), msg);
+
+    Commit newCommit;
+    if (argc == 2) {
+        newCommit.setMessage(argv[1]);
+    }
+    repository.commitFromTree(new_tree.hash(), newCommit);
 
     return 0;
 }

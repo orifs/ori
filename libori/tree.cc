@@ -112,58 +112,16 @@ TreeEntry::TreeEntry()
     type = Null;
 }
 
-TreeEntry::TreeEntry(EntryType type, size_t size, std::string user,
-        std::string group, std::string objHash)
-    : type(type), hash(objHash)
+TreeEntry::TreeEntry(const ObjectHash &hash, const ObjectHash &lhash)
+    : hash(hash), largeHash(lhash)
 {
-    assert(type != Null);
-    assert(hash != "");
-
-    time_t currTime = time(NULL);
-
-    attrs.setAs<size_t>(ATTR_FILESIZE, size);
-    attrs.setAs<mode_t>(ATTR_PERMS, 0755);
-    attrs.attrs[ATTR_USERNAME] = user;
-    attrs.attrs[ATTR_GROUPNAME] = group;
-    attrs.setAs<time_t>(ATTR_CTIME, currTime);
-    attrs.setAs<time_t>(ATTR_MTIME, currTime);
+    if (lhash.isEmpty())
+        type = Blob;
+    type = LargeBlob;
 }
 
 TreeEntry::~TreeEntry()
 {
-}
-
-TreeEntry
-TreeEntry::fromFile(const std::string &filename,
-        const std::string &hash,
-        const std::string &largeHash)
-{
-    struct stat sb;
-
-    if (stat(filename.c_str(), &sb) < 0) {
-	perror("stat failed in Tree::addObject");
-	assert(false);
-    }
-
-    TreeEntry::EntryType type;
-    if (sb.st_mode & S_IFDIR) {
-	type = TreeEntry::Tree;
-    } else {
-	type = TreeEntry::Blob;
-    }
-
-    struct passwd *upw = getpwuid(sb.st_uid);
-    struct group *ggr = getgrgid(sb.st_gid);
-    TreeEntry entry = TreeEntry(type, sb.st_size, upw->pw_name, ggr->gr_name,
-            hash);
-
-    if (largeHash != "") {
-        assert(entry.type != TreeEntry::Tree);
-        entry.type = TreeEntry::LargeBlob;
-        entry.largeHash = largeHash;
-    }
-
-    return entry;
 }
 
 void
@@ -214,47 +172,12 @@ Tree::~Tree()
 {
 }
 
-void
-Tree::addObject(const char *path, const string &objId, const string &lgObjId)
-{
-    TreeEntry e = TreeEntry::fromFile(path, objId, lgObjId);
-    string filename = StrUtil_Basename(path);
-    tree[filename] = e;
-    printf("Tree::addObject\n");
-}
-
-
 const string
 Tree::getBlob() const
 {
-    /*string blob = "";
-    map<string, TreeEntry>::const_iterator it;
-
-    for (it = tree.begin(); it != tree.end(); it++)
-    {
-        if ((*it).second.type == TreeEntry::Tree) {
-            blob += "tree";
-        } else if ((*it).second.type == TreeEntry::Blob) {
-            blob += "blob";
-        } else if ((*it).second.type == TreeEntry::LargeBlob) {
-            blob += "lgbl";
-        } else {
-            assert(false);
-        }
-	blob += " ";
-	blob += (*it).second.hash;
-        if ((*it).second.type == TreeEntry::LargeBlob) {
-            blob += (*it).second.largeHash;
-        }
-	blob += " ";
-	blob += (*it).first;
-	blob += "\n";
-    }
-
-    return blob;*/
     strwstream ss;
     size_t size = tree.size();
-    ss.write(&size, sizeof(size_t));
+    ss.writeInt(size);
 
     for (map<string, TreeEntry>::const_iterator it = tree.begin();
             it != tree.end();
@@ -269,13 +192,13 @@ Tree::getBlob() const
         } else {
             assert(false);
         }
-        ss.writePStr((*it).second.hash);
+        ss.writeHash((*it).second.hash);
         if ((*it).second.type == TreeEntry::LargeBlob)
-            ss.writePStr((*it).second.largeHash);
+            ss.writeHash((*it).second.largeHash);
         ss.writePStr((*it).first);
         
         size_t asize = (*it).second.attrs.attrs.size();
-        ss.write(&asize, sizeof(size_t));
+        ss.writeInt(asize);
         for (AttrMap::const_iterator ait = (*it).second.attrs.attrs.begin();
                 ait != (*it).second.attrs.attrs.end();
                 ait++) {
@@ -290,34 +213,8 @@ Tree::getBlob() const
 void
 Tree::fromBlob(const string &blob)
 {
-    /*string line;
-    stringstream ss(blob);
-
-    while (getline(ss, line, '\n')) {
-	TreeEntry entry = TreeEntry();
-	if (line.substr(0, 5) == "tree ") {
-	    entry.type = TreeEntry::Tree;
-	} else if (line.substr(0, 5) == "blob ") {
-	    entry.type = TreeEntry::Blob;
-	} else if (line.substr(0, 5) == "lgbl ") {
-	    entry.type = TreeEntry::LargeBlob;
-	} else {
-	    assert(false);
-	}
-
-	// XXX: entry.mode
-
-        entry.hash = line.substr(5, 64);
-        if (entry.type == TreeEntry::LargeBlob) {
-            entry.largeHash = line.substr(69, 64);
-	    tree[line.substr(134)] = entry;
-        } else {
-            entry.largeHash = "";
-	    tree[line.substr(70)] = entry;
-        }
-    }*/
     strstream ss(blob);
-    size_t num_entries = ss.readNext<size_t>();
+    size_t num_entries = ss.readInt<size_t>();
     
     for (size_t i = 0; i < num_entries; i++) {
         TreeEntry entry;
@@ -336,13 +233,14 @@ Tree::fromBlob(const string &blob)
             assert(false);
         }
 
-        ss.readPStr(entry.hash);
-        if (entry.type == TreeEntry::LargeBlob)
-            ss.readPStr(entry.largeHash);
+        ss.readHash(entry.hash);
+        if (entry.type == TreeEntry::LargeBlob) {
+            ss.readHash(entry.largeHash);
+        }
         string path;
         ss.readPStr(path);
 
-        size_t num_attrs = ss.readNext<size_t>();
+        size_t num_attrs = ss.readInt<size_t>();
         for (size_t i_a = 0; i_a < num_attrs; i_a++) {
             string attrName, attrValue;
             ss.readPStr(attrName);
@@ -441,10 +339,10 @@ Tree::unflatten(const Flat &flat, Repo *r)
         const string &tn = tree_names[i];
         if (tn.size() == 0) continue;
         string blob = trees[tn].getBlob();
-        string hash = Util_HashString(blob);
+        ObjectHash hash = Util_HashString(blob);
 
         // Add to Repo
-        r->addBlob(Object::Tree, blob);
+        r->addObject(Object::Tree, hash, blob);
 
         // Add to parent
         TreeEntry te = (*flat.find(tree_names[i])).second;
@@ -461,7 +359,7 @@ Tree::unflatten(const Flat &flat, Repo *r)
     return trees[""];
 }
 
-std::string
+ObjectHash
 Tree::hash() const
 {
     return Util_HashString(getBlob());

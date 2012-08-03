@@ -32,12 +32,11 @@ extern LocalRepo repository;
 int
 cmd_filelog(int argc, const char *argv[])
 {
-    string commit = repository.getHead();
-    list<pair<Commit, string> > revs;
-    list<pair<Commit, string> >::iterator it;
+    ObjectHash commit = repository.getHead();
+    list<pair<Commit, ObjectHash> > revs;
     Commit lastCommit;
-    string lastCommitHash;
-    string lastHash = "";
+    ObjectHash lastCommitHash;
+    ObjectHash lastHash;
 
     if (argc != 2) {
 	cout << "Wrong number of arguments!" << endl;
@@ -46,11 +45,11 @@ cmd_filelog(int argc, const char *argv[])
 
     while (commit != EMPTY_COMMIT) {
 	Commit c = repository.getCommit(commit);
-	string objId;
+	ObjectHash objId;
 
 	objId = repository.lookup(c, argv[1]);
 
-	if (lastHash != objId && lastHash != "") {
+	if (lastHash != objId && !lastHash.isEmpty()) {
 	    revs.push_back(make_pair(lastCommit, lastCommitHash));
 	}
 	lastCommit = c;
@@ -61,19 +60,21 @@ cmd_filelog(int argc, const char *argv[])
 	// XXX: Handle merge cases
     }
 
-    if (lastHash != "") {
+    if (!lastHash.isEmpty()) {
 	revs.push_back(make_pair(lastCommit, lastCommitHash));
     }
 
-    for (it = revs.begin(); it != revs.end(); it++) {
+    for (list<pair<Commit, ObjectHash> >::iterator it = revs.begin();
+            it != revs.end();
+            it++) {
 	Commit c = (*it).first;
 	time_t timeVal = c.getTime();
 	char timeStr[26];
 
 	ctime_r(&timeVal, timeStr);
 
-	cout << "Commit:  " << (*it).second << endl;
-	cout << "Parents: " << c.getParents().first << endl;
+	cout << "Commit:  " << (*it).second.hex() << endl;
+	cout << "Parents: " << c.getParents().first.hex() << endl;
 	cout << "Author:  " << c.getUser() << endl;
 	// XXX: print file id?
 	cout << "Date:    " << timeStr << endl;

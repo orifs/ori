@@ -41,13 +41,13 @@ struct ori_priv
     void _resetHead();
 
     // Functions to access the cache
-    Tree *getTree(const std::string &hash);
-    LargeBlob *getLargeBlob(const std::string &hash);
-    ObjectInfo *getObjectInfo(const std::string &hash);
+    Tree *getTree(const ObjectHash &hash);
+    LargeBlob *getLargeBlob(const ObjectHash &hash);
+    ObjectInfo *getObjectInfo(const ObjectHash &hash);
 
-    LRUCache<std::string, Tree, 128> treeCache;
-    LRUCache<std::string, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
-    LRUCache<std::string, ObjectInfo, 128> objInfoCache;
+    LRUCache<ObjectHash, Tree, 128> treeCache;
+    LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
+    LRUCache<ObjectHash, ObjectInfo, 128> objInfoCache;
     LRUCache<std::string, ExtendedTreeEntry, 128> eteCache;
 
     LocalRepo *repo;

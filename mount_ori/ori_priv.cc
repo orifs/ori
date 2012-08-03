@@ -42,7 +42,7 @@ ori_priv::_resetHead()
 }
 
 Tree *
-ori_priv::getTree(const std::string &hash)
+ori_priv::getTree(const ObjectHash &hash)
 {
     if (!treeCache.hasKey(hash)) {
         Tree t;
@@ -53,7 +53,7 @@ ori_priv::getTree(const std::string &hash)
 }
 
 LargeBlob *
-ori_priv::getLargeBlob(const std::string &hash)
+ori_priv::getLargeBlob(const ObjectHash &hash)
 {
     if (!lbCache.hasKey(hash)) {
         std::tr1::shared_ptr<LargeBlob> lb(new LargeBlob(repo));
@@ -64,7 +64,7 @@ ori_priv::getLargeBlob(const std::string &hash)
 }
 
 ObjectInfo *
-ori_priv::getObjectInfo(const std::string &hash)
+ori_priv::getObjectInfo(const ObjectHash &hash)
 {
     if (!objInfoCache.hasKey(hash)) {
         ObjectInfo info = repo->getObjectInfo(hash);
@@ -97,7 +97,7 @@ ori_priv::commitWrite()
     if (currTreeDiff != NULL) {
         FUSE_LOG("committing");
 
-        std::string tip = repo->getHead();
+        ObjectHash tip = repo->getHead();
 
         Tree tip_tree;
         if (tip != EMPTY_COMMIT) {
@@ -106,8 +106,11 @@ ori_priv::commitWrite()
         }
         Tree new_tree = currTreeDiff->applyTo(tip_tree.flattened(repo),
                 currTempDir.get());
+
+        Commit newCommit;
+        newCommit.setMessage("Commit from FUSE.");
         repo->commitFromObjects(new_tree.hash(), currTempDir.get(),
-                "Commit from FUSE.");
+                newCommit);
 
         _resetHead();
 

@@ -75,7 +75,7 @@ LocalRepo_Init(const std::string &rootPath)
 
     // Create default branch
     tmpDir = rootPath + ORI_PATH_HEADS + "/default";
-    if (!Util_WriteFile(EMPTY_COMMIT, sizeof(EMPTY_COMMIT) - 1, tmpDir))
+    if (!Util_WriteFile(EMPTY_COMMIT.hex().data(), ObjectHash::SIZE * 2, tmpDir))
     {
 	perror("Could not create default branch");
 	return 1;
@@ -259,7 +259,7 @@ LocalRepo::hasRemote()
  * Object Operations
  */
 
-Object::sp LocalRepo::getObject(const std::string &objId)
+Object::sp LocalRepo::getObject(const ObjectHash &objId)
 {
     LocalObject::sp o(getLocalObject(objId));
 
@@ -274,7 +274,7 @@ Object::sp LocalRepo::getObject(const std::string &objId)
     return Object::sp(o);
 }
 
-LocalObject::sp LocalRepo::getLocalObject(const std::string &objId)
+LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
 {
     assert(opened);
     if (!_objectCache.hasKey(objId)) {
@@ -283,7 +283,7 @@ LocalObject::sp LocalRepo::getLocalObject(const std::string &objId)
 
         int st = o->open(path, objId);
         if (st < 0) {
-            LOG("LocalRepo couldn't open object %s: %s", objId.c_str(),
+            LOG("LocalRepo couldn't open object %s: %s", objId.hex().c_str(),
                     strerror(st));
             return LocalObject::sp(); // NULL
         }
@@ -294,37 +294,40 @@ LocalObject::sp LocalRepo::getLocalObject(const std::string &objId)
 }
 
 void
-LocalRepo::createObjDirs(const string &objId)
+LocalRepo::createObjDirs(const ObjectHash &objId)
 {
     string path = rootPath;
+    string hexId = objId.hex();
 
     assert(path != "");
 
     path += ORI_PATH_OBJS;
-    path += objId.substr(0,2);
+    path += hexId.substr(0,2);
 
     //mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 
     path += "/";
-    path += objId.substr(2,2);
+    path += hexId.substr(2,2);
 
     mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
 }
 
 string
-LocalRepo::objIdToPath(const string &objId)
+LocalRepo::objIdToPath(const ObjectHash &objId)
 {
     string rval = rootPath;
+    string hexId = objId.hex();
 
-    assert(objId.length() == 64);
+    assert(!objId.isEmpty());
+    assert(hexId.length() == 64);
     assert(rval != "");
 
     rval += ORI_PATH_OBJS;
-    rval += objId.substr(0,2);
+    rval += hexId.substr(0,2);
     rval += "/";
-    rval += objId.substr(2,2);
+    rval += hexId.substr(2,2);
     rval += "/";
-    rval += objId;
+    rval += hexId;
 
     return rval;
 }
@@ -334,8 +337,8 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
     assert(opened);
     assert(info.hasAllFields());
-    string hash = info.hash;
-    assert(hash.size() == 64);
+    ObjectHash hash = info.hash;
+    assert(!hash.isEmpty());
     string objPath = objIdToPath(hash);
 
     if (!Util_FileExists(objPath)) {
@@ -356,12 +359,11 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 /*
  * Add a tree to the repository.
  */
-string
+ObjectHash
 LocalRepo::addTree(const Tree &tree)
 {
     string blob = tree.getBlob();
-    string hash = Util_HashString(blob);
-    map<string, TreeEntry>::const_iterator it;
+    ObjectHash hash = Util_HashString(blob);
 
     if (hasObject(hash)) {
         return hash;
@@ -383,11 +385,11 @@ LocalRepo::addTree(const Tree &tree)
 /*
  * Add a commit to the repository.
  */
-string
+ObjectHash
 LocalRepo::addCommit(/* const */ Commit &commit)
 {
     string blob = commit.getBlob();
-    string hash = Util_HashString(blob);
+    ObjectHash hash = Util_HashString(blob);
     string refPath;
 
     if (hasObject(hash)) {
@@ -418,7 +420,7 @@ LocalRepo::addCommit(/* const */ Commit &commit)
  * Read an object into memory and return it as a string.
  */
 std::string
-LocalRepo::getPayload(const string &objId)
+LocalRepo::getPayload(const ObjectHash &objId)
 {
     Object::sp o(getObject(objId));
     // XXX: Add better error handling
@@ -436,10 +438,10 @@ LocalRepo::getPayload(const string &objId)
  * Get an object length.
  */
 size_t
-LocalRepo::getObjectLength(const string &objId)
+LocalRepo::getObjectLength(const ObjectHash &objId)
 {
     if (!hasObject(objId)) {
-        LOG("Couldn't get object %s", objId.c_str());
+        LOG("Couldn't get object %s", objId.hex().c_str());
         return -1;
     }
 
@@ -451,10 +453,10 @@ LocalRepo::getObjectLength(const string &objId)
  * Get the object type.
  */
 Object::Type
-LocalRepo::getObjectType(const string &objId)
+LocalRepo::getObjectType(const ObjectHash &objId)
 {
     if (!hasObject(objId)) {
-        LOG("Couldn't get object %s", objId.c_str());
+        LOG("Couldn't get object %s", objId.hex().c_str());
         return Object::Null;
     }
 
@@ -466,7 +468,7 @@ LocalRepo::getObjectType(const string &objId)
  * Verify object
  */
 string
-LocalRepo::verifyObject(const string &objId)
+LocalRepo::verifyObject(const ObjectHash &objId)
 {
     LocalObject::sp o;
     Object::Type type;
@@ -549,7 +551,7 @@ LocalRepo::verifyObject(const string &objId)
  * Purge object
  */
 bool
-LocalRepo::purgeObject(const string &objId)
+LocalRepo::purgeObject(const ObjectHash &objId)
 {
     LocalObject::sp o = getLocalObject(objId);
 
@@ -566,7 +568,7 @@ LocalRepo::purgeObject(const string &objId)
  * Copy an object to a working directory.
  */
 bool
-LocalRepo::copyObject(const string &objId, const string &path)
+LocalRepo::copyObject(const ObjectHash &objId, const string &path)
 {
     LocalObject::sp o = getLocalObject(objId);
 
@@ -596,7 +598,7 @@ LocalRepo::addBackref(const std::string &refers_to)
 int
 Repo_GetObjectsCB(void *arg, const char *path)
 {
-    string hash;
+    string hexHash;
     set<ObjectInfo> *objs = (set<ObjectInfo> *)arg;
 
     // XXX: Only add the hash
@@ -604,8 +606,9 @@ Repo_GetObjectsCB(void *arg, const char *path)
 	return 0;
     }
 
-    hash = path;
-    hash = hash.substr(hash.rfind("/") + 1);
+    hexHash = path;
+    hexHash = hexHash.substr(hexHash.rfind("/") + 1);
+    ObjectHash hash = ObjectHash::fromHex(hexHash);
 
     LocalObject o;
     o.open(path);
@@ -700,10 +703,10 @@ LocalRepo::pull(Repo *r)
         sshrepo = (SshRepo *)r;
 
     vector<Commit> remoteCommits = r->listCommits();
-    deque<string> toPull;
+    deque<ObjectHash> toPull;
 
     for (size_t i = 0; i < remoteCommits.size(); i++) {
-        string hash = remoteCommits[i].hash();
+        ObjectHash hash = remoteCommits[i].hash();
         if (!hasObject(hash)) {
             toPull.push_back(hash);
             // TODO: partial pull
@@ -717,12 +720,12 @@ LocalRepo::pull(Repo *r)
 
     // Perform the pull
     while (!toPull.empty()) {
-        string hash = toPull.front();
+        ObjectHash hash = toPull.front();
         toPull.pop_front();
 
         Object::sp o(r->getObject(hash));
         if (!o) {
-            printf("Error getting object %s\n", hash.c_str());
+            printf("Error getting object %s\n", hash.hex().c_str());
             continue;
         }
 
@@ -731,7 +734,7 @@ LocalRepo::pull(Repo *r)
         /*printf("Pulling object %s (%s)\n", hash.c_str(),
                 Object::getStrForType(t));*/
 
-        vector<string> newObjs;
+        vector<ObjectHash> newObjs;
         if (t == Object::Commit) {
             Commit c;
             c.fromBlob(o->getPayload());
@@ -746,7 +749,7 @@ LocalRepo::pull(Repo *r)
             for (map<string, TreeEntry>::iterator it = t.tree.begin();
                     it != t.tree.end();
                     it++) {
-                const string &entry_hash = (*it).second.hash;
+                const ObjectHash &entry_hash = (*it).second.hash;
                 if (!hasObject(entry_hash)) {
                     toPull.push_back(entry_hash);
                     newObjs.push_back(entry_hash);
@@ -760,7 +763,7 @@ LocalRepo::pull(Repo *r)
             for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
                     pit != lb.parts.end();
                     pit++) {
-                const string &h = (*pit).second.hash;
+                const ObjectHash &h = (*pit).second.hash;
                 if (!hasObject(h)) {
                     toPull.push_back(h);
                     newObjs.push_back(h);
@@ -823,7 +826,7 @@ LocalRepo::addCommitBackrefs(const Commit &c, MdTransaction::sp tr)
 {
     if (c.getParents().first != EMPTY_COMMIT)
         metadata.addRef(c.getParents().first, tr);
-    if (c.getParents().second != "")
+    if (!c.getParents().second.isEmpty())
         metadata.addRef(c.getParents().second, tr);
     
     metadata.addRef(c.getTree(), tr);
@@ -864,7 +867,7 @@ LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
 
         Object::sp o(other->getObject(te.hash));
         if (!o) {
-            LOG("Couldn't get object %s\n", te.hash.c_str());
+            LOG("Couldn't get object %s\n", te.hash.hex().c_str());
             continue;
         }
 
@@ -883,8 +886,8 @@ LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
     }
 }
 
-string
-LocalRepo::commitFromTree(const string &treeHash, const string &msg)
+ObjectHash
+LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c)
 {
     assert(opened);
 
@@ -894,11 +897,19 @@ LocalRepo::commitFromTree(const string &treeHash, const string &msg)
     //LocalRepoLock::ap _lock(lock());
 
     // Make the commit object
-    string user = Util_GetFullname();
-    Commit c(msg, treeHash, user);
+    if (c.getMessage().size() == 0)
+        c.setMessage("No message.");
+    if (c.getTime() == 0)
+        c.setTime(time(NULL));
+    if (c.getUser().size() == 0) {
+        string user = Util_GetFullname();
+        c.setUser(user);
+    }
+    
+    c.setTree(treeHash);
     c.setParents(getHead());
 
-    string commitHash = addCommit(c);
+    ObjectHash commitHash = addCommit(c);
 
     // Update .ori/HEAD
     updateHead(commitHash);
@@ -908,13 +919,14 @@ LocalRepo::commitFromTree(const string &treeHash, const string &msg)
     addCommitBackrefs(c, tr);
 
     printf("Commit Hash: %s\nTree Hash: %s\n",
-	   commitHash.c_str(),
-	   treeHash.c_str());
+	   commitHash.hex().c_str(),
+	   treeHash.hex().c_str());
     return commitHash;
 }
 
-string
-LocalRepo::commitFromObjects(const string &treeHash, Repo *objects, const string &msg)
+ObjectHash
+LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
+        Commit &c)
 {
     assert(opened);
 
@@ -927,7 +939,7 @@ LocalRepo::commitFromObjects(const string &treeHash, Repo *objects, const string
     Tree newTree = getTree(treeHash);
     copyObjectsFromTree(objects, newTree);
 
-    return commitFromTree(treeHash, msg);
+    return commitFromTree(treeHash, c);
 }
 
 /*
@@ -945,7 +957,7 @@ LocalRepo::gc()
  * Return true if the repository has the object.
  */
 bool
-LocalRepo::hasObject(const string &objId)
+LocalRepo::hasObject(const ObjectHash &objId)
 {
     bool val = index.hasObject(objId);
 
@@ -960,7 +972,7 @@ LocalRepo::hasObject(const string &objId)
  * Return ObjectInfo through the fast path.
  */
 ObjectInfo
-LocalRepo::getObjectInfo(const string &objId)
+LocalRepo::getObjectInfo(const ObjectHash &objId)
 {
     if (index.hasObject(objId)) {
 	return index.getInfo(objId);
@@ -998,7 +1010,7 @@ LocalRepo::recomputeRefCounts()
     for (set<ObjectInfo>::iterator it = obj.begin();
             it != obj.end();
             it++) {
-        const std::string &hash = (*it).hash;
+        const ObjectHash &hash = (*it).hash;
         switch ((*it).type) {
             case Object::Commit:
             {
@@ -1008,7 +1020,7 @@ LocalRepo::recomputeRefCounts()
                 if (c.getParents().first != EMPTY_COMMIT) {
                     rval[c.getParents().first] += 1;
                 }
-                if (c.getParents().second != "") {
+                if (!c.getParents().second.isEmpty()) {
                     rval[c.getParents().second] += 1;
                 }
                 
@@ -1020,7 +1032,7 @@ LocalRepo::recomputeRefCounts()
                 map<string, TreeEntry>::iterator tt;
 
                 for  (tt = t.tree.begin(); tt != t.tree.end(); tt++) {
-                    string h = (*tt).second.hash;
+                    ObjectHash h = (*tt).second.hash;
                     rval[h] += 1;
                 }
                 break;
@@ -1034,7 +1046,7 @@ LocalRepo::recomputeRefCounts()
                 for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
                         pit != lb.parts.end();
                         pit++) {
-                    string h = (*pit).second.hash;
+                    ObjectHash h = (*pit).second.hash;
                     rval[h] += 1;
                 }
                 break;
@@ -1066,11 +1078,11 @@ LocalRepo::rewriteRefCounts(const RefcountMap &refs)
 /*
  * Return a set of all objects references by a tree.
  */
-set<string>
-LocalRepo::getSubtreeObjects(const string &treeId)
+set<ObjectHash>
+LocalRepo::getSubtreeObjects(const ObjectHash &treeId)
 {
-    queue<string> treeQ;
-    set<string> rval;
+    queue<ObjectHash> treeQ;
+    set<ObjectHash> rval;
 
     treeQ.push(treeId);
 
@@ -1081,9 +1093,9 @@ LocalRepo::getSubtreeObjects(const string &treeId)
 
 	for (it = t.tree.begin(); it != t.tree.end(); it++) {
 	    TreeEntry e = (*it).second;
-	    set<string>::iterator p = rval.find((*it).first);
+	    set<ObjectHash>::iterator p = rval.find(e.hash);
 
-	    if (p != rval.end()) {
+	    if (p == rval.end()) {
 		if (e.type == TreeEntry::Tree) {
 		    treeQ.push(e.hash);
 		}
@@ -1099,13 +1111,13 @@ LocalRepo::getSubtreeObjects(const string &treeId)
  * Walk the repository history.
  * XXX: Make this a template function
  */
-set<string>
+set<ObjectHash>
 LocalRepo::walkHistory(HistoryCB &cb)
 {
-    set<string> rval;
-    set<string> curLevel;
-    set<string> nextLevel;
-    set<string>::iterator it;
+    set<ObjectHash> rval;
+    set<ObjectHash> curLevel;
+    set<ObjectHash> nextLevel;
+    set<ObjectHash>::iterator it;
 
     if (getHead() == EMPTY_COMMIT)
         return rval;
@@ -1118,16 +1130,16 @@ LocalRepo::walkHistory(HistoryCB &cb)
 
 	for (it = curLevel.begin(); it != curLevel.end(); it++) {
 	    Commit c = getCommit(*it);
-	    pair<string, string> p = c.getParents();
-            string val;
+	    pair<ObjectHash, ObjectHash> p = c.getParents();
+            ObjectHash val;
 
 	    val = cb.cb(*it, &c);
-            if (val != "")
+            if (!val.isEmpty())
                 rval.insert(val);
 
             if (p.first != EMPTY_COMMIT) {
 	        nextLevel.insert(p.first);
-	        if (p.second != "")
+	        if (!p.second.isEmpty())
 		    nextLevel.insert(p.second);
             }
 	}
@@ -1139,12 +1151,12 @@ LocalRepo::walkHistory(HistoryCB &cb)
 /*
  * Lookup a path given a Commit and return the object ID.
  */
-string
+ObjectHash
 LocalRepo::lookup(const Commit &c, const string &path)
 {
     vector<string> pv = Util_PathToVector(path);
     vector<string>::iterator it;
-    string objId = c.getTree();
+    ObjectHash objId = c.getTree();
 
     for (it = pv.begin(); it != pv.end(); it++) {
         Tree t = getTree(objId);
@@ -1166,17 +1178,17 @@ public:
     virtual ~GraftCB()
     {
     }
-    virtual string cb(const string &commitId, Commit *c)
+    virtual ObjectHash cb(const ObjectHash &commitId, Commit *c)
     {
-        string treeId = src->lookup(*c, srcPath);
-        set<string> objects;
-        set<string>::iterator it;
+        ObjectHash treeId = src->lookup(*c, srcPath);
+        set<ObjectHash> objects;
+        set<ObjectHash>::iterator it;
 
-        if (treeId == "")
-            return "";
+        if (treeId.isEmpty())
+            return ObjectHash();
 
-        printf("Commit: %s\n", commitId.c_str());
-        printf("Tree: %s\n", treeId.c_str());
+        printf("Commit: %s\n", commitId.hex().c_str());
+        printf("Tree: %s\n", treeId.hex().c_str());
 
         // Copy objects
         objects = src->getSubtreeObjects(treeId);
@@ -1192,7 +1204,7 @@ public:
 
         // XXX: Copy files and mark in working state.
 
-        return "";
+        return ObjectHash();
     }
 private:
     string srcPath;
@@ -1209,7 +1221,7 @@ LocalRepo::graftSubtree(LocalRepo *r,
                    const std::string &dstPath)
 {
     GraftCB cb = GraftCB(this, r, srcPath);
-    set<string> changes;
+    set<ObjectHash> changes;
 
     printf("Hello!\n");
     changes = r->walkHistory(cb);
@@ -1270,10 +1282,10 @@ LocalRepo::setBranch(const std::string &name)
 
     if (e == branches.end()) {
 	string branchFile = rootPath + ORI_PATH_HEADS + name;
-	string head = getHead();
+	ObjectHash head = getHead();
 	printf("Creating branch '%s'\n", name.c_str());
 
-	Util_WriteFile(head.c_str(), head.size(), branchFile);
+	Util_WriteFile(head.hex().c_str(), ObjectHash::SIZE * 2, branchFile);
     }
 
     Util_WriteFile(name.c_str(), name.size(), rootPath + ORI_PATH_BRANCH);
@@ -1282,7 +1294,7 @@ LocalRepo::setBranch(const std::string &name)
 /*
  * Get the working repository version.
  */
-string
+ObjectHash
 LocalRepo::getHead()
 {
     string headPath = rootPath + ORI_PATH_HEADS + getBranch();
@@ -1293,20 +1305,20 @@ LocalRepo::getHead()
 	return EMPTY_COMMIT;
     }
 
-    return commitId;
+    return ObjectHash::fromHex(commitId);
 }
 
 /*
  * Update the working directory revision.
  */
 void
-LocalRepo::updateHead(const string &commitId)
+LocalRepo::updateHead(const ObjectHash &commitId)
 {
     string headPath = rootPath + ORI_PATH_HEADS + getBranch();
 
-    assert(commitId.length() == 64);
+    assert(!commitId.isEmpty());
 
-    Util_WriteFile(commitId.c_str(), commitId.size(), headPath);
+    Util_WriteFile(commitId.hex().c_str(), ObjectHash::SIZE * 2, headPath);
 }
 
 /*
@@ -1316,7 +1328,7 @@ Tree
 LocalRepo::getHeadTree()
 {
     Tree t;
-    string head = getHead();
+    ObjectHash head = getHead();
     if (head != EMPTY_COMMIT) {
         Commit headCommit = getCommit(head);
         t = getTree(headCommit.getTree());

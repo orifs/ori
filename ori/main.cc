@@ -61,7 +61,7 @@ int cmd_show(int argc, const char *argv[]);
 int cmd_clone(int argc, const char *argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, const char *argv[]);
-int cmd_oldcommit(int argc, const char *argv[]);
+//int cmd_oldcommit(int argc, const char *argv[]);
 int cmd_snapshot(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
@@ -144,12 +144,12 @@ static Cmd commands[] = {
 	cmd_commit,
 	usage_commit,
     },
-    {
+    /*{
 	"oldcommit",
 	"Commit changes into the repository (pre-TreeDiff)",
 	cmd_oldcommit,
 	usage_commit,
-    },
+    },*/
     {
 	"checkout",
 	"Checkout a revision of the repository",

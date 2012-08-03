@@ -42,7 +42,7 @@ cmd_show(int argc, const char *argv[])
     cout << "Root: " << rootPath << endl;
     cout << "UUID: " << repository.getUUID() << endl;
     cout << "Version: " << repository.getVersion() << endl;
-    cout << "HEAD: " << repository.getHead() << endl;
+    cout << "HEAD: " << repository.getHead().hex() << endl;
     //printf("Peers:\n");
     // for
     // printf("    %s\n", hostname);

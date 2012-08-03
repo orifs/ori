@@ -34,10 +34,10 @@ public:
 
     LocalObject();
     ~LocalObject();
-    int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
+    //int create(const std::string &path, Type type, uint32_t flags = ORI_FLAG_DEFAULT);
     int createFromRawData(const std::string &path, const ObjectInfo &info,
             const std::string &raw_data);
-    int open(const std::string &path, const std::string &hash="");
+    int open(const std::string &path, const ObjectHash &hash=ObjectHash());
     void close();
     size_t getFileSize();
 
@@ -50,7 +50,7 @@ public:
     int purge();
     int setPayload(bytestream *bs);
     int setPayload(const std::string &blob);
-    std::string computeHash();
+    ObjectHash computeHash();
 
 private:
     int fd;

@@ -37,7 +37,7 @@ cmd_status(int argc, const char *argv[])
         return 0;
 
     Commit c;
-    string tip = repository.getHead();
+    ObjectHash tip = repository.getHead();
     if (tip != EMPTY_COMMIT) {
         c = repository.getCommit(tip);
     }

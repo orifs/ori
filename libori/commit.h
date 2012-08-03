@@ -23,18 +23,19 @@
 #include <utility>
 #include <string>
 
+#include "objecthash.h"
+
 class Commit
 {
 public:
     Commit();
-    Commit(const std::string &msg, const std::string &tree, const std::string &user);
     ~Commit();
-    void setParents(std::string p1, std::string p2 = "");
-    std::pair<std::string, std::string> getParents() const;
+    void setParents(ObjectHash p1, ObjectHash p2 = ObjectHash());
+    std::pair<ObjectHash, ObjectHash> getParents() const;
     void setMessage(const std::string &msg);
     std::string getMessage() const;
-    void setTree(const std::string &tree);
-    std::string getTree() const;
+    void setTree(const ObjectHash &tree);
+    ObjectHash getTree() const;
     void setUser(const std::string &user);
     std::string getUser() const;
     void setSnapshot(const std::string &snapshot);
@@ -43,23 +44,23 @@ public:
     time_t getTime() const;
     void setGraft(const std::string &repo,
 		  const std::string &path,
-		  const std::string &commidId);
+		  const ObjectHash &commidId);
     std::pair<std::string, std::string> getGraftRepo() const;
-    std::string getGraftCommit() const;
+    ObjectHash getGraftCommit() const;
     std::string getBlob() const;
     void fromBlob(const std::string &blob);
 
-    std::string hash() const; // TODO: cache this
+    ObjectHash hash() const; // TODO: cache this
 private:
-    std::pair<std::string, std::string> parents;
+    std::pair<ObjectHash, ObjectHash> parents;
     std::string message;
-    std::string treeObjId;
+    ObjectHash treeObjId;
     std::string user;
     std::string snapshotName;
     time_t date;
     std::string graftRepo;
     std::string graftPath;
-    std::string graftCommitId;
+    ObjectHash graftCommitId;
 };
 
 #endif /* __COMMIT_H__ */

@@ -59,7 +59,7 @@ HttpRepo::preload(const std::vector<std::string> &objs)
     return;
 }
 
-std::string
+ObjectHash
 HttpRepo::getHead()
 {
     int status;
@@ -68,21 +68,21 @@ HttpRepo::getHead()
     status = client->getRequest("/HEAD", headId);
     if (status < 0) {
         assert(false);
-        return "";
+        return ObjectHash();
     }
 
-    return headId;
+    return ObjectHash::fromHex(headId);
 }
 
 Object::sp
-HttpRepo::getObject(const std::string &id)
+HttpRepo::getObject(const ObjectHash &id)
 {
     int status;
     string index;
-    ObjectInfo info = ObjectInfo(id.c_str());
+    ObjectInfo info = ObjectInfo(id);
     std::string payload;
 
-    status = client->getRequest("/objs/" + id, payload);
+    status = client->getRequest("/objs/" + id.hex(), payload);
     if (status < 0) {
         assert(false);
         return Object::sp();
@@ -97,14 +97,14 @@ HttpRepo::getObject(const std::string &id)
 }
 
 ObjectInfo
-HttpRepo::getObjectInfo(const std::string &id)
+HttpRepo::getObjectInfo(const ObjectHash &id)
 {
     NOT_IMPLEMENTED(false);
     return ObjectInfo();
 }
 
 bool
-HttpRepo::hasObject(const std::string &id) {
+HttpRepo::hasObject(const ObjectHash &id) {
     NOT_IMPLEMENTED(false);
     return false;
 }
@@ -125,16 +125,16 @@ HttpRepo::listObjects()
     // Parse response
     for (size_t offset = 0; offset < index.size();)
     {
-        string hash;
+        ObjectHash hash;
         string objInfo;
         ObjectInfo info;
 
-        hash = index.substr(offset, SHA256_DIGEST_LENGTH * 2);
-        offset += SHA256_DIGEST_LENGTH * 2;
+        hash = ObjectHash::fromHex(index.substr(offset, ObjectHash::SIZE * 2));
+        offset += ObjectHash::SIZE * 2;
         objInfo = index.substr(offset, 16);
         offset += 16;
 
-        info = ObjectInfo(hash.c_str());
+        info = ObjectInfo(hash);
         info.setInfo(objInfo);
         rval.insert(info);
     }
@@ -147,12 +147,6 @@ HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 {
     NOT_IMPLEMENTED(false);
     return -1;
-}
-
-void
-HttpRepo::addBackref(const std::string &refers_to)
-{
-    NOT_IMPLEMENTED(false);
 }
 
 vector<Commit>
@@ -187,19 +181,19 @@ HttpRepo::listCommits()
 
 
 std::string &
-HttpRepo::_payload(const std::string &id)
+HttpRepo::_payload(const ObjectHash &id)
 {
     return payloads[id];
 }
 
 void
-HttpRepo::_addPayload(const std::string &id, const std::string &payload)
+HttpRepo::_addPayload(const ObjectHash &id, const std::string &payload)
 {
     payloads[id] = payload;
 }
 
 void
-HttpRepo::_clearPayload(const std::string &id)
+HttpRepo::_clearPayload(const ObjectHash &id)
 {
     payloads.erase(id);
 }
@@ -213,7 +207,7 @@ HttpObject::HttpObject(HttpRepo *repo, ObjectInfo info)
     : Object(info), repo(repo)
 {
     assert(repo != NULL);
-    assert(info.hash.size() > 0);
+    assert(!info.hash.isEmpty());
 }
 
 HttpObject::~HttpObject()

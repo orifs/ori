@@ -5,8 +5,10 @@
 #include <string>
 #include <tr1/memory>
 
+#include "objecthash.h"
+
 typedef uint32_t refcount_t;
-typedef std::map<std::string, refcount_t> RefcountMap;
+typedef std::map<ObjectHash, refcount_t> RefcountMap;
 
 class MetadataLog;
 class MdTransaction
@@ -31,9 +33,9 @@ public:
     /// rewrites the log file, optionally with new counts
     void rewrite(const RefcountMap *refs = NULL);
 
-    void addRef(const std::string &hash, MdTransaction::sp trs =
+    void addRef(const ObjectHash &hash, MdTransaction::sp trs =
             MdTransaction::sp());
-    refcount_t getRefCount(const std::string &hash) const;
+    refcount_t getRefCount(const ObjectHash &hash) const;
 
     MdTransaction::sp begin();
     void commit(MdTransaction *tr);

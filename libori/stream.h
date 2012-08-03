@@ -7,6 +7,8 @@
 
 #include <lzma.h>
 
+#include "objecthash.h"
+
 class bytestream
 {
 public:
@@ -27,16 +29,19 @@ public:
     int copyToFile(const std::string &path);
     int copyToFd(int dstFd);
 
-    // High-level I/O
+    /// Read Pascal-style string (1 byte length)
+    void readPStr(std::string &str);
+
+    /// Read ObjectHash
+    void readHash(ObjectHash &out);
+
+    /// Reads an integer with proper byte-swapping (TODO)
     template <typename T>
-    T readNext() {
+    T readInt() {
         T rval;
         read((uint8_t*)&rval, sizeof(T));
         return rval;
     }
-
-    /// Read Pascal-style string (1 byte length)
-    void readPStr(std::string &out);
 protected:
     std::string last_error;
     int last_errnum;
@@ -121,6 +126,13 @@ public:
     strwstream(size_t reserved);
     void write(const void *, size_t);
     void writePStr(const std::string &str);
+    void writeHash(const ObjectHash &hash);
+
+    /// Writes an integer with proper byte-swapping (TODO)
+    template <typename T>
+    void writeInt(const T &n) {
+        write(&n, sizeof(T));
+    }
 
     const std::string &str() const;
 private:

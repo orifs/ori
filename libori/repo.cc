@@ -35,6 +35,11 @@
 using namespace std;
 
 
+ObjectHash EMPTY_COMMIT =
+ObjectHash::fromHex("0000000000000000000000000000000000000000000000000000000000000000");
+ObjectHash EMPTYFILE_HASH =
+ObjectHash::fromHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
 /*
  * Repo
  */
@@ -50,12 +55,12 @@ Repo::~Repo() {
  */
 
 int
-Repo::addObject(Object::Type type, const string &hash, const string &payload)
+Repo::addObject(Object::Type type, const ObjectHash &hash, const string &payload)
 {
-    assert(hash != ""); // hash must be included
+    assert(!hash.isEmpty()); // hash must be included
     assert(type != Object::Null);
 
-    ObjectInfo info(hash.c_str());
+    ObjectInfo info(hash);
     info.type = type;
     info.payload_size = payload.size();
     assert(info.hasAllFields());
@@ -81,10 +86,10 @@ Repo::copyFrom(Object *other)
 /*
  * Add a blob to the repository. This is a low-level interface.
  */
-string
+ObjectHash
 Repo::addBlob(Object::Type type, const string &blob)
 {
-    string hash = Util_HashString(blob);
+    ObjectHash hash = Util_HashString(blob);
     addObject(type, hash, blob);
     return hash;
 }
@@ -93,7 +98,7 @@ Repo::addBlob(Object::Type type, const string &blob)
 /*
  * Add a file to the repository. This is a low-level interface.
  */
-string
+ObjectHash
 Repo::addSmallFile(const string &path)
 {
     diskstream ds(path);
@@ -103,7 +108,7 @@ Repo::addSmallFile(const string &path)
 /*
  * Add a file to the repository. This is a low-level interface.
  */
-pair<string, string>
+pair<ObjectHash, ObjectHash>
 Repo::addLargeFile(const string &path)
 {
     string blob;
@@ -123,14 +128,14 @@ Repo::addLargeFile(const string &path)
         }
     }*/
 
-    return make_pair(addBlob(Object::LargeBlob, blob), lb.hash);
+    return make_pair(addBlob(Object::LargeBlob, blob), lb.totalHash);
 }
 
 /*
  * Add a file to the repository. This is an internal interface that pusheds the
  * work to addLargeFile or addSmallFile based on our size threshold.
  */
-pair<string, string>
+pair<ObjectHash, ObjectHash>
 Repo::addFile(const string &path)
 {
     size_t sz = Util_FileSize(path);
@@ -138,19 +143,19 @@ Repo::addFile(const string &path)
     if (sz > LARGEFILE_MINIMUM)
         return addLargeFile(path);
     else
-        return make_pair(addSmallFile(path), "");
+        return make_pair(addSmallFile(path), ObjectHash());
 }
 
 
 
 
 Tree
-Repo::getTree(const std::string &treeId)
+Repo::getTree(const ObjectHash &treeId)
 {
     Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
-    assert(treeId == EMPTY_HASH || o->getInfo().type == Object::Tree);
+    assert(treeId == EMPTYFILE_HASH || o->getInfo().type == Object::Tree);
 
     Tree t;
     t.fromBlob(blob);
@@ -159,12 +164,12 @@ Repo::getTree(const std::string &treeId)
 }
 
 Commit
-Repo::getCommit(const std::string &commitId)
+Repo::getCommit(const ObjectHash &commitId)
 {
     Object::sp o(getObject(commitId));
     string blob = o->getPayload();
 
-    assert(commitId == EMPTY_HASH || o->getInfo().type == Object::Commit);
+    assert(commitId == EMPTYFILE_HASH || o->getInfo().type == Object::Commit);
 
     Commit c;
     if (blob.size() == 0) {

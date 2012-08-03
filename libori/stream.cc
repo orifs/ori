@@ -85,6 +85,11 @@ void bytestream::readPStr(std::string &out)
     read((uint8_t*)&out[0], len);
 }
 
+void bytestream::readHash(ObjectHash &out)
+{
+    read((uint8_t*)out.hash, ObjectHash::SIZE);
+}
+
 
 // Error handling
 
@@ -342,6 +347,12 @@ void strwstream::writePStr(const std::string &str)
     uint8_t size = str.size();
     write(&size, 1);
     write(str.data(), size);
+}
+
+void strwstream::writeHash(const ObjectHash &hash)
+{
+    assert(!hash.isEmpty());
+    write(hash.hash, ObjectHash::SIZE);
 }
 
 const std::string &strwstream::str() const

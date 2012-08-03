@@ -296,23 +296,23 @@ Util_RenameFile(const std::string &from, const std::string &to)
 /*
  * Compute SHA 256 hash for a string.
  */
-string
+ObjectHash
 Util_HashString(const string &str)
 {
     SHA256_CTX state;
-    unsigned char hash[SHA256_DIGEST_LENGTH];
+    ObjectHash hash;
 
     SHA256_Init(&state);
     SHA256_Update(&state, str.c_str(), str.size());
-    SHA256_Final(hash, &state);
+    SHA256_Final(hash.hash, &state);
 
-    return Util_RawHashToHex(hash);
+    return hash;
 }
 
 /*
  * Compute SHA 256 hash for a file.
  */
-string
+ObjectHash
 Util_HashFile(const string &path)
 {
     int fd;
@@ -321,18 +321,18 @@ Util_HashFile(const string &path)
     int64_t bytesLeft;
     int64_t bytesRead;
     SHA256_CTX state;
-    unsigned char hash[SHA256_DIGEST_LENGTH];
+    ObjectHash hash;
 
     SHA256_Init(&state);
 
     fd = open(path.c_str(), O_RDONLY);
     if (fd < 0) {
-	return "";
+	return ObjectHash();
     }
 
     if (fstat(fd, &sb) < 0) {
 	close(fd);
-	return "";
+	return ObjectHash();
     }
 
     bytesLeft = sb.st_size;
@@ -342,29 +342,29 @@ Util_HashFile(const string &path)
 	    if (errno == EINTR)
 		continue;
 	    close(fd);
-	    return "";
+	    return ObjectHash();
 	}
 
 	SHA256_Update(&state, buf, bytesRead);
 	bytesLeft -= bytesRead;
     }
 
-    SHA256_Final(hash, &state);
+    SHA256_Final(hash.hash, &state);
 
     close(fd);
 
-    return Util_RawHashToHex(hash);
+    return hash;
 }
 
 string
-Util_RawHashToHex(uint8_t hash[SHA256_DIGEST_LENGTH])
+Util_RawHashToHex(const ObjectHash &hash)
 {
     stringstream rval;
 
     // Convert into string.
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
     {
-	rval << hex << setw(2) << setfill('0') << (int)hash[i];
+	rval << hex << setw(2) << setfill('0') << (int)hash.hash[i];
     }
 
     return rval.str();
@@ -553,8 +553,8 @@ util_selftest(void)
 {
     int status;
     char *buf = new char[TESTFILE_SIZE + 1];
-    string origHash;
-    string newHash;
+    ObjectHash origHash;
+    ObjectHash newHash;
 
     for (int i = 0; i < TESTFILE_SIZE; i++) {
 	buf[i] = '0' + (i % 10);

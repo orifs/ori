@@ -17,8 +17,8 @@ void cmd_commit(ori_priv *p)
     printf("Executing commit\n");
     p->commitWrite();
     p->printf("Commit Hash: %s\nTree Hash: %s\n",
-	   p->head->hash().c_str(),
-	   p->headtree->hash().c_str());
+	   p->head->hash().hex().c_str(),
+	   p->headtree->hash().hex().c_str());
 }
 
 RepoCmd _commands[] = {

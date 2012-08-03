@@ -48,8 +48,8 @@ cmd_findheads(int argc, const char *argv[])
 
             // XXX: Check for existing branch names
 
-            cout << "commit:  " << (*it).first << endl;
-            cout << "parents: " << c.getParents().first << endl;
+            cout << "commit:  " << (*it).first.hex() << endl;
+            cout << "parents: " << c.getParents().first.hex() << endl;
             cout << c.getMessage() << endl;
         }
     }

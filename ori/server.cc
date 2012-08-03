@@ -106,7 +106,7 @@ void SshServer::serve() {
                 }
             }
             else if (strcmp(command, "readobj") == 0) {
-                char *hash = args[1];
+                ObjectHash hash = ObjectHash::fromHex(args[1]);
                 // send compressed object
                 LocalObject::sp obj = repository.getLocalObject(hash);
                 const ObjectInfo &info = obj->getInfo();
@@ -125,7 +125,7 @@ void SshServer::serve() {
                         repository.getRootPath().c_str(),
                         repository.getUUID().c_str(),
                         repository.getVersion().c_str(),
-                        repository.getHead().c_str());
+                        repository.getHead().hex().c_str());
             }
             else {
                 printf("ERROR unknown command %s\nDONE\n", command);
@@ -142,7 +142,7 @@ void SshServer::serve() {
 void SshServer::_writeObjectInfo(const ObjectInfo &info)
 {
     dprintf(STDOUT_FILENO, "%s\n%s\n%08X\n%lu\n",
-            info.hash.c_str(),
+            info.hash.hex().c_str(),
             Object::getStrForType(info.type),
             info.flags,
             info.payload_size);

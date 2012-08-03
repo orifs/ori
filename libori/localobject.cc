@@ -63,7 +63,7 @@ LocalObject::~LocalObject()
 /*
  * Create a new object.
  */
-int
+/*int
 LocalObject::create(const string &path, Type type, uint32_t flags)
 {
     int status;
@@ -91,7 +91,7 @@ LocalObject::create(const string &path, Type type, uint32_t flags)
     fileSize = ORI_OBJECT_HDRSIZE;
 
     return 0;
-}
+}*/
 
 /*
  * Create a new object from existing raw data
@@ -131,7 +131,7 @@ LocalObject::createFromRawData(const string &path, const ObjectInfo &info,
  * Open an existing object read-only.
  */
 int
-LocalObject::open(const string &path, const string &hash)
+LocalObject::open(const string &path, const ObjectHash &hash)
 {
     int status;
     char header[24];
@@ -179,8 +179,7 @@ LocalObject::open(const string &path, const string &hash)
     }
     fileSize = sb.st_size;
 
-    if (hash.size() > 0) {
-        assert(hash.size() == 64);
+    if (!hash.isEmpty()) {
         info.hash = hash;
     }
 
@@ -375,15 +374,14 @@ LocalObject::setPayload(const string &blob)
 /*
  * Recompute the SHA-256 hash to verify the file.
  */
-string
+ObjectHash
 LocalObject::computeHash()
 {
     std::auto_ptr<bytestream> bs(getPayloadStream());
-    if (bs->error()) return "";
+    if (bs->error()) return ObjectHash();
 
     uint8_t buf[COPYFILE_BUFSZ];
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    stringstream rval;
+    ObjectHash hash;
 
     SHA256_CTX state;
     SHA256_Init(&state);
@@ -391,21 +389,15 @@ LocalObject::computeHash()
     while(!bs->ended()) {
         size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
         if (bs->error()) {
-            return "";
+            return ObjectHash();
         }
 
         SHA256_Update(&state, buf, bytesRead);
     }
 
-    SHA256_Final(hash, &state);
+    SHA256_Final(hash.hash, &state);
 
-    // Convert into string.
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
-    {
-	rval << hex << setw(2) << setfill('0') << (int)hash[i];
-    }
-
-    return rval.str();
+    return hash;
 }
 
 bytestream::ap LocalObject::getPayloadStream() {

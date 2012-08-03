@@ -61,7 +61,7 @@ MetadataLog::open(const std::string &filename)
             return false;
         }
 
-        if ((num*68) + readSoFar > sb.st_size) {
+        if (num*(ObjectHash::SIZE + sizeof(refcount_t)) + readSoFar > sb.st_size) {
             // TODO: check end of log for consistency
             printf("Corruption in this entry!\n");
             return false;
@@ -69,16 +69,15 @@ MetadataLog::open(const std::string &filename)
 
         fprintf(stderr, "Reading %u metadata entries\n", num);
         for (size_t i = 0; i < num; i++) {
-            std::string hash;
-            hash.resize(64);
-            read(fd, &hash[0], 64);
+            ObjectHash hash;
+            read(fd, hash.hash, ObjectHash::SIZE);
 
             refcount_t refcount;
             read(fd, &refcount, sizeof(refcount_t));
 
             refcounts[hash] = refcount;
 
-            readSoFar += 64 + sizeof(refcount_t);
+            readSoFar += ObjectHash::SIZE + sizeof(refcount_t);
         }
     }
 
@@ -100,7 +99,7 @@ MetadataLog::rewrite(const RefcountMap *refs)
 }
 
 void
-MetadataLog::addRef(const std::string &hash, MdTransaction::sp trs)
+MetadataLog::addRef(const ObjectHash &hash, MdTransaction::sp trs)
 {
     if (!trs.get()) {
         trs = begin();
@@ -110,7 +109,7 @@ MetadataLog::addRef(const std::string &hash, MdTransaction::sp trs)
 }
 
 refcount_t
-MetadataLog::getRefCount(const std::string &hash) const
+MetadataLog::getRefCount(const ObjectHash &hash) const
 {
     RefcountMap::const_iterator it = refcounts.find(hash);
     if (it == refcounts.end())
@@ -138,16 +137,16 @@ MetadataLog::commit(MdTransaction *tr)
     for (RefcountMap::iterator it = tr->counts.begin();
             it != tr->counts.end();
             it++) {
-        const std::string &hash = (*it).first;
-        assert(hash.size() == 64);
+        const ObjectHash &hash = (*it).first;
+        assert(!hash.isEmpty());
 
-        ws.write(hash.data(), hash.size());
+        ws.writeHash(hash);
         refcount_t final_count = refcounts[hash] + (*it).second;
         refcounts[hash] = final_count;
-        ws.write(&final_count, sizeof(refcount_t));
+        ws.writeInt(final_count);
     }
 
-    std::string commitHash = Util_HashString(ws.str());
+    ObjectHash commitHash = Util_HashString(ws.str());
     //ws.write(commitHash.data(), commitHash.size());
 
     const std::string &str = ws.str();

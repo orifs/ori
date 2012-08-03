@@ -44,10 +44,11 @@ cmd_refcount(int argc, const char *argv[])
         for (set<ObjectInfo>::iterator it = objs.begin();
                 it != objs.end();
                 it++) {
-            cout << (*it).hash << " " << md.getRefCount((*it).hash) << endl;
+            cout << (*it).hash.hex() << " " << md.getRefCount((*it).hash) << endl;
         }
     } else if (argc == 2) {
-        cout << argv[1] << " " << md.getRefCount(argv[1]) << endl;
+        ObjectHash hash = ObjectHash::fromHex(argv[1]);
+        cout << hash.hex() << " " << md.getRefCount(hash) << endl;
     } else {
         cout << "Invalid number of arguements." << endl;
         cout << "ori refcount [OBJID]" << endl;

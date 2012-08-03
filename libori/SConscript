@@ -27,6 +27,7 @@ src = [
     "tempdir.cc",
     "fuse_cmd.cc",
     "metadatalog.cc",
+    "objecthash.cc",
 ]
 
 if os.name == 'posix':

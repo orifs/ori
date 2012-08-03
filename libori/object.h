@@ -38,10 +38,6 @@
 
 #define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
 
-struct ObjectHash {
-    uint8_t hash[32];
-};
-
 class Object {
 public:
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };
@@ -50,7 +46,7 @@ public:
 
     struct ObjectInfo {
         ObjectInfo();
-        ObjectInfo(const char *hash);
+        ObjectInfo(const ObjectHash &hash);
         std::string getInfo() const;
         void setInfo(const std::string &info);
         ssize_t writeTo(int fd, bool seekable = true);
@@ -64,7 +60,7 @@ public:
         Type type;
         int flags;
         size_t payload_size;
-        std::string hash;
+        ObjectHash hash;
     };
 
     Object() {}

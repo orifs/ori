@@ -25,9 +25,10 @@
 #include "tree.h"
 #include "commit.h"
 #include "object.h"
+#include "objecthash.h"
 
-#define EMPTY_COMMIT "0000000000000000000000000000000000000000000000000000000000000000"
-#define EMPTY_HASH "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+extern ObjectHash EMPTY_COMMIT;
+extern ObjectHash EMPTYFILE_HASH;
 
 class Repo
 {
@@ -36,16 +37,16 @@ public:
     virtual ~Repo();
 
     // Repo information
-    virtual std::string getHead() = 0;
+    virtual ObjectHash getHead() = 0;
 
     // Objects
     virtual Object::sp getObject(
-            const std::string &id
+            const ObjectHash &id
             ) = 0;
     virtual ObjectInfo getObjectInfo(
-            const std::string &id
+            const ObjectHash &id
             ) = 0;
-    virtual bool hasObject(const std::string &id) = 0;
+    virtual bool hasObject(const ObjectHash &id) = 0;
 
     // Object queries
     virtual std::set<ObjectInfo> listObjects() = 0;
@@ -55,21 +56,21 @@ public:
     virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;
 
     // Wrappers
-    virtual std::string addBlob(Object::Type type, const std::string &blob);
+    virtual ObjectHash addBlob(Object::Type type, const std::string &blob);
     virtual int addObject(
             Object::Type type,
-            const std::string &hash,
+            const ObjectHash &hash,
             const std::string &payload
             );
 
-    std::string addSmallFile(const std::string &path);
-    std::pair<std::string, std::string>
+    ObjectHash addSmallFile(const std::string &path);
+    std::pair<ObjectHash, ObjectHash>
         addLargeFile(const std::string &path);
-    std::pair<std::string, std::string>
+    std::pair<ObjectHash, ObjectHash>
         addFile(const std::string &path);
 
-    virtual Tree getTree(const std::string &treeId);
-    virtual Commit getCommit(const std::string &commitId);
+    virtual Tree getTree(const ObjectHash &treeId);
+    virtual Commit getCommit(const ObjectHash &commitId);
 
     // High level operations
     virtual void copyFrom(

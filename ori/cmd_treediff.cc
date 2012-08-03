@@ -39,8 +39,8 @@ cmd_treediff(int argc, const char *argv[])
     }
     TreeDiff td;
 
-    Commit c1 = repository.getCommit(argv[1]);
-    Commit c2 = repository.getCommit(argv[2]);
+    Commit c1 = repository.getCommit(ObjectHash::fromHex(argv[1]));
+    Commit c2 = repository.getCommit(ObjectHash::fromHex(argv[2]));
 
     Tree t1 = repository.getTree(c1.getTree());
     Tree t2 = repository.getTree(c2.getTree());

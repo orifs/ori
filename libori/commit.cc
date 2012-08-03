@@ -19,11 +19,11 @@
 #include <stdlib.h>
 
 #include <iostream>
-#include <sstream>
 #include <string>
 
 #include "commit.h"
 #include "util.h"
+#include "stream.h"
 
 using namespace std;
 
@@ -40,21 +40,6 @@ Commit::Commit()
     snapshotName = "";
     graftRepo = "";
     graftPath = "";
-    graftCommitId = "";
-}
-
-Commit::Commit(
-        const string &msg,
-        const string &tree,
-        const string &user
-        )
-    : message(msg), treeObjId(tree), user(user)
-{
-    snapshotName = "";
-    graftRepo = "";
-    graftPath = "";
-    graftCommitId = "";
-    date = time(NULL);
 }
 
 Commit::~Commit()
@@ -62,13 +47,13 @@ Commit::~Commit()
 }
 
 void
-Commit::setParents(std::string p1, std::string p2)
+Commit::setParents(ObjectHash p1, ObjectHash p2)
 {
     parents.first = p1;
     parents.second = p2;
 }
 
-pair<string, string>
+pair<ObjectHash, ObjectHash>
 Commit::getParents() const
 {
     return parents;
@@ -87,12 +72,12 @@ Commit::getMessage() const
 }
 
 void
-Commit::setTree(const string &tree)
+Commit::setTree(const ObjectHash &tree)
 {
     treeObjId = tree;
 }
 
-string
+ObjectHash
 Commit::getTree() const
 {
     return treeObjId;
@@ -137,7 +122,7 @@ Commit::getTime() const
 void
 Commit::setGraft(const string &repo,
 		 const string &path,
-		 const string &commitId)
+		 const ObjectHash &commitId)
 {
     graftRepo = repo;
     graftPath = path;
@@ -150,7 +135,7 @@ Commit::getGraftRepo() const
     return make_pair(graftRepo, graftPath);
 }
 
-string
+ObjectHash
 Commit::getGraftCommit() const
 {
     return graftCommitId;
@@ -159,73 +144,75 @@ Commit::getGraftCommit() const
 string
 Commit::getBlob() const
 {
-    stringstream ss;
-    string blob;
-    
-    blob = "tree " + treeObjId + "\n";
-    blob += "parent " + parents.first;
-    if (parents.second != "") {
-	blob += " " + parents.second;
+    strwstream ss;
+
+    ss.writeHash(treeObjId);
+    if (!parents.second.isEmpty()) {
+        ss.writeInt<uint8_t>(2);
+        ss.writeHash(parents.first);
+        ss.writeHash(parents.second);
     }
-    blob += "\n";
-    if (user != "") {
-	blob += "user " + user + "\n";
+    else {
+        ss.writeInt<uint8_t>(1);
+        ss.writeHash(parents.first);
     }
-    ss << date;
-    blob += "date " + ss.str() + "\n";
-    blob += "snapshot " + snapshotName + "\n";
+
+    ss.writePStr(user);
+    ss.writeInt(date);
+    ss.writePStr(snapshotName);
+
+#ifdef DEBUG
     if (graftRepo != "") {
 	assert(graftPath != "");
-	assert(graftCommitId != "");
-
-	blob += "graft-repo " + graftRepo + "\n";
-	blob += "graft-path " + graftPath + "\n";
-	blob += "graft-commit " + graftCommitId + "\n";
+	assert(!graftCommitId.isEmpty());
     }
-    blob += "\n";
-    blob += message;
+#endif
 
-    return blob;
+    ss.writePStr(graftRepo);
+    ss.writePStr(graftPath);
+    ss.writeHash(graftCommitId);
+    
+    ss.writePStr(message);
+
+    return ss.str();
 }
 
 void
 Commit::fromBlob(const string &blob)
 {
-    string line;
-    stringstream ss(blob);
+    strstream ss(blob);
 
-    while (getline(ss, line, '\n')) {
-	if (line.substr(0, 5) == "tree ") {
-	    treeObjId = line.substr(5);
-	} else if (line.substr(0, 7) == "parent ") {
-	    // XXX: Handle the merge case
-	    parents.first = line.substr(7);
-	} else if (line.substr(0, 5) == "user ") {
-	    user = line.substr(5);
-	} else if (line.substr(0, 5) == "date ") {
-	    string dateStr = line.substr(5);
-	    date = strtoull(dateStr.c_str(), NULL, 10);
-	} else if (line.substr(0, 9) == "snapshot ") {
-	    snapshotName = line.substr(9);
-	} else if (line.substr(0, 11) == "graft-repo ") {
-	    graftRepo = line.substr(11);
-	} else if (line.substr(0, 11) == "graft-path ") {
-	    graftPath = line.substr(11);
-	} else if (line.substr(0, 13) == "graft-commit ") {
-	    graftCommitId = line.substr(13);
-	} else if (line.substr(0, 1) == "") {
-	    message = blob.substr(ss.tellg());
-	    break;
-	} else{
-	    printf("Unsupported commit parameter!\n");
-	    assert(false);
-	}
+    ss.readHash(treeObjId);
+    uint8_t numParents = ss.readInt<uint8_t>();
+    if (numParents == 2) {
+        ss.readHash(parents.first);
+        ss.readHash(parents.second);
     }
+    else {
+        ss.readHash(parents.first);
+    }
+
+    ss.readPStr(user);
+    date = ss.readInt<time_t>();
+    ss.readPStr(snapshotName);
+
+    ss.readPStr(graftRepo);
+    ss.readPStr(graftPath);
+    ss.readHash(graftCommitId);
+    
+#ifdef DEBUG
+    if (graftRepo != "") {
+	assert(graftPath != "");
+	assert(!graftCommitId.isEmpty());
+    }
+#endif
+
+    ss.readPStr(message);
 
     // Verify that everything is set!
 }
 
-std::string
+ObjectHash
 Commit::hash() const
 {
     return Util_HashString(getBlob());
