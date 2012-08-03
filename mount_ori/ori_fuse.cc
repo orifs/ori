@@ -45,6 +45,8 @@ using namespace std;
 
 #define NULL_FH 0
 #define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME
+#define ORI_SNAPSHOT_DIRNAME ".snapshot"
+#define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
 mount_ori_config config;
 Repo *remoteRepo;
@@ -203,14 +205,66 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_mode = 0755 | S_IFDIR;
         stbuf->st_nlink = 2;
         return 0;
-    }
-    else if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+    } else if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
         stbuf->st_mode = 0600 | S_IFREG;
         stbuf->st_nlink = 1;
         stbuf->st_size = p->outputBuffer.size();
         return 0;
+    } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
+        stbuf->st_uid = geteuid();
+        stbuf->st_gid = getegid();
+        stbuf->st_mode = 0600 | S_IFDIR;
+        stbuf->st_nlink = 1;
+        stbuf->st_size = 512; // XXX: this is wrong
+	return 0;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	string snapshot = path;
+	string relPath;
+	size_t pos = 0;
+
+	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+	pos = snapshot.find('/', pos);
+	if (pos == snapshot.npos) {
+	    ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	    Commit c = p->repo->getCommit(obj);
+
+	    stbuf->st_uid = geteuid();
+	    stbuf->st_gid = getegid();
+	    stbuf->st_mode = 0600 | S_IFDIR;
+	    stbuf->st_nlink = 1;
+	    stbuf->st_size = 512; // XXX: this is wrong
+	    stbuf->st_mtime = c.getTime();
+	    stbuf->st_ctime = c.getTime();
+	    return 0;
+	}
+
+	relPath = snapshot.substr(pos);
+	snapshot = snapshot.substr(0, pos - 1);
+
+	// Lookup file
+	ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	if (obj.isEmpty())
+	    return -ENOENT;
+ 
+	Commit c = p->repo->getCommit(obj);
+
+	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
+
+	// XXX: Report ENOENT if the file is missing
+
+	stbuf->st_mode |= te.attrs.getAs<mode_t>(ATTR_PERMS);
+	struct passwd *pw = getpwnam(te.attrs.getAs<const char *>(ATTR_USERNAME));
+	stbuf->st_uid = pw->pw_uid;
+	stbuf->st_gid = pw->pw_gid; // TODO: process running as diff. group?
+	stbuf->st_size = te.attrs.getAs<size_t>(ATTR_FILESIZE);
+	stbuf->st_mtime = te.attrs.getAs<time_t>(ATTR_MTIME);
+	stbuf->st_ctime = te.attrs.getAs<time_t>(ATTR_CTIME);
+
+	return 0;
     }
 
     ExtendedTreeEntry *ete = _getETE(p, path);
@@ -602,8 +656,60 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     if (strcmp(path, "/") == 0) {
         t = p->headtree;
         filler(buf, ORI_CONTROL_FILENAME, NULL, 0);
-    }
-    else {
+        filler(buf, ORI_SNAPSHOT_DIRNAME, NULL, 0);
+    } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
+	map<string, ObjectHash> snapshots = p->repo->listSnapshots();
+	map<string, ObjectHash>::iterator it;
+
+	for (it = snapshots.begin(); it != snapshots.end(); it++)
+	{
+	    filler(buf, (*it).first.c_str(), NULL, 0);
+	}
+
+	return 0;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	string snapshot = path;
+	string relPath;
+	size_t pos = 0;
+
+	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+	pos = snapshot.find('/', pos);
+	if (pos == snapshot.npos) {
+	    // Snapshot root
+	    ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	    Commit c;
+
+	    if (obj.isEmpty())
+		return -ENOENT;
+ 
+	    c = p->repo->getCommit(obj);
+	    obj = c.getTree();
+	    
+	    t = p->getTree(obj);
+	} else {
+	    // Snapshot lookup
+	    ObjectHash obj;
+	    Commit c;
+	    TreeEntry entry;
+
+	    relPath = snapshot.substr(pos);
+	    snapshot = snapshot.substr(0, pos - 1);
+
+	    obj = p->repo->lookupSnapshot(snapshot);
+	    if (obj.isEmpty())
+		return -ENOENT;
+ 
+	    c = p->repo->getCommit(obj);
+
+	    entry = p->repo->lookupTreeEntry(c, relPath);
+	    if (entry.type != TreeEntry::Tree)
+		return -ENOTDIR;
+
+	    t = p->getTree(entry.hash);
+	}
+    } else {
         TreeEntry *e = _getTreeEntry(p, path);
         if (e == NULL) return -ENOENT;
         if (e->type != TreeEntry::Tree)
