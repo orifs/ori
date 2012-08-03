@@ -74,6 +74,7 @@ int cmd_filelog(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
+int cmd_remote(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]); // Debug
 int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_findheads(int argc, const char *argv[]);
@@ -214,6 +215,12 @@ static Cmd commands[] = {
 	"snapshot",
 	"Create a repository snapshot",
 	cmd_snapshot,
+	NULL,
+    },
+    {
+	"remote",
+	"Remote connection management",
+	cmd_remote,
 	NULL,
     },
     /* Debugging */
@@ -387,9 +394,16 @@ main(int argc, char *argv[])
             has_repo = true;
     }
 
-    if (!has_repo) {
-        printf("No repository found!\n");
-        exit(1);
+    if (strcmp(argv[1], "clone") != 0 &&
+        strcmp(argv[1], "help") != 0 &&
+        strcmp(argv[1], "init") != 0 &&
+        strcmp(argv[1], "selftest") != 0 &&
+        strcmp(argv[1], "sshserver") != 0)
+    {
+	if (!has_repo) {
+	    printf("No repository found!\n");
+	    exit(1);
+	}
     }
 
     idx = lookupcmd(argv[1]);

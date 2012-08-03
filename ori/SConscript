@@ -21,6 +21,7 @@ src = [
     "cmd_rebuildindex.cc",
     "cmd_rebuildrefs.cc",
     "cmd_refcount.cc",
+    "cmd_remote.cc",
     "cmd_show.cc",
     "cmd_snapshot.cc",
     "cmd_stats.cc",
