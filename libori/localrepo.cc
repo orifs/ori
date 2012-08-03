@@ -706,7 +706,7 @@ LocalRepo::listCommits()
     return rval;
 }
 
-map<string, string>
+map<string, ObjectHash>
 LocalRepo::listSnapshots()
 {
     return snapshots.getList();
@@ -1191,6 +1191,22 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
     }
 
     return entry;
+}
+
+/*
+ * Lookup a path given a Commit and return the object ID.
+ */
+ObjectHash
+LocalRepo::lookup(const Commit &c, const string &path)
+{
+    vector<string> pv = Util_PathToVector(path);
+    ObjectHash objId = c.getTree();
+    for (size_t i = 0; i < pv.size(); i++) {
+        Tree t = getTree(objId);
+        objId = t.tree[pv[i]].hash;
+    }
+
+    return objId;
 }
 
 

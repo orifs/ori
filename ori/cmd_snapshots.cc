@@ -37,8 +37,8 @@ extern LocalRepo repository;
 int
 cmd_snapshots(int argc, const char *argv[])
 {
-    map<string, string> snapshots = repository.listSnapshots();
-    map<string, string>::iterator it;
+    map<string, ObjectHash> snapshots = repository.listSnapshots();
+    map<string, ObjectHash>::iterator it;
 
     for (it = snapshots.begin(); it != snapshots.end(); it++)
     {

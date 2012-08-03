@@ -33,72 +33,6 @@ using namespace std;
 
 extern LocalRepo repository;
 
-/*int
-commitHelper(void *arg, const char *path)
-{
-    string filePath = path;
-    Tree *tree = (Tree *)arg;
-
-    if (Util_IsDirectory(path)) {
-        string hash;
-	Tree subTree = Tree();
-
-	Scan_Traverse(path, &subTree, commitHelper);
-
-	hash = repository.addTree(subTree);
-        tree->addObject(filePath.c_str(), hash);
-    } else {
-        pair<string, string> pHash = repository.addFile(path);
-        tree->addObject(filePath.c_str(), pHash.first, pHash.second);
-    }
-
-    return 0;
-}
-
-int
-cmd_oldcommit(int argc, const char *argv[])
-{
-    string blob;
-    string treeHash, commitHash;
-    string msg;
-    string user;
-    Tree tree = Tree();
-    Commit commit = Commit();
-    string root = LocalRepo::findRootPath();
-
-    if (argc == 1) {
-        msg = "No message.";
-    } else if (argc == 2) {
-        msg = argv[1];
-    }
-
-    Scan_Traverse(root.c_str(), &tree, commitHelper);
-
-    treeHash = repository.addTree(tree);
-
-    // XXX: Get parents
-    commit.setTree(treeHash);
-    commit.setParents(repository.getHead());
-    commit.setMessage(msg);
-    commit.setTime(time(NULL));
-
-    user = Util_GetFullname();
-    if (user != "")
-        commit.setUser(user);
-
-    commitHash = repository.addCommit(commit);
-
-    // Update .ori/HEAD
-    repository.updateHead(commitHash);
-
-    printf("Commit Hash: %s\nTree Hash: %s\n%s",
-	   commitHash.c_str(),
-	   treeHash.c_str(),
-	   blob.c_str());
-
-    return 0;
-}*/
-
 int
 cmd_snapshot(int argc, const char *argv[])
 {
@@ -134,45 +68,6 @@ cmd_snapshot(int argc, const char *argv[])
     newCommit.setMessage("Created snapshot."); // TODO: allow user to specify message
     newCommit.setSnapshot(snapshotName);
     repository.commitFromTree(new_tree.hash(), newCommit);
-
-
-
-    /*string blob;
-    string treeHash, commitHash;
-    string snapshotName;
-    string msg;
-    string user;
-    Tree tree = Tree();
-    Commit commit = Commit();
-    string root = LocalRepo::findRootPath();
-
-    snapshotName = argv[1];
-    msg = "Created snapshot."; // XXX: Allow users to specify a snapshot
-
-    Scan_Traverse(root.c_str(), &tree, commitHelper);
-
-    treeHash = repository.addTree(tree);
-
-    // XXX: Get parents
-    commit.setTree(treeHash);
-    commit.setParents(repository.getHead());
-    commit.setMessage(msg);
-    commit.setTime(time(NULL));
-    commit.setSnapshot(snapshotName);
-
-    user = Util_GetFullname();
-    if (user != "")
-        commit.setUser(user);
-
-    commitHash = repository.addCommit(commit);
-
-    // Update .ori/HEAD
-    repository.updateHead(commitHash);
-
-    printf("Commit Hash: %s\nTree Hash: %s\n%s",
-	   commitHash.c_str(),
-	   treeHash.c_str(),
-	   blob.c_str());*/
 
     return 0;
 }

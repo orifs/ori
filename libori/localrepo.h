@@ -73,7 +73,7 @@ public:
     LocalObject::sp getLocalObject(const ObjectHash &objId);
     
     std::vector<Commit> listCommits();
-    std::map<std::string, std::string> listSnapshots();
+    std::map<std::string, ObjectHash> listSnapshots();
 
     ObjectHash addTree(const Tree &tree);
     ObjectHash addCommit(/* const */ Commit &commit);
