@@ -4,12 +4,12 @@
 #include "repo.h"
 #include "index.h"
 #include "snapshotindex.h"
+#include "peer.h"
 #include "lrucache.h"
 #include "localobject.h"
 #include "treediff.h"
 #include "tempdir.h"
 #include "largeblob.h"
-
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -83,14 +83,17 @@ public:
     size_t sendObject(const char *objId);
     bool copyObject(const std::string &objId, const std::string &path);
     void addBackref(const std::string &referer, const std::string &refers_to);
+
     // Clone/pull operations
     void pull(Repo *r);
+
     // Repository Operations
     void copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb);
     void copyObjectsFromTree(Repo *other, const Tree &t);
     std::string commitFromTree(const std::string &treeHash, const std::string &msg);
     std::string commitFromObjects(const std::string &treeHash, Repo *objects, const std::string &msg);
     void gc();
+
     // Reference Counting Operations
     std::map<std::string, Object::BRState> getRefs(const std::string &objId);
     std::map<std::string, std::map<std::string, Object::BRState> >
@@ -100,8 +103,10 @@ public:
     ObjReferenceMap computeRefCounts();
     bool rewriteReferences(const ObjReferenceMap &refs);
     bool stripMetadata();
+
     // Pruning Operations
     // void pruneObject(const std::string &objId);
+
     // Grafting Operations
     std::set<std::string> getSubtreeObjects(const std::string &treeId);
     std::set<std::string> walkHistory(HistoryCB &cb);
@@ -109,6 +114,7 @@ public:
     std::string graftSubtree(LocalRepo *r,
                              const std::string &srcPath,
                              const std::string &dstPath);
+
     // Working Directory Operations
     std::set<std::string> listBranches();
     std::string getBranch();
@@ -116,6 +122,7 @@ public:
     std::string getHead();
     void updateHead(const std::string &commitId);
     Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit
+
     // General Operations
     TempDir::sp newTempDir();
     std::string getRootPath();
@@ -123,6 +130,12 @@ public:
     std::string getTmpFile();
     std::string getUUID();
     std::string getVersion();
+
+    // Peer Management
+    std::map<std::string, Peer> getPeers();
+    bool addPeer(const std::string &name, const std::string &path);
+    bool removePeer(const std::string &name);
+
     // Static Operations
     static std::string findRootPath(const std::string &path = "");
 private:
@@ -138,6 +151,7 @@ private:
     std::string version;
     Index index;
     SnapshotIndex snapshots;
+    std::map<std::string, Peer> peers;
 
     // Remote Operations
     Repo *remoteRepo;
@@ -147,6 +161,9 @@ private:
     // TODO: ulimit is 256 files open on OSX, need to support 2 repos open at a
     // time?
     LRUCache<std::string, LocalObject::sp, 96> _objectCache;
+
+    // Friends
+    friend int LocalRepo_PeerHelper(void *arg, const char *path);
 };
 
 #endif

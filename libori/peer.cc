@@ -18,9 +18,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <iostream>
-#include <sstream>
 #include <string>
+#include <sstream>
+#include <iostream>
+#include <tr1/memory>
 
 #include "util.h"
 #include "repo.h"
@@ -42,16 +43,25 @@ using namespace std;
  ********************************************************************/
 
 Peer::Peer()
-    : peerFile("")
+    : instaCloning(false), url(""), repoId(""), peerFile("")
 {
+    instaCloning = false;
+    url = "";
+    repoId = "";
+    peerFile = "";
 }
 
-Peer::Peer(const std::string &peerFile)
-    : peerFile(peerFile)
+Peer::Peer(const std::string &path)
 {
-    string blob = Util_ReadFile(peerFile, NULL);
+    instaCloning = false;
+    url = "";
+    repoId = "";
+    peerFile = path;
 
-    fromBlob(blob);
+    if (Util_FileExists(path)) {
+	string blob = Util_ReadFile(path, NULL);
+	fromBlob(blob);
+    }
 }
 
 Peer::~Peer()
@@ -59,11 +69,11 @@ Peer::~Peer()
 }
 
 void
-Peer::setUrl(const std::string &url)
+Peer::setUrl(const std::string &path)
 {
     // XXX: Verify URL or Path
 
-    this->url = url;
+    url = path;
 
     save();
 }

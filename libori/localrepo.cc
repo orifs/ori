@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 
 using namespace std;
 
@@ -169,6 +170,19 @@ LocalRepo::~LocalRepo()
     close();
 }
 
+int
+LocalRepo_PeerHelper(void *arg, const char *path)
+{
+    LocalRepo *l = (LocalRepo *)arg;
+    Peer p = Peer(path);
+
+    string name = path;
+    name = name.substr(name.find_last_of("/") + 1);
+    l->peers[name] = p;
+
+    return 0;
+}
+
 bool
 LocalRepo::open(const string &root)
 {
@@ -196,6 +210,10 @@ LocalRepo::open(const string &root)
 
     index.open(rootPath + ORI_PATH_INDEX);
     snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
+
+    // Scan for peers
+    string peer_path = rootPath + ORI_PATH_REMOTES;
+    Scan_Traverse(peer_path.c_str(), this, LocalRepo_PeerHelper);
 
     opened = true;
     return true;
@@ -1482,6 +1500,44 @@ LocalRepo::getTmpFile()
     return tmpFile;
 }
 
+
+/*
+ * Peer Management
+ */
+map<string, Peer>
+LocalRepo::getPeers()
+{
+    return peers;
+}
+
+bool
+LocalRepo::addPeer(const string &name, const string &path)
+{
+    map<string, Peer>::iterator it = peers.find(name);
+
+    if (it == peers.end()) {
+	Peer p = Peer(rootPath + ORI_PATH_REMOTES + name);
+	p.setUrl(path);
+	peers[name] = p;
+    } else {
+	(*it).second.setUrl(path);
+    }
+
+    return true;
+}
+
+bool
+LocalRepo::removePeer(const string &name)
+{
+    map<string, Peer>::iterator it = peers.find(name);
+
+    if (it != peers.end()) {
+	peers.erase(it);
+	Util_DeleteFile(rootPath + ORI_PATH_REMOTES + name);
+    }
+
+    return true;
+}
 
 /*
  * Static Operations

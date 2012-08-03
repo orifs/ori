@@ -22,6 +22,7 @@
 
 #include <utility>
 #include <string>
+#include <tr1/memory>
 
 class Repo;
 class HttpClient;
@@ -37,7 +38,7 @@ class Peer
 {
 public:
     Peer();
-    Peer(const std::string &peerFile);
+    explicit Peer(const std::string &peerFile);
     ~Peer();
     void setUrl(const std::string &url);
     std::string getUrl() const;
@@ -51,9 +52,9 @@ private:
     std::string getBlob() const;
     void fromBlob(const std::string &blob);
     // Persistent state
+    bool instaCloning;
     std::string url;
     std::string repoId;
-    bool instaCloning;
     // Volatile State
     std::string peerFile;
     std::tr1::shared_ptr<Repo> cachedRepo;
