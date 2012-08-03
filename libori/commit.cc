@@ -152,26 +152,31 @@ Commit::getBlob() const
         ss.writeHash(parents.first);
         ss.writeHash(parents.second);
     }
-    else {
+    else if (!parents.first.isEmpty()) {
         ss.writeInt<uint8_t>(1);
         ss.writeHash(parents.first);
+    }
+    else {
+        ss.writeInt<uint8_t>(0);
     }
 
     ss.writePStr(user);
     ss.writeInt(date);
     ss.writePStr(snapshotName);
 
-#ifdef DEBUG
     if (graftRepo != "") {
 	assert(graftPath != "");
 	assert(!graftCommitId.isEmpty());
-    }
-#endif
 
-    ss.writePStr(graftRepo);
-    ss.writePStr(graftPath);
-    ss.writeHash(graftCommitId);
-    
+        ss.writeInt<uint8_t>(1);
+        ss.writePStr(graftRepo);
+        ss.writePStr(graftPath);
+        ss.writeHash(graftCommitId);
+    }
+    else {
+        ss.writeInt<uint8_t>(0);
+    }
+
     ss.writePStr(message);
 
     return ss.str();
@@ -188,7 +193,7 @@ Commit::fromBlob(const string &blob)
         ss.readHash(parents.first);
         ss.readHash(parents.second);
     }
-    else {
+    else if (numParents == 1) {
         ss.readHash(parents.first);
     }
 
@@ -196,17 +201,16 @@ Commit::fromBlob(const string &blob)
     date = ss.readInt<time_t>();
     ss.readPStr(snapshotName);
 
-    ss.readPStr(graftRepo);
-    ss.readPStr(graftPath);
-    ss.readHash(graftCommitId);
-    
-#ifdef DEBUG
-    if (graftRepo != "") {
+    uint8_t hasGraft = ss.readInt<uint8_t>();
+    if (hasGraft) {
+        ss.readPStr(graftRepo);
+        ss.readPStr(graftPath);
+        ss.readHash(graftCommitId);
+
 	assert(graftPath != "");
 	assert(!graftCommitId.isEmpty());
     }
-#endif
-
+    
     ss.readPStr(message);
 
     // Verify that everything is set!

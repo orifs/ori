@@ -117,7 +117,8 @@ TreeEntry::TreeEntry(const ObjectHash &hash, const ObjectHash &lhash)
 {
     if (lhash.isEmpty())
         type = Blob;
-    type = LargeBlob;
+    else
+        type = LargeBlob;
 }
 
 TreeEntry::~TreeEntry()
@@ -192,15 +193,17 @@ Tree::getBlob() const
         } else {
             assert(false);
         }
-        ss.writeHash((*it).second.hash);
-        if ((*it).second.type == TreeEntry::LargeBlob)
-            ss.writeHash((*it).second.largeHash);
+
+        const TreeEntry &te = (*it).second;
+        ss.writeHash(te.hash);
+        if (te.type == TreeEntry::LargeBlob)
+            ss.writeHash(te.largeHash);
         ss.writePStr((*it).first);
         
-        size_t asize = (*it).second.attrs.attrs.size();
+        size_t asize = te.attrs.attrs.size();
         ss.writeInt(asize);
-        for (AttrMap::const_iterator ait = (*it).second.attrs.attrs.begin();
-                ait != (*it).second.attrs.attrs.end();
+        for (AttrMap::const_iterator ait = te.attrs.attrs.begin();
+                ait != te.attrs.attrs.end();
                 ait++) {
             ss.writePStr((*ait).first);
             ss.writePStr((*ait).second);

@@ -120,10 +120,10 @@ cmd_checkout(int argc, const char *argv[])
             ObjectHash totalHash = (te.type == TreeEntry::LargeBlob) ?
                     te.largeHash : te.hash;
 
-            if (totalHash != (*it).second) {
+            // TODO: dirs
+            if (totalHash != (*it).second && !(*it).second.isEmpty()) {
                 printf("M	%s\n", (*it).first.c_str());
                 // XXX: Handle replace a file <-> directory with same name
-                assert(!(*it).second.isEmpty());
                 repository.copyObject(te.hash,
                                     LocalRepo::findRootPath()+(*tipIt).first);
             }

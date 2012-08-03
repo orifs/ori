@@ -96,8 +96,8 @@ Index::open(const string &indexFile)
         memcpy(hash.hash, entry, 32);
         info.assign(entry + 32, 16);
 
-	string entryStr = string().assign(entry, 32 + 16);
-	string chksum = string().assign(entry + 32 + 16, 16);
+	string entryStr = string(entry, 32 + 16);
+	string chksum = string(entry + 32 + 16, 16);
 	ObjectHash chksumComputed = Util_HashString(entryStr);
 	if (memcmp(chksum.data(), chksumComputed.hash, 16) != 0) {
 	    // XXX: Attempt truncating last entries
@@ -196,7 +196,7 @@ Index::updateInfo(const ObjectHash &objId, const ObjectInfo &info)
     indexLine += info.getInfo();
 
     ObjectHash hash = Util_HashString(indexLine);
-    indexLine += objId.bin().substr(0, 16);
+    indexLine += hash.bin().substr(0, 16);
 
     write(fd, indexLine.data(), indexLine.size());
 

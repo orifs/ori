@@ -88,6 +88,7 @@ void bytestream::readPStr(std::string &out)
 void bytestream::readHash(ObjectHash &out)
 {
     read((uint8_t*)out.hash, ObjectHash::SIZE);
+    assert(!out.isEmpty());
 }
 
 
