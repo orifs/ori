@@ -1,3 +1,7 @@
+# Run a selftest
+cd $TEMP_DIR
+$ORI_EXE selftest
+
 # Initialize source repository
 $ORI_EXE init $SOURCE_REPO
 cd $SOURCE_REPO
