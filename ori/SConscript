@@ -24,6 +24,7 @@ src = [
     "cmd_remote.cc",
     "cmd_show.cc",
     "cmd_snapshot.cc",
+    "cmd_snapshots.cc",
     "cmd_stats.cc",
     "cmd_status.cc",
     "cmd_stripmetadata.cc",

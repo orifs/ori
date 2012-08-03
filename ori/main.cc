@@ -63,6 +63,7 @@ void usage_commit(void);
 int cmd_commit(int argc, const char *argv[]);
 int cmd_oldcommit(int argc, const char *argv[]);
 int cmd_snapshot(int argc, const char *argv[]);
+int cmd_snapshots(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
@@ -215,6 +216,12 @@ static Cmd commands[] = {
 	"snapshot",
 	"Create a repository snapshot",
 	cmd_snapshot,
+	NULL,
+    },
+    {
+	"snapshots",
+	"List all snapshots available in the repository",
+	cmd_snapshots,
 	NULL,
     },
     {
