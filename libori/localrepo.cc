@@ -712,6 +712,18 @@ LocalRepo::listSnapshots()
     return snapshots.getList();
 }
 
+ObjectHash
+LocalRepo::lookupSnapshot(const string &name)
+{
+    map<string, ObjectHash> snaps = snapshots.getList();
+    map<string, ObjectHash>::iterator it = snaps.find(name);
+
+    if (it != snaps.end())
+	return (*it).second;
+
+    return ObjectHash();
+}
+
 /*
  * High Level Operations
  */
