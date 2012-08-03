@@ -1250,6 +1250,27 @@ LocalRepo::walkHistory(HistoryCB &cb)
 /*
  * Lookup a path given a Commit and return the object ID.
  */
+TreeEntry
+LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
+{
+    vector<string> pv = Util_PathToVector(path);
+    vector<string>::iterator it;
+    TreeEntry entry = TreeEntry();
+
+    // Set the hash to point to the root
+    entry.hash = c.getTree();
+
+    for (it = pv.begin(); it != pv.end(); it++) {
+        Tree t = getTree(entry.hash);
+        entry = t.tree[*it];
+    }
+
+    return entry;
+}
+
+/*
+ * Lookup a path given a Commit and return the object ID.
+ */
 string
 LocalRepo::lookup(const Commit &c, const string &path)
 {

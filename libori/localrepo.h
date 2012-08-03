@@ -111,6 +111,7 @@ public:
     // Grafting Operations
     std::set<std::string> getSubtreeObjects(const std::string &treeId);
     std::set<std::string> walkHistory(HistoryCB &cb);
+    TreeEntry lookupTreeEntry(const Commit &c, const std::string &path);
     std::string lookup(const Commit &c, const std::string &path);
     std::string graftSubtree(LocalRepo *r,
                              const std::string &srcPath,
