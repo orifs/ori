@@ -128,14 +128,18 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
 {
     if (refs == NULL)
         refs = &refcounts;
+    if (data == NULL)
+        data = &metadata;
 
     // TODO: use rename
     ftruncate(fd, 0);
     lseek(fd, 0, SEEK_SET);
     MdTransaction::sp tr = begin();
     tr->counts = *refs;
+    tr->metadata = *data;
 
     refcounts.clear();
+    metadata.clear();
 }
 
 void
