@@ -71,6 +71,7 @@ public:
     LocalObject::sp getLocalObject(const std::string &objId);
     
     std::vector<Commit> listCommits();
+    std::map<std::string, std::string> listSnapshots();
 
     std::string addTree(const Tree &tree);
     std::string addCommit(/* const */ Commit &commit);

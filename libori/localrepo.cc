@@ -735,6 +735,12 @@ LocalRepo::listCommits()
     return rval;
 }
 
+map<string, string>
+LocalRepo::listSnapshots()
+{
+    return snapshots.getList();
+}
+
 /*
  * High Level Operations
  */
