@@ -48,16 +48,7 @@ SshClient::SshClient(const std::string &remotePath)
 
 SshClient::~SshClient()
 {
-    if (childPid > 0) {
-        //kill(childPid, SIGINT);
-        close(fdToChild);
-        // Wait for child to die
-        while (kill(childPid, 0)) {
-            // TODO timeout
-        }
-    }
-
-    childPid = -1;
+    disconnect();
 }
 
 int SshClient::connect()
@@ -142,6 +133,20 @@ int SshClient::connect()
     }
 
     return 0;
+}
+
+void SshClient::disconnect()
+{
+    if (childPid > 0) {
+        //kill(childPid, SIGINT);
+        close(fdToChild);
+        // Wait for child to die
+        while (kill(childPid, 0)) {
+            // TODO timeout
+        }
+    }
+
+    childPid = -1;
 }
 
 bool SshClient::connected() {
