@@ -243,13 +243,15 @@ ori_getattr(const char *path, struct stat *stbuf)
 	}
 
 	relPath = snapshot.substr(pos);
-	snapshot = snapshot.substr(0, pos - 1);
+	snapshot = snapshot.substr(0, pos);
 
 	// Lookup file
 	ObjectHash obj = p->repo->lookupSnapshot(snapshot);
-	if (obj.isEmpty())
+	if (obj.isEmpty()) {
+	    LOG("FUSE snapshot '%s' was not found", snapshot.c_str());
 	    return -ENOENT;
- 
+	}
+
 	Commit c = p->repo->getCommit(obj);
 
 	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
