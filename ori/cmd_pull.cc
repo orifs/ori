@@ -73,13 +73,24 @@ cmd_pull(int argc, const char *argv[])
 {
     string srcRoot;
 
-    if (argc != 2) {
+    if (argc > 2) {
 	printf("Specify a repository to pull.\n");
 	printf("usage: ori pull <repo>\n");
 	return 1;
     }
 
-    srcRoot = argv[1];
+    if (argc == 2) {
+	srcRoot = argv[1];
+    } else {
+	map<string, Peer> peers = repository.getPeers();
+	map<string, Peer>::iterator it = peers.find("origin");
+
+	if (it == peers.end()) {
+	    printf("No default repository to pull from.\n");
+	    return 1;
+	}
+	srcRoot = (*it).second.getUrl();
+    }
 
     {
         std::tr1::shared_ptr<Repo> srcRepo;
