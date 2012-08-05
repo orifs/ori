@@ -597,23 +597,6 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 }
 
 /*
- * Purge object
- */
-bool
-LocalRepo::purgeObject(const ObjectHash &objId)
-{
-    LocalObject::sp o = getLocalObject(objId);
-
-    if (!o)
-	return false;
-
-    if (o->purge() < 0)
-	return false;
-
-    return true;
-}
-
-/*
  * Copy an object to a working directory.
  */
 bool
@@ -1054,10 +1037,6 @@ LocalRepo::getObjectInfo(const ObjectHash &objId)
 }
 
 /*
- * BasicRepo implementation
- */
-
-/*
  * Reference Counting Operations
  */
 
@@ -1138,6 +1117,71 @@ bool
 LocalRepo::rewriteRefCounts(const RefcountMap &refs)
 {
     metadata.rewrite(&refs);
+    return true;
+}
+
+/*
+ * Purging Operations
+ */
+
+/*
+ * Purge object
+ */
+bool
+LocalRepo::purgeObject(const ObjectHash &objId)
+{
+    LocalObject::sp o = getLocalObject(objId);
+
+    ASSERT(metadata.getRefCount(objId) == 0);
+
+    if (!o)
+	return false;
+
+    if (o->purge() < 0)
+	return false;
+
+    return true;
+}
+
+/*
+ * Purge commit
+ */
+bool
+LocalRepo::purgeCommit(const ObjectHash &commitId)
+{
+    const Commit c = getCommit(commitId);
+    ObjectHash rootTree;
+    set<ObjectHash> objs;
+    set<ObjectHash>::iterator it;
+    MdTransaction::sp tx;
+
+    // Check all branches
+    if (commitId == getHead()) {
+	LOG("Cannot purge head of a branch");
+	return false;
+    }
+
+    rootTree = c.getTree();
+    objs = getSubtreeObjects(rootTree);
+
+    // Drop reference counts
+    tx = metadata.begin();
+    for (it = objs.begin(); it != objs.end(); it++) {
+	tx->decRef(*it);
+    }
+    tx->setMeta(commitId, "purging");
+    metadata.commit(tx.get());
+
+    // Purge objects -- Needs to be journaled this is racey
+    for (it = objs.begin(); it != objs.end(); it++) {
+	if (metadata.getRefCount(*it) == 0)
+	    purgeObject(*it);
+    }
+
+    tx = metadata.begin();
+    tx->setMeta(commitId, "purged");
+    metadata.commit(tx.get());
+
     return true;
 }
 

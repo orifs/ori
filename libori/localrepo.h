@@ -100,7 +100,6 @@ public:
     Object::Type getObjectType(const ObjectHash &objId);
     std::string getPayload(const ObjectHash &objId);
     std::string verifyObject(const ObjectHash &objId);
-    bool purgeObject(const ObjectHash &objId);
     size_t sendObject(const char *objId);
 
     // Repository Operations
@@ -129,8 +128,9 @@ public:
     RefcountMap recomputeRefCounts();
     bool rewriteRefCounts(const RefcountMap &refs);
     
-    // Pruning Operations
-    // void pruneObject(const std::string &objId);
+    // Purging Operations
+    bool purgeObject(const ObjectHash &objId);
+    bool purgeCommit(const ObjectHash &commitId);
 
     // Grafting Operations
     std::set<ObjectHash> getSubtreeObjects(const ObjectHash &treeId);

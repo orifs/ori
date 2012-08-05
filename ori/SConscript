@@ -17,6 +17,7 @@ src = [
     "cmd_listobj.cc",
     "cmd_log.cc",
     "cmd_pull.cc",
+    "cmd_purgecommit.cc",
     "cmd_purgeobj.cc",
     "cmd_rebuildindex.cc",
     "cmd_rebuildrefs.cc",

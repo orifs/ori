@@ -85,6 +85,7 @@ int cmd_gc(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_stats(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
+int cmd_purgecommit(int argc, const char *argv[]);
 int cmd_stripmetadata(int argc, const char *argv[]); // Debug
 // server.cc
 int cmd_sshserver(int argc, const char *argv[]);
@@ -253,6 +254,12 @@ static Cmd commands[] = {
 	"stats",
 	"Print repository statistics (DEBUG)",
 	cmd_stats,
+	NULL,
+    },
+    {
+	"purgecommit",
+	"Purge commit",
+	cmd_purgecommit,
 	NULL,
     },
     {
