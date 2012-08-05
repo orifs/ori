@@ -258,6 +258,16 @@ ori_getattr(const char *path, struct stat *stbuf)
 
 	// XXX: Report ENOENT if the file is missing
 
+	if (te.type == TreeEntry::Tree)
+	{
+	    stbuf->st_mode = S_IFDIR;
+	    stbuf->st_nlink = 2;
+	} else {
+	    stbuf->st_mode = S_IFREG;
+	    stbuf->st_nlink = 1;
+	}
+
+	// XXX: Mask writable attributes
 	stbuf->st_mode |= te.attrs.getAs<mode_t>(ATTR_PERMS);
 	struct passwd *pw = getpwnam(te.attrs.getAs<const char *>(ATTR_USERNAME));
 	stbuf->st_uid = pw->pw_uid;
@@ -276,8 +286,7 @@ ori_getattr(const char *path, struct stat *stbuf)
     {
         stbuf->st_mode = S_IFDIR;
         stbuf->st_nlink = 2;
-    }
-    else {
+    } else {
         stbuf->st_mode = S_IFREG;
         stbuf->st_nlink = 1;
     }
