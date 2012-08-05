@@ -40,7 +40,7 @@
 SshClient::SshClient(const std::string &remotePath)
     : fdFromChild(-1), fdToChild(-1), childPid(-1)
 {
-    assert(Util_IsPathRemote(remotePath.c_str()));
+    assert(Util_IsPathRemote(remotePath));
     size_t pos = remotePath.find(':');
     remoteHost = remotePath.substr(0, pos);
     remoteRepo = remotePath.substr(pos+1);

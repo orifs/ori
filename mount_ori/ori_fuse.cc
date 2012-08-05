@@ -972,13 +972,13 @@ ori_rename(const char *from_path, const char *to_path)
 }
 
 /// XXX: Copied from ori/repo_cmd.cc
-int
+static int
 getRepoFromURL(const string &url,
                Repo **r,
 	       std::tr1::shared_ptr<HttpClient> &hc,
 	       std::tr1::shared_ptr<SshClient> &sc)
 {
-    if (Util_IsPathRemote(url.c_str())) {
+    if (Util_IsPathRemote(url)) {
 	if (strncmp(url.c_str(), "http://", 7) == 0) {
 	    hc.reset(new HttpClient(url));
 	    *r = new HttpRepo(hc.get());
@@ -1026,7 +1026,7 @@ ori_init(struct fuse_conn_info *conn)
         FUSE_LOG("InstaClone: Updating repository head %s", revId.hex().c_str());
 
 	string originPath = config.clone_path;
-	if (!Util_IsPathRemote(originPath.c_str())) {
+	if (!Util_IsPathRemote(originPath)) {
 	    originPath = Util_RealPath(originPath);
 	}
 	priv->repo->addPeer("origin", originPath);

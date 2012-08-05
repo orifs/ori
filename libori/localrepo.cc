@@ -217,6 +217,13 @@ LocalRepo::open(const string &root)
     string peer_path = rootPath + ORI_PATH_REMOTES;
     Scan_Traverse(peer_path.c_str(), this, LocalRepo_PeerHelper);
 
+    map<string, Peer>::iterator it;
+    for (it = peers.begin(); it != peers.end(); it++) {
+	if ((*it).second.isInstaCloning()) {
+	    // XXX: Open remote connection
+	}
+    }
+
     opened = true;
     return true;
 }

@@ -50,7 +50,7 @@ getRepoFromURL(const string &url,
         std::tr1::shared_ptr<HttpClient> &hc,
         std::tr1::shared_ptr<SshClient> &sc)
 {
-    if (Util_IsPathRemote(url.c_str())) {
+    if (Util_IsPathRemote(url)) {
         if (strncmp(url.c_str(), "http://", 7) == 0) {
             hc.reset(new HttpClient(url));
             r.reset(new HttpRepo(hc.get()));
