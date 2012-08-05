@@ -1521,6 +1521,16 @@ LocalRepo::removePeer(const string &name)
     return true;
 }
 
+void
+LocalRepo::setInstaClone(const std::string &name, bool val)
+{
+    map<string, Peer>::iterator it = peers.find(name);
+
+    if (it != peers.end()) {
+	(*it).second.setInstaClone(val);
+    }
+}
+
 /*
  * Static Operations
  */

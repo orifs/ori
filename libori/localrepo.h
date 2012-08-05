@@ -144,6 +144,7 @@ public:
     std::map<std::string, Peer> getPeers();
     bool addPeer(const std::string &name, const std::string &path);
     bool removePeer(const std::string &name);
+    void setInstaClone(const std::string &name, bool val = true);
 
     // Static Operations
     static std::string findRootPath(const std::string &path = "");

@@ -1025,6 +1025,13 @@ ori_init(struct fuse_conn_info *conn)
         priv->repo->updateHead(revId);
         FUSE_LOG("InstaClone: Updating repository head %s", revId.hex().c_str());
 
+	string originPath = config.clone_path;
+	if (!Util_IsPathRemote(originPath.c_str())) {
+	    originPath = Util_RealPath(originPath);
+	}
+	priv->repo->addPeer("origin", originPath);
+	priv->repo->setInstaClone("origin");
+
 	priv->repo->setRemote(remoteRepo);
         priv->_resetHead();
 
