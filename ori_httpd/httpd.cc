@@ -248,13 +248,24 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     string *payload = new string();
     string objInfo;
     struct evbuffer *buf;
-
-    sobjId = evhttp_request_get_uri(req);
-    sobjId = sobjId.substr(6);
+    bool includePayload;
 
     buf = evbuffer_new();
     if (buf == NULL) {
         LOG("httpd_getobj: evbuffer_new failed!");
+    }
+
+    sobjId = evhttp_request_get_uri(req);
+
+    if (sobjId.substr(0, 6) == "/objs/") {
+	sobjId = sobjId.substr(6);
+	includePayload = true;
+    } else if (sobjId.substr(0, 9) == "/objinfo/") {
+	sobjId = sobjId.substr(9);
+	includePayload = false;
+    } else {
+	evhttp_send_reply(req, HTTP_NOTFOUND, "File Not Found", buf);
+	return;
     }
 
     if (sobjId.size() != 64) {
@@ -270,16 +281,20 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
         return;
     }
 
-    bs = obj->getStoredPayloadStream();
-    *payload = bs->readAll();
+    if (includePayload) {
+	bs = obj->getStoredPayloadStream();
+	*payload = bs->readAll();
+    }
     objInfo = obj->getInfo().getInfo();
 
     assert(objInfo.size() == 16);
 
     // Transmit
     evbuffer_add(buf, objInfo.data(), objInfo.size());
-    evbuffer_add_reference(buf, payload->data(), payload->size(),
-                           Httpd_stringDeleteCB, payload);
+    if (includePayload) {
+	evbuffer_add_reference(buf, payload->data(), payload->size(),
+			       Httpd_stringDeleteCB, payload);
+    }
 
     evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
@@ -362,7 +377,10 @@ Httpd_main(uint16_t port)
     evhttp_set_cb(httpd, "/commits", Httpd_getCommits, NULL);
     //evhttp_set_cb(httpd, "/objs", Httpd_pushobj, NULL);
     evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
-    evhttp_set_gencb(httpd, Httpd_getObj, NULL); // getObj: /objs/*
+    // Generic handler provides:
+    // getObject: /objs/*
+    // getObjectInfo: /objinfo/*
+    evhttp_set_gencb(httpd, Httpd_getObj, NULL);
 
 #if !defined(WITHOUT_MDNS)
     // mDNS
