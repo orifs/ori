@@ -335,6 +335,10 @@ ori_open(const char *path, struct fuse_file_info *fi)
 	string relPath;
 	size_t pos = 0;
 
+	if (fi->flags & O_WRONLY || fi->flags & O_RDWR) {
+	    return -EACCES;
+	}
+
 	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
 	pos = snapshot.find('/', pos);
 	if (pos == snapshot.npos) {
@@ -501,6 +505,12 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
 {
     FUSE_LOG("FUSE ori_mknod(path=\"%s\")", path);
 
+    if (strncmp(path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
+
     ori_priv *p = ori_getpriv();
     p->startWrite();
 
@@ -526,7 +536,12 @@ ori_unlink(const char *path)
     FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
+
 
     // TODO: check for open files?
 
@@ -610,6 +625,10 @@ ori_truncate(const char *path, off_t length)
     FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%s)", path, length);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -641,6 +660,10 @@ ori_chmod(const char *path, mode_t mode)
     FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -665,6 +688,10 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
     FUSE_LOG("FUSE ori_chown(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -696,6 +723,10 @@ ori_utimens(const char *path, const struct timespec tv[2])
     FUSE_LOG("FUSE ori_utimens(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -853,6 +884,12 @@ ori_mkdir(const char *path, mode_t mode)
 {
     FUSE_LOG("FUSE ori_mkdir(path=\"%s\")", path);
 
+    if (strncmp(path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
+
     ori_priv *p = ori_getpriv();
     p->startWrite();
 
@@ -869,6 +906,12 @@ static int
 ori_rmdir(const char *path)
 {
     FUSE_LOG("FUSE ori_rmdir(path=\"%s\")", path);
+
+    if (strncmp(path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
 
     // TODO: is this stuff necessary?
     ori_priv *p = ori_getpriv();
@@ -890,6 +933,18 @@ ori_rename(const char *from_path, const char *to_path)
 {
     FUSE_LOG("FUSE ori_rename(from_path=\"%s\", to_path=\"%s\")",
             from_path, to_path);
+
+    if (strncmp(from_path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
+
+    if (strncmp(to_path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
 
     ori_priv *p = ori_getpriv();
     ExtendedTreeEntry *ete = _getETE(p, from_path);
