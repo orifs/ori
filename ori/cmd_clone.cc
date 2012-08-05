@@ -99,6 +99,14 @@ cmd_clone(int argc, const char *argv[])
 
     LocalRepo dstRepo;
     dstRepo.open(newRoot);
+
+    // Setup remote pointer
+    string originPath = srcRoot;
+    if (!Util_IsPathRemote(srcRoot.c_str())) {
+	originPath = Util_RealPath(srcRoot);
+    }
+    dstRepo.addPeer("origin", originPath);
+
     {
         std::tr1::shared_ptr<Repo> srcRepo;
         std::tr1::shared_ptr<HttpClient> httpClient;
