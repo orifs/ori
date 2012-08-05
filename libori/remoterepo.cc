@@ -33,6 +33,7 @@
 using namespace std;
 
 RemoteRepo::RemoteRepo()
+    : r(NULL)
 {
 }
 
@@ -66,14 +67,12 @@ RemoteRepo::connect(const string &url)
 void
 RemoteRepo::disconnect()
 {
-    if (hc) {
+    if (hc)
 	hc->disconnect();
-    }
-    if (sc) {
+    if (sc)
 	sc->disconnect();
-    }
-
-    delete r;
+    if (r)
+	delete r;
 }
 
 Repo *

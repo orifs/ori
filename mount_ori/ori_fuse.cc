@@ -1095,7 +1095,8 @@ main(int argc, char *argv[])
     printf("Opening repo at %s\n", config.repo_path);
 
     // Set the repo path
-    config.repo_path = realpath(config.repo_path, NULL);
+    if (config.clone_path == NULL)
+	config.repo_path = realpath(config.repo_path, NULL);
     //ori_priv *priv = new ori_priv();
     //priv->datastore = realpath(conf.repo_path, NULL);
 
@@ -1104,7 +1105,7 @@ main(int argc, char *argv[])
     //for (int i = 0; i < args.argc; i++)
     //    FUSE_LOG("%s", args.argv[i]);
 
-    if (config.repo_path != NULL) {
+    if (config.clone_path != NULL) {
         if (!Util_FileExists(config.repo_path)) {
             mkdir(config.repo_path, 0755);
             FUSE_LOG("Creating new repository %s", config.repo_path);
