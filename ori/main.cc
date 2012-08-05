@@ -55,13 +55,11 @@ typedef struct Cmd {
     void (*usage)(void);
 } Cmd;
 
-// repo.cc
 int cmd_init(int argc, const char *argv[]);
 int cmd_show(int argc, const char *argv[]);
 int cmd_clone(int argc, const char *argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, const char *argv[]);
-//int cmd_oldcommit(int argc, const char *argv[]);
 int cmd_snapshot(int argc, const char *argv[]);
 int cmd_snapshots(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
@@ -87,9 +85,7 @@ int cmd_stats(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
 int cmd_purgecommit(int argc, const char *argv[]);
 int cmd_stripmetadata(int argc, const char *argv[]); // Debug
-// server.cc
-int cmd_sshserver(int argc, const char *argv[]);
-// local
+int cmd_sshserver(int argc, const char *argv[]); // Internal
 int cmd_sshclient(int argc, const char *argv[]); // Debug
 #if !defined(WITHOUT_MDNS)
 int cmd_mdnsserver(int argc, const char *argv[]); // Debug
@@ -99,30 +95,6 @@ static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
 
 static Cmd commands[] = {
-    {
-        "init",
-        "Initialize the repository",
-        cmd_init,
-        NULL,
-    },
-    {
-        "show",
-        "Show repository information",
-        cmd_show,
-        NULL,
-    },
-    {
-        "status",
-        "Scan for changes since last commit",
-        cmd_status,
-        NULL,
-    },
-    {
-        "treediff",
-        "Compare two commits",
-        cmd_treediff,
-        NULL,
-    },
     {
         "branch",
         "Set or print current branch",
@@ -136,6 +108,12 @@ static Cmd commands[] = {
         NULL,
     },
     {
+	"checkout",
+	"Checkout a revision of the repository",
+	cmd_checkout,
+	NULL,
+    },
+    {
 	"clone",
 	"Clone a repository into the local directory",
 	cmd_clone,
@@ -147,30 +125,6 @@ static Cmd commands[] = {
 	cmd_commit,
 	usage_commit,
     },
-    /*{
-	"oldcommit",
-	"Commit changes into the repository (pre-TreeDiff)",
-	cmd_oldcommit,
-	usage_commit,
-    },*/
-    {
-	"checkout",
-	"Checkout a revision of the repository",
-	cmd_checkout,
-	NULL,
-    },
-    {
-	"pull",
-	"Pull changes from a repository",
-	cmd_pull,
-	NULL,
-    },
-    {
-	"log",
-	"Display a log of commits to the repository",
-	cmd_log,
-	NULL,
-    },
     {
 	"filelog",
 	"Display a log of commits to the repository for the specified file",
@@ -178,9 +132,15 @@ static Cmd commands[] = {
 	NULL,
     },
     {
-	"verify",
-	"Verify the repository",
-	cmd_verify,
+        "findheads",
+        "Find lost heads",
+        cmd_findheads,
+        NULL,
+    },
+    {
+	"gc",
+	"Reclaim unused space",
+	cmd_gc,
 	NULL,
     },
     {
@@ -190,9 +150,39 @@ static Cmd commands[] = {
 	usage_graft,
     },
     {
-        "findheads",
-        "Find lost heads",
-        cmd_findheads,
+        "help",
+        "Show help for a given topic",
+        cmd_help,
+        NULL
+    },
+    {
+        "init",
+        "Initialize the repository",
+        cmd_init,
+        NULL,
+    },
+    {
+	"log",
+	"Display a log of commits to the repository",
+	cmd_log,
+	NULL,
+    },
+    {
+	"pull",
+	"Pull changes from a repository",
+	cmd_pull,
+	NULL,
+    },
+    {
+	"purgecommit",
+	"Purge commit",
+	cmd_purgecommit,
+	NULL,
+    },
+    {
+        "rebuildindex",
+        "Rebuild index",
+        cmd_rebuildindex,
         NULL,
     },
     {
@@ -202,16 +192,16 @@ static Cmd commands[] = {
         NULL,
     },
     {
-        "rebuildindex",
-        "Rebuild index",
-        cmd_rebuildindex,
-        NULL,
+	"remote",
+	"Remote connection management",
+	cmd_remote,
+	NULL,
     },
     {
-	"gc",
-	"Reclaim unused space",
-	cmd_gc,
-	NULL,
+        "show",
+        "Show repository information",
+        cmd_show,
+        NULL,
     },
     {
 	"snapshot",
@@ -226,10 +216,29 @@ static Cmd commands[] = {
 	NULL,
     },
     {
-	"remote",
-	"Remote connection management",
-	cmd_remote,
+        "status",
+        "Scan for changes since last commit",
+        cmd_status,
+        NULL,
+    },
+    {
+        "treediff",
+        "Compare two commits",
+        cmd_treediff,
+        NULL,
+    },
+    {
+	"verify",
+	"Verify the repository",
+	cmd_verify,
 	NULL,
+    },
+    /* Internal (always hidden) */
+    {
+        "sshserver",
+	NULL, // "Run a simple stdin/out server, intended for SSH access",
+        cmd_sshserver,
+        NULL
     },
     /* Debugging */
     {
@@ -257,12 +266,6 @@ static Cmd commands[] = {
 	NULL,
     },
     {
-	"purgecommit",
-	"Purge commit",
-	cmd_purgecommit,
-	NULL,
-    },
-    {
 	"purgeobj",
 	"Purge object (DEBUG)",
 	cmd_purgeobj,
@@ -273,12 +276,6 @@ static Cmd commands[] = {
         "Strip all object metadata including backreferences (DEBUG)",
         cmd_stripmetadata,
         NULL,
-    },
-    {
-        "sshserver",
-        "Run a simple stdin/out server, intended for SSH access",
-        cmd_sshserver,
-        NULL
     },
     {
         "httpclient",
@@ -304,12 +301,6 @@ static Cmd commands[] = {
         "selftest",
         "Built-in unit tests (DEBUG)",
         cmd_selftest,
-        NULL
-    },
-    {
-        "help",
-        "Show help for a given topic",
-        cmd_help,
         NULL
     },
     { NULL, NULL, NULL, NULL }
