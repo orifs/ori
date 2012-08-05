@@ -37,10 +37,7 @@ using namespace std;
 
 #include "debug.h"
 #include "util.h"
-#include "sshclient.h"
-#include "sshrepo.h"
-#include "httpclient.h"
-#include "httprepo.h"
+#include "remoterepo.h"
 #include "fuse_cmd.h"
 
 #define NULL_FH 0
@@ -49,9 +46,7 @@ using namespace std;
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
 mount_ori_config config;
-Repo *remoteRepo;
-std::tr1::shared_ptr<HttpClient> httpClient;
-std::tr1::shared_ptr<SshClient> sshClient;
+RemoteRepo remoteRepo;
 
 int _numComponents(const char *path)
 {
@@ -971,34 +966,6 @@ ori_rename(const char *from_path, const char *to_path)
     return 0;
 }
 
-/// XXX: Copied from ori/repo_cmd.cc
-static int
-getRepoFromURL(const string &url,
-               Repo **r,
-	       std::tr1::shared_ptr<HttpClient> &hc,
-	       std::tr1::shared_ptr<SshClient> &sc)
-{
-    if (Util_IsPathRemote(url)) {
-	if (strncmp(url.c_str(), "http://", 7) == 0) {
-	    hc.reset(new HttpClient(url));
-	    *r = new HttpRepo(hc.get());
-	    hc->connect();
-	} else {
-	    sc.reset(new SshClient(url));
-	    *r = new SshRepo(sc.get());
-	    sc->connect();
-	}
-    } else {
-	char *path = realpath(url.c_str(), NULL);
-	*r = new LocalRepo(path);
-	((LocalRepo *)*r)->open(path);
-	free(path);
-    }
-
-    return 0; // TODO: errors?
-}
-
-
 /**
  * Initialize the filesystem.
  */
@@ -1015,7 +982,10 @@ ori_init(struct fuse_conn_info *conn)
 
     if (config.clone_path != NULL) {
         // Construct remote and set head
-	getRepoFromURL(config.clone_path, &remoteRepo, httpClient, sshClient);
+	if (!remoteRepo.connect(config.clone_path)) {
+	    FUSE_LOG("Cannot connect to source repository!");
+	    exit(1);
+	}
     }
 
     ori_priv *priv = new ori_priv(config.repo_path);
@@ -1032,7 +1002,7 @@ ori_init(struct fuse_conn_info *conn)
 	priv->repo->addPeer("origin", originPath);
 	priv->repo->setInstaClone("origin");
 
-	priv->repo->setRemote(remoteRepo);
+	priv->repo->setRemote(remoteRepo.get());
         priv->_resetHead();
 
         FUSE_LOG("InstaClone: Enabled!");
