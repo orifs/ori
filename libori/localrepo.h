@@ -27,6 +27,7 @@
 #include "treediff.h"
 #include "tempdir.h"
 #include "largeblob.h"
+#include "remoterepo.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -182,6 +183,7 @@ private:
 
     // Remote Operations
     Repo *remoteRepo;
+    RemoteRepo resumeRepo;
 
     // Caches
     LRUCache<ObjectHash, ObjectInfo, 128> _objectInfoCache;

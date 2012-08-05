@@ -39,11 +39,12 @@
 using namespace std;
 
 #include "localrepo.h"
+#include "remoterepo.h"
+#include "sshrepo.h"
 #include "largeblob.h"
 #include "util.h"
 #include "scan.h"
 #include "debug.h"
-#include "sshrepo.h"
 
 int
 LocalRepo_Init(const std::string &rootPath)
@@ -237,6 +238,12 @@ LocalRepo::open(const string &root)
     for (it = peers.begin(); it != peers.end(); it++) {
 	if ((*it).second.isInstaCloning()) {
 	    // XXX: Open remote connection
+	    if (resumeRepo.connect((*it).second.getUrl())) {
+		LOG("Autoconnected to '%s' to resume InstaClone.",
+		    (*it).second.getUrl().c_str());
+		remoteRepo = resumeRepo.get();
+		break;
+	    }
 	}
     }
 
@@ -281,6 +288,7 @@ LocalRepo::lock()
 void
 LocalRepo::setRemote(Repo *r)
 {
+    assert(remoteRepo == NULL);
     remoteRepo = r;
 }
 
