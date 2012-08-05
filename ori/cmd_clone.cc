@@ -33,39 +33,12 @@
 #include "scan.h"
 #include "util.h"
 #include "localrepo.h"
-#include "httpclient.h"
-#include "httprepo.h"
-#include "sshclient.h"
-#include "sshrepo.h"
+#include "remoterepo.h"
 #include "treediff.h"
 
 using namespace std;
 
 extern LocalRepo repository;
-
-static int
-getRepoFromURL(const string &url,
-        std::tr1::shared_ptr<Repo> &r,
-        std::tr1::shared_ptr<HttpClient> &hc,
-        std::tr1::shared_ptr<SshClient> &sc)
-{
-    if (Util_IsPathRemote(url)) {
-        if (strncmp(url.c_str(), "http://", 7) == 0) {
-            hc.reset(new HttpClient(url));
-            r.reset(new HttpRepo(hc.get()));
-            hc->connect();
-        } else {
-            sc.reset(new SshClient(url));
-            r.reset(new SshRepo(sc.get()));
-            sc->connect();
-        }
-    } else {
-        r.reset(new LocalRepo(url));
-        ((LocalRepo *)r.get())->open(url);
-    }
-
-    return 0; // TODO: errors?
-}
 
 int
 cmd_clone(int argc, const char *argv[])
@@ -108,10 +81,8 @@ cmd_clone(int argc, const char *argv[])
     dstRepo.addPeer("origin", originPath);
 
     {
-        std::tr1::shared_ptr<Repo> srcRepo;
-        std::tr1::shared_ptr<HttpClient> httpClient;
-        std::tr1::shared_ptr<SshClient> sshClient;
-        getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
+	RemoteRepo srcRepo;
+	srcRepo.connect(srcRoot);
 
         dstRepo.pull(srcRepo.get());
 
