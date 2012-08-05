@@ -1201,7 +1201,14 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
     entry.hash = c.getTree();
 
     for (it = pv.begin(); it != pv.end(); it++) {
+	map<string, TreeEntry>::iterator e;
         Tree t = getTree(entry.hash);
+	e = t.tree.find(*it);
+	if (e == t.tree.end()) {
+	    entry = TreeEntry();
+	    entry.type = TreeEntry::Null;
+	    return entry;
+	}
         entry = t.tree[*it];
     }
 
@@ -1216,8 +1223,17 @@ LocalRepo::lookup(const Commit &c, const string &path)
 {
     vector<string> pv = Util_PathToVector(path);
     ObjectHash objId = c.getTree();
+
+    if (pv.size() == 0)
+	return ObjectHash();
+
     for (size_t i = 0; i < pv.size(); i++) {
+	map<string, TreeEntry>::iterator e;
         Tree t = getTree(objId);
+	e = t.tree.find(pv[i]);
+	if (e == t.tree.end()) {
+	    return ObjectHash();
+	}
         objId = t.tree[pv[i]].hash;
     }
 
