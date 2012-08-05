@@ -255,8 +255,8 @@ ori_getattr(const char *path, struct stat *stbuf)
 	Commit c = p->repo->getCommit(obj);
 
 	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
-
-	// XXX: Report ENOENT if the file is missing
+	if (te.type == TreeEntry::Null)
+	    return -ENOENT;
 
 	if (te.type == TreeEntry::Tree)
 	{
@@ -324,13 +324,47 @@ static int
 ori_open(const char *path, struct fuse_file_info *fi)
 {
     FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
+    ori_priv *p = ori_getpriv();
+
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	string snapshot = path;
+	string relPath;
+	size_t pos = 0;
+
+	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+	pos = snapshot.find('/', pos);
+	if (pos == snapshot.npos) {
+	    return -EIO;
+	}
+
+	relPath = snapshot.substr(pos);
+	snapshot = snapshot.substr(0, pos);
+
+	// Lookup file
+	ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	if (obj.isEmpty()) {
+	    LOG("FUSE snapshot '%s' was not found", snapshot.c_str());
+	    return -ENOENT;
+	}
+
+	Commit c = p->repo->getCommit(obj);
+
+	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
+
+	if (te.type == TreeEntry::Null)
+	{
+	    return -ENOENT;
+	}
+
+	return 0;
     }
 
     fi->fh = NULL_FH;
 
-    ori_priv *p = ori_getpriv();
     ExtendedTreeEntry *ete = _getETE(p, path);
     if (ete == NULL) return -ENOENT;
 
@@ -360,6 +394,38 @@ ori_open(const char *path, struct fuse_file_info *fi)
 }
 
 static int
+ori_read_helper(ori_priv *p, TreeEntry &te, char *buf, size_t size, off_t offset)
+{
+    if (te.type == TreeEntry::Blob) {
+        // Read the payload to memory
+        // TODO: too inefficient
+        std::string payload;
+        payload = p->repo->getPayload(te.hash);
+
+        size_t left = payload.size() - offset;
+        size_t real_read = MIN(size, left);
+
+        memcpy(buf, payload.data()+offset, real_read);
+
+        return real_read;
+    }
+    else if (te.type == TreeEntry::LargeBlob) {
+        LargeBlob *lb = p->getLargeBlob(te.hash);
+        //lb->extractFile("temp.tst");
+        size_t total = 0;
+        while (total < size) {
+            ssize_t res = lb->read((uint8_t*)(buf + total),
+                    size - total, offset + total);
+            if (res <= 0) return res;
+            total += res;
+        }
+        return total;
+    }
+
+    return -EIO;
+}
+
+static int
 ori_read(const char *path, char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
@@ -370,6 +436,39 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         size_t n = p->readOutput(buf, size);
         return n;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	string snapshot = path;
+	string relPath;
+	size_t pos = 0;
+
+	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+	pos = snapshot.find('/', pos);
+	if (pos == snapshot.npos) {
+	    return -EIO;
+	}
+
+	relPath = snapshot.substr(pos);
+	snapshot = snapshot.substr(0, pos);
+
+	// Lookup file
+	ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	if (obj.isEmpty()) {
+	    LOG("FUSE snapshot '%s' was not found", snapshot.c_str());
+	    return -ENOENT;
+	}
+
+	Commit c = p->repo->getCommit(obj);
+
+	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
+
+	if (te.type == TreeEntry::Null)
+	{
+	    return -ENOENT;
+	}
+
+	return ori_read_helper(p, te, buf, size, offset);
     }
 
     if (fi->fh != NULL_FH) {
@@ -383,33 +482,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     if (ete == NULL) return -ENOENT;
     assert(!ete->changedData);
 
-    if (ete->te.type == TreeEntry::Blob) {
-        // Read the payload to memory
-        // TODO: too inefficient
-        std::string payload;
-        payload = p->repo->getPayload(ete->te.hash);
-
-        size_t left = payload.size() - offset;
-        size_t real_read = MIN(size, left);
-
-        memcpy(buf, payload.data()+offset, real_read);
-
-        return real_read;
-    }
-    else if (ete->te.type == TreeEntry::LargeBlob) {
-        LargeBlob *lb = p->getLargeBlob(ete->te.hash);
-        //lb->extractFile("temp.tst");
-        size_t total = 0;
-        while (total < size) {
-            ssize_t res = lb->read((uint8_t*)(buf + total),
-                    size - total, offset + total);
-            if (res <= 0) return res;
-            total += res;
-        }
-        return total;
-    }
-
-    return -EIO;
+    return ori_read_helper(p, ete->te, buf, size, offset);
 }
 
 static int
