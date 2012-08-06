@@ -22,5 +22,10 @@
 
 #define LARGEFILE_MINIMUM (1024 * 1024)
 
+// 64 MB
+#define PACKFILE_MAXSIZE (1024*1024*64)
+// ~20KB overhead per packfile?
+#define PACKFILE_MAXOBJS (512)
+
 #endif /* __TUNEABLES_H__ */
 
