@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2012 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #include <cassert>
 #include <stdbool.h>
 #include <stdint.h>
@@ -23,11 +39,12 @@
 using namespace std;
 
 #include "localrepo.h"
+#include "remoterepo.h"
+#include "sshrepo.h"
 #include "largeblob.h"
 #include "util.h"
 #include "scan.h"
 #include "debug.h"
-#include "sshrepo.h"
 
 int
 LocalRepo_Init(const std::string &rootPath)
@@ -217,6 +234,19 @@ LocalRepo::open(const string &root)
     string peer_path = rootPath + ORI_PATH_REMOTES;
     Scan_Traverse(peer_path.c_str(), this, LocalRepo_PeerHelper);
 
+    map<string, Peer>::iterator it;
+    for (it = peers.begin(); it != peers.end(); it++) {
+	if ((*it).second.isInstaCloning()) {
+	    // XXX: Open remote connection
+	    if (resumeRepo.connect((*it).second.getUrl())) {
+		LOG("Autoconnected to '%s' to resume InstaClone.",
+		    (*it).second.getUrl().c_str());
+		remoteRepo = resumeRepo.get();
+		break;
+	    }
+	}
+    }
+
     opened = true;
     return true;
 }
@@ -258,6 +288,7 @@ LocalRepo::lock()
 void
 LocalRepo::setRemote(Repo *r)
 {
+    assert(remoteRepo == NULL);
     remoteRepo = r;
 }
 
@@ -563,23 +594,6 @@ LocalRepo::verifyObject(const ObjectHash &objId)
     // XXX: Check against index
 
     return "";
-}
-
-/*
- * Purge object
- */
-bool
-LocalRepo::purgeObject(const ObjectHash &objId)
-{
-    LocalObject::sp o = getLocalObject(objId);
-
-    if (!o)
-	return false;
-
-    if (o->purge() < 0)
-	return false;
-
-    return true;
 }
 
 /*
@@ -1023,10 +1037,6 @@ LocalRepo::getObjectInfo(const ObjectHash &objId)
 }
 
 /*
- * BasicRepo implementation
- */
-
-/*
  * Reference Counting Operations
  */
 
@@ -1107,6 +1117,71 @@ bool
 LocalRepo::rewriteRefCounts(const RefcountMap &refs)
 {
     metadata.rewrite(&refs);
+    return true;
+}
+
+/*
+ * Purging Operations
+ */
+
+/*
+ * Purge object
+ */
+bool
+LocalRepo::purgeObject(const ObjectHash &objId)
+{
+    LocalObject::sp o = getLocalObject(objId);
+
+    ASSERT(metadata.getRefCount(objId) == 0);
+
+    if (!o)
+	return false;
+
+    if (o->purge() < 0)
+	return false;
+
+    return true;
+}
+
+/*
+ * Purge commit
+ */
+bool
+LocalRepo::purgeCommit(const ObjectHash &commitId)
+{
+    const Commit c = getCommit(commitId);
+    ObjectHash rootTree;
+    set<ObjectHash> objs;
+    set<ObjectHash>::iterator it;
+    MdTransaction::sp tx;
+
+    // Check all branches
+    if (commitId == getHead()) {
+	LOG("Cannot purge head of a branch");
+	return false;
+    }
+
+    rootTree = c.getTree();
+    objs = getSubtreeObjects(rootTree);
+
+    // Drop reference counts
+    tx = metadata.begin();
+    for (it = objs.begin(); it != objs.end(); it++) {
+	tx->decRef(*it);
+    }
+    tx->setMeta(commitId, "purging");
+    metadata.commit(tx.get());
+
+    // Purge objects -- Needs to be journaled this is racey
+    for (it = objs.begin(); it != objs.end(); it++) {
+	if (metadata.getRefCount(*it) == 0)
+	    purgeObject(*it);
+    }
+
+    tx = metadata.begin();
+    tx->setMeta(commitId, "purged");
+    metadata.commit(tx.get());
+
     return true;
 }
 
@@ -1201,7 +1276,14 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
     entry.hash = c.getTree();
 
     for (it = pv.begin(); it != pv.end(); it++) {
+	map<string, TreeEntry>::iterator e;
         Tree t = getTree(entry.hash);
+	e = t.tree.find(*it);
+	if (e == t.tree.end()) {
+	    entry = TreeEntry();
+	    entry.type = TreeEntry::Null;
+	    return entry;
+	}
         entry = t.tree[*it];
     }
 
@@ -1216,8 +1298,17 @@ LocalRepo::lookup(const Commit &c, const string &path)
 {
     vector<string> pv = Util_PathToVector(path);
     ObjectHash objId = c.getTree();
+
+    if (pv.size() == 0)
+	return ObjectHash();
+
     for (size_t i = 0; i < pv.size(); i++) {
+	map<string, TreeEntry>::iterator e;
         Tree t = getTree(objId);
+	e = t.tree.find(pv[i]);
+	if (e == t.tree.end()) {
+	    return ObjectHash();
+	}
         objId = t.tree[pv[i]].hash;
     }
 
@@ -1503,6 +1594,16 @@ LocalRepo::removePeer(const string &name)
     }
 
     return true;
+}
+
+void
+LocalRepo::setInstaClone(const std::string &name, bool val)
+{
+    map<string, Peer>::iterator it = peers.find(name);
+
+    if (it != peers.end()) {
+	(*it).second.setInstaClone(val);
+    }
 }
 
 /*

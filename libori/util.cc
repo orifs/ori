@@ -511,11 +511,10 @@ Util_NewUUID()
 
 
 bool
-Util_IsPathRemote(const char *path) {
-    const char *cc = strchr(path, ':');
-    if (cc == NULL) return false;
-    if (cc == path) return false; // TODO how to handle these cases?
-    if (cc == path+strlen(path)-1) return false;
+Util_IsPathRemote(const string &path) {
+    size_t pos = path.find_first_of(':');
+    if (pos == 0) return false;
+    if (pos == path.npos) return false;
     return true;
 }
 

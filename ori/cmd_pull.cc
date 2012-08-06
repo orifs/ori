@@ -34,58 +34,40 @@
 #include "scan.h"
 #include "util.h"
 #include "localrepo.h"
-#include "httpclient.h"
-#include "httprepo.h"
-#include "sshclient.h"
-#include "sshrepo.h"
+#include "remoterepo.h"
 #include "treediff.h"
 
 using namespace std;
 
 extern LocalRepo repository;
 
-static int
-getRepoFromURL(const string &url,
-        std::tr1::shared_ptr<Repo> &r,
-        std::tr1::shared_ptr<HttpClient> &hc,
-        std::tr1::shared_ptr<SshClient> &sc)
-{
-    if (Util_IsPathRemote(url.c_str())) {
-        if (strncmp(url.c_str(), "http://", 7) == 0) {
-            hc.reset(new HttpClient(url));
-            r.reset(new HttpRepo(hc.get()));
-            hc->connect();
-        } else {
-            sc.reset(new SshClient(url));
-            r.reset(new SshRepo(sc.get()));
-            sc->connect();
-        }
-    } else {
-        r.reset(new LocalRepo(url));
-        ((LocalRepo *)r.get())->open(url);
-    }
-
-    return 0; // TODO: errors?
-}
-
 int
 cmd_pull(int argc, const char *argv[])
 {
     string srcRoot;
 
-    if (argc != 2) {
+    if (argc > 2) {
 	printf("Specify a repository to pull.\n");
 	printf("usage: ori pull <repo>\n");
 	return 1;
     }
 
-    srcRoot = argv[1];
+    if (argc == 2) {
+	srcRoot = argv[1];
+    } else {
+	map<string, Peer> peers = repository.getPeers();
+	map<string, Peer>::iterator it = peers.find("origin");
+
+	if (it == peers.end()) {
+	    printf("No default repository to pull from.\n");
+	    return 1;
+	}
+	srcRoot = (*it).second.getUrl();
+    }
 
     {
-        std::tr1::shared_ptr<Repo> srcRepo;
-        std::tr1::shared_ptr<HttpClient> httpClient;
-        std::tr1::shared_ptr<SshClient> sshClient;
-        getRepoFromURL(srcRoot, srcRepo, httpClient, sshClient);
+	RemoteRepo srcRepo;
+	srcRepo.connect(srcRoot);
 
         printf("Pulling from %s\n", srcRoot.c_str());
         repository.pull(srcRepo.get());

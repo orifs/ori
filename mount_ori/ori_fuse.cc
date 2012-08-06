@@ -37,10 +37,7 @@ using namespace std;
 
 #include "debug.h"
 #include "util.h"
-#include "sshclient.h"
-#include "sshrepo.h"
-#include "httpclient.h"
-#include "httprepo.h"
+#include "remoterepo.h"
 #include "fuse_cmd.h"
 
 #define NULL_FH 0
@@ -49,9 +46,7 @@ using namespace std;
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
 mount_ori_config config;
-Repo *remoteRepo;
-std::tr1::shared_ptr<HttpClient> httpClient;
-std::tr1::shared_ptr<SshClient> sshClient;
+RemoteRepo remoteRepo;
 
 int _numComponents(const char *path)
 {
@@ -243,19 +238,31 @@ ori_getattr(const char *path, struct stat *stbuf)
 	}
 
 	relPath = snapshot.substr(pos);
-	snapshot = snapshot.substr(0, pos - 1);
+	snapshot = snapshot.substr(0, pos);
 
 	// Lookup file
 	ObjectHash obj = p->repo->lookupSnapshot(snapshot);
-	if (obj.isEmpty())
+	if (obj.isEmpty()) {
+	    LOG("FUSE snapshot '%s' was not found", snapshot.c_str());
 	    return -ENOENT;
- 
+	}
+
 	Commit c = p->repo->getCommit(obj);
 
 	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
+	if (te.type == TreeEntry::Null)
+	    return -ENOENT;
 
-	// XXX: Report ENOENT if the file is missing
+	if (te.type == TreeEntry::Tree)
+	{
+	    stbuf->st_mode = S_IFDIR;
+	    stbuf->st_nlink = 2;
+	} else {
+	    stbuf->st_mode = S_IFREG;
+	    stbuf->st_nlink = 1;
+	}
 
+	// XXX: Mask writable attributes
 	stbuf->st_mode |= te.attrs.getAs<mode_t>(ATTR_PERMS);
 	struct passwd *pw = getpwnam(te.attrs.getAs<const char *>(ATTR_USERNAME));
 	stbuf->st_uid = pw->pw_uid;
@@ -274,8 +281,7 @@ ori_getattr(const char *path, struct stat *stbuf)
     {
         stbuf->st_mode = S_IFDIR;
         stbuf->st_nlink = 2;
-    }
-    else {
+    } else {
         stbuf->st_mode = S_IFREG;
         stbuf->st_nlink = 1;
     }
@@ -313,13 +319,51 @@ static int
 ori_open(const char *path, struct fuse_file_info *fi)
 {
     FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
+    ori_priv *p = ori_getpriv();
+
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	string snapshot = path;
+	string relPath;
+	size_t pos = 0;
+
+	if (fi->flags & O_WRONLY || fi->flags & O_RDWR) {
+	    return -EACCES;
+	}
+
+	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+	pos = snapshot.find('/', pos);
+	if (pos == snapshot.npos) {
+	    return -EIO;
+	}
+
+	relPath = snapshot.substr(pos);
+	snapshot = snapshot.substr(0, pos);
+
+	// Lookup file
+	ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	if (obj.isEmpty()) {
+	    LOG("FUSE snapshot '%s' was not found", snapshot.c_str());
+	    return -ENOENT;
+	}
+
+	Commit c = p->repo->getCommit(obj);
+
+	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
+
+	if (te.type == TreeEntry::Null)
+	{
+	    return -ENOENT;
+	}
+
+	return 0;
     }
 
     fi->fh = NULL_FH;
 
-    ori_priv *p = ori_getpriv();
     ExtendedTreeEntry *ete = _getETE(p, path);
     if (ete == NULL) return -ENOENT;
 
@@ -349,6 +393,38 @@ ori_open(const char *path, struct fuse_file_info *fi)
 }
 
 static int
+ori_read_helper(ori_priv *p, TreeEntry &te, char *buf, size_t size, off_t offset)
+{
+    if (te.type == TreeEntry::Blob) {
+        // Read the payload to memory
+        // TODO: too inefficient
+        std::string payload;
+        payload = p->repo->getPayload(te.hash);
+
+        size_t left = payload.size() - offset;
+        size_t real_read = MIN(size, left);
+
+        memcpy(buf, payload.data()+offset, real_read);
+
+        return real_read;
+    }
+    else if (te.type == TreeEntry::LargeBlob) {
+        LargeBlob *lb = p->getLargeBlob(te.hash);
+        //lb->extractFile("temp.tst");
+        size_t total = 0;
+        while (total < size) {
+            ssize_t res = lb->read((uint8_t*)(buf + total),
+                    size - total, offset + total);
+            if (res <= 0) return res;
+            total += res;
+        }
+        return total;
+    }
+
+    return -EIO;
+}
+
+static int
 ori_read(const char *path, char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
@@ -359,6 +435,39 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         size_t n = p->readOutput(buf, size);
         return n;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	string snapshot = path;
+	string relPath;
+	size_t pos = 0;
+
+	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+	pos = snapshot.find('/', pos);
+	if (pos == snapshot.npos) {
+	    return -EIO;
+	}
+
+	relPath = snapshot.substr(pos);
+	snapshot = snapshot.substr(0, pos);
+
+	// Lookup file
+	ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	if (obj.isEmpty()) {
+	    LOG("FUSE snapshot '%s' was not found", snapshot.c_str());
+	    return -ENOENT;
+	}
+
+	Commit c = p->repo->getCommit(obj);
+
+	TreeEntry te = p->repo->lookupTreeEntry(c, relPath);
+
+	if (te.type == TreeEntry::Null)
+	{
+	    return -ENOENT;
+	}
+
+	return ori_read_helper(p, te, buf, size, offset);
     }
 
     if (fi->fh != NULL_FH) {
@@ -372,33 +481,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     if (ete == NULL) return -ENOENT;
     assert(!ete->changedData);
 
-    if (ete->te.type == TreeEntry::Blob) {
-        // Read the payload to memory
-        // TODO: too inefficient
-        std::string payload;
-        payload = p->repo->getPayload(ete->te.hash);
-
-        size_t left = payload.size() - offset;
-        size_t real_read = MIN(size, left);
-
-        memcpy(buf, payload.data()+offset, real_read);
-
-        return real_read;
-    }
-    else if (ete->te.type == TreeEntry::LargeBlob) {
-        LargeBlob *lb = p->getLargeBlob(ete->te.hash);
-        //lb->extractFile("temp.tst");
-        size_t total = 0;
-        while (total < size) {
-            ssize_t res = lb->read((uint8_t*)(buf + total),
-                    size - total, offset + total);
-            if (res <= 0) return res;
-            total += res;
-        }
-        return total;
-    }
-
-    return -EIO;
+    return ori_read_helper(p, ete->te, buf, size, offset);
 }
 
 static int
@@ -416,6 +499,12 @@ static int
 ori_mknod(const char *path, mode_t mode, dev_t dev)
 {
     FUSE_LOG("FUSE ori_mknod(path=\"%s\")", path);
+
+    if (strncmp(path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
 
     ori_priv *p = ori_getpriv();
     p->startWrite();
@@ -442,7 +531,12 @@ ori_unlink(const char *path)
     FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
+
 
     // TODO: check for open files?
 
@@ -526,6 +620,10 @@ ori_truncate(const char *path, off_t length)
     FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%s)", path, length);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -557,6 +655,10 @@ ori_chmod(const char *path, mode_t mode)
     FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -581,6 +683,10 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
     FUSE_LOG("FUSE ori_chown(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -612,6 +718,10 @@ ori_utimens(const char *path, const struct timespec tv[2])
     FUSE_LOG("FUSE ori_utimens(path=\"%s\")", path);
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
     }
 
     ori_priv *p = ori_getpriv();
@@ -769,6 +879,12 @@ ori_mkdir(const char *path, mode_t mode)
 {
     FUSE_LOG("FUSE ori_mkdir(path=\"%s\")", path);
 
+    if (strncmp(path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
+
     ori_priv *p = ori_getpriv();
     p->startWrite();
 
@@ -785,6 +901,12 @@ static int
 ori_rmdir(const char *path)
 {
     FUSE_LOG("FUSE ori_rmdir(path=\"%s\")", path);
+
+    if (strncmp(path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
 
     // TODO: is this stuff necessary?
     ori_priv *p = ori_getpriv();
@@ -806,6 +928,18 @@ ori_rename(const char *from_path, const char *to_path)
 {
     FUSE_LOG("FUSE ori_rename(from_path=\"%s\", to_path=\"%s\")",
             from_path, to_path);
+
+    if (strncmp(from_path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
+
+    if (strncmp(to_path,
+		ORI_SNAPSHOT_DIRPATH,
+		strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+	return -EACCES;
+    }
 
     ori_priv *p = ori_getpriv();
     ExtendedTreeEntry *ete = _getETE(p, from_path);
@@ -832,34 +966,6 @@ ori_rename(const char *from_path, const char *to_path)
     return 0;
 }
 
-/// XXX: Copied from ori/repo_cmd.cc
-int
-getRepoFromURL(const string &url,
-               Repo **r,
-	       std::tr1::shared_ptr<HttpClient> &hc,
-	       std::tr1::shared_ptr<SshClient> &sc)
-{
-    if (Util_IsPathRemote(url.c_str())) {
-	if (strncmp(url.c_str(), "http://", 7) == 0) {
-	    hc.reset(new HttpClient(url));
-	    *r = new HttpRepo(hc.get());
-	    hc->connect();
-	} else {
-	    sc.reset(new SshClient(url));
-	    *r = new SshRepo(sc.get());
-	    sc->connect();
-	}
-    } else {
-	char *path = realpath(url.c_str(), NULL);
-	*r = new LocalRepo(path);
-	((LocalRepo *)*r)->open(path);
-	free(path);
-    }
-
-    return 0; // TODO: errors?
-}
-
-
 /**
  * Initialize the filesystem.
  */
@@ -876,7 +982,10 @@ ori_init(struct fuse_conn_info *conn)
 
     if (config.clone_path != NULL) {
         // Construct remote and set head
-	getRepoFromURL(config.clone_path, &remoteRepo, httpClient, sshClient);
+	if (!remoteRepo.connect(config.clone_path)) {
+	    FUSE_LOG("Cannot connect to source repository!");
+	    exit(1);
+	}
     }
 
     ori_priv *priv = new ori_priv(config.repo_path);
@@ -886,7 +995,14 @@ ori_init(struct fuse_conn_info *conn)
         priv->repo->updateHead(revId);
         FUSE_LOG("InstaClone: Updating repository head %s", revId.hex().c_str());
 
-	priv->repo->setRemote(remoteRepo);
+	string originPath = config.clone_path;
+	if (!Util_IsPathRemote(originPath)) {
+	    originPath = Util_RealPath(originPath);
+	}
+	priv->repo->addPeer("origin", originPath);
+	priv->repo->setInstaClone("origin");
+
+	priv->repo->setRemote(remoteRepo.get());
         priv->_resetHead();
 
         FUSE_LOG("InstaClone: Enabled!");
@@ -979,7 +1095,8 @@ main(int argc, char *argv[])
     printf("Opening repo at %s\n", config.repo_path);
 
     // Set the repo path
-    config.repo_path = realpath(config.repo_path, NULL);
+    if (config.clone_path == NULL)
+	config.repo_path = realpath(config.repo_path, NULL);
     //ori_priv *priv = new ori_priv();
     //priv->datastore = realpath(conf.repo_path, NULL);
 
@@ -988,7 +1105,7 @@ main(int argc, char *argv[])
     //for (int i = 0; i < args.argc; i++)
     //    FUSE_LOG("%s", args.argv[i]);
 
-    if (config.repo_path != NULL) {
+    if (config.clone_path != NULL) {
         if (!Util_FileExists(config.repo_path)) {
             mkdir(config.repo_path, 0755);
             FUSE_LOG("Creating new repository %s", config.repo_path);

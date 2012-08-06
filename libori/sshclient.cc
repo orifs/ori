@@ -40,7 +40,7 @@
 SshClient::SshClient(const std::string &remotePath)
     : fdFromChild(-1), fdToChild(-1), childPid(-1)
 {
-    assert(Util_IsPathRemote(remotePath.c_str()));
+    assert(Util_IsPathRemote(remotePath));
     size_t pos = remotePath.find(':');
     remoteHost = remotePath.substr(0, pos);
     remoteRepo = remotePath.substr(pos+1);
@@ -48,16 +48,7 @@ SshClient::SshClient(const std::string &remotePath)
 
 SshClient::~SshClient()
 {
-    if (childPid > 0) {
-        //kill(childPid, SIGINT);
-        close(fdToChild);
-        // Wait for child to die
-        while (kill(childPid, 0)) {
-            // TODO timeout
-        }
-    }
-
-    childPid = -1;
+    disconnect();
 }
 
 int SshClient::connect()
@@ -142,6 +133,20 @@ int SshClient::connect()
     }
 
     return 0;
+}
+
+void SshClient::disconnect()
+{
+    if (childPid > 0) {
+        //kill(childPid, SIGINT);
+        close(fdToChild);
+        // Wait for child to die
+        while (kill(childPid, 0)) {
+            // TODO timeout
+        }
+    }
+
+    childPid = -1;
 }
 
 bool SshClient::connected() {

@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2012 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #ifndef __LOCALREPO_H__
 #define __LOCALREPO_H__
 
@@ -11,6 +27,7 @@
 #include "treediff.h"
 #include "tempdir.h"
 #include "largeblob.h"
+#include "remoterepo.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -83,7 +100,6 @@ public:
     Object::Type getObjectType(const ObjectHash &objId);
     std::string getPayload(const ObjectHash &objId);
     std::string verifyObject(const ObjectHash &objId);
-    bool purgeObject(const ObjectHash &objId);
     size_t sendObject(const char *objId);
 
     // Repository Operations
@@ -112,8 +128,9 @@ public:
     RefcountMap recomputeRefCounts();
     bool rewriteRefCounts(const RefcountMap &refs);
     
-    // Pruning Operations
-    // void pruneObject(const std::string &objId);
+    // Purging Operations
+    bool purgeObject(const ObjectHash &objId);
+    bool purgeCommit(const ObjectHash &commitId);
 
     // Grafting Operations
     std::set<ObjectHash> getSubtreeObjects(const ObjectHash &treeId);
@@ -144,6 +161,7 @@ public:
     std::map<std::string, Peer> getPeers();
     bool addPeer(const std::string &name, const std::string &path);
     bool removePeer(const std::string &name);
+    void setInstaClone(const std::string &name, bool val = true);
 
     // Static Operations
     static std::string findRootPath(const std::string &path = "");
@@ -165,6 +183,7 @@ private:
 
     // Remote Operations
     Repo *remoteRepo;
+    RemoteRepo resumeRepo;
 
     // Caches
     LRUCache<ObjectHash, ObjectInfo, 128> _objectInfoCache;

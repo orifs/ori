@@ -95,7 +95,7 @@ HttpRepo::getObject(const ObjectHash &id)
     int status;
     string index;
     ObjectInfo info = ObjectInfo(id);
-    std::string payload;
+    string payload;
 
     status = client->getRequest("/objs/" + id.hex(), payload);
     if (status < 0) {
@@ -114,14 +114,27 @@ HttpRepo::getObject(const ObjectHash &id)
 ObjectInfo
 HttpRepo::getObjectInfo(const ObjectHash &id)
 {
-    NOT_IMPLEMENTED(false);
-    return ObjectInfo();
+    int status;
+    string payload;
+    ObjectInfo rval = ObjectInfo();
+
+    status = client->getRequest("/objinfo/" + id.hex(), payload);
+    if (status < 0)
+	return rval;
+
+    rval.setInfo(payload);
+
+    return rval;
 }
 
 bool
 HttpRepo::hasObject(const ObjectHash &id) {
-    NOT_IMPLEMENTED(false);
-    return false;
+    int status;
+    string payload;
+
+    status = client->getRequest("/objinfo/" + id.hex(), payload);
+
+    return (status == 0);
 }
 
 std::set<ObjectInfo>
