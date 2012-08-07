@@ -6,18 +6,20 @@
 #include "objecthash.h"
 #include "object.h"
 #include "stream.h"
+#include "lrucache.h"
 
 typedef uint32_t offset_t;
+typedef uint32_t packid_t;
 
 struct IndexEntry
 {
     ObjectInfo info;
     offset_t offset;
     uint32_t packed_size;
-    uint32_t packfile;
+    packid_t packfile;
 
     const static size_t SIZE = ObjectInfo::SIZE + sizeof(offset_t) +
-        2 * sizeof(uint32_t);
+        sizeof(uint32_t) + sizeof(packid_t);
 };
 
 class PfTransaction
@@ -38,11 +40,13 @@ class Packfile
 public:
     typedef std::tr1::shared_ptr<Packfile> sp;
 
-    Packfile(const std::string &filename);
+    Packfile(const std::string &filename, packid_t id);
     ~Packfile();
 
+    packid_t getPackfileID() const;
+
     bool full() const;
-    void addPayload(const ObjectInfo &info, bytestream *data_str, Index *idx);
+    void addPayload(ObjectInfo info, const std::string &payload, Index *idx);
     bytestream *getPayload(const IndexEntry &entry);
     void purge(const ObjectHash &hash);
 
@@ -56,8 +60,31 @@ public:
 private:
     int fd;
     std::string filename;
+    packid_t packid;
     size_t numObjects;
     size_t fileSize;
+};
+
+class PackfileManager
+{
+public:
+    typedef std::tr1::shared_ptr<PackfileManager> sp;
+
+    PackfileManager(const std::string &rootPath);
+    ~PackfileManager();
+
+    Packfile::sp getPackfile(packid_t id);
+    Packfile::sp newPackfile();
+
+private:
+    std::string rootPath;
+
+    std::vector<packid_t> freeList;
+    void _recomputeFreeList();
+    bool _loadFreeList();
+    void _writeFreeList();
+
+    LRUCache<uint32_t, Packfile::sp, 96> _packfileCache;
 };
 
 #endif

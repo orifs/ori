@@ -53,16 +53,14 @@ public:
     virtual std::set<ObjectInfo> listObjects() = 0;
     virtual std::vector<Commit> listCommits() = 0;
 
-    /// does not take ownership of bs
-    virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;
-
-    // Wrappers
-    virtual ObjectHash addBlob(Object::Type type, const std::string &blob);
     virtual int addObject(
             Object::Type type,
             const ObjectHash &hash,
             const std::string &payload
-            );
+            ) = 0;
+
+    // Wrappers
+    virtual ObjectHash addBlob(Object::Type type, const std::string &blob);
 
     ObjectHash addSmallFile(const std::string &path);
     std::pair<ObjectHash, ObjectHash>

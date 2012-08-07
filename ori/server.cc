@@ -111,12 +111,13 @@ void SshServer::serve() {
                 LocalObject::sp obj = repository.getLocalObject(hash);
                 const ObjectInfo &info = obj->getInfo();
 
+                std::string payload = obj->getPayload();
+
                 _writeObjectInfo(info);
                 printf("DATA %lu\n",
-                        obj->getStoredPayloadSize());
+                        payload.size());
 
-                std::auto_ptr<bytestream> bs = obj->getStoredPayloadStream();
-                bs->copyToFd(STDOUT_FILENO);
+                write(STDOUT_FILENO, payload.data(), payload.size());
                 write(STDOUT_FILENO, "DONE\n", 5);
             }
             else if (strcmp(command, "show") == 0) {
@@ -141,7 +142,7 @@ void SshServer::serve() {
 
 void SshServer::_writeObjectInfo(const ObjectInfo &info)
 {
-    dprintf(STDOUT_FILENO, "%s\n%s\n%08X\n%lu\n",
+    dprintf(STDOUT_FILENO, "%s\n%s\n%08X\n%u\n",
             info.hash.hex().c_str(),
             Object::getStrForType(info.type),
             info.flags,

@@ -171,7 +171,8 @@ HttpRepo::listObjects()
 }
 
 int
-HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+HttpRepo::addObject(Object::Type type, const ObjectHash &hash,
+            const std::string &payload)
 {
     NOT_IMPLEMENTED(false);
     return -1;
@@ -243,17 +244,13 @@ HttpObject::~HttpObject()
     repo->_clearPayload(info.hash);
 }
 
-bytestream::ap
+bytestream *
 HttpObject::getPayloadStream()
 {
-    if (info.getCompressed()) {
-        bytestream::ap bs(getStoredPayloadStream());
-        return bytestream::ap(new lzmastream(bs.release()));
-    }
-    return getStoredPayloadStream();
+    return new strstream(repo->_payload(info.hash));
 }
 
-bytestream::ap
+/*bytestream::ap
 HttpObject::getStoredPayloadStream()
 {
     return bytestream::ap(new strstream(repo->_payload(info.hash)));
@@ -263,4 +260,4 @@ size_t
 HttpObject::getStoredPayloadSize()
 {
     return repo->_payload(info.hash).length();
-}
+}*/

@@ -232,6 +232,7 @@ LocalRepo::open(const string &root)
     snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
     if (!metadata.open(rootPath + ORI_PATH_METADATA))
         return false;
+    packfiles.reset(new PackfileManager(getRootPath() + ORI_PATH_OBJS));
 
     // Scan for peers
     string peer_path = rootPath + ORI_PATH_REMOTES;
@@ -259,6 +260,7 @@ LocalRepo::close()
 {
     index.close();
     snapshots.close();
+    packfiles.reset();
     opened = false;
 }
 
@@ -329,20 +331,9 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
 LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
 {
     assert(opened);
-    if (!_objectCache.hasKey(objId)) {
-        string path = objIdToPath(objId);
-        LocalObject::sp o(new LocalObject());
-
-        int st = o->open(path, objId);
-        if (st < 0) {
-            LOG("LocalRepo couldn't open object %s: %s", objId.hex().c_str(),
-                    strerror(st));
-            return LocalObject::sp(); // NULL
-        }
-
-        _objectCache.put(objId, o);
-    }
-    return _objectCache.get(objId);
+    const IndexEntry &ie = index.getEntry(objId);
+    Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
+    return LocalObject::sp(new LocalObject(packfile, ie));
 }
 
 void
@@ -385,20 +376,21 @@ LocalRepo::objIdToPath(const ObjectHash &objId)
 }
 
 int
-LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+LocalRepo::addObject(Object::Type type, const ObjectHash &hash,
+        const std::string &payload)
 {
     assert(opened);
-    assert(info.hasAllFields());
-    ObjectHash hash = info.hash;
     assert(!hash.isEmpty());
 
     if (!currPackfile.get() || currPackfile->full()) {
-        std::string uuid = boost::uuids::random_generator()();
-        currPackfile.reset(new Packfile(getRootPath()+ORI_PATH_OBJS+uuid));
+        currPackfile = packfiles->newPackfile();
     }
 
-    ObjectInfo newInfo = currPackfile->addPayload(hash, bs);
-    newInfo.type = info.type;
+    ObjectInfo info(hash);
+    info.type = type;
+    info.payload_size = payload.size();
+
+    currPackfile->addPayload(info, payload, &index);
 
     /*string objPath = objIdToPath(hash);
 
@@ -410,9 +402,9 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
             perror("Unable to create object");
             return -errno;
         }
-    }*/
+    }
 
-    index.updateInfo(hash, newInfo);
+    index.updateInfo(hash, newInfo);*/
 
     return 0;
 }
@@ -543,12 +535,13 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	return "Cannot open object!";
 
     type = o->getInfo().type;
+    ObjectHash computedHash = Util_HashString(o->getPayload());
     switch(type) {
 	case Object::Null:
 	    return "Object with Null type!";
 	case Object::Commit:
 	{
-	    if (o->computeHash() != objId)
+	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
 
 	    // XXX: Verify tree and parents exist
@@ -556,7 +549,7 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	}
 	case Object::Tree:
 	{
-	    if (o->computeHash() != objId)
+	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
 
             Tree t;
@@ -573,14 +566,14 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	}
 	case Object::Blob:
 	{
-	    if (o->computeHash() != objId)
+	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
 
 	    break;
 	}
         case Object::LargeBlob:
         {
-	    if (o->computeHash() != objId)
+	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
 
             // XXX: Verify fragments
@@ -632,54 +625,6 @@ LocalRepo::copyObject(const ObjectHash &objId, const string &path)
     return true;
 }
 
-/*void
-LocalRepo::addBackref(const std::string &refers_to)
-{
-    if (refers_to == EMPTY_COMMIT) return;
-    metadata.addRef(refers_to);
-}*/
-
-int
-Repo_GetObjectsCB(void *arg, const char *path)
-{
-    string hexHash;
-    set<ObjectInfo> *objs = (set<ObjectInfo> *)arg;
-
-    // XXX: Only add the hash
-    if (Util_IsDirectory(path)) {
-	return 0;
-    }
-
-    hexHash = path;
-    hexHash = hexHash.substr(hexHash.rfind("/") + 1);
-    ObjectHash hash = ObjectHash::fromHex(hexHash);
-
-    LocalObject o;
-    o.open(path);
-    ObjectInfo info = o.getInfo();
-    info.hash = hash;
-    objs->insert(info);
-
-    return 0;
-}
-
-/*
- * Return a list of objects in the repository.
- */
-set<ObjectInfo>
-LocalRepo::slowListObjects()
-{
-    int status;
-    set<ObjectInfo> objs;
-    string objRoot = rootPath + ORI_PATH_OBJS;
-
-    status = Scan_RTraverse(objRoot.c_str(), (void *)&objs, Repo_GetObjectsCB);
-    if (status < 0)
-	perror("listObjects");
-
-    return objs;
-}
-
 set<ObjectInfo>
 LocalRepo::listObjects()
 {
@@ -689,9 +634,6 @@ LocalRepo::listObjects()
 bool
 LocalRepo::rebuildIndex()
 {
-    set<ObjectInfo> l = slowListObjects();
-    set<ObjectInfo>::iterator it;
-
     string indexPath = rootPath + ORI_PATH_INDEX;
     index.close();
 
@@ -699,10 +641,14 @@ LocalRepo::rebuildIndex()
 
     index.open(indexPath);
 
+    /*
     for (it = l.begin(); it != l.end(); it++)
     {
         index.updateInfo((*it).hash, (*it));
     }
+    */
+    
+    NOT_IMPLEMENTED(false);
 
     return true;
 }
@@ -1142,15 +1088,11 @@ LocalRepo::rewriteRefCounts(const RefcountMap &refs)
 bool
 LocalRepo::purgeObject(const ObjectHash &objId)
 {
-    LocalObject::sp o = getLocalObject(objId);
+    assert(metadata.getRefCount(objId) == 0);
 
-    ASSERT(metadata.getRefCount(objId) == 0);
-
-    if (!o)
-	return false;
-
-    if (o->purge() < 0)
-	return false;
+    const IndexEntry &ie = index.getEntry(objId);
+    Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
+    packfile->purge(objId);
 
     return true;
 }

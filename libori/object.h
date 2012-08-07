@@ -46,10 +46,9 @@ public:
     struct ObjectInfo {
         ObjectInfo();
         ObjectInfo(const ObjectHash &hash);
-        virtual ~ObjectInfo();
 
-        virtual std::string toString() const;
-        virtual void fromString(const std::string &info);
+        std::string toString() const;
+        void fromString(const std::string &info);
         //ssize_t writeTo(int fd, bool seekable = true);
         bool hasAllFields() const;
 
@@ -70,11 +69,9 @@ public:
     virtual ~Object() {}
 
     virtual const ObjectInfo &getInfo() const { return info; }
-    virtual std::auto_ptr<bytestream> getPayloadStream() = 0;
+    virtual bytestream *getPayloadStream() = 0;
     
-    virtual std::string getPayload() {
-        return getPayloadStream()->readAll();
-    }
+    virtual std::string getPayload();
     
     // Static methods
     static const char *getStrForType(Type t);

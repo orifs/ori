@@ -142,7 +142,9 @@ std::set<ObjectInfo> SshRepo::listObjects()
     return rval;
 }
 
-int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+int
+SshRepo::addObject(Object::Type type, const ObjectHash &hash,
+        const std::string &payload)
 {
     NOT_IMPLEMENTED(false);
     return -1;
@@ -204,21 +206,7 @@ SshObject::~SshObject()
     repo->_clearPayload(info.hash);
 }
 
-bytestream::ap SshObject::getPayloadStream()
+bytestream *SshObject::getPayloadStream()
 {
-    if (info.getCompressed()) {
-        bytestream::ap bs(getStoredPayloadStream());
-        return bytestream::ap(new lzmastream(bs.release()));
-    }
-    return getStoredPayloadStream();
-}
-
-bytestream::ap SshObject::getStoredPayloadStream()
-{
-    return bytestream::ap(new strstream(repo->_payload(info.hash)));
-}
-
-size_t SshObject::getStoredPayloadSize()
-{
-    return repo->_payload(info.hash).length();
+    return new strstream(repo->_payload(info.hash));
 }

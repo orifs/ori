@@ -50,12 +50,12 @@ using namespace std;
  * ObjectInfo
  */
 ObjectInfo::ObjectInfo()
-    : type(Object::Null), flags(0), payload_size((size_t)-1)
+    : type(Object::Null), flags(0), payload_size((uint32_t)-1)
 {
 }
 
 ObjectInfo::ObjectInfo(const ObjectHash &hash)
-    : type(Object::Null), flags(0), payload_size((size_t)-1), hash(hash)
+    : type(Object::Null), hash(hash), flags(0), payload_size((uint32_t)-1)
 {
 }
 
@@ -74,7 +74,7 @@ ObjectInfo::toString() const
     ss.writeInt<uint32_t>(flags);
     ss.writeInt<uint32_t>(payload_size);
 
-    assert(ss.str().size == SIZE);
+    assert(ss.str().size() == SIZE);
 
     return ss.str();
 }
@@ -85,8 +85,8 @@ ObjectInfo::fromString(const std::string &info)
     assert(info.size() == SIZE);
     strstream ss(info);
 
-    std::string type_str(ORI_OBJECT_TYPESIZE+1);
-    ss.read(&type_str[0], ORI_OBJECT_TYPESIZE);
+    std::string type_str(ORI_OBJECT_TYPESIZE+1, '\0');
+    ss.read((uint8_t*)&type_str[0], ORI_OBJECT_TYPESIZE);
     type = getTypeForStr(type_str.c_str());
     assert(type != Null);
 
@@ -128,7 +128,7 @@ ObjectInfo::hasAllFields() const
         return false;
     if (hash.isEmpty())
         return false; // hash shouldn't be all zeros
-    if (payload_size == (size_t)-1)
+    if (payload_size == (uint32_t)-1)
         return false; // no objects should be that large, due to LargeBlob
     return true;
 }
@@ -150,6 +150,11 @@ bool ObjectInfo::getCompressed() const {
 /*
  * Object
  */
+std::string Object::getPayload() {
+    bytestream::ap bs(getPayloadStream());
+    return bs->readAll();
+}
+
 const char *Object::getStrForType(Type type) {
     const char *type_str = NULL;
     switch (type) {

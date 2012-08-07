@@ -39,7 +39,8 @@ public:
     ObjectInfo getObjectInfo(const ObjectHash &id);
     bool hasObject(const ObjectHash &id);
     std::set<ObjectInfo> listObjects();
-    int addObjectRaw(const ObjectInfo &info, bytestream *bs);
+    int addObject(Object::Type type, const ObjectHash &hash,
+            const std::string &payload);
     std::vector<Commit> listCommits();
 
 private:
@@ -58,9 +59,7 @@ public:
     HttpObject(HttpRepo *repo, ObjectInfo info);
     ~HttpObject();
 
-    bytestream::ap getPayloadStream();
-    bytestream::ap getStoredPayloadStream();
-    size_t getStoredPayloadSize();
+    bytestream *getPayloadStream();
 
 private:
     HttpRepo *repo;

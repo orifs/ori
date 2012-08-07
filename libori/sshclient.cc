@@ -274,8 +274,8 @@ bool SshResponseParser::loadObjectInfo(ObjectInfo &info) {
     sscanf(line.c_str(), "%X", &info.flags);
 
     nextLine(line); // payload_size
-    sscanf(line.c_str(), "%lu", &info.payload_size);
-    assert(info.payload_size != (size_t)-1);
+    sscanf(line.c_str(), "%u", &info.payload_size);
+    assert(info.payload_size != (uint32_t)-1);
 
     return true;
 }

@@ -7,13 +7,14 @@
 
 #include "packfile.h"
 #include "tuneables.h"
+#include "index.h"
 
 
 // stored length + offset
 #define ENTRYSIZE (ObjectInfo::SIZE + 4 + 4)
 
-Packfile::Packfile(const std::string &filename)
-    : fd(-1), filename(filename), numObjects(0), fileSize(0)
+Packfile::Packfile(const std::string &filename, packid_t id)
+    : fd(-1), filename(filename), packid(id), numObjects(0), fileSize(0)
 {
     fd = ::open(filename.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
@@ -46,12 +47,14 @@ bool Packfile::full() const
 
 // TODO: pack large objects contiguously
 void
-Packfile::addPayload(const ObjectInfo &info, bytestream *data_str, Index *idx)
+Packfile::addPayload(ObjectInfo info, const std::string &payload, Index *idx)
 {
     assert(!full());
+    assert(info.hasAllFields());
 
     lseek(fd, fileSize, SEEK_SET);
     // TODO: compression (detect when compression provides no benefit)
+    // If compressed, change info
 
     // Headers
     strwstream headers;
@@ -65,17 +68,45 @@ Packfile::addPayload(const ObjectInfo &info, bytestream *data_str, Index *idx)
     write(fd, headers.str().data(), headers.str().size());
     fileSize += headers.str().size();
 
-    int bytesWritten = data_str->copyToFd(fd);
+    int bytesWritten = write(fd, payload.data(), payload.size());
 
     numObjects++;
     fileSize += bytesWritten;
 
-    IndexEntry ie = {info, filename, newOffset, bytesWritten};
-    idx->updateInfo(info.hash, ie);
+    IndexEntry ie = {info, newOffset, bytesWritten, packid};
+    idx->updateEntry(info.hash, ie);
 }
 
 bytestream *Packfile::getPayload(const IndexEntry &entry)
 {
-    assert(entry.packfile == filename); // TODO?
+    assert(entry.packfile == packid); // TODO?
     return new fdstream(fd, entry.offset, entry.packed_size);
+}
+
+
+
+
+/*
+ * PackfileManager
+ */
+
+PackfileManager::PackfileManager(const std::string &rootPath)
+    : rootPath(rootPath)
+{
+    if (!_loadFreeList()) {
+        _recomputeFreeList();
+        _writeFreeList();
+    }
+}
+
+PackfileManager::~PackfileManager()
+{
+    _writeFreeList();
+}
+
+Packfile::sp
+PackfileManager::getPackfile(packid_t id)
+{
+    if (!_packfileCache.hasKey(id)) {
+    }
 }

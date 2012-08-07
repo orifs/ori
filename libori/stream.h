@@ -69,6 +69,7 @@ public:
 private:
     const std::string &buf;
     size_t off;
+    size_t len;
 };
 
 class fdstream : public bytestream

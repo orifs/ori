@@ -100,20 +100,18 @@ TempDir::getObject(const ObjectHash &objId)
     }
 
     std::string info_ser;
-    info_ser.resize(16);
-    status = read(objects_fd, &info_ser[0], 16);
+    info_ser.resize(ObjectInfo::SIZE);
+    status = read(objects_fd, &info_ser[0], ObjectInfo::SIZE);
     if (status < 0) {
         perror("TempDir::getObject read");
         return Object::sp();
     }
 
-    ObjectInfo info(objId);
-    info.setInfo(info_ser);
+    ObjectInfo info;
+    info.fromString(info_ser);
 
-    uint64_t stored_len;
-    read(objects_fd, &stored_len, 8);
-
-    return Object::sp(new TempObject(objects_fd, off+24, stored_len, info));
+    return Object::sp(new TempObject(objects_fd, off+ObjectInfo::SIZE,
+                info.payload_size, info));
 }
 
 ObjectInfo
@@ -137,34 +135,28 @@ TempDir::listObjects()
 }
 
 int
-TempDir::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+TempDir::addObject(Object::Type type, const ObjectHash &hash,
+        const std::string &payload)
 {
-    assert(info.hasAllFields());
-    assert(!info.hash.isEmpty());
-    if (!index.hasObject(info.hash)) {
-        /*std::string objPath = pathTo(info.hash);
+    assert(!hash.isEmpty());
 
-        LocalObject o;
-        if (o.createFromRawData(objPath, info, bs->readAll()) < 0) {
-            perror("Unable to create object");
-            return -errno;
-        }*/
+    if (!index.hasObject(hash)) {
+        ObjectInfo info(hash);
+        info.type = type;
+        info.payload_size = payload.size();
+
+        assert(info.hasAllFields());
+
         off_t off = lseek(objects_fd, 0, SEEK_END);
-        std::string info_ser = info.getInfo();
-        uint64_t stored_len = bs->sizeHint();
+        std::string info_ser = info.toString();
 
         write(objects_fd, info_ser.data(), info_ser.size());
-        write(objects_fd, &stored_len, 8);
 
-        int written = bs->copyToFd(objects_fd);
+        int written = write(objects_fd, payload.data(), payload.size());
         if (written < 0) return written;
 
-        if (stored_len == 0) {
-            stored_len = written;
-            pwrite(objects_fd, &stored_len, 8, off+16);
-        }
-
-        index.updateInfo(info.hash, info);
+        IndexEntry ie = {info, 0, 0, 0};
+        index.updateEntry(info.hash, ie);
         offsets[info.hash] = off;
     }
 
@@ -180,26 +172,8 @@ TempObject::TempObject(int fd, off_t off, size_t len, const ObjectInfo &info)
 {
 }
 
-bytestream::ap
+bytestream *
 TempObject::getPayloadStream()
 {
-    if (info.getCompressed()) {
-        bytestream::ap bs(getStoredPayloadStream());
-        return bytestream::ap(new lzmastream(bs.release(), false, info.payload_size));
-    }
-    else {
-        return getStoredPayloadStream();
-    }
-}
-
-bytestream::ap
-TempObject::getStoredPayloadStream()
-{
-    return bytestream::ap(new fdstream(fd, off, len));
-}
-
-size_t
-TempObject::getStoredPayloadSize()
-{
-    return len;
+    return new fdstream(fd, off, len);
 }

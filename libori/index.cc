@@ -192,13 +192,19 @@ Index::updateEntry(const ObjectHash &objId, const IndexEntry &entry)
     index[entry.info.hash] = entry;
 }
 
-const ObjectInfo &
-Index::getInfo(const ObjectHash &objId) const
+const IndexEntry &
+Index::getEntry(const ObjectHash &objId) const
 {
     map<ObjectHash, IndexEntry>::const_iterator it = index.find(objId);
     assert(it != index.end());
 
-    return (*it).second.info;
+    return (*it).second;
+}
+
+const ObjectInfo &
+Index::getInfo(const ObjectHash &objId) const
+{
+    return getEntry(objId).info;
 }
 
 bool

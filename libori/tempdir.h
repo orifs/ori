@@ -51,7 +51,8 @@ public:
     bool hasObject(const ObjectHash &objId);
     std::set<ObjectInfo> listObjects();
     std::vector<Commit> listCommits() { NOT_IMPLEMENTED(false); }
-    int addObjectRaw(const ObjectInfo &info, bytestream *bs);
+    int addObject(Object::Type type, const ObjectHash &hash,
+            const std::string &payload);
 
     std::string dirpath;
 
@@ -66,9 +67,7 @@ class TempObject : public Object
 public:
     TempObject(int fd, off_t off, size_t len, const ObjectInfo &info);
 
-    bytestream::ap getPayloadStream();
-    bytestream::ap getStoredPayloadStream();
-    size_t getStoredPayloadSize();
+    bytestream *getPayloadStream();
 
 private:
     int fd;

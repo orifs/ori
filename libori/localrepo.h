@@ -78,17 +78,19 @@ public:
     void clearRemote();
     bool hasRemote();
 
-    // Object Operations
-    int addObjectRaw(const ObjectInfo &info,
-            bytestream *bs);
-    bool hasObject(const ObjectHash &objId);
-    Object::sp getObject(const ObjectHash &objId);
+    // Repo implementation
+    Object::sp getObject(const ObjectHash &id);
     ObjectInfo getObjectInfo(const ObjectHash &objId);
-    std::set<ObjectInfo> slowListObjects();
+    bool hasObject(const ObjectHash &objId);
+    //std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
+    int addObject(Object::Type type, const ObjectHash &hash,
+            const std::string &payload);
+
     bool rebuildIndex();
 
     LocalObject::sp getLocalObject(const ObjectHash &objId);
+    Packfile::sp loadPackfile(packid_t packfile);
     
     std::vector<Commit> listCommits();
     std::map<std::string, ObjectHash> listSnapshots();
@@ -181,7 +183,10 @@ private:
     SnapshotIndex snapshots;
     std::map<std::string, Peer> peers;
     MetadataLog metadata;
+
+    // Packfiles
     Packfile::sp currPackfile;
+    PackfileManager::sp packfiles;
 
     // Remote Operations
     Repo *remoteRepo;
@@ -189,9 +194,6 @@ private:
 
     // Caches
     LRUCache<ObjectHash, ObjectInfo, 128> _objectInfoCache;
-    // TODO: ulimit is 256 files open on OSX, need to support 2 repos open at a
-    // time?
-    LRUCache<ObjectHash, LocalObject::sp, 96> _objectCache;
     // Friends
     friend int LocalRepo_PeerHelper(void *arg, const char *path);
 };

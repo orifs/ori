@@ -12,6 +12,32 @@
 #include "tuneables.h"
 #include "stream.h"
 
+/*
+ * basestream
+ */
+// Error handling
+
+void basestream::setErrno(const char *msg) {
+    char buf[512];
+    snprintf(buf, 512, "%s: %s (%d)\n", msg, strerror(errno), errno);
+    last_error.assign(buf);
+    last_errnum = errno;
+}
+
+bool basestream::inheritError(basestream *bs) {
+    if (bs->error()) {
+        last_error.assign(bs->error());
+        last_errnum = bs->errnum();
+        return true;
+    }
+    return false;
+}
+
+
+
+/*
+ * bytestream
+ */
 std::string bytestream::readAll() {
     std::string rval;
 
@@ -91,30 +117,13 @@ void bytestream::readHash(ObjectHash &out)
 }
 
 
-// Error handling
-
-void bytestream::setErrno(const char *msg) {
-    char buf[512];
-    snprintf(buf, 512, "%s: %s (%d)\n", msg, strerror(errno), errno);
-    last_error.assign(buf);
-    last_errnum = errno;
-}
-
-bool bytestream::inheritError(bytestream *bs) {
-    if (bs->error()) {
-        last_error.assign(bs->error());
-        last_errnum = bs->errnum();
-        return true;
-    }
-    return false;
-}
-
 /*
  * strstream
  */
-strstream::strstream(const std::string &in_buf)
-    : buf(in_buf), off(0)
+strstream::strstream(const std::string &in_buf, size_t start)
+    : buf(in_buf), off(start), len(in_buf.size()-start)
 {
+    assert(start <= in_buf.size());
 }
 
 bool strstream::ended() {
@@ -132,7 +141,7 @@ size_t strstream::read(uint8_t *out, size_t n)
 
 size_t strstream::sizeHint() const
 {
-    return buf.size();
+    return len;
 }
 
 /*
@@ -313,6 +322,29 @@ void lzmastream::setLzmaErr(const char *msg, lzma_ret ret)
 }
 
 
+
+
+
+
+
+/*
+ * bytewstream
+ */
+void bytewstream::writePStr(const std::string &str)
+{
+    assert(str.size() <= 255);
+    uint8_t size = str.size();
+    writeInt(size);
+    write(str.data(), size);
+}
+
+void bytewstream::writeHash(const ObjectHash &hash)
+{
+    assert(!hash.isEmpty());
+    write(hash.hash, ObjectHash::SIZE);
+}
+
+
 /*
  * strwstream
  */
@@ -339,20 +371,6 @@ void strwstream::write(const void *bytes, size_t n)
     size_t oldSize = buf.size();
     buf.resize(oldSize+n);
     memcpy(&buf[oldSize], bytes, n);
-}
-
-void strwstream::writePStr(const std::string &str)
-{
-    assert(str.size() <= 255);
-    uint8_t size = str.size();
-    writeInt(size);
-    write(str.data(), size);
-}
-
-void strwstream::writeHash(const ObjectHash &hash)
-{
-    assert(!hash.isEmpty());
-    write(hash.hash, ObjectHash::SIZE);
 }
 
 const std::string &strwstream::str() const

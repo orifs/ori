@@ -26,6 +26,7 @@
 
 #include "stream.h"
 #include "object.h"
+#include "packfile.h"
 
 class LocalObject : public Object
 {
@@ -36,7 +37,7 @@ public:
     ~LocalObject();
 
     // BaseObject implementation
-    std::auto_ptr<bytestream> getPayloadStream();
+    bytestream *getPayloadStream();
 
 private:
     Packfile::sp packfile;
