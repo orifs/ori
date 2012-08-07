@@ -28,6 +28,7 @@
 #include "tempdir.h"
 #include "largeblob.h"
 #include "remoterepo.h"
+#include "packfile.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -180,6 +181,7 @@ private:
     SnapshotIndex snapshots;
     std::map<std::string, Peer> peers;
     MetadataLog metadata;
+    Packfile::sp currPackfile;
 
     // Remote Operations
     Repo *remoteRepo;

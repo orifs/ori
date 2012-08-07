@@ -37,8 +37,8 @@
 
 using namespace std;
 
-/// Entry consist of the object hash, object info, and a checksum.
-#define INDEX_ENTRYSIZE (32 + 16 + 16)
+/// Adds a checksum
+#define TOTAL_ENTRYSIZE (IndexEntry::SIZE + 16)
 
 Index::Index()
 {
@@ -74,7 +74,7 @@ Index::open(const string &indexFile)
         return;
     }
 
-    if (sb.st_size % INDEX_ENTRYSIZE != 0) {
+    if (sb.st_size % TOTAL_ENTRYSIZE != 0) {
 	// XXX: Attempt truncating last entries
         cout << "Index seems dirty please rebuild it!" << endl;
         ::close(fd);
@@ -83,36 +83,38 @@ Index::open(const string &indexFile)
         return;
     }
 
-    entries = sb.st_size / INDEX_ENTRYSIZE;
+    entries = sb.st_size / TOTAL_ENTRYSIZE;
     for (i = 0; i < entries; i++) {
-        int status;
-        char entry[INDEX_ENTRYSIZE];
-        string info;
-        ObjectHash hash;
-        ObjectInfo objInfo;
+        std::string entry_str(TOTAL_ENTRYSIZE, '\0');
 
-        status = read(fd, &entry, INDEX_ENTRYSIZE);
-        assert(status == INDEX_ENTRYSIZE);
+        int status = read(fd, &entry_str[0], TOTAL_ENTRYSIZE);
+        assert(status == TOTAL_ENTRYSIZE);
 
-        memcpy(hash.hash, entry, 32);
-        info.assign(entry + 32, 16);
+        IndexEntry entry;
 
-	string entryStr = string(entry, 32 + 16);
-	string chksum = string(entry + 32 + 16, 16);
-	ObjectHash chksumComputed = Util_HashString(entryStr);
-	if (memcmp(chksum.data(), chksumComputed.hash, 16) != 0) {
+        string info_str = entry_str.substr(0, ObjectInfo::SIZE);
+        entry.info.fromString(info_str);
+
+        strstream ss(entry_str, ObjectInfo::SIZE);
+        entry.offset = ss.readInt<offset_t>();
+        entry.packed_size = ss.readInt<uint32_t>();
+        entry.packfile = ss.readInt<uint32_t>();
+
+
+        std::vector<uint8_t> storedChecksum;
+        ss.read(&storedChecksum[0], 16);
+        ObjectHash computedChecksum =
+            Util_HashString(entry_str.substr(0, IndexEntry::SIZE));
+        if (memcmp(&storedChecksum[0], computedChecksum.hash, 16) != 0) {
 	    // XXX: Attempt truncating last entries
 	    cout << "Index has corrupt entries please rebuild it!" << endl;
 	    ::close(fd);
 	    fd = -1;
 	    exit(1);
 	    return;
-	}
+        }
 
-        objInfo = ObjectInfo(hash);
-        objInfo.setInfo(info);
-
-        index[hash] = objInfo;
+        index[entry.info.hash] = entry;
     }
     ::close(fd);
 
@@ -139,9 +141,8 @@ Index::close()
 void
 Index::rewrite()
 {
-    int fdNew, tmpFd;
+    int fdNew;
     string newIndex = fileName + ".tmp";
-    map<ObjectHash, ObjectInfo>::iterator it;
 
     fdNew = ::open(newIndex.c_str(), O_RDWR | O_CREAT,
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -151,73 +152,59 @@ Index::rewrite()
         return;
     };
 
+    int tmpFd = fd;
+    fd = fdNew;
+    ::close(tmpFd);
+
     // Write new index
-    for (it = index.begin(); it != index.end(); it++)
+    for (map<ObjectHash, IndexEntry>::iterator it = index.begin();
+            it != index.end();
+            it++)
     {
-        int status;
-        string indexLine = (*it).first.bin();
-        indexLine += (*it).second.getInfo();
-
-	ObjectHash hash = Util_HashString(indexLine);
-	indexLine += hash.bin().substr(0, 16);
-
-        status = write(fdNew, indexLine.data(), indexLine.size());
-        assert(status >= 0);
-        assert(status == (int)indexLine.size());
+        _writeEntry((*it).second);
     }
 
     Util_RenameFile(newIndex, fileName);
-
-    tmpFd = fd;
-    fd = fdNew;
-    ::close(tmpFd);
 }
 
 void
 Index::dump()
 {
-    map<ObjectHash, ObjectInfo>::iterator it;
+    map<ObjectHash, IndexEntry>::iterator it;
 
     cout << "***** BEGIN REPOSITORY INDEX *****" << endl;
     for (it = index.begin(); it != index.end(); it++)
     {
-        cout << (*it).first.hex() << endl;
+        cout << (*it).first.hex() << " packfile: " << (*it).second.packfile <<
+            "," << (*it).second.offset << endl;
     }
     cout << "***** END REPOSITORY INDEX *****" << endl;
 }
 
 void
-Index::updateInfo(const ObjectHash &objId, const ObjectInfo &info)
+Index::updateEntry(const ObjectHash &objId, const IndexEntry &entry)
 {
-    string indexLine;
-
     assert(!objId.isEmpty());
 
-    indexLine = objId.bin();
-    indexLine += info.getInfo();
-
-    ObjectHash hash = Util_HashString(indexLine);
-    indexLine += hash.bin().substr(0, 16);
-
-    write(fd, indexLine.data(), indexLine.size());
+    _writeEntry(entry);
 
     // Add to in-memory index
-    index[info.hash] = info;
+    index[entry.info.hash] = entry;
 }
 
 const ObjectInfo &
 Index::getInfo(const ObjectHash &objId) const
 {
-    map<ObjectHash, ObjectInfo>::const_iterator it = index.find(objId);
+    map<ObjectHash, IndexEntry>::const_iterator it = index.find(objId);
     assert(it != index.end());
 
-    return (*it).second;
+    return (*it).second.info;
 }
 
 bool
 Index::hasObject(const ObjectHash &objId) const
 {
-    map<ObjectHash, ObjectInfo>::const_iterator it;
+    map<ObjectHash, IndexEntry>::const_iterator it;
 
     it = index.find(objId);
 
@@ -228,13 +215,33 @@ set<ObjectInfo>
 Index::getList()
 {
     set<ObjectInfo> lst;
-    map<ObjectHash, ObjectInfo>::iterator it;
+    map<ObjectHash, IndexEntry>::iterator it;
 
     for (it = index.begin(); it != index.end(); it++)
     {
-        lst.insert((*it).second);
+        lst.insert((*it).second.info);
     }
 
     return lst;
 }
 
+
+void
+Index::_writeEntry(const IndexEntry &e)
+{
+    strwstream ss;
+
+    string info_str = e.info.toString();
+    ss.write(info_str.data(), info_str.size());
+
+    ss.writeInt(e.offset);
+    ss.writeInt(e.packed_size);
+    ss.writeInt(e.packfile);
+
+    ObjectHash checksum = Util_HashString(ss.str());
+    ss.write(checksum.hash, 16);
+
+    const string &final = ss.str();
+    assert(final.size() == TOTAL_ENTRYSIZE);
+    write(fd, final.data(), final.size());
+}

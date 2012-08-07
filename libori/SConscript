@@ -31,6 +31,7 @@ src = [
     "fuse_cmd.cc",
     "metadatalog.cc",
     "objecthash.cc",
+    "packfile.cc",
 ]
 
 if os.name == 'posix':

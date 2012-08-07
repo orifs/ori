@@ -55,46 +55,47 @@ ObjectInfo::ObjectInfo()
 }
 
 ObjectInfo::ObjectInfo(const ObjectHash &hash)
-    : type(Object::Null), flags(0), payload_size(0), hash(hash)
+    : type(Object::Null), flags(0), payload_size((size_t)-1), hash(hash)
 {
 }
 
 std::string
-ObjectInfo::getInfo() const
+ObjectInfo::toString() const
 {
-    string rval;
-    char buf[16];
+    strwstream ss;
+
     const char *type_str = Object::getStrForType(type);
     if (type_str == NULL) {
         assert(false);
         return "";
     }
+    ss.write(type_str, ORI_OBJECT_TYPESIZE);
+    ss.writeHash(hash);
+    ss.writeInt<uint32_t>(flags);
+    ss.writeInt<uint32_t>(payload_size);
 
-    strncpy(buf, type_str, ORI_OBJECT_TYPESIZE);
-    memcpy(buf+4, &flags, ORI_OBJECT_FLAGSSIZE);
-    memcpy(buf+8, &payload_size, ORI_OBJECT_SIZE);
+    assert(ss.str().size == SIZE);
 
-    rval.assign(buf, 16);
-
-    return rval;
+    return ss.str();
 }
 
 void
-ObjectInfo::setInfo(const std::string &info)
+ObjectInfo::fromString(const std::string &info)
 {
-    char buf[16];
+    assert(info.size() == SIZE);
+    strstream ss(info);
 
-    assert(info.size() == 16);
-    memcpy(buf, info.c_str(), 16);
+    std::string type_str(ORI_OBJECT_TYPESIZE+1);
+    ss.read(&type_str[0], ORI_OBJECT_TYPESIZE);
+    type = getTypeForStr(type_str.c_str());
+    assert(type != Null);
 
-    memcpy(&flags, buf+4, ORI_OBJECT_FLAGSSIZE);
-    memcpy(&payload_size, buf+8, ORI_OBJECT_SIZE);
-    buf[4] = '\0';
-    type = getTypeForStr(buf);
-    assert(type != Object::Null);
+    ss.readHash(hash);
+    flags = ss.readInt<uint32_t>();
+    payload_size = ss.readInt<uint32_t>();
 }
 
-ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
+/*ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
     ssize_t status;
     char header[24];
     const char *type_str = Object::getStrForType(type);
@@ -118,7 +119,7 @@ ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
         // TODO!!! use write() instead
         assert(false);
     }
-}
+}*/
 
 bool
 ObjectInfo::hasAllFields() const

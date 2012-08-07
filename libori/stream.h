@@ -1,6 +1,7 @@
 #ifndef __STREAM_H__
 #define __STREAM_H__
 
+#include <cassert>
 #include <vector>
 #include <string>
 #include <memory>
@@ -9,20 +10,33 @@
 
 #include "objecthash.h"
 
-class bytestream
+class basestream
+{
+public:
+    basestream() : last_errnum(0) {}
+
+    virtual const char *error() { return last_error.size() > 0 ? last_error.c_str() : NULL; }
+    virtual int errnum() { return last_errnum; }
+
+protected:
+    std::string last_error;
+    int last_errnum;
+
+    void setErrno(const char *msg);
+    bool inheritError(basestream *bs);
+};
+
+class bytestream : public basestream
 {
 public:
     typedef std::auto_ptr<bytestream> ap;
 
-    bytestream() : last_errnum(0) {}
+    bytestream() {}
     virtual ~bytestream() {};
 
     virtual bool ended() = 0;
     virtual size_t read(uint8_t *buf, size_t n) = 0;
     virtual size_t sizeHint() const = 0;
-
-    virtual const char *error() { return last_error.size() > 0 ? last_error.c_str() : NULL; }
-    virtual int errnum() { return last_errnum; }
 
     // Stream utils
     std::string readAll();
@@ -43,18 +57,12 @@ public:
         assert(nbytes == sizeof(T));
         return rval;
     }
-protected:
-    std::string last_error;
-    int last_errnum;
-
-    void setErrno(const char *msg);
-    bool inheritError(bytestream *bs);
 };
 
 class strstream : public bytestream
 {
 public:
-    strstream(const std::string &);
+    strstream(const std::string &, size_t start=0);
     bool ended();
     size_t read(uint8_t *, size_t);
     size_t sizeHint() const;
@@ -118,14 +126,19 @@ private:
 
 
 
-// Writable strstream
-class strwstream
+////////////////////////////////
+// Writable streams
+
+class bytewstream : public basestream
 {
 public:
-    strwstream();
-    strwstream(const std::string &);
-    strwstream(size_t reserved);
-    void write(const void *, size_t);
+    bytewstream() {}
+    virtual ~bytewstream() {}
+
+    virtual void write(const void *, size_t) = 0;
+
+    // High-level functions
+    void copyFrom(bytestream *bs);
     void writePStr(const std::string &str);
     void writeHash(const ObjectHash &hash);
 
@@ -134,6 +147,17 @@ public:
     void writeInt(const T &n) {
         write(&n, sizeof(T));
     }
+};
+
+
+
+class strwstream : public bytewstream
+{
+public:
+    strwstream();
+    strwstream(const std::string &);
+    strwstream(size_t reserved);
+    void write(const void *, size_t);
 
     const std::string &str() const;
 private:

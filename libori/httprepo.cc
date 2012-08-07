@@ -103,7 +103,7 @@ HttpRepo::getObject(const ObjectHash &id)
         return Object::sp();
     }
 
-    info.setInfo(payload.substr(0, 16));
+    info.fromString(payload.substr(0, 16));
 
     // TODO: add raw data to cache
     _addPayload(info.hash, payload.substr(16));
@@ -122,7 +122,7 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
     if (status < 0)
 	return rval;
 
-    rval.setInfo(payload);
+    rval.fromString(payload);
 
     return rval;
 }
@@ -163,7 +163,7 @@ HttpRepo::listObjects()
         offset += 16;
 
         info = ObjectInfo(hash);
-        info.setInfo(objInfo);
+        info.fromString(objInfo);
         rval.insert(info);
     }
 

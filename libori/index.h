@@ -25,6 +25,7 @@
 
 #include "debug.h"
 #include "object.h"
+#include "packfile.h"
 
 class Index
 {
@@ -35,14 +36,17 @@ public:
     void close();
     void rewrite();
     void dump();
-    void updateInfo(const ObjectHash &objId, const ObjectInfo &info);
+    void updateEntry(const ObjectHash &objId, const IndexEntry &entry);
+    const IndexEntry &getEntry(const ObjectHash &objId) const;
     const ObjectInfo &getInfo(const ObjectHash &objId) const;
     bool hasObject(const ObjectHash &objId) const;
     std::set<ObjectInfo> getList();
 private:
     int fd;
     std::string fileName;
-    std::map<ObjectHash, ObjectInfo> index;
+    std::map<ObjectHash, IndexEntry> index;
+
+    void _writeEntry(const IndexEntry &e);
 };
 
 #endif /* __INDEX_H__ */

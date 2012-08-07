@@ -36,6 +36,9 @@
 #include <iomanip>
 #include <iostream>
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+
 using namespace std;
 
 #include "localrepo.h"
@@ -388,7 +391,16 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
     assert(info.hasAllFields());
     ObjectHash hash = info.hash;
     assert(!hash.isEmpty());
-    string objPath = objIdToPath(hash);
+
+    if (!currPackfile.get() || currPackfile->full()) {
+        std::string uuid = boost::uuids::random_generator()();
+        currPackfile.reset(new Packfile(getRootPath()+ORI_PATH_OBJS+uuid));
+    }
+
+    ObjectInfo newInfo = currPackfile->addPayload(hash, bs);
+    newInfo.type = info.type;
+
+    /*string objPath = objIdToPath(hash);
 
     if (!Util_FileExists(objPath)) {
         createObjDirs(hash);
@@ -398,9 +410,9 @@ LocalRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
             perror("Unable to create object");
             return -errno;
         }
-    }
+    }*/
 
-    index.updateInfo(hash, info);
+    index.updateInfo(hash, newInfo);
 
     return 0;
 }
