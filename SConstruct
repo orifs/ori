@@ -8,12 +8,13 @@ opts.AddVariables(
     ("CXX", "C++ Compiler"),
     ("AS", "Assembler"),
     ("LINK", "Linker"),
-    ("BUILDTYPE", "Build type (RELEASE or DEBUG)", "RELEASE"),
+    ("BUILDTYPE", "Build type (RELEASE, DEBUG, or PERF)", "RELEASE"),
     ("VERBOSE", "Show full build information (0 or 1)", "0"),
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto).", "0"),
     ("WITH_FUSE", "Include FUSE file system (0 or 1).", "1"),
     ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "1"),
     ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "1"),
+    ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
 
@@ -39,10 +40,16 @@ env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
 if env["WITH_MDNS"] != "1":
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
-    
+
+if env["WITH_GPROF"] == "1":
+    env.Append(CPPFLAGS = [ "-pg" ])
+    env.Append(LINKFLAGS = [ "-pg" ])
+
 if env["BUILDTYPE"] == "DEBUG":
     env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
 	"-Wno-deprecated-declarations" ])
+elif env["BUILDTYPE"] == "PERF":
+    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG"])
 elif env["BUILDTYPE"] == "RELEASE":
     env.Append(CPPFLAGS = "-DNDEBUG")
 else:
