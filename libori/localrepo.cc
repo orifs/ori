@@ -258,6 +258,9 @@ LocalRepo::open(const string &root)
 void
 LocalRepo::close()
 {
+    if (currTransaction.get()) {
+        currPackfile->commit(currTransaction.get(), &index);
+    }
     index.close();
     snapshots.close();
     packfiles.reset();
@@ -331,6 +334,15 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
 LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
 {
     assert(opened);
+
+    if (currTransaction.get()) {
+        for (size_t i = 0; i < currTransaction->infos.size(); i++) {
+            if (currTransaction->infos[i].hash == objId) {
+                return LocalObject::sp(new LocalObject(currTransaction, i));
+            }
+        }
+    }
+
     const IndexEntry &ie = index.getEntry(objId);
     Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
     return LocalObject::sp(new LocalObject(packfile, ie));
@@ -382,15 +394,19 @@ LocalRepo::addObject(Object::Type type, const ObjectHash &hash,
     assert(opened);
     assert(!hash.isEmpty());
 
-    if (!currPackfile.get() || currPackfile->full()) {
+    if (!currTransaction.get() || currTransaction->full()) {
+        if (currPackfile.get()) {
+            currPackfile->commit(currTransaction.get(), &index);
+        }
         currPackfile = packfiles->newPackfile();
+        currTransaction = currPackfile->begin(&index);
     }
 
     ObjectInfo info(hash);
     info.type = type;
     info.payload_size = payload.size();
 
-    currPackfile->addPayload(info, payload, &index);
+    currTransaction->addPayload(info, payload);
 
     /*string objPath = objIdToPath(hash);
 

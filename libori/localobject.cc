@@ -50,6 +50,11 @@ using namespace std;
 /*
  * Object
  */
+LocalObject::LocalObject(PfTransaction::sp transaction, size_t ix)
+    : Object(transaction->infos[ix]), transaction(transaction), ix_tr(ix)
+{
+}
+
 LocalObject::LocalObject(Packfile::sp packfile, const IndexEntry &entry)
     : Object(entry.info), packfile(packfile), entry(entry)
 {
@@ -60,7 +65,17 @@ LocalObject::~LocalObject()
 }
 
 bytestream *LocalObject::getPayloadStream() {
-    return packfile->getPayload(entry);
+    if (packfile.get()) {
+        return packfile->getPayload(entry);
+    }
+    if (transaction.get()) {
+        if (info.getCompressed()) {
+            return new lzmastream(new strstream(transaction->payloads[ix_tr]),
+                        DECOMPRESS, info.payload_size);
+        }
+        return new strstream(transaction->payloads[ix_tr]);
+    }
+    return NULL;
 }
 
 /*

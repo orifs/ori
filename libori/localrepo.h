@@ -186,6 +186,7 @@ private:
 
     // Packfiles
     Packfile::sp currPackfile;
+    PfTransaction::sp currTransaction;
     PackfileManager::sp packfiles;
 
     // Remote Operations

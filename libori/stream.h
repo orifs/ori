@@ -9,6 +9,7 @@
 #include <lzma.h>
 
 #include "objecthash.h"
+#include "tuneables.h"
 
 class basestream
 {
@@ -102,17 +103,19 @@ private:
 };
 
 
-#define XZ_READ_BY 4096
+#define COMPRESS true
+#define DECOMPRESS false
 
 class lzmastream : public bytestream
 {
 public:
-    /// Takes ownership of source. size_hint is number of bytes that can be read
+    /// Takes ownership of source. size_hint is total number of bytes output (from read) 
     lzmastream(bytestream *source, bool compress = false, size_t size_hint = 0);
     ~lzmastream();
     bool ended();
     size_t read(uint8_t *, size_t);
     size_t sizeHint() const;
+    size_t inputConsumed() const;
 
 private:
     bytestream *source;
@@ -120,7 +123,7 @@ private:
 
     bool output_ended;
     lzma_stream strm;
-    uint8_t in_buf[XZ_READ_BY];
+    uint8_t in_buf[COMPFILE_BUFSZ];
 
     void setLzmaErr(const char *msg, lzma_ret ret);
 };

@@ -19,9 +19,17 @@
 
 #define COPYFILE_BUFSZ	(256 * 1024)
 #define HASHFILE_BUFSZ	(256 * 1024)
+#define COMPFILE_BUFSZ  (16 * 1024)
 
 #define LARGEFILE_MINIMUM (1024 * 1024)
 
+#define ENABLE_COMPRESSION 0
+// How much of a payload to check for compressibility
+#define COMPCHECK_BYTES 1024
+// Maximum compression ratio (0.8 means compressed file is 80% size of original)
+#define COMPCHECK_RATIO 0.95
+
+// These are soft maximums ("heuristics")
 // 64 MB
 #define PACKFILE_MAXSIZE (1024*1024*64)
 // ~20KB overhead per packfile?

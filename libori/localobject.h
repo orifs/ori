@@ -33,6 +33,7 @@ class LocalObject : public Object
 public:
     typedef std::tr1::shared_ptr<LocalObject> sp;
 
+    LocalObject(PfTransaction::sp transaction, size_t ix);
     LocalObject(Packfile::sp packfile, const IndexEntry &entry);
     ~LocalObject();
 
@@ -40,6 +41,9 @@ public:
     bytestream *getPayloadStream();
 
 private:
+    PfTransaction::sp transaction;
+    size_t ix_tr;
+
     Packfile::sp packfile;
     IndexEntry entry;
     //void setupLzma(lzma_stream *strm, bool encode);

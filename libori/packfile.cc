@@ -13,13 +13,65 @@
 #include "scan.h"
 
 
+PfTransaction::PfTransaction(Packfile *pf, Index *idx)
+    : totalSize(0), committed(false), pf(pf), idx(idx)
+{
+}
+
+PfTransaction::~PfTransaction()
+{
+    if (!committed)
+        pf->commit(this, idx);
+}
+
+bool PfTransaction::full() const
+{
+    return infos.size() >= PACKFILE_MAXOBJS ||
+        totalSize >= PACKFILE_MAXSIZE;
+}
+
+float
+PfTransaction::_checkCompressionRatio(const std::string &payload)
+{
+    return 1.5f;
+}
+
+void
+PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
+{
+#if ENABLE_COMPRESSION
+    uint8_t buf[COMPCHECK_BYTES];
+    lzmastream ls(new strstream(payload), COMPRESS);
+    size_t n = ls.read(buf, COMPCHECK_BYTES);
+    float ratio = (float)n / (float)ls.inputConsumed();
+
+    if (ratio <= COMPCHECK_RATIO) {
+        // Okay to compress
+        info.flags |= ORI_FLAG_COMPRESSED;
+        strwstream ss(std::string((char*)buf, n));
+        ss.copyFrom(&ls);
+        
+        payloads.push_back(ss.str());
+        totalSize += ss.str().size();
+    }
+    else
+#endif
+    {
+        payloads.push_back(payload);
+        totalSize += payload.size();
+    }
+
+    infos.push_back(info);
+}
+
+
 // stored length + offset
 #define ENTRYSIZE (ObjectInfo::SIZE + 4 + 4)
 
 Packfile::Packfile(const std::string &filename, packid_t id)
     : fd(-1), filename(filename), packid(id), numObjects(0), fileSize(0)
 {
-    fd = ::open(filename.c_str(), O_RDWR | O_CREAT, 0644);
+    fd = ::open(filename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (fd < 0) {
         perror("Packfile open");
         throw std::runtime_error("POSIX");
@@ -48,8 +100,13 @@ bool Packfile::full() const
         fileSize >= PACKFILE_MAXSIZE;
 }
 
-// TODO: pack large objects contiguously
-void
+PfTransaction::sp
+Packfile::begin(Index *idx)
+{
+    return PfTransaction::sp(new PfTransaction(this, idx));
+}
+
+/*void
 Packfile::addPayload(ObjectInfo info, const std::string &payload, Index *idx)
 {
     assert(!full());
@@ -78,18 +135,69 @@ Packfile::addPayload(ObjectInfo info, const std::string &payload, Index *idx)
 
     IndexEntry ie = {info, newOffset, bytesWritten, packid};
     idx->updateEntry(info.hash, ie);
+}*/
+
+void
+Packfile::commit(PfTransaction *t, Index *idx)
+{
+    assert(t->infos.size() == t->payloads.size());
+    std::vector<offset_t> offsets;
+    size_t headers_size = t->infos.size() * ENTRYSIZE;
+    offset_t off = fileSize + 2 + headers_size;
+    
+    strwstream headers_ss;
+    headers_ss.writeInt<uint16_t>(t->infos.size());
+    for (size_t i = 0; i < t->infos.size(); i++) {
+        headers_ss.write(t->infos[i].toString().data(), ObjectInfo::SIZE);
+        headers_ss.writeInt<uint32_t>(t->payloads[i].size());
+        headers_ss.writeInt<offset_t>(off);
+
+        offsets.push_back(off);
+        off += t->payloads[i].size();
+    }
+
+    write(fd, headers_ss.str().data(), headers_ss.str().size());
+    fileSize += headers_ss.str().size();
+
+    for (size_t i = 0; i < t->payloads.size(); i++) {
+        write(fd, t->payloads[i].data(), t->payloads[i].size());
+        fileSize += t->payloads[i].size();
+        numObjects++;
+
+        IndexEntry ie = {t->infos[i], offsets[i], t->payloads[i].size(),
+            packid};
+        idx->updateEntry(t->infos[i].hash, ie);
+    }
+
+    t->committed = true;
 }
 
 bytestream *Packfile::getPayload(const IndexEntry &entry)
 {
     assert(entry.packfile == packid); // TODO?
-    return new fdstream(fd, entry.offset, entry.packed_size);
+    bytestream *stored = new fdstream(fd, entry.offset, entry.packed_size);
+    if (!entry.info.getCompressed()) {
+        return stored;
+    }
+    return new lzmastream(stored, DECOMPRESS, entry.info.payload_size);
 }
 
 bool Packfile::purge(const ObjectHash &hash)
 {
     NOT_IMPLEMENTED(false);
     return false;
+}
+
+
+
+void
+Packfile::transmit(bytewstream *bs, const std::vector<IndexEntry> &objects)
+{
+    // Find contiguous blocks
+    std::map<offset_t, offset_t> blocks;
+    for (size_t i = 0; i < objects.size(); i++) {
+        offset_t offset = objects[i].offset;
+    }
 }
 
 

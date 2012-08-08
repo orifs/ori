@@ -23,19 +23,30 @@ struct IndexEntry
         sizeof(uint32_t) + sizeof(packid_t);
 };
 
+class Packfile;
+class Index;
 class PfTransaction
 {
 public:
-    PfTransaction();
+    typedef std::tr1::shared_ptr<PfTransaction> sp;
+
+    PfTransaction(Packfile *pf, Index *idx);
     ~PfTransaction();
 
+    bool full() const;
+    void addPayload(ObjectInfo info, const std::string &payload);
+
     std::vector<ObjectInfo> infos;
-    std::vector<offset_t> offsets;
-    std::string payloads;
+    std::vector<std::string> payloads;
+    size_t totalSize;
     bool committed;
+
+private:
+    Packfile *pf;
+    Index *idx;
+    float _checkCompressionRatio(const std::string &payload);
 };
 
-class Index;
 class Packfile
 {
 public:
@@ -47,7 +58,9 @@ public:
     packid_t getPackfileID() const;
 
     bool full() const;
-    void addPayload(ObjectInfo info, const std::string &payload, Index *idx);
+    PfTransaction::sp begin(Index *idx);
+    void commit(PfTransaction *t, Index *idx);
+    //void addPayload(ObjectInfo info, const std::string &payload, Index *idx);
     bytestream *getPayload(const IndexEntry &entry);
     /// @returns true when the packfile is empty
     bool purge(const ObjectHash &hash);
@@ -56,7 +69,7 @@ public:
     typedef void (*ReadEntryCb)(const ObjectInfo &info, offset_t off);
     void readEntries(ReadEntryCb cb);
 
-    void transmit(bytewstream *bs, std::vector<IndexEntry> objects);
+    void transmit(bytewstream *bs, const std::vector<IndexEntry> objects);
     void receive(bytestream *bs);
 
 private:

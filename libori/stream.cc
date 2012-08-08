@@ -229,8 +229,6 @@ lzmastream::lzmastream(bytestream *source, bool compress, size_t size_hint)
     memcpy(&strm, &strm2, sizeof(lzma_stream));
 
     if (compress) {
-        // TODO
-        assert(false);
         lzma_ret ret = lzma_easy_encoder(&strm, 0, LZMA_CHECK_NONE);
         if (ret != LZMA_OK)
             setLzmaErr("lzma_easy_encoder", ret);
@@ -262,7 +260,7 @@ size_t lzmastream::read(uint8_t *buf, size_t n) {
         if (output_ended) break;
 
         if (strm.avail_in == 0) {
-            size_t read_bytes = source->read(in_buf, XZ_READ_BY);
+            size_t read_bytes = source->read(in_buf, COMPFILE_BUFSZ);
             if (inheritError(source)) return 0;
             action = read_bytes == 0 ? LZMA_FINISH : LZMA_RUN;
 
@@ -286,6 +284,10 @@ size_t lzmastream::read(uint8_t *buf, size_t n) {
 
 size_t lzmastream::sizeHint() const {
     return size_hint;
+}
+
+size_t lzmastream::inputConsumed() const {
+    return strm.total_in;
 }
 
 const char *lzma_ret_str(lzma_ret ret) {
@@ -334,6 +336,24 @@ void lzmastream::setLzmaErr(const char *msg, lzma_ret ret)
 /*
  * bytewstream
  */
+void bytewstream::copyFrom(bytestream *bs)
+{
+    size_t totalWritten = 0;
+    uint8_t buf[COPYFILE_BUFSZ];
+    while (!bs->ended()) {
+        size_t bytesRead = bs->read(buf, COPYFILE_BUFSZ);
+        //if (bs->error()) return -bs->errnum();
+        ssize_t bytesWritten = bytesRead;
+        write(buf, bytesRead);
+        // if (error()) return -errnum();
+        totalWritten += bytesWritten;
+    }
+
+    if (bs->sizeHint() > 0)
+        assert(totalWritten == bs->sizeHint());
+    //return totalWritten;
+}
+
 void bytewstream::writePStr(const std::string &str)
 {
     assert(str.size() <= 255);
