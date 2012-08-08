@@ -101,7 +101,7 @@ Index::open(const string &indexFile)
         entry.packfile = ss.readInt<uint32_t>();
 
 
-        std::vector<uint8_t> storedChecksum;
+        std::vector<uint8_t> storedChecksum(16);
         ss.read(&storedChecksum[0], 16);
         ObjectHash computedChecksum =
             Util_HashString(entry_str.substr(0, IndexEntry::SIZE));

@@ -75,7 +75,7 @@ private:
 class fdstream : public bytestream
 {
 public:
-    fdstream(int fd, off_t offset, size_t length);
+    fdstream(int fd, off_t offset, size_t length=(size_t)-1);
     bool ended();
     size_t read(uint8_t *, size_t);
     size_t sizeHint() const;

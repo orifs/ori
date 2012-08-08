@@ -172,6 +172,10 @@ retry_read:
         setErrno("read");
         return 0;
     }
+    else if (read_bytes == 0) {
+        left = 0;
+        return 0;
+    }
     left -= read_bytes;
     return read_bytes;
 }

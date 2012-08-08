@@ -2,6 +2,7 @@
 #define __PACKFILE_H__
 
 #include <tr1/memory>
+#include <deque>
 
 #include "objecthash.h"
 #include "object.h"
@@ -48,7 +49,8 @@ public:
     bool full() const;
     void addPayload(ObjectInfo info, const std::string &payload, Index *idx);
     bytestream *getPayload(const IndexEntry &entry);
-    void purge(const ObjectHash &hash);
+    /// @returns true when the packfile is empty
+    bool purge(const ObjectHash &hash);
 
 
     typedef void (*ReadEntryCb)(const ObjectInfo &info, offset_t off);
@@ -65,6 +67,9 @@ private:
     size_t fileSize;
 };
 
+
+#define PFMGR_FREELIST ".freelist"
+
 class PackfileManager
 {
 public:
@@ -79,12 +84,14 @@ public:
 private:
     std::string rootPath;
 
-    std::vector<packid_t> freeList;
+    std::deque<packid_t> freeList;
     void _recomputeFreeList();
     bool _loadFreeList();
     void _writeFreeList();
 
     LRUCache<uint32_t, Packfile::sp, 96> _packfileCache;
+
+    std::string _getPackfileName(packid_t id);
 };
 
 #endif
