@@ -21,6 +21,7 @@
 
 #include <string>
 #include <set>
+#include <deque>
 
 #include "tree.h"
 #include "commit.h"
@@ -29,6 +30,8 @@
 
 extern ObjectHash EMPTY_COMMIT;
 extern ObjectHash EMPTYFILE_HASH;
+
+typedef std::vector<ObjectHash> ObjectHashVec;
 
 class Repo
 {
@@ -49,20 +52,23 @@ public:
             ) = 0;
     virtual bool hasObject(const ObjectHash &id) = 0;
 
+    virtual bytestream *getObjects(
+            const ObjectHashVec &objs
+            ) = 0;
+
     // Object queries
     virtual std::set<ObjectInfo> listObjects() = 0;
     virtual std::vector<Commit> listCommits() = 0;
 
-    /// does not take ownership of bs
-    virtual int addObjectRaw(const ObjectInfo &info, bytestream *bs) = 0;
-
-    // Wrappers
-    virtual ObjectHash addBlob(Object::Type type, const std::string &blob);
     virtual int addObject(
             Object::Type type,
             const ObjectHash &hash,
             const std::string &payload
-            );
+            ) = 0;
+
+    // Wrappers
+    virtual ObjectHash addBlob(Object::Type type, const std::string &blob);
+    bytestream *getObjects(const std::deque<ObjectHash> &objs);
 
     ObjectHash addSmallFile(const std::string &path);
     std::pair<ObjectHash, ObjectHash>

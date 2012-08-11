@@ -34,6 +34,7 @@
 #include "sshrepo.h"
 #include "util.h"
 #include "debug.h"
+#include "packfile.h"
 
 /*
  * SshRepo
@@ -48,26 +49,6 @@ SshRepo::~SshRepo()
 {
 }
 
-template<typename InputIterator>
-void SshRepo::preload(InputIterator begin, InputIterator end)
-{
-    // TODO
-    return;
-
-    /*std::stringstream ss;
-    ss << "readobjs " << objs.size();
-    client->sendCommand(ss.str());
-    for (int i = 0; i < objs.size(); i++) {
-        client->sendCommand(objs[i]);
-    }*/
-}
-
-template void
-SshRepo::preload<std::deque<ObjectHash>::iterator>(std::deque<ObjectHash>::iterator,
-        std::deque<ObjectHash>::iterator);
-template void
-SshRepo::preload<std::vector<ObjectHash>::iterator>(std::vector<ObjectHash>::iterator, std::vector<ObjectHash>::iterator);
-
 std::string SshRepo::getUUID()
 {
     // XXX: Implement me!
@@ -76,39 +57,68 @@ std::string SshRepo::getUUID()
 
 ObjectHash SshRepo::getHead()
 {
-    client->sendCommand("show");
-    std::string resp;
-    client->recvResponse(resp);
+    client->sendCommand("get head");
+    ObjectHash hash;
 
-    SshResponseParser p(resp);
-    std::string line;
-    p.nextLine(line); // root path
-    p.nextLine(line); // uuid
-    p.nextLine(line); // version
-    p.nextLine(line); // head
-    return ObjectHash::fromHex(line);
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    if (ok) {
+        bs->readHash(hash);
+    }
+    return hash;
 }
 
 Object::sp SshRepo::getObject(const ObjectHash &id)
 {
-    std::string command = "readobj " + id.hex();
-    client->sendCommand(command);
+    ObjectHashVec objs;
+    objs.push_back(id);
+    bytestream::ap bs(getObjects(objs));
+    if (bs.get()) {
+        numobjs_t num = bs->readInt<numobjs_t>();
+        assert(num == 1);
 
-    std::string resp;
-    client->recvResponse(resp);
+        std::string info_str(ObjectInfo::SIZE, '\0');
+        bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
+        ObjectInfo info;
+        info.fromString(info_str);
 
-    SshResponseParser p(resp);
-    ObjectInfo info;
-    p.loadObjectInfo(info);
+        uint32_t objSize = bs->readInt<uint32_t>();
+        std::string payload(objSize, '\0');
+        bs->readExact((uint8_t*)&payload[0], objSize);
 
-    std::string line;
-    p.nextLine(line); // DATA x
-    std::string raw_data = p.getData(p.getDataLength(line));
+        num = bs->readInt<numobjs_t>();
+        assert(num == 0);
 
-    // TODO: add raw data to cache
-    _addPayload(info.hash, raw_data);
+        if (info.getCompressed()) {
+            payloads[info.hash] = lzmastream(new strstream(payload), DECOMPRESS,
+                    info.payload_size).readAll();
+        }
+        else {
+            payloads[info.hash] = payload;
+        }
+        return Object::sp(new SshObject(this, info));
+    }
+    return Object::sp();
+}
 
-    return Object::sp(new SshObject(this, info));
+bytestream *
+SshRepo::getObjects(const ObjectHashVec &objs)
+{
+    client->sendCommand("readobjs");
+
+    strwstream ss;
+    ss.writeInt<uint32_t>(objs.size());
+    for (size_t i = 0; i < objs.size(); i++) {
+        ss.writeHash(objs[i]);
+    }
+    client->sendData(ss.str());
+
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    if (ok) {
+        return bs.release();
+    }
+    return NULL;
 }
 
 ObjectInfo
@@ -126,23 +136,27 @@ bool SshRepo::hasObject(const ObjectHash &id) {
 std::set<ObjectInfo> SshRepo::listObjects()
 {
     client->sendCommand("list objs");
-    std::string resp;
-    client->recvResponse(resp);
-
     std::set<ObjectInfo> rval;
 
-    SshResponseParser p(resp);
-    std::string line;
-    while (!p.ended()) {
-        ObjectInfo info;
-        if (!p.loadObjectInfo(info)) break;
-        rval.insert(info);
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    if (ok) {
+        uint64_t num = bs->readInt<uint64_t>();
+        for (size_t i = 0; i < num; i++) {
+            std::string info_str(ObjectInfo::SIZE, '\0');
+            bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
+            ObjectInfo info;
+            info.fromString(info_str);
+            rval.insert(info);
+        }
     }
 
     return rval;
 }
 
-int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+int
+SshRepo::addObject(Object::Type type, const ObjectHash &hash,
+        const std::string &payload)
 {
     NOT_IMPLEMENTED(false);
     return -1;
@@ -151,20 +165,19 @@ int SshRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
 std::vector<Commit> SshRepo::listCommits()
 {
     client->sendCommand("list commits");
-    std::string resp;
-    client->recvResponse(resp);
-
     std::vector<Commit> rval;
 
-    SshResponseParser p(resp);
-    std::string line;
-    while (!p.ended()) {
-        if (!p.nextLine(line)) break;
-        size_t len = p.getDataLength(line);
-        std::string data = p.getData(len);
-        Commit c;
-        c.fromBlob(data);
-        rval.push_back(c);
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    if (ok) {
+        uint32_t num = bs->readInt<uint32_t>();
+        for (size_t i = 0; i < num; i++) {
+            std::string commit_str;
+            bs->readPStr(commit_str);
+            Commit c;
+            c.fromBlob(commit_str);
+            rval.push_back(c);
+        }
     }
 
     return rval;
@@ -204,21 +217,7 @@ SshObject::~SshObject()
     repo->_clearPayload(info.hash);
 }
 
-bytestream::ap SshObject::getPayloadStream()
+bytestream *SshObject::getPayloadStream()
 {
-    if (info.getCompressed()) {
-        bytestream::ap bs(getStoredPayloadStream());
-        return bytestream::ap(new lzmastream(bs.release()));
-    }
-    return getStoredPayloadStream();
-}
-
-bytestream::ap SshObject::getStoredPayloadStream()
-{
-    return bytestream::ap(new strstream(repo->_payload(info.hash)));
-}
-
-size_t SshObject::getStoredPayloadSize()
-{
-    return repo->_payload(info.hash).length();
+    return new strstream(repo->_payload(info.hash));
 }

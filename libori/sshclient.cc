@@ -30,6 +30,7 @@
 #include "sshclient.h"
 #include "sshrepo.h"
 #include "util.h"
+#include "debug.h"
 
 #define D_READ 0
 #define D_WRITE 1
@@ -117,6 +118,7 @@ int SshClient::connect()
 
     fdToChild = pipe_to_child[D_WRITE];
     fdFromChild = pipe_from_child[D_READ];
+    streamToChild.reset(new fdwstream(fdToChild));
 
     // TODO: sync here
     //sleep(2);
@@ -126,8 +128,8 @@ int SshClient::connect()
     Util_SetBlocking(STDERR_FILENO, true);
 
     // Wait for READY from server
-    std::string ready;
-    recvResponse(ready);
+    std::string ready(6, '\0');
+    read(fdFromChild, &ready[0], 6);
     if (ready != "READY\n") {
         return -1;
     }
@@ -155,130 +157,46 @@ bool SshClient::connected() {
 
 void SshClient::sendCommand(const std::string &command) {
     assert(connected());
-    write(fdToChild, command.data(), command.length());
-    write(fdToChild, "\n", 1);
+    streamToChild->writePStr(command);
     fsync(fdToChild);
 }
 
-void SshClient::recvResponse(std::string &out) {
+void SshClient::sendData(const std::string &data) {
     assert(connected());
-
-    out.clear();
-    while (true) {
-        fd_set read_set;
-        FD_ZERO(&read_set);
-        FD_SET(fdFromChild, &read_set);
-
-        int ret = select(fdFromChild+1, &read_set, NULL, NULL, NULL);
-        if (ret == 1) {
-            char buf[512];
-
-            // Ready to read from child
-            ssize_t read_n = read(fdFromChild, buf, 512);
-            if (read_n < 0) {
-                perror("read");
-                out.clear();
-                return;
-            }
-
-            //printf("Read '%s'\n", buf);
-
-            size_t curr_size = out.size();
-            out.resize(curr_size + read_n);
-            memcpy(&out[curr_size], buf, read_n);
-
-            if (strcmp(&out[out.size()-5], "DONE\n") == 0) {
-                return;
-            }
-            else if (strcmp(&out[out.size()-6], "READY\n") == 0) {
-                return;
-            }
+    size_t len = data.size();
+    size_t off = 0;
+    while (len > 0) {
+        ssize_t written = write(fdToChild, data.data()+off, len);
+        if (written < 0) {
+            perror("SshClient::sendData write");
+            exit(1);
         }
-        else if (ret == -1) {
-            perror("select");
-            out.clear();
-            return;
-        }
+        len -= written;
+        off += written;
     }
+
+    fsync(fdToChild);
 }
 
-
-
-/*
- * SshResponseParser
- */
-SshResponseParser::SshResponseParser(const std::string &text)
-    : text(text), off(0)
-{
+bytestream *SshClient::getStream() {
+    return new fdstream(fdFromChild, -1);
 }
 
-bool SshResponseParser::ended() const {
-    return off >= text.size();
-}
-
-bool SshResponseParser::nextLine(std::string &line) {
-    if (off >= text.size()) return false;
-
-    size_t oldOff = off;
-    while (off < text.size()) {
-        if (text[off] == '\n') {
-            off++;
-            line = text.substr(oldOff, (off-oldOff-1));
-            if (line == "DONE")
-                return false;
-            return true;
-        }
-        off++;
-    }
-    line = text.substr(oldOff, (off-oldOff-1));
-
-    if (line == "DONE")
+bool SshClient::respIsOK() {
+    uint8_t resp;
+    assert(read(fdFromChild, &resp, 1) == 1);
+    if (resp == 0) return true;
+    else {
+        std::string errStr;
+        fdstream fs(fdFromChild, -1);
+        fs.readPStr(errStr);
+        LOG("SSH error: %s", errStr.c_str());
+        fprintf(stderr, "SSH error: %s\n", errStr.c_str());
         return false;
-    return true;
-}
-
-size_t SshResponseParser::getDataLength(const std::string &line) const {
-    size_t len = 0;
-    if (sscanf(line.c_str(), "DATA %lu", &len) != 1) {
-        return 0;
     }
-    return len;
 }
 
-std::string SshResponseParser::getData(size_t len) {
-    /*
-     * XXX: Replace this assert once we guarentee that the empty object
-     * e3b0.... is never transmitted over the wire.
-     *
-     * assert(len > 0);
-     */
-    assert(off + len <= text.size());
-    size_t oldOff = off;
-    off += len;
-    return text.substr(oldOff, len);
-}
 
-bool SshResponseParser::loadObjectInfo(ObjectInfo &info) {
-    std::string line;
-    nextLine(line); // hash
-    if (line == "DONE") return false;
-
-    assert(line.size() == 64); // 2*SHA256_DIGEST_LENGTH
-    info.hash = ObjectHash::fromHex(line);
-
-    nextLine(line); // type
-    info.type = Object::getTypeForStr(line.c_str());
-    assert(info.type != Object::Null);
-
-    nextLine(line); // flags
-    sscanf(line.c_str(), "%X", &info.flags);
-
-    nextLine(line); // payload_size
-    sscanf(line.c_str(), "%lu", &info.payload_size);
-    assert(info.payload_size != (size_t)-1);
-
-    return true;
-}
 
 
 
@@ -292,8 +210,9 @@ int cmd_sshclient(int argc, const char *argv[]) {
         exit(1);
     }
 
-    SshClient client = SshClient(std::string(argv[1])
-                                  + ":/Users/fyhuang/Projects/ori/tr");
+    std::string remotePath = std::string(argv[1]) +
+        ":/Users/fyhuang/Projects/ori/tr3";
+    SshClient client(remotePath);
     if (client.connect() < 0) {
         printf("Error connecting to %s\n", argv[1]);
         exit(1);
@@ -302,41 +221,34 @@ int cmd_sshclient(int argc, const char *argv[]) {
     printf("Connected\n");
 
     SshRepo repo(&client);
-    std::vector<Commit> commits = repo.listCommits();
-    for (size_t i = 0; i < commits.size(); i++) {
-        printf("%ld\n", commits[i].getTime());
+    std::set<ObjectInfo> objs = repo.listObjects();
+    std::vector<ObjectHash> hashes;
+    for (std::set<ObjectInfo>::iterator it = objs.begin();
+            it != objs.end();
+            it++) {
+        hashes.push_back((*it).hash);
+        printf("Object: %s\n", (*it).hash.hex().c_str());
     }
 
-    //Object::ObjectInfo info("b7287ce2bca00e9b78555dba3ec7b013415425f7ffd6628b6ed68dcfba699426");
-    //std::string data;
-    //printf("type: %d\nflags: %08X\npayload_size: %lu\n", info.type, info.flags,
-    //        info.payload_size);
+    fflush(stdout);
+    //bytestream *bs = repo.getObjects(hashes);
 
-    return 0;
-
-    // Simple command-line client
-    while (true) {
-        char buf[256];
-        char *status = fgets(buf, 256, stdin);
-        if (status == NULL) {
-            if (feof(stdin)) break;
-            if (ferror(stdin)) {
-                perror("fgets");
-                break;
-            }
-        }
-        else {
-            buf[strlen(buf)-1] = '\0'; // remove trailing \n
-            client.sendCommand(buf);
-            std::string resp;
-            client.recvResponse(resp);
-            if (resp.size() == 0) {
-                break;
-            }
-            write(STDOUT_FILENO, resp.data(), resp.size());
-        }
+    // Test getObject
+    Object::sp obj(repo.getObject(hashes[0]));
+    if (!obj.get()) {
+        fprintf(stderr, "Couldn't get object\n");
+        return 1;
     }
+    bytestream *bs = obj->getPayloadStream();
+    std::string payload = bs->readAll();
+    printf("Got payload (%lu)\n%s\n", payload.size(), payload.c_str());
+    if (bs->error()) {
+        fprintf(stderr, "Stream error: %s\n", bs->error());
+    }
+    printf("Object info:\n");
+    obj->getInfo().print();
 
-    printf("Terminating SSH connection...\n");
+    sleep(1);
+
     return 0;
 }

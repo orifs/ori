@@ -20,6 +20,7 @@
 #include <string>
 
 #include "object.h"
+#include "stream.h"
 
 class SshClient
 {
@@ -33,30 +34,17 @@ public:
 
     // At the moment the protocol is synchronous
     void sendCommand(const std::string &command);
-    void recvResponse(std::string &out);
+    void sendData(const std::string &data);
+    bytestream *getStream();
+
+    bool respIsOK();
 
 private:
     std::string remoteHost, remoteRepo;
 
     int fdFromChild, fdToChild;
+    bytewstream::ap streamToChild;
     int childPid;
-};
-
-// TODO: return char *s instead of string, return all values from same chunk of
-// memory
-class SshResponseParser {
-public:
-    SshResponseParser(const std::string &text);
-
-    bool ended() const;
-    bool nextLine(std::string &line);
-    size_t getDataLength(const std::string &line) const;
-    std::string getData(size_t len);
-    bool loadObjectInfo(ObjectInfo &info);
-
-private:
-    const std::string &text;
-    size_t off;
 };
 
 

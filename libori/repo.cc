@@ -54,33 +54,10 @@ Repo::~Repo() {
  * High-level operations
  */
 
-int
-Repo::addObject(Object::Type type, const ObjectHash &hash, const string &payload)
-{
-    assert(!hash.isEmpty()); // hash must be included
-    assert(type != Object::Null);
-
-    ObjectInfo info(hash);
-    info.type = type;
-    info.payload_size = payload.size();
-    assert(info.hasAllFields());
-
-    if (info.getCompressed()) {
-        bytestream *ss = new strstream(payload);
-        lzmastream bs(ss, true);
-        return addObjectRaw(info, &bs);
-    }
-    else {
-        strstream ss(payload);
-        return addObjectRaw(info, &ss);
-    }
-}
-
 void
 Repo::copyFrom(Object *other)
 {
-    bytestream::ap bs(other->getStoredPayloadStream());
-    addObjectRaw(other->getInfo(), bs.get());
+    addObject(other->getInfo().type, other->getInfo().hash, other->getPayload());
 }
 
 /*
@@ -92,6 +69,17 @@ Repo::addBlob(Object::Type type, const string &blob)
     ObjectHash hash = Util_HashString(blob);
     addObject(type, hash, blob);
     return hash;
+}
+
+
+bytestream *
+Repo::getObjects(const std::deque<ObjectHash> &objs)
+{
+    ObjectHashVec vec;
+    for (size_t i = 0; i < objs.size(); i++) {
+        vec.push_back(objs[i]);
+    }
+    return getObjects(vec);
 }
 
 

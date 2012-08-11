@@ -22,7 +22,7 @@ SshServer::SshServer()
 {
 }
 
-typedef std::vector<char *> args_vec;
+/*typedef std::vector<char *> args_vec;
 args_vec sep_args(char *str) {
     size_t len = strlen(str);
     args_vec rval;
@@ -38,99 +38,56 @@ args_vec sep_args(char *str) {
     //rval.push_back(str+last);
 
     return rval;
+}*/
+
+#define OK 0
+#define ERROR 1
+
+void printError(const std::string &what)
+{
+    fdwstream fs(STDOUT_FILENO);
+    fs.writeInt<uint8_t>(ERROR);
+    fs.writePStr(what);
+    fflush(stdout);
 }
 
 void SshServer::serve() {
+    fdstream fs(STDIN_FILENO, -1);
+
+    LocalRepoLock::ap lock(repository.lock());
+    if (!lock.get()) {
+        printError("Couldn't lock repo");
+        exit(1);
+    }
+
     printf("READY\n");
     fflush(stdout);
     fsync(STDOUT_FILENO);
 
-    LocalRepoLock::ap lock(repository.lock());
-    if (!lock.get()) {
-        printf("Couldn't lock repo\n");
-        exit(1);
-    }
-
     while (true) {
         // Get command
-        char command[256];
-        char *status = fgets(command, 256, stdin); // TODO: check for ready to read
-        if (status == NULL) {
-            if (feof(stdin)) break;
-            if (ferror(stdin) && errno != EAGAIN) {
-                perror("fgets");
-                fflush(stdout);
-                exit(1);
-            }
-            else {
-                //sleep(1);
-            }
+        std::string command;
+        if (fs.readPStr(command) == 0) break;
+
+        if (command == "hello") {
+            cmd_hello();
+        }
+        else if (command == "list objs") {
+            cmd_listObjs();
+        }
+        else if (command == "list commits") {
+            cmd_listCommits();
+        }
+        else if (command == "readobjs") {
+            cmd_readObjs();
+        }
+        else if (command == "get head") {
+            cmd_getHead();
         }
         else {
-            if (command[0] == '\n') {
-                // blank line
-                printf("DONE\n");
-                fflush(stdout);
-                fsync(STDOUT_FILENO);
-                continue;
-            }
-
-            // Separate command and arguments
-            args_vec args = sep_args(command);
-            LOG("sshserver: command '%s'", command);
-            
-            if (strcmp(command, "hello") == 0) {
-                // Setup comm protocol
-                printf("%s\nDONE\n", ORI_PROTO_VERSION);
-            }
-            else if (strcmp(command, "list") == 0) {
-                if (strcmp(args[1], "objs") == 0) {
-                    std::set<ObjectInfo> objects = repository.listObjects();
-                    for (std::set<ObjectInfo>::iterator it = objects.begin();
-                            it != objects.end();
-                            it++) {
-                        _writeObjectInfo(*it);
-                    }
-                    fflush(stdout);
-                    fsync(STDOUT_FILENO);
-                    printf("DONE\n");
-                }
-                else if (strcmp(args[1], "commits") == 0) {
-                    const std::vector<Commit> &commits = repository.listCommits();
-                    for (size_t i = 0; i < commits.size(); i++) {
-                        std::string blob = commits[i].getBlob();
-                        dprintf(STDOUT_FILENO, "DATA %lu\n", blob.size());
-                        write(STDOUT_FILENO, blob.data(), blob.length());
-                    }
-                    dprintf(STDOUT_FILENO, "DONE\n");
-                }
-            }
-            else if (strcmp(command, "readobj") == 0) {
-                ObjectHash hash = ObjectHash::fromHex(args[1]);
-                // send compressed object
-                LocalObject::sp obj = repository.getLocalObject(hash);
-                const ObjectInfo &info = obj->getInfo();
-
-                _writeObjectInfo(info);
-                printf("DATA %lu\n",
-                        obj->getStoredPayloadSize());
-
-                std::auto_ptr<bytestream> bs = obj->getStoredPayloadStream();
-                bs->copyToFd(STDOUT_FILENO);
-                write(STDOUT_FILENO, "DONE\n", 5);
-            }
-            else if (strcmp(command, "show") == 0) {
-                // TODO: is this necessary?
-                printf("%s\n%s\n%s\n%s\nDONE\n",
-                        repository.getRootPath().c_str(),
-                        repository.getUUID().c_str(),
-                        repository.getVersion().c_str(),
-                        repository.getHead().hex().c_str());
-            }
-            else {
-                printf("ERROR unknown command %s\nDONE\n", command);
-            }
+            printError("Unknown command");
         }
+
         fflush(stdout);
         fsync(STDOUT_FILENO);
     }
@@ -139,13 +96,66 @@ void SshServer::serve() {
     fsync(STDOUT_FILENO);
 }
 
-void SshServer::_writeObjectInfo(const ObjectInfo &info)
+void SshServer::cmd_hello()
 {
-    dprintf(STDOUT_FILENO, "%s\n%s\n%08X\n%lu\n",
-            info.hash.hex().c_str(),
-            Object::getStrForType(info.type),
-            info.flags,
-            info.payload_size);
+    fdwstream fs(STDOUT_FILENO);
+    fs.writeInt<uint8_t>(OK);
+    fs.writePStr(ORI_PROTO_VERSION);
+}
+
+void SshServer::cmd_listObjs()
+{
+    fdwstream fs(STDOUT_FILENO);
+    fs.writeInt<uint8_t>(OK);
+
+    std::set<ObjectInfo> objects = repository.listObjects();
+    fs.writeInt<uint64_t>(objects.size());
+    for (std::set<ObjectInfo>::iterator it = objects.begin();
+            it != objects.end();
+            it++) {
+        const std::string &blob = (*it).toString();
+        assert(blob.size() == ObjectInfo::SIZE);
+        fs.write(blob.data(), blob.size());
+    }
+}
+
+void SshServer::cmd_listCommits()
+{
+    fdwstream fs(STDOUT_FILENO);
+    fs.writeInt<uint8_t>(OK);
+
+    const std::vector<Commit> &commits = repository.listCommits();
+    fs.writeInt<uint32_t>(commits.size());
+    for (size_t i = 0; i < commits.size(); i++) {
+        std::string blob = commits[i].getBlob();
+        fs.writePStr(blob);
+    }
+}
+
+void SshServer::cmd_readObjs()
+{
+    // Read object ids
+    fprintf(stderr, "Reading object IDs\n");
+    fdstream in(STDIN_FILENO, -1);
+    uint32_t numObjs = in.readInt<uint32_t>();
+    fprintf(stderr, "Transmitting %u objects\n", numObjs);
+    std::vector<ObjectHash> objs;
+    for (size_t i = 0; i < numObjs; i++) {
+        ObjectHash hash;
+        in.readHash(hash);
+        objs.push_back(hash);
+    }
+
+    fdwstream fs(STDOUT_FILENO);
+    fs.writeInt<uint8_t>(OK);
+    repository.transmit(&fs, objs);
+}
+
+void SshServer::cmd_getHead()
+{
+    fdwstream fs(STDOUT_FILENO);
+    fs.writeInt<uint8_t>(OK);
+    fs.writeHash(repository.getHead());
 }
 
 
@@ -170,21 +180,20 @@ int cmd_sshserver(int argc, const char *argv[])
 #endif /* __APPLE__ */
 
     if (argc < 2) {
-        printf("ERROR need repository name\nDONE\n");
-        fflush(stdout);
+        printError("Need repository name");
         exit(1);
     }
     if (!repository.open(argv[1])) {
-        printf("ERROR no repo found\nDONE\n");
-        fflush(stdout);
+        printError("No repo found");
         exit(101);
     }
 
     if (ori_open_log(&repository) < 0) {
-        printf("ERROR couldn't open log\nDONE\n");
-        fflush(stdout);
+        printError("Couldn't open log");
         exit(1);
     }
+
+    fprintf(stderr, "Starting server\n");
 
     SshServer server;
     server.serve();

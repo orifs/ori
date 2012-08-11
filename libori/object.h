@@ -32,7 +32,6 @@
 #define ORI_OBJECT_SIZE		    8
 #define ORI_OBJECT_HDRSIZE	    24
 
-#define ORI_MD_HASHSIZE 32 //SHA256_DIGEST_LENGTH
 
 #define ORI_FLAG_COMPRESSED 0x0001
 
@@ -47,20 +46,25 @@ public:
     struct ObjectInfo {
         ObjectInfo();
         ObjectInfo(const ObjectHash &hash);
-        std::string getInfo() const;
-        void setInfo(const std::string &info);
-        ssize_t writeTo(int fd, bool seekable = true);
+
+        std::string toString() const;
+        void fromString(const std::string &info);
+        //ssize_t writeTo(int fd, bool seekable = true);
         bool hasAllFields() const;
 
         // Flags operations
         bool getCompressed() const;
-
         bool operator <(const ObjectInfo &) const;
 
+        // For debug use
+        void print(int fd = STDOUT_FILENO) const;
+
         Type type;
-        int flags;
-        size_t payload_size;
         ObjectHash hash;
+        uint32_t flags;
+        uint32_t payload_size;
+
+        static const size_t SIZE = 4+ObjectHash::SIZE+2*sizeof(uint32_t);
     };
 
     Object() {}
@@ -68,13 +72,9 @@ public:
     virtual ~Object() {}
 
     virtual const ObjectInfo &getInfo() const { return info; }
-    virtual std::auto_ptr<bytestream> getPayloadStream() = 0;
-    virtual std::auto_ptr<bytestream> getStoredPayloadStream() = 0;
-    virtual size_t getStoredPayloadSize() = 0;
+    virtual bytestream *getPayloadStream() = 0;
     
-    virtual std::string getPayload() {
-        return getPayloadStream()->readAll();
-    }
+    virtual std::string getPayload();
     
     // Static methods
     static const char *getStrForType(Type t);

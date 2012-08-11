@@ -103,7 +103,7 @@ HttpRepo::getObject(const ObjectHash &id)
         return Object::sp();
     }
 
-    info.setInfo(payload.substr(0, 16));
+    info.fromString(payload.substr(0, 16));
 
     // TODO: add raw data to cache
     _addPayload(info.hash, payload.substr(16));
@@ -122,7 +122,7 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
     if (status < 0)
 	return rval;
 
-    rval.setInfo(payload);
+    rval.fromString(payload);
 
     return rval;
 }
@@ -135,6 +135,12 @@ HttpRepo::hasObject(const ObjectHash &id) {
     status = client->getRequest("/objinfo/" + id.hex(), payload);
 
     return (status == 0);
+}
+
+bytestream *
+HttpRepo::getObjects(const ObjectHashVec &vec) {
+    NOT_IMPLEMENTED(false);
+    return NULL;
 }
 
 std::set<ObjectInfo>
@@ -163,7 +169,7 @@ HttpRepo::listObjects()
         offset += 16;
 
         info = ObjectInfo(hash);
-        info.setInfo(objInfo);
+        info.fromString(objInfo);
         rval.insert(info);
     }
 
@@ -171,7 +177,8 @@ HttpRepo::listObjects()
 }
 
 int
-HttpRepo::addObjectRaw(const ObjectInfo &info, bytestream *bs)
+HttpRepo::addObject(Object::Type type, const ObjectHash &hash,
+            const std::string &payload)
 {
     NOT_IMPLEMENTED(false);
     return -1;
@@ -243,17 +250,13 @@ HttpObject::~HttpObject()
     repo->_clearPayload(info.hash);
 }
 
-bytestream::ap
+bytestream *
 HttpObject::getPayloadStream()
 {
-    if (info.getCompressed()) {
-        bytestream::ap bs(getStoredPayloadStream());
-        return bytestream::ap(new lzmastream(bs.release()));
-    }
-    return getStoredPayloadStream();
+    return new strstream(repo->_payload(info.hash));
 }
 
-bytestream::ap
+/*bytestream::ap
 HttpObject::getStoredPayloadStream()
 {
     return bytestream::ap(new strstream(repo->_payload(info.hash)));
@@ -263,4 +266,4 @@ size_t
 HttpObject::getStoredPayloadSize()
 {
     return repo->_payload(info.hash).length();
-}
+}*/

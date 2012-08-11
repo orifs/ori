@@ -11,9 +11,14 @@ public:
     SshServer();
 
     void serve();
+    
+    void cmd_hello();
+    void cmd_listObjs();
+    void cmd_listCommits();
+    void cmd_readObjs();
+    void cmd_getHead();
 
 private:
-    void _writeObjectInfo(const ObjectInfo &info);
 };
 
 #endif

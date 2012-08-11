@@ -32,7 +32,7 @@ fi
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
 mkdir -p $SOURCE_FILES
-for i in {1..12}; do
+for i in {6..11}; do
     SIZE=$((2**(i+1)))
     echo "Creating random file size ${SIZE}k"
     #dd if=/dev/urandom of="$SOURCE_FILES/file$i.tst" bs=2k count=$SIZE
