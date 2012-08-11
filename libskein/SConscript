@@ -1,0 +1,11 @@
+import os
+
+Import('env')
+
+src = [
+    "skein.c",
+    "skein_block.c",
+]
+
+env.StaticLibrary("skein", src, CPPPATH = [ "#libskein", "$CPPPATH" ])
+
