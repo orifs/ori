@@ -40,5 +40,5 @@ if os.name == 'posix':
 if env["WITH_MDNS"] == "1":
     src.append("zeroconf.cc")
 
-env.StaticLibrary("ori", src, CPPPATH = [ "#libori", "$CPPPATH" ])
+env.StaticLibrary("ori", src, CPPPATH = [ "#libori", "#libskein", "#libfastlz", "$CPPPATH" ])
 

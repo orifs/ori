@@ -52,6 +52,8 @@
 #error "SHA256 not supported!"
 #endif
 
+#include "skein.h"
+
 #include "tuneables.h"
 #include "util.h"
 #include "stream.h"
@@ -293,6 +295,8 @@ Util_RenameFile(const std::string &from, const std::string &to)
     return 0;
 }
 
+#ifdef ORI_USE_SHA256
+
 /*
  * Compute SHA 256 hash for a string.
  */
@@ -355,6 +359,75 @@ Util_HashFile(const string &path)
 
     return hash;
 }
+
+#endif
+
+#ifdef ORI_USE_SKEIN
+
+/*
+ * Compute SHA 256 hash for a string.
+ */
+ObjectHash
+Util_HashString(const string &str)
+{
+    Skein_256_Ctxt_t state;
+    ObjectHash hash;
+
+    Skein_256_Init(&state, 256);
+    Skein_256_Update(&state, (u08b_t *)str.c_str(), str.size());
+    Skein_256_Final(&state, (u08b_t *)hash.hash);
+
+    return hash;
+}
+
+/*
+ * Compute SHA 256 hash for a file.
+ */
+ObjectHash
+Util_HashFile(const string &path)
+{
+    int fd;
+    char buf[HASHFILE_BUFSZ];
+    struct stat sb;
+    int64_t bytesLeft;
+    int64_t bytesRead;
+    Skein_256_Ctxt_t state;
+    ObjectHash hash;
+
+    Skein_256_Init(&state, 256);
+
+    fd = open(path.c_str(), O_RDONLY);
+    if (fd < 0) {
+	return ObjectHash();
+    }
+
+    if (fstat(fd, &sb) < 0) {
+	close(fd);
+	return ObjectHash();
+    }
+
+    bytesLeft = sb.st_size;
+    while(bytesLeft > 0) {
+	bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
+	if (bytesRead < 0) {
+	    if (errno == EINTR)
+		continue;
+	    close(fd);
+	    return ObjectHash();
+	}
+
+	Skein_256_Update(&state, (u08b_t *)buf, bytesRead);
+	bytesLeft -= bytesRead;
+    }
+
+    Skein_256_Final(&state, (u08b_t *)hash.hash);
+
+    close(fd);
+
+    return hash;
+}
+
+#endif
 
 string
 Util_RawHashToHex(const ObjectHash &hash)

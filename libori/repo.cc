@@ -37,8 +37,15 @@ using namespace std;
 
 ObjectHash EMPTY_COMMIT =
 ObjectHash::fromHex("0000000000000000000000000000000000000000000000000000000000000000");
+
+#ifdef ORI_USE_SHA256
 ObjectHash EMPTYFILE_HASH =
 ObjectHash::fromHex("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+#endif
+#ifdef ORI_USE_SKEIN
+ObjectHash EMPTYFILE_HASH =
+ObjectHash::fromHex("c8877087da56e072870daa843f176e9453115929094c3a40c463a196c29bf7ba");
+#endif
 
 /*
  * Repo
