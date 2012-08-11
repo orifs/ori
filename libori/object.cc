@@ -15,6 +15,7 @@
  */
 
 #define __STDC_LIMIT_MACROS
+#define _WITH_DPRINTF
 
 #include <assert.h>
 #include <stdio.h>

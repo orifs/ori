@@ -40,6 +40,7 @@ libs = [
         "stdc++",
         "lzma",
         "ori",
+	"skein",
        ]
 
 if sys.platform != "darwin":
@@ -50,9 +51,9 @@ if sys.platform != "darwin":
 if sys.platform == "linux2":
     libs += ['uuid', 'resolv']
 
-env.Append(LIBPATH = [ "#build/libori", "$LIBPATH" ],
+env.Append(LIBPATH = [ "#build/libori", "#build/libskein", "$LIBPATH" ],
             LIBS = libs,
-            CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])
+            CPPPATH = [ "#libori", "#libskein", "$CPPPATH", "#include", "#" ])
 
 env.Program("ori", src)
 

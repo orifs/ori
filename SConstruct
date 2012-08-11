@@ -109,6 +109,8 @@ Export('env')
 
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
+SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
+SConscript('libskein/SConscript', variant_dir='build/libskein')
 SConscript('libori/SConscript', variant_dir='build/libori')
 SConscript('ori/SConscript', variant_dir='build/ori')
 if env["WITH_HTTPD"] == "1":
