@@ -1,0 +1,12 @@
+import os
+
+Import('env')
+
+src = [
+    "6pack.c",
+    "6unpack.c",
+    "fastlz.c",
+]
+
+env.StaticLibrary("fastlz", src, CPPPATH = [ "#libfastlz", "$CPPPATH" ])
+
