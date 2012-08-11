@@ -112,6 +112,7 @@ SshRepo::getObjects(const ObjectHashVec &objs)
         ss.writeHash(objs[i]);
     }
     client->sendData(ss.str());
+    fprintf(stderr, "Requesting %lu objects\n", objs.size());
 
     bool ok = client->respIsOK();
     bytestream::ap bs(client->getStream());

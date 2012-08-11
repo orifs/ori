@@ -44,7 +44,7 @@ PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
         if (infos[i].hash == info.hash) {
             fprintf(stderr, "WARNING: duplicate addPayload %s!\n",
                     info.hash.hex().c_str());
-            //info.print(STDERR_FILENO);
+            info.print(STDERR_FILENO);
         }
     }
 #endif
@@ -258,7 +258,8 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
     for (std::map<offset_t, offset_t>::iterator it = blocks.begin();
             it != blocks.end();
             it++) {
-        fprintf(stderr, "%x %x\n", (*it).first, (*it).second);
+        fprintf(stderr, "%x %x %u\n", (*it).first, (*it).second, (*it).second -
+                (*it).first);
     }
 
     // Transmit object infos

@@ -1,6 +1,7 @@
 #ifndef __STREAM_H__
 #define __STREAM_H__
 
+#include <iostream>
 #include <cassert>
 #include <vector>
 #include <string>
@@ -59,6 +60,7 @@ public:
         T rval;
         bool success = readExact((uint8_t*)&rval, sizeof(T));
         assert(success);
+        //std::cerr << "Read int " << (ssize_t)rval << std::endl;
         return rval;
     }
 };
@@ -155,6 +157,7 @@ public:
     /// Writes an integer with proper byte-swapping (TODO)
     template <typename T>
     void writeInt(const T &n) {
+        //std::cerr << "Wrote int " << (ssize_t)n << std::endl;
         write(&n, sizeof(T));
     }
 };

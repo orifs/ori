@@ -50,7 +50,7 @@ bool bytestream::readExact(uint8_t *buf, size_t n)
         if (readBytes == 0) {
             throw std::ios_base::failure("End of stream");
         }
-        total -= readBytes;
+        total += readBytes;
     }
 
     return true;
@@ -203,6 +203,13 @@ retry_read:
         return 0;
     }
     left -= read_bytes;
+
+    /*LOG("Readd %lu bytes (actually %ld) (%d)\n", n, read_bytes, fd);
+    if (n < 100) {
+        for (size_t i = 0; i < n; i++)
+            LOG("%02x ", ((uint8_t*)buf)[i]);
+    }*/
+
     return read_bytes;
 }
 
@@ -455,10 +462,12 @@ retryWrite:
         totalWritten += bytesWritten;
     }
 
-    fprintf(stderr, "Wrote %lu bytes (%d)\n", n, fd);
-    /*for (size_t i = 0; i < n; i++)
-        fprintf(stderr, "%02x ", ((uint8_t*)bytes)[i]);
-    fprintf(stderr, "\n");*/
+    /*fprintf(stderr, "Wrote %lu bytes (%d)\n", n, fd);
+    if (n < 100) {
+        for (size_t i = 0; i < n; i++)
+            fprintf(stderr, "%02x ", ((uint8_t*)bytes)[i]);
+        fprintf(stderr, "\n");
+    }*/
 
     assert(totalWritten == n);
     return totalWritten;
