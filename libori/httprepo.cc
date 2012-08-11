@@ -137,6 +137,12 @@ HttpRepo::hasObject(const ObjectHash &id) {
     return (status == 0);
 }
 
+bytestream *
+HttpRepo::getObjects(const ObjectHashVec &vec) {
+    NOT_IMPLEMENTED(false);
+    return NULL;
+}
+
 std::set<ObjectInfo>
 HttpRepo::listObjects()
 {

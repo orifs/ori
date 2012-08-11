@@ -465,7 +465,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
     putc('\n', stdout);
 
     Tree rval = Tree::unflatten(flat, dest_repo);
-    dest_repo->addBlob(Object::Tree, rval.getBlob());
+    //dest_repo->addBlob(Object::Tree, rval.getBlob());
     return rval;
 }
 

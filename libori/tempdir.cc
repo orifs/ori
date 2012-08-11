@@ -114,6 +114,12 @@ TempDir::getObject(const ObjectHash &objId)
                 info.payload_size, info));
 }
 
+bytestream *
+TempDir::getObjects(const ObjectHashVec &vec) {
+    NOT_IMPLEMENTED(false);
+    return NULL;
+}
+
 ObjectInfo
 TempDir::getObjectInfo(const ObjectHash &objId)
 {

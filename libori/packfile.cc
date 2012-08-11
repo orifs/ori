@@ -39,6 +39,16 @@ PfTransaction::_checkCompressionRatio(const std::string &payload)
 void
 PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
 {
+#if DEBUG
+    for (size_t i = 0; i < infos.size(); i++) {
+        if (infos[i].hash == info.hash) {
+            fprintf(stderr, "WARNING: duplicate addPayload %s!\n",
+                    info.hash.hex().c_str());
+            //info.print(STDERR_FILENO);
+        }
+    }
+#endif
+
 #if ENABLE_COMPRESSION
     uint8_t buf[COMPCHECK_BYTES];
     lzmastream ls(new strstream(payload), COMPRESS);
@@ -141,12 +151,13 @@ void
 Packfile::commit(PfTransaction *t, Index *idx)
 {
     assert(t->infos.size() == t->payloads.size());
+    lseek(fd, 0, SEEK_END);
     std::vector<offset_t> offsets;
     size_t headers_size = t->infos.size() * ENTRYSIZE;
     offset_t off = fileSize + 2 + headers_size;
     
     strwstream headers_ss;
-    headers_ss.writeInt<uint16_t>(t->infos.size());
+    headers_ss.writeInt<numobjs_t>(t->infos.size());
     for (size_t i = 0; i < t->infos.size(); i++) {
         headers_ss.write(t->infos[i].toString().data(), ObjectInfo::SIZE);
         headers_ss.writeInt<uint32_t>(t->payloads[i].size());
@@ -189,15 +200,138 @@ bool Packfile::purge(const ObjectHash &hash)
 }
 
 
+bool
+_offsetCmp(const IndexEntry &ie1, const IndexEntry &ie2)
+{
+    return ie1.offset < ie2.offset;
+}
 
 void
-Packfile::transmit(bytewstream *bs, const std::vector<IndexEntry> &objects)
+Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
 {
     // Find contiguous blocks
+    std::sort(objects.begin(), objects.end(), _offsetCmp);
     std::map<offset_t, offset_t> blocks;
     for (size_t i = 0; i < objects.size(); i++) {
         offset_t offset = objects[i].offset;
+        offset_t off_end = offset + objects[i].packed_size;
+        if (objects[i].packed_size == 0) {
+            // Empty objects
+            continue;
+        }
+
+        /*fprintf(stderr, "object %s %x %x\n",
+                objects[i].info.hash.hex().c_str(),
+                offset, off_end);*/
+
+        if (blocks.size() == 0) {
+            blocks[offset] = off_end;
+        }
+        else {
+            std::map<offset_t, offset_t>::iterator it = blocks.upper_bound(offset);
+            if (it == blocks.begin()) {
+                blocks[offset] = off_end;
+            }
+            else {
+                it--;
+                if ((*it).second == offset) {
+                    offset = (*it).first;
+                    blocks[offset] = off_end;
+                }
+                else {
+                    blocks[offset] = off_end;
+                }
+            }
+            
+            // Fix the rest of the array
+            while (blocks.find(off_end) != blocks.end()) {
+                offset_t off_end_old = off_end;
+                off_end = blocks[off_end_old];
+                blocks.erase(off_end_old);
+                blocks[offset] = off_end;
+            }
+        }
     }
+
+    fprintf(stderr, "Num blocks in this packfile: %lu\n", blocks.size());
+
+    for (std::map<offset_t, offset_t>::iterator it = blocks.begin();
+            it != blocks.end();
+            it++) {
+        fprintf(stderr, "%x %x\n", (*it).first, (*it).second);
+    }
+
+    // Transmit object infos
+    bs->writeInt<numobjs_t>(objects.size());
+    for (size_t i = 0; i < objects.size(); i++) {
+        std::string info_str = objects[i].info.toString();
+        bs->write(info_str.data(), info_str.size());
+        bs->writeInt<uint32_t>(objects[i].packed_size);
+    }
+
+    // Transmit objects
+    std::vector<uint8_t> buf;
+    for (std::map<offset_t, offset_t>::iterator it = blocks.begin();
+            it != blocks.end();
+            it++) {
+        lseek(fd, (*it).first, SEEK_SET);
+        size_t len = (*it).second - (*it).first;
+        buf.resize(len);
+        ssize_t n = read(fd, &buf[0], len);
+        assert(n == len);
+
+        bs->write(&buf[0], len);
+    }
+    assert(!bs->error());
+}
+
+
+bool
+Packfile::receive(bytestream *bs, Index *idx)
+{
+    numobjs_t num = bs->readInt<numobjs_t>();
+    if (num == 0) return false;
+
+    lseek(fd, 0, SEEK_END);
+    size_t headers_size = num * ENTRYSIZE;
+    offset_t off = fileSize + 2 + headers_size;
+    std::vector<size_t> obj_sizes;
+    
+    strwstream headers_ss;
+    headers_ss.writeInt<numobjs_t>(num);
+    for (size_t i = 0; i < num; i++) {
+        std::string info_str(ObjectInfo::SIZE, '\0');
+        bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
+        ObjectInfo info;
+        info.fromString(info_str);
+
+        uint32_t obj_size = bs->readInt<uint32_t>();
+        obj_sizes.push_back(obj_size);
+
+        headers_ss.write(info_str.data(), ObjectInfo::SIZE);
+        headers_ss.writeInt<uint32_t>(obj_size);
+        headers_ss.writeInt<offset_t>(off);
+
+        IndexEntry ie = {info, off, obj_size, packid};
+        idx->updateEntry(info.hash, ie);
+
+        off += obj_size;
+    }
+
+    write(fd, headers_ss.str().data(), headers_ss.str().size());
+    fileSize += headers_ss.str().size();
+
+    std::vector<uint8_t> data;
+    for (size_t i = 0; i < num; i++) {
+        data.resize(obj_sizes[i]);
+        bs->readExact(&data[0], obj_sizes[i]);
+        
+        write(fd, &data[0], obj_sizes[i]);
+        fileSize += obj_sizes[i];
+        numObjects++;
+    }
+
+    return true;
 }
 
 
@@ -345,4 +479,11 @@ PackfileManager::_getPackfileName(packid_t id)
     ss << id;
     ss << ".pak";
     return ss.str();
+}
+
+
+
+int cmd_testpackfiles(int argc, char *argv[])
+{
+    return 0;
 }

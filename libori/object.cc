@@ -133,6 +133,10 @@ ObjectInfo::hasAllFields() const
     return true;
 }
 
+bool ObjectInfo::getCompressed() const {
+    return flags & ORI_FLAG_COMPRESSED;
+}
+
 bool ObjectInfo::operator <(const ObjectInfo &other) const {
     if (hash < other.hash) return true;
     if (type < other.type) return true;
@@ -141,8 +145,11 @@ bool ObjectInfo::operator <(const ObjectInfo &other) const {
     return false;
 }
 
-bool ObjectInfo::getCompressed() const {
-    return flags & ORI_FLAG_COMPRESSED;
+void ObjectInfo::print(int fd) const {
+    dprintf(fd, "Object info for %s\n", hash.hex().c_str());
+    dprintf(fd, "  type = %s\n", getStrForType(type));
+    dprintf(fd, "  flags = %08X\n", flags);
+    dprintf(fd, "  payload_size = %u\n", payload_size);
 }
 
 

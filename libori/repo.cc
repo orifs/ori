@@ -72,6 +72,17 @@ Repo::addBlob(Object::Type type, const string &blob)
 }
 
 
+bytestream *
+Repo::getObjects(const std::deque<ObjectHash> &objs)
+{
+    ObjectHashVec vec;
+    for (size_t i = 0; i < objs.size(); i++) {
+        vec.push_back(objs[i]);
+    }
+    return getObjects(vec);
+}
+
+
 /*
  * Add a file to the repository. This is a low-level interface.
  */

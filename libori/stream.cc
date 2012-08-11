@@ -22,6 +22,9 @@ void basestream::setErrno(const char *msg) {
     snprintf(buf, 512, "%s: %s (%d)\n", msg, strerror(errno), errno);
     last_error.assign(buf);
     last_errnum = errno;
+#if DEBUG
+    fprintf(stderr, "Stream error: %s\n", buf);
+#endif
 }
 
 bool basestream::inheritError(basestream *bs) {
@@ -38,6 +41,21 @@ bool basestream::inheritError(basestream *bs) {
 /*
  * bytestream
  */
+bool bytestream::readExact(uint8_t *buf, size_t n)
+{
+    size_t total = 0;
+    while (total < n) {
+        size_t readBytes = read(buf+total, n-total);
+        if (error()) return false;
+        if (readBytes == 0) {
+            throw std::ios_base::failure("End of stream");
+        }
+        total -= readBytes;
+    }
+
+    return true;
+}
+
 std::string bytestream::readAll() {
     std::string rval;
 
@@ -58,7 +76,7 @@ std::string bytestream::readAll() {
     }
     else {
         rval.resize(sizeHint());
-        read((uint8_t*)&rval[0], sizeHint());
+        readExact((uint8_t*)&rval[0], sizeHint());
         if (error()) {
             return "";
         }
@@ -103,11 +121,19 @@ retryWrite:
 }
 
 // High-level I/O
-void bytestream::readPStr(std::string &out)
+size_t bytestream::readPStr(std::string &out)
 {
-    uint8_t len = readInt<uint8_t>();
-    out.resize(len);
-    read((uint8_t*)&out[0], len);
+    try {
+        uint8_t len = readInt<uint8_t>();
+        out.resize(len);
+        bool success = readExact((uint8_t*)&out[0], len);
+        if (!success) return 0;
+        return len;
+    }
+    catch (std::ios_base::failure &e)
+    {
+        return 0;
+    }
 }
 
 void bytestream::readHash(ObjectHash &out)
@@ -153,7 +179,7 @@ size_t strstream::sizeHint() const
 fdstream::fdstream(int fd, off_t offset, size_t length)
     : fd(fd), offset(offset), length(length), left(length)
 {
-    if (lseek(fd, offset, SEEK_SET) != offset) {
+    if (offset >= 0 && lseek(fd, offset, SEEK_SET) != offset) {
         setErrno("lseek");
     }
 }
@@ -181,7 +207,9 @@ retry_read:
 }
 
 size_t fdstream::sizeHint() const {
-    return length;
+    if (length != (size_t)-1)
+        return length;
+    return 0;
 }
 
 /*
@@ -387,7 +415,7 @@ strwstream::strwstream(size_t reserved)
     buf.reserve(reserved);
 }
 
-void strwstream::write(const void *bytes, size_t n)
+ssize_t strwstream::write(const void *bytes, size_t n)
 {
     if (buf.capacity() - buf.size() < n)
         buf.reserve(buf.capacity()+n);
@@ -395,9 +423,43 @@ void strwstream::write(const void *bytes, size_t n)
     size_t oldSize = buf.size();
     buf.resize(oldSize+n);
     memcpy(&buf[oldSize], bytes, n);
+    return n;
 }
 
 const std::string &strwstream::str() const
 {
     return buf;
+}
+
+/*
+ * fdwstream
+ */
+fdwstream::fdwstream(int fd)
+    : fd(fd)
+{
+    assert(fd >= 0);
+}
+
+ssize_t fdwstream::write(const void *bytes, size_t n)
+{
+    size_t totalWritten = 0;
+    while (totalWritten < n) {
+retryWrite:
+        ssize_t bytesWritten = ::write(fd, ((uint8_t*)bytes)+totalWritten, n-totalWritten);
+        if (bytesWritten < 0) {
+            if (errno == EINTR)
+                goto retryWrite;
+            setErrno("write");
+            return -errno;
+        }
+        totalWritten += bytesWritten;
+    }
+
+    fprintf(stderr, "Wrote %lu bytes (%d)\n", n, fd);
+    /*for (size_t i = 0; i < n; i++)
+        fprintf(stderr, "%02x ", ((uint8_t*)bytes)[i]);
+    fprintf(stderr, "\n");*/
+
+    assert(totalWritten == n);
+    return totalWritten;
 }

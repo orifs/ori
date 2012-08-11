@@ -116,7 +116,7 @@ LocalRepo_Init(const std::string &rootPath)
     }
 
     // Create first level of object sub-directories
-    for (int i = 0; i < 256; i++)
+    /*for (int i = 0; i < 256; i++)
     {
 	stringstream hexval;
 	string path = rootPath + ORI_PATH_OBJS;
@@ -125,7 +125,7 @@ LocalRepo_Init(const std::string &rootPath)
 	path += hexval.str();
 
 	mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-    }
+    }*/
 
     // Construct UUID
     uuidFile = rootPath + ORI_PATH_UUID;
@@ -407,6 +407,7 @@ LocalRepo::addObject(Object::Type type, const ObjectHash &hash,
     info.payload_size = payload.size();
 
     currTransaction->addPayload(info, payload);
+
 
     /*string objPath = objIdToPath(hash);
 
@@ -722,10 +723,6 @@ LocalRepo::lookupSnapshot(const string &name)
 void
 LocalRepo::pull(Repo *r)
 {
-    SshRepo *sshrepo = NULL;
-    if (dynamic_cast<SshRepo*>(r))
-        sshrepo = (SshRepo *)r;
-
     vector<Commit> remoteCommits = r->listCommits();
     deque<ObjectHash> toPull;
 
@@ -737,10 +734,9 @@ LocalRepo::pull(Repo *r)
         }
     }
 
-    if (sshrepo)
-        sshrepo->preload(toPull.begin(), toPull.end());
-
     LocalRepoLock::ap _lock(lock());
+
+    receive(r->getObjects(toPull));
 
     // Perform the pull
     while (!toPull.empty()) {
@@ -795,13 +791,56 @@ LocalRepo::pull(Repo *r)
             }
         }
 
-        // Preload new objects
-        if (sshrepo)
-            sshrepo->preload(newObjs.begin(), newObjs.end());
+        if (newObjs.size() > 0) {
+            receive(r->getObjects(newObjs));
+        }
 
         // Add the object to this repo
-        copyFrom(o.get());
+        //copyFrom(o.get());
     }
+}
+
+void
+LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
+{
+    typedef std::vector<IndexEntry> IndexEntryVec;
+    std::map<Packfile::sp, IndexEntryVec> packs;
+    for (size_t i = 0; i < objs.size(); i++) {
+        const IndexEntry &ie = index.getEntry(objs[i]);
+        Packfile::sp pf = packfiles->getPackfile(ie.packfile);
+        packs[pf].push_back(ie);
+    }
+
+    for (std::map<Packfile::sp, IndexEntryVec>::iterator it = packs.begin();
+            it != packs.end();
+            it++) {
+        const Packfile::sp &pf = (*it).first;
+        fprintf(stderr, "Transmitting %lu objects from %p\n",
+                (*it).second.size(), pf.get());
+        pf->transmit(bs, (*it).second);
+    }
+
+    bs->writeInt<numobjs_t>(0);
+}
+
+void
+LocalRepo::receive(bytestream *bs)
+{
+    bool cont = true;
+    while (cont) {
+        if (!currPackfile.get() || currPackfile->full()) {
+            currPackfile = packfiles->newPackfile();
+        }
+        cont = currPackfile->receive(bs, &index);
+    }
+}
+
+bytestream *
+LocalRepo::getObjects(const ObjectHashVec &objs)
+{
+    strwstream ss;
+    transmit(&ss, objs);
+    return new strstream(ss.str());
 }
 
 /*

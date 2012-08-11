@@ -56,6 +56,9 @@ public:
         bool getCompressed() const;
         bool operator <(const ObjectInfo &) const;
 
+        // For debug use
+        void print(int fd = STDOUT_FILENO) const;
+
         Type type;
         ObjectHash hash;
         uint32_t flags;

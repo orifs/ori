@@ -11,6 +11,7 @@
 
 typedef uint32_t offset_t;
 typedef uint32_t packid_t;
+typedef uint16_t numobjs_t;
 
 struct IndexEntry
 {
@@ -69,8 +70,9 @@ public:
     typedef void (*ReadEntryCb)(const ObjectInfo &info, offset_t off);
     void readEntries(ReadEntryCb cb);
 
-    void transmit(bytewstream *bs, const std::vector<IndexEntry> objects);
-    void receive(bytestream *bs);
+    void transmit(bytewstream *bs, std::vector<IndexEntry> objects);
+    /// @returns false if nothing to receive
+    bool receive(bytestream *bs, Index *idx);
 
 private:
     int fd;

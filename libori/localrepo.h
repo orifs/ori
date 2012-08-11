@@ -110,6 +110,9 @@ public:
 
     // Clone/pull operations
     void pull(Repo *r);
+    void transmit(bytewstream *bs, const std::vector<ObjectHash> &objs);
+    void receive(bytestream *bs);
+    bytestream *getObjects(const std::vector<ObjectHash> &objs);
 
     // Commit-related operations
     void addLargeBlobBackrefs(const LargeBlob &lb, MdTransaction::sp tr);

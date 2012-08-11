@@ -49,6 +49,7 @@ public:
     Object::sp getObject(const ObjectHash &objId);
     ObjectInfo getObjectInfo(const ObjectHash &objId);
     bool hasObject(const ObjectHash &objId);
+    bytestream *getObjects(const ObjectHashVec &objs);
     std::set<ObjectInfo> listObjects();
     std::vector<Commit> listCommits() { NOT_IMPLEMENTED(false); }
     int addObject(Object::Type type, const ObjectHash &hash,

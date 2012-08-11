@@ -32,15 +32,13 @@ public:
     SshRepo(SshClient *client);
     ~SshRepo();
 
-    template<typename InputIterator>
-    void preload(InputIterator begin, InputIterator end);
-
     std::string getUUID();
     ObjectHash getHead();
 
     Object::sp getObject(const ObjectHash &id);
     ObjectInfo getObjectInfo(const ObjectHash &id);
     bool hasObject(const ObjectHash &id);
+    bytestream *getObjects(const ObjectHashVec &objs);
     std::set<ObjectInfo> listObjects();
     int addObject(Object::Type type, const ObjectHash &hash,
             const std::string &payload);

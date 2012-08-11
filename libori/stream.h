@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <stdexcept>
 
 #include <lzma.h>
 
@@ -39,13 +40,15 @@ public:
     virtual size_t read(uint8_t *buf, size_t n) = 0;
     virtual size_t sizeHint() const = 0;
 
+    bool readExact(uint8_t *buf, size_t n);
+
     // Stream utils
     std::string readAll();
     int copyToFile(const std::string &path);
     int copyToFd(int dstFd);
 
     /// Read Pascal-style string (1 byte length)
-    void readPStr(std::string &str);
+    size_t readPStr(std::string &str);
 
     /// Read ObjectHash
     void readHash(ObjectHash &out);
@@ -54,8 +57,8 @@ public:
     template <typename T>
     T readInt() {
         T rval;
-        size_t nbytes = read((uint8_t*)&rval, sizeof(T));
-        assert(nbytes == sizeof(T));
+        bool success = readExact((uint8_t*)&rval, sizeof(T));
+        assert(success);
         return rval;
     }
 };
@@ -68,7 +71,7 @@ public:
     size_t read(uint8_t *, size_t);
     size_t sizeHint() const;
 private:
-    const std::string &buf;
+    std::string buf;
     size_t off;
     size_t len;
 };
@@ -76,6 +79,7 @@ private:
 class fdstream : public bytestream
 {
 public:
+    /// @param offset can be -1 to disable seeking
     fdstream(int fd, off_t offset, size_t length=(size_t)-1);
     bool ended();
     size_t read(uint8_t *, size_t);
@@ -136,10 +140,12 @@ private:
 class bytewstream : public basestream
 {
 public:
+    typedef std::auto_ptr<bytewstream> ap;
+
     bytewstream() {}
     virtual ~bytewstream() {}
 
-    virtual void write(const void *, size_t) = 0;
+    virtual ssize_t write(const void *, size_t) = 0;
 
     // High-level functions
     void copyFrom(bytestream *bs);
@@ -161,11 +167,20 @@ public:
     strwstream();
     strwstream(const std::string &);
     strwstream(size_t reserved);
-    void write(const void *, size_t);
+    ssize_t write(const void *, size_t);
 
     const std::string &str() const;
 private:
     std::string buf;
+};
+
+class fdwstream : public bytewstream
+{
+public:
+    fdwstream(int fd);
+    ssize_t write(const void *, size_t);
+private:
+    int fd;
 };
 
 #endif
