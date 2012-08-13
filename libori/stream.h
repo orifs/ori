@@ -112,12 +112,14 @@ private:
 #define COMPRESS true
 #define DECOMPRESS false
 
-class lzmastream : public bytestream
+#ifdef ORI_USE_LZMA
+
+class zipstream : public bytestream
 {
 public:
     /// Takes ownership of source. size_hint is total number of bytes output (from read) 
-    lzmastream(bytestream *source, bool compress = false, size_t size_hint = 0);
-    ~lzmastream();
+    zipstream(bytestream *source, bool compress = false, size_t size_hint = 0);
+    ~zipstream();
     bool ended();
     size_t read(uint8_t *, size_t);
     size_t sizeHint() const;
@@ -134,7 +136,33 @@ private:
     void setLzmaErr(const char *msg, lzma_ret ret);
 };
 
+#endif /* ORI_USE_LZMA */
 
+#ifdef ORI_USE_FASTLZ
+
+class zipstream : public bytestream
+{
+public:
+    /// Takes ownership of source. size_hint is total number of bytes output (from read) 
+    zipstream(bytestream *source, bool compress = false, size_t size_hint = 0);
+    ~zipstream();
+    bool ended();
+    size_t read(uint8_t *, size_t);
+    size_t sizeHint() const;
+    size_t inputConsumed() const;
+
+private:
+    bytestream *source;
+    size_t size_hint;
+
+    bool compress;
+    bool output_ended;
+    bool output_loaded;
+    size_t offset;
+    uint8_t *in_buf;
+};
+
+#endif /* ORI_USE_FASTLZ */
 
 ////////////////////////////////
 // Writable streams

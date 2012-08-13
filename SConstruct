@@ -15,8 +15,8 @@ opts.AddVariables(
     ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "1"),
     ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "1"),
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
-    ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SKEIN"),
-    ("COMPRESSION_ALGO", "Compression algorithm (LZMA or FASTLZ).", "LZMA"),
+    ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
+    ("COMPRESSION_ALGO", "Compression algorithm (LZMA or FASTLZ).", "FASTLZ"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
 

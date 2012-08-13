@@ -70,7 +70,7 @@ bytestream *LocalObject::getPayloadStream() {
     }
     if (transaction.get()) {
         if (info.getCompressed()) {
-            return new lzmastream(new strstream(transaction->payloads[ix_tr]),
+            return new zipstream(new strstream(transaction->payloads[ix_tr]),
                         DECOMPRESS, info.payload_size);
         }
         return new strstream(transaction->payloads[ix_tr]);

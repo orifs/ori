@@ -51,7 +51,7 @@ PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
 
 #if ENABLE_COMPRESSION
     uint8_t buf[COMPCHECK_BYTES];
-    lzmastream ls(new strstream(payload), COMPRESS);
+    zipstream ls(new strstream(payload), COMPRESS);
     size_t n = ls.read(buf, COMPCHECK_BYTES);
     float ratio = (float)n / (float)ls.inputConsumed();
 
@@ -190,7 +190,7 @@ bytestream *Packfile::getPayload(const IndexEntry &entry)
     if (!entry.info.getCompressed()) {
         return stored;
     }
-    return new lzmastream(stored, DECOMPRESS, entry.info.payload_size);
+    return new zipstream(stored, DECOMPRESS, entry.info.payload_size);
 }
 
 bool Packfile::purge(const ObjectHash &hash)
