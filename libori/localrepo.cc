@@ -388,7 +388,7 @@ LocalRepo::objIdToPath(const ObjectHash &objId)
 }
 
 int
-LocalRepo::addObject(Object::Type type, const ObjectHash &hash,
+LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
         const std::string &payload)
 {
     assert(opened);
@@ -449,7 +449,7 @@ LocalRepo::addTree(const Tree &tree)
         //o.close();
     }*/
 
-    return addBlob(Object::Tree, blob);
+    return addBlob(ObjectInfo::Tree, blob);
 }
 
 /*
@@ -483,7 +483,7 @@ LocalRepo::addCommit(/* const */ Commit &commit)
 	snapshots.addSnapshot(commit.getSnapshot(), hash);
     }
 
-    return addBlob(Object::Commit, blob);
+    return addBlob(ObjectInfo::Commit, blob);
 }
 
 /*
@@ -522,12 +522,12 @@ LocalRepo::getObjectLength(const ObjectHash &objId)
 /*
  * Get the object type.
  */
-Object::Type
+ObjectType
 LocalRepo::getObjectType(const ObjectHash &objId)
 {
     if (!hasObject(objId)) {
         LOG("Couldn't get object %s", objId.hex().c_str());
-        return Object::Null;
+        return ObjectInfo::Null;
     }
 
     const ObjectInfo &info = getObjectInfo(objId);
@@ -541,7 +541,7 @@ string
 LocalRepo::verifyObject(const ObjectHash &objId)
 {
     LocalObject::sp o;
-    Object::Type type;
+    ObjectType type;
 
     if (!hasObject(objId))
 	return "Object not found!";
@@ -554,9 +554,9 @@ LocalRepo::verifyObject(const ObjectHash &objId)
     type = o->getInfo().type;
     ObjectHash computedHash = Util_HashString(o->getPayload());
     switch(type) {
-	case Object::Null:
+	case ObjectInfo::Null:
 	    return "Object with Null type!";
-	case Object::Commit:
+	case ObjectInfo::Commit:
 	{
 	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
@@ -564,7 +564,7 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	    // XXX: Verify tree and parents exist
 	    break;
 	}
-	case Object::Tree:
+	case ObjectInfo::Tree:
 	{
 	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
@@ -581,14 +581,14 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	    // XXX: Verify subtrees and blobs exist
 	    break;
 	}
-	case Object::Blob:
+	case ObjectInfo::Blob:
 	{
 	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
 
 	    break;
 	}
-        case Object::LargeBlob:
+        case ObjectInfo::LargeBlob:
         {
 	    if (computedHash != objId)
 		return "Object hash mismatch!"; 
@@ -597,7 +597,7 @@ LocalRepo::verifyObject(const ObjectHash &objId)
             // XXX: Verify file hash matches largeObject's file hash
             break;
         }
-	case Object::Purged:
+	case ObjectInfo::Purged:
 	    break;
 	default:
 	    return "Object with unknown type!";
@@ -631,10 +631,10 @@ LocalRepo::copyObject(const ObjectHash &objId, const string &path)
 	return false;
 
     bytestream::ap bs(o->getPayloadStream());
-    if (o->getInfo().type == Object::Blob) {
+    if (o->getInfo().type == ObjectInfo::Blob) {
         if (bs->copyToFile(path) < 0)
 	    return false;
-    } else if (o->getInfo().type == Object::LargeBlob) {
+    } else if (o->getInfo().type == ObjectInfo::LargeBlob) {
         LargeBlob lb = LargeBlob(this);
         lb.fromBlob(bs->readAll());
         lb.extractFile(path);
@@ -685,7 +685,7 @@ LocalRepo::listCommits()
             it != objs.end();
             it++) {
         const ObjectInfo &oi = *it;
-        if (oi.type == Object::Commit) {
+        if (oi.type == ObjectInfo::Commit) {
             const Commit &c = getCommit(oi.hash);
             rval.push_back(c);
         }
@@ -750,12 +750,12 @@ LocalRepo::pull(Repo *r)
         }
 
         // Enqueue the object's references
-        Object::Type t = o->getInfo().type;
+        ObjectType t = o->getInfo().type;
         /*printf("Pulling object %s (%s)\n", hash.c_str(),
                 Object::getStrForType(t));*/
 
         vector<ObjectHash> newObjs;
-        if (t == Object::Commit) {
+        if (t == ObjectInfo::Commit) {
             Commit c;
             c.fromBlob(o->getPayload());
             if (!hasObject(c.getTree())) {
@@ -763,7 +763,7 @@ LocalRepo::pull(Repo *r)
                 newObjs.push_back(c.getTree());
             }
         }
-        else if (t == Object::Tree) {
+        else if (t == ObjectInfo::Tree) {
             Tree t;
             t.fromBlob(o->getPayload());
             for (map<string, TreeEntry>::iterator it = t.tree.begin();
@@ -776,7 +776,7 @@ LocalRepo::pull(Repo *r)
                 }
             }
         }
-        else if (t == Object::LargeBlob) {
+        else if (t == ObjectInfo::LargeBlob) {
             LargeBlob lb(this);
             lb.fromBlob(o->getPayload());
 
@@ -911,7 +911,7 @@ LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
         }
 
         Object::sp o(other->getObject(lbe.hash));
-        assert(o->getInfo().type == Object::Blob);
+        assert(o->getInfo().type == ObjectInfo::Blob);
         assert(o->getInfo().payload_size == lbe.length);
         copyFrom(o.get());
     }
@@ -955,7 +955,7 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c)
     assert(opened);
 
     Object::sp treeObj(getObject(treeHash));
-    assert(treeObj->getInfo().type == Object::Tree);
+    assert(treeObj->getInfo().type == ObjectInfo::Tree);
 
     //LocalRepoLock::ap _lock(lock());
 
@@ -994,7 +994,7 @@ LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
     assert(opened);
 
     Object::sp newTreeObj(objects->getObject(treeHash));
-    assert(newTreeObj->getInfo().type == Object::Tree);
+    assert(newTreeObj->getInfo().type == ObjectInfo::Tree);
 
     LocalRepoLock::ap _lock(lock());
     copyFrom(newTreeObj.get());
@@ -1074,7 +1074,7 @@ LocalRepo::recomputeRefCounts()
             it++) {
         const ObjectHash &hash = (*it).hash;
         switch ((*it).type) {
-            case Object::Commit:
+            case ObjectInfo::Commit:
             {
                 Commit c = getCommit(hash);
                 
@@ -1088,7 +1088,7 @@ LocalRepo::recomputeRefCounts()
                 
                 break;
             }
-            case Object::Tree:
+            case ObjectInfo::Tree:
             {
                 Tree t = getTree(hash);
                 map<string, TreeEntry>::iterator tt;
@@ -1099,7 +1099,7 @@ LocalRepo::recomputeRefCounts()
                 }
                 break;
             }
-            case Object::LargeBlob:
+            case ObjectInfo::LargeBlob:
             {
                 LargeBlob lb(this);
                 Object::sp o(getObject(hash));
@@ -1113,8 +1113,8 @@ LocalRepo::recomputeRefCounts()
                 }
                 break;
             }
-            case Object::Blob:
-	    case Object::Purged:
+            case ObjectInfo::Blob:
+	    case ObjectInfo::Purged:
                 break;
             default:
                 printf("Unsupported object type!\n");

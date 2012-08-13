@@ -35,8 +35,8 @@
 // ~20KB overhead per packfile?
 #define PACKFILE_MAXOBJS (512)
 
-//#define ORI_USE_SHA256
-#define ORI_USE_SKEIN
+#define ORI_USE_SHA256
+//#define ORI_USE_SKEIN
 
 #endif /* __TUNEABLES_H__ */
 

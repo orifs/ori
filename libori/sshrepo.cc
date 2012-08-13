@@ -156,7 +156,7 @@ std::set<ObjectInfo> SshRepo::listObjects()
 }
 
 int
-SshRepo::addObject(Object::Type type, const ObjectHash &hash,
+SshRepo::addObject(ObjectType type, const ObjectHash &hash,
         const std::string &payload)
 {
     NOT_IMPLEMENTED(false);

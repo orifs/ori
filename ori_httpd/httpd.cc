@@ -27,6 +27,7 @@
 #include "localrepo.h"
 #include "util.h"
 #include "zeroconf.h"
+#include "evbufstream.h"
 
 using namespace std;
 
@@ -142,94 +143,51 @@ Httpd_head(struct evhttp_request *req, void *arg)
 void
 Httpd_getIndex(struct evhttp_request *req, void *arg)
 {
-    set<ObjectInfo> objs = repository.listObjects();
-    set<ObjectInfo>::iterator it;
-    struct evbuffer *buf;
-
     LOG("httpd: getindex");
 
-    buf = evbuffer_new();
-    if (buf == NULL) {
-        LOG("httpd_getindex: evbuffer_new failed!");
-        return;
-    }
+    evbufwstream es;
 
-    for (it = objs.begin(); it != objs.end(); it++) {
-        int status;
-        string objInfo = (*it).getInfo();
-
-        LOG("hash = %s\n", (*it).hash.hex().c_str());
-
-        status = evbuffer_add(buf, (*it).hash.hex().c_str(), ObjectHash::SIZE*2);
-        if (status != 0) {
-            assert(status == -1);
-            LOG("evbuffer_add failed while adding hash!");
-            evbuffer_free(buf);
-            buf = evbuffer_new();
-            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
-            return;
-        }
-        status = evbuffer_add(buf, objInfo.data(), objInfo.size());
-        if (status != 0) {
-            assert(status == -1);
-            LOG("evbuffer_add failed while adding objInfo!");
-            evbuffer_free(buf);
-            buf = evbuffer_new();
-            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+    std::set<ObjectInfo> objects = repository.listObjects();
+    es.writeInt<uint64_t>(objects.size());
+    for (std::set<ObjectInfo>::iterator it = objects.begin();
+            it != objects.end();
+            it++) {
+        int status = es.writeInfo(*it);
+        if (status < 0) {
+            LOG("couldn't write info to evbuffer!");
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR",
+                    evbuffer_new());
             return;
         }
     }
+
     evhttp_add_header(req->output_headers, "Content-Type",
             "application/octet-stream");
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
+    evhttp_send_reply(req, HTTP_OK, "OK", es.buf());
 }
 
 void
 Httpd_getCommits(struct evhttp_request *req, void *arg)
 {
-    struct evbuffer *buf;
-
     LOG("httpd: getCommits");
 
-    buf = evbuffer_new();
-    if (buf == NULL) {
-        LOG("httpd_getindex: evbuffer_new failed!");
-        return;
-    }
+    evbufwstream es;
 
     vector<Commit> commits = repository.listCommits();
+    es.writeInt<uint32_t>(commits.size());
     for (size_t i = 0; i < commits.size(); i++) {
-        int status;
-
-        //LOG("hash = %s\n", (*it).hash.c_str());
-
-        const Commit &c = commits[i];
-        std::string blob = c.getBlob();
-
-        int16_t bsize = htons(blob.size());
-        status = evbuffer_add(buf, &bsize, sizeof(int16_t));
-        if (status != 0) {
-            assert(status == -1);
-            LOG("evbuffer_add failed while adding blob size!");
-            evbuffer_free(buf);
-            buf = evbuffer_new();
-            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
-            return;
-        }
-
-        status = evbuffer_add(buf, blob.data(), blob.size());
-        if (status != 0) {
-            assert(status == -1);
-            LOG("evbuffer_add failed while adding blob!");
-            evbuffer_free(buf);
-            buf = evbuffer_new();
-            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR", buf);
+        std::string blob = commits[i].getBlob();
+        if (es.writePStr(blob) < 0) {
+            LOG("couldn't write pstr to evbuffer");
+            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR",
+                    evbuffer_new());
             return;
         }
     }
+
     evhttp_add_header(req->output_headers, "Content-Type",
             "application/octet-stream");
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
+    evhttp_send_reply(req, HTTP_OK, "OK", es.buf());
 }
 
 void
@@ -240,7 +198,7 @@ Httpd_stringDeleteCB(const void *data, size_t len, void *extra)
     delete p;
 }
 
-void
+/*void
 Httpd_getObj(struct evhttp_request *req, void *arg)
 {
     string sobjId;
@@ -300,6 +258,69 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
 
     return;
+}*/
+
+void
+Httpd_getObjInfo(struct evhttp_request *req, void *arg)
+{
+    string url = evhttp_request_get_uri(req);
+    string sObjId;
+    if (url.substr(0, 9) == "/objinfo/") {
+	sObjId = url.substr(9);
+    }
+    else {
+	evhttp_send_reply(req, HTTP_NOTFOUND, "File Not Found", evbuffer_new());
+	return;
+    }
+    
+    if (sObjId.size() != 64) {
+        evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", evbuffer_new());
+        return;
+    }
+    
+    LOG("httpd: getobjinfo %s", sObjId.c_str());
+
+    Object::sp obj = repository.getObject(ObjectHash::fromHex(sObjId));
+    if (obj == NULL) {
+        evhttp_send_reply(req, HTTP_NOTFOUND, "Object Not Found", evbuffer_new());
+        return;
+    }
+
+    ObjectInfo objInfo = obj->getInfo();
+
+    // Transmit
+    evbufwstream es;
+    es.writeInfo(objInfo);
+
+    evhttp_add_header(req->output_headers, "Content-Type",
+            "application/octet-stream");
+    evhttp_send_reply(req, HTTP_OK, "OK", es.buf());
+}
+
+void
+Httpd_getObjs(struct evhttp_request *req, void *arg)
+{
+    // Get object hashes
+    evbuffer *buf = evhttp_request_get_input_buffer(req);
+    evbufstream in(buf);
+
+    uint32_t numObjs = in.readInt<uint32_t>();
+    fprintf(stderr, "Transmitting %u objects\n", numObjs);
+    std::vector<ObjectHash> objs;
+    for (size_t i = 0; i < numObjs; i++) {
+        ObjectHash hash;
+        in.readHash(hash);
+        objs.push_back(hash);
+    }
+
+
+    // Transmit
+    evbufwstream out;
+    repository.transmit(&out, objs);
+
+    evhttp_add_header(req->output_headers, "Content-Type",
+            "application/octet-stream");
+    evhttp_send_reply(req, HTTP_OK, "OK", out.buf());
 }
 
 void
@@ -377,10 +398,11 @@ Httpd_main(uint16_t port)
     evhttp_set_cb(httpd, "/commits", Httpd_getCommits, NULL);
     //evhttp_set_cb(httpd, "/objs", Httpd_pushobj, NULL);
     evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
+    evhttp_set_cb(httpd, "/getobjs", Httpd_getObjs, NULL);
     // Generic handler provides:
     // getObject: /objs/*
     // getObjectInfo: /objinfo/*
-    evhttp_set_gencb(httpd, Httpd_getObj, NULL);
+    evhttp_set_gencb(httpd, Httpd_getObjInfo, NULL);
 
 #if !defined(WITHOUT_MDNS)
     // mDNS

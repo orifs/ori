@@ -40,7 +40,7 @@ public:
     bool hasObject(const ObjectHash &id);
     bytestream *getObjects(const ObjectHashVec &objs);
     std::set<ObjectInfo> listObjects();
-    int addObject(Object::Type type, const ObjectHash &hash,
+    int addObject(ObjectType type, const ObjectHash &hash,
             const std::string &payload);
     std::vector<Commit> listCommits();
 

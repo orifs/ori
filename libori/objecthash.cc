@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <algorithm>
 
 #include "objecthash.h"
@@ -64,7 +66,15 @@ bool ObjectHash::isEmpty() const
 
 std::string ObjectHash::hex() const
 {
-    return Util_RawHashToHex(*this);
+    std::stringstream rval;
+
+    // Convert into string.
+    for (size_t i = 0; i < SIZE; i++)
+    {
+	rval << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    }
+
+    return rval.str();
 }
 
 std::string ObjectHash::bin() const

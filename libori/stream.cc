@@ -121,7 +121,7 @@ retryWrite:
 }
 
 // High-level I/O
-size_t bytestream::readPStr(std::string &out)
+int bytestream::readPStr(std::string &out)
 {
     try {
         uint8_t len = readInt<uint8_t>();
@@ -138,8 +138,15 @@ size_t bytestream::readPStr(std::string &out)
 
 void bytestream::readHash(ObjectHash &out)
 {
-    read((uint8_t*)out.hash, ObjectHash::SIZE);
+    readExact((uint8_t*)out.hash, ObjectHash::SIZE);
     assert(!out.isEmpty());
+}
+
+void bytestream::readInfo(ObjectInfo &out)
+{
+    std::string info_str(ObjectInfo::SIZE, '\0');
+    readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
+    out.fromString(info_str);
 }
 
 
@@ -389,18 +396,31 @@ void bytewstream::copyFrom(bytestream *bs)
     //return totalWritten;
 }
 
-void bytewstream::writePStr(const std::string &str)
+int bytewstream::writePStr(const std::string &str)
 {
     assert(str.size() <= 255);
     uint8_t size = str.size();
-    writeInt(size);
-    write(str.data(), size);
+    if (writeInt(size) != sizeof(uint8_t)) {
+        return -1;
+    }
+    ssize_t status = write(str.data(), size);
+    if (status < 0) {
+        return -1;
+    }
+    return status + 1;
 }
 
 void bytewstream::writeHash(const ObjectHash &hash)
 {
     assert(!hash.isEmpty());
     write(hash.hash, ObjectHash::SIZE);
+}
+
+int bytewstream::writeInfo(const ObjectInfo &info)
+{
+    std::string info_str = info.toString();
+    assert(info_str.size() == ObjectInfo::SIZE);
+    return write(&info_str[0], ObjectInfo::SIZE);
 }
 
 

@@ -84,7 +84,7 @@ public:
     bool hasObject(const ObjectHash &objId);
     //std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
-    int addObject(Object::Type type, const ObjectHash &hash,
+    int addObject(ObjectType type, const ObjectHash &hash,
             const std::string &payload);
 
     bool rebuildIndex();
@@ -98,9 +98,9 @@ public:
 
     ObjectHash addTree(const Tree &tree);
     ObjectHash addCommit(/* const */ Commit &commit);
-    //std::string addBlob(const std::string &blob, Object::Type type);
+    //std::string addBlob(const std::string &blob, ObjectType type);
     size_t getObjectLength(const ObjectHash &objId);
-    Object::Type getObjectType(const ObjectHash &objId);
+    ObjectType getObjectType(const ObjectHash &objId);
     std::string getPayload(const ObjectHash &objId);
     std::string verifyObject(const ObjectHash &objId);
     size_t sendObject(const char *objId);

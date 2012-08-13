@@ -177,7 +177,7 @@ HttpRepo::listObjects()
 }
 
 int
-HttpRepo::addObject(Object::Type type, const ObjectHash &hash,
+HttpRepo::addObject(ObjectType type, const ObjectHash &hash,
             const std::string &payload)
 {
     NOT_IMPLEMENTED(false);

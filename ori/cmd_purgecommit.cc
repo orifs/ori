@@ -40,7 +40,7 @@ cmd_purgecommit(int argc, const char *argv[])
 
     ObjectHash commitId = ObjectHash::fromHex(argv[1]);
 
-    if (repository.getObjectType(commitId) != Object::Commit) {
+    if (repository.getObjectType(commitId) != ObjectInfo::Commit) {
 	cout << "Error: You can only purge an commit." << endl;
 	return 1;
     }

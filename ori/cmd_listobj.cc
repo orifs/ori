@@ -42,19 +42,19 @@ cmd_listobj(int argc, const char *argv[])
 	const char *type;
 	switch ((*it).type)
 	{
-	    case Object::Commit:
+	    case ObjectInfo::Commit:
 		type = "Commit";
 		break;
-	    case Object::Tree:
+	    case ObjectInfo::Tree:
 		type = "Tree";
 		break;
-	    case Object::Blob:
+	    case ObjectInfo::Blob:
 		type = "Blob";
 		break;
-            case Object::LargeBlob:
+            case ObjectInfo::LargeBlob:
                 type = "LargeBlob";
                 break;
-	    case Object::Purged:
+	    case ObjectInfo::Purged:
 		type = "Purged";
 		break;
 	    default:

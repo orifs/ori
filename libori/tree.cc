@@ -178,30 +178,30 @@ Tree::getBlob() const
 {
     strwstream ss;
     size_t size = tree.size();
-    ss.writeInt(size);
+    ss.writeInt<uint64_t>(size);
 
     for (map<string, TreeEntry>::const_iterator it = tree.begin();
             it != tree.end();
             it++) {
 
-        if ((*it).second.type == TreeEntry::Tree) {
+        const TreeEntry &te = (*it).second;
+        if (te.type == TreeEntry::Tree) {
             ss.write("tree", 4);
-        } else if ((*it).second.type == TreeEntry::Blob) {
+        } else if (te.type == TreeEntry::Blob) {
             ss.write("blob", 4);
-        } else if ((*it).second.type == TreeEntry::LargeBlob) {
+        } else if (te.type == TreeEntry::LargeBlob) {
             ss.write("lgbl", 4);
         } else {
             assert(false);
         }
 
-        const TreeEntry &te = (*it).second;
         ss.writeHash(te.hash);
         if (te.type == TreeEntry::LargeBlob)
             ss.writeHash(te.largeHash);
         ss.writePStr((*it).first);
         
         size_t asize = te.attrs.attrs.size();
-        ss.writeInt(asize);
+        ss.writeInt<uint32_t>(asize);
         for (AttrMap::const_iterator ait = te.attrs.attrs.begin();
                 ait != te.attrs.attrs.end();
                 ait++) {
@@ -217,12 +217,12 @@ void
 Tree::fromBlob(const string &blob)
 {
     strstream ss(blob);
-    size_t num_entries = ss.readInt<size_t>();
+    size_t num_entries = ss.readInt<uint64_t>();
     
     for (size_t i = 0; i < num_entries; i++) {
         TreeEntry entry;
         char type[5] = {'\0'};
-        ss.read((uint8_t*)type, 4);
+        ss.readExact((uint8_t*)type, 4);
         if (strcmp(type, "tree") == 0) {
             entry.type = TreeEntry::Tree;
         }
@@ -241,13 +241,18 @@ Tree::fromBlob(const string &blob)
             ss.readHash(entry.largeHash);
         }
         string path;
-        ss.readPStr(path);
+        int status = ss.readPStr(path);
+        assert(status > 0);
 
-        size_t num_attrs = ss.readInt<size_t>();
+        size_t num_attrs = ss.readInt<uint32_t>();
         for (size_t i_a = 0; i_a < num_attrs; i_a++) {
             string attrName, attrValue;
-            ss.readPStr(attrName);
-            ss.readPStr(attrValue);
+
+            status = ss.readPStr(attrName);
+            assert(status > 0);
+            status = ss.readPStr(attrValue);
+            assert(status > 0);
+
             entry.attrs.attrs[attrName] = attrValue;
         }
 
@@ -345,7 +350,7 @@ Tree::unflatten(const Flat &flat, Repo *r)
         ObjectHash hash = Util_HashString(blob);
 
         // Add to Repo
-        r->addObject(Object::Tree, hash, blob);
+        r->addObject(ObjectInfo::Tree, hash, blob);
 
         // Add to parent
         TreeEntry te = (*flat.find(tree_names[i])).second;
@@ -357,7 +362,7 @@ Tree::unflatten(const Flat &flat, Repo *r)
         trees[parent].tree[StrUtil_Basename(tn)] = te;
     }
 
-    r->addBlob(Object::Tree, trees[""].getBlob());
+    r->addBlob(ObjectInfo::Tree, trees[""].getBlob());
 
     return trees[""];
 }
