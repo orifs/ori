@@ -34,6 +34,9 @@ public:
     // At the moment the protocol is synchronous
     int getRequest(const std::string &command,
                    std::string &response);
+    int postRequest(const std::string &url,
+                    const std::string &payload,
+                    std::string &response);
     int putRequest(const std::string &command,
                    const std::string &payload,
                    std::string &response);

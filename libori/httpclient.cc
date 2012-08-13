@@ -197,6 +197,36 @@ HttpClient::getRequest(const string &command, string &response)
 }
 
 int
+HttpClient::postRequest(const string &url,
+                        const string &payload,
+                        string &response)
+{
+    RequestCB cb;
+    cb.client = this;
+    cb.response = &response;
+
+    struct evhttp_request *req = evhttp_request_new(
+            HttpClient_requestDoneCB, &cb);
+
+    struct evkeyvalq *headers = evhttp_request_get_output_headers(req);
+    evhttp_add_header(headers, "Connection", "keep-alive");
+
+    struct evbuffer *outbuf = evhttp_request_get_output_buffer(req);
+    evbuffer_add(outbuf, payload.data(), payload.size());
+
+    int status = evhttp_make_request(con, req, EVHTTP_REQ_POST, url.c_str());
+    if (status < 0) {
+        LOG("HTTP request failure!");
+        return -1;
+    }
+
+    // XXX: Create dedicated event loop
+    event_base_dispatch(base);
+
+    return 0;
+}
+
+int
 HttpClient::putRequest(const string &command,
                        const string &payload,
                        string &response)

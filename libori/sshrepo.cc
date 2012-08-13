@@ -144,10 +144,8 @@ std::set<ObjectInfo> SshRepo::listObjects()
     if (ok) {
         uint64_t num = bs->readInt<uint64_t>();
         for (size_t i = 0; i < num; i++) {
-            std::string info_str(ObjectInfo::SIZE, '\0');
-            bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
             ObjectInfo info;
-            info.fromString(info_str);
+            bs->readInfo(info);
             rval.insert(info);
         }
     }
