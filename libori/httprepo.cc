@@ -94,6 +94,7 @@ Object::sp
 HttpRepo::getObject(const ObjectHash &id)
 {
     LOG("WARNING: single ID request %s", id.hex().c_str());
+    Util_PrintBacktrace();
 
     ObjectHashVec objs;
     objs.push_back(id);

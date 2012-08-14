@@ -11,7 +11,7 @@
 
 typedef uint32_t offset_t;
 typedef uint32_t packid_t;
-typedef uint16_t numobjs_t;
+typedef uint32_t numobjs_t;
 
 struct IndexEntry
 {

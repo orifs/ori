@@ -552,23 +552,26 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	return "Cannot open object!";
 
     type = o->getInfo().type;
+    if (type == ObjectInfo::Null)
+        return "Object with Null type!";
+
     ObjectHash computedHash = Util_HashString(o->getPayload());
+    if (computedHash != objId) {
+        stringstream ss;
+        ss << "Object hash mismatch! (computed hash "
+           << computedHash.hex()
+           << ")";
+        return ss.str();
+    }
+
     switch(type) {
-	case ObjectInfo::Null:
-	    return "Object with Null type!";
 	case ObjectInfo::Commit:
 	{
-	    if (computedHash != objId)
-		return "Object hash mismatch!"; 
-
 	    // XXX: Verify tree and parents exist
 	    break;
 	}
 	case ObjectInfo::Tree:
 	{
-	    if (computedHash != objId)
-		return "Object hash mismatch!"; 
-
             Tree t;
             t.fromBlob(o->getPayload());
             for (map<string, TreeEntry>::iterator it = t.tree.begin();
@@ -583,16 +586,10 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	}
 	case ObjectInfo::Blob:
 	{
-	    if (computedHash != objId)
-		return "Object hash mismatch!"; 
-
 	    break;
 	}
         case ObjectInfo::LargeBlob:
         {
-	    if (computedHash != objId)
-		return "Object hash mismatch!"; 
-
             // XXX: Verify fragments
             // XXX: Verify file hash matches largeObject's file hash
             break;
@@ -771,7 +768,9 @@ LocalRepo::pull(Repo *r)
                     it++) {
                 const ObjectHash &entry_hash = (*it).second.hash;
                 if (!hasObject(entry_hash)) {
-                    toPull.push_back(entry_hash);
+                    if ((*it).second.type != TreeEntry::Blob) {
+                        toPull.push_back(entry_hash);
+                    }
                     newObjs.push_back(entry_hash);
                 }
             }
@@ -785,7 +784,7 @@ LocalRepo::pull(Repo *r)
                     pit++) {
                 const ObjectHash &h = (*pit).second.hash;
                 if (!hasObject(h)) {
-                    toPull.push_back(h);
+                    //toPull.push_back(h);
                     newObjs.push_back(h);
                 }
             }

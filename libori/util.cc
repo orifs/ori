@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <execinfo.h>
 
 #include <iostream>
 #include <iomanip>
@@ -295,23 +296,30 @@ Util_RenameFile(const std::string &from, const std::string &to)
     return 0;
 }
 
+ObjectHash
+Util_HashString(const string &str)
+{
+    return Util_HashBlob((uint8_t*)str.data(), str.size());
+}
+
 #ifdef ORI_USE_SHA256
 
 /*
  * Compute SHA 256 hash for a string.
  */
 ObjectHash
-Util_HashString(const string &str)
+Util_HashBlob(const uint8_t *data, size_t len)
 {
     SHA256_CTX state;
     ObjectHash hash;
 
     SHA256_Init(&state);
-    SHA256_Update(&state, str.c_str(), str.size());
+    SHA256_Update(&state, data, len);
     SHA256_Final(hash.hash, &state);
 
     return hash;
 }
+
 
 /*
  * Compute SHA 256 hash for a file.
@@ -368,13 +376,13 @@ Util_HashFile(const string &path)
  * Compute SHA 256 hash for a string.
  */
 ObjectHash
-Util_HashString(const string &str)
+Util_HashBlob(const uint8_t *blob, size_t len)
 {
     Skein_256_Ctxt_t state;
     ObjectHash hash;
 
     Skein_256_Init(&state, 256);
-    Skein_256_Update(&state, (u08b_t *)str.c_str(), str.size());
+    Skein_256_Update(&state, (u08b_t *)blob, len);
     Skein_256_Final(&state, (u08b_t *)hash.hash);
 
     return hash;
@@ -543,6 +551,23 @@ Util_PrintHex(const std::string &data, off_t off, size_t limit)
         }
         printf("|");
     }
+}
+
+/*
+ * Print a backtrace
+ */
+void
+Util_PrintBacktrace()
+{
+    const size_t MAX_FRAMES = 128;
+    void *array[MAX_FRAMES];
+
+    int num = backtrace(array, MAX_FRAMES);
+    char **names = backtrace_symbols(array, num);
+    for (int i = 0; i < num; i++) {
+        fprintf(stderr, "%s\n", names[i]);
+    }
+    free(names);
 }
 
 /*

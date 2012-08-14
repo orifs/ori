@@ -122,16 +122,10 @@ public:
     }
     virtual void match(const uint8_t *b, uint32_t l)
     {
-	SHA256_CTX state;
-        ObjectHash hash;
-
-	SHA256_Init(&state);
-	SHA256_Update(&state, b, l);
-	SHA256_Final(hash.hash, &state);
-
         // Add the fragment into the repository
         // XXX: Journal for cleanup!
         string blob = string((const char *)b, l);
+        ObjectHash hash = Util_HashString(blob);
         lb->repo->addObject(ObjectInfo::Blob, hash, blob);
 
         // Add the fragment to the LargeBlob object.
