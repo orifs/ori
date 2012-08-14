@@ -9,7 +9,7 @@
 
 typedef int32_t refcount_t;
 typedef std::map<ObjectHash, refcount_t> RefcountMap;
-typedef std::map<ObjectHash, std::string> MetadataMap;
+typedef std::map<ObjectHash, std::map<std::string, std::string> > MetadataMap;
 
 class MetadataLog;
 class MdTransaction
@@ -21,7 +21,8 @@ public:
 
     void addRef(const ObjectHash &hash);
     void decRef(const ObjectHash &hash);
-    void setMeta(const ObjectHash &hash, const std::string &data);
+    void setMeta(const ObjectHash &hash, const std::string &key,
+            const std::string &value);
 
     // TODO: cancel this transaction
 private:
@@ -44,7 +45,7 @@ public:
     void addRef(const ObjectHash &hash, MdTransaction::sp trs =
             MdTransaction::sp());
     refcount_t getRefCount(const ObjectHash &hash) const;
-    std::string getMeta(const ObjectHash &hash) const;
+    std::string getMeta(const ObjectHash &hash, const std::string &key) const;
 
     MdTransaction::sp begin();
     void commit(MdTransaction *tr);

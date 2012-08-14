@@ -973,12 +973,13 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c)
 
     ObjectHash commitHash = addCommit(c);
 
-    // Update .ori/HEAD
-    updateHead(commitHash);
-
     // Backrefs
     MdTransaction::sp tr(metadata.begin());
     addCommitBackrefs(c, tr);
+    tr->setMeta(commitHash, "status", "normal");
+
+    // Update .ori/HEAD
+    updateHead(commitHash);
 
     printf("Commit Hash: %s\nTree Hash: %s\n",
 	   commitHash.hex().c_str(),
@@ -1177,7 +1178,7 @@ LocalRepo::purgeCommit(const ObjectHash &commitId)
     for (it = objs.begin(); it != objs.end(); it++) {
 	tx->decRef(*it);
     }
-    tx->setMeta(commitId, "purging");
+    tx->setMeta(commitId, "status", "purging");
     metadata.commit(tx.get());
 
     // Purge objects -- Needs to be journaled this is racey
@@ -1187,7 +1188,7 @@ LocalRepo::purgeCommit(const ObjectHash &commitId)
     }
 
     tx = metadata.begin();
-    tx->setMeta(commitId, "purged");
+    tx->setMeta(commitId, "status", "purged");
     metadata.commit(tx.get());
 
     return true;

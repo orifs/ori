@@ -82,7 +82,7 @@ if env["VERBOSE"] == "0":
     env["ARCOMSTR"] = "Creating library $TARGET"
     env["LINKCOMSTR"] = "Linking $TARGET"
 
-def GetNumCPUs():
+def GetNumCPUs(env):
     if env["NUMCPUS"] != "0":
         return int(env["NUMCPUS"])
     if os.sysconf_names.has_key("SC_NPROCESSORS_ONLN"):
@@ -93,8 +93,7 @@ def GetNumCPUs():
             return 2
     return 2*int(os.popen2("sysctl -n hw.ncpu")[1].read())
 
-env.SetOption('num_jobs', GetNumCPUs())
-#env.SetOption('num_jobs', 1)
+env.SetOption('num_jobs', GetNumCPUs(env))
 
 # Add pkg-config options (TODO)
 env.ParseConfig('pkg-config --libs --cflags libevent')

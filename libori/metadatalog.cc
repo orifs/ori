@@ -34,9 +34,10 @@ void MdTransaction::decRef(const ObjectHash &hash)
     assert(log->refcounts[hash] + counts[hash] >= 0);
 }
 
-void MdTransaction::setMeta(const ObjectHash &hash, const std::string &data)
+void MdTransaction::setMeta(const ObjectHash &hash, const std::string &key,
+        const std::string &value)
 {
-    metadata[hash] = data;
+    metadata[hash][key] = value;
 }
 
 
@@ -87,7 +88,7 @@ MetadataLog::open(const std::string &filename)
             return false;
         }
 
-        if (readSoFar + nbytes > sb.st_size) {
+        if (readSoFar + nbytes > (size_t)sb.st_size) {
             // TODO: check end of log for consistency
             printf("Corruption in this entry!\n");
             return false;
@@ -119,9 +120,13 @@ MetadataLog::open(const std::string &filename)
             ObjectHash hash;
             ss.readHash(hash);
 
-            std::string data;
-            ss.readPStr(data);
-            metadata[hash] = data;
+            uint32_t num_mde = ss.readInt<uint32_t>();
+            for (size_t ix_mde = 0; ix_mde < num_mde; ix_mde++) {
+                std::string key, value;
+                ss.readPStr(key);
+                ss.readPStr(value);
+                metadata[hash][key] = value;
+            }
         }
     }
 
@@ -179,12 +184,15 @@ MetadataLog::getRefCount(const ObjectHash &hash) const
 }
 
 std::string
-MetadataLog::getMeta(const ObjectHash &hash) const
+MetadataLog::getMeta(const ObjectHash &hash, const std::string &key) const
 {
     MetadataMap::const_iterator it = metadata.find(hash);
     if (it == metadata.end())
         return "";
-    return (*it).second;
+    std::map<std::string, std::string>::const_iterator mit = (*it).second.find(key);
+    if (mit == (*it).second.end())
+        return "";
+    return (*mit).second;
 }
 
 MdTransaction::sp
@@ -230,8 +238,17 @@ MetadataLog::commit(MdTransaction *tr)
         assert(!hash.isEmpty());
 
         ws.writeHash(hash);
-        metadata[hash] = (*it).second;
-        ws.writePStr((*it).second);
+        uint32_t num_mde = (*it).second.size();
+        ws.writeInt(num_mde);
+
+        for (std::map<std::string, std::string>::iterator mit =
+                (*it).second.begin();
+                mit != (*it).second.end();
+                mit++) {
+            metadata[hash][(*mit).first] = (*mit).second;
+            ws.writePStr((*mit).first);
+            ws.writePStr((*mit).second);
+        }
     }
 
     //ObjectHash commitHash = Util_HashString(ws.str());
