@@ -61,9 +61,9 @@ int _numComponents(const char *path)
 }
 
 static TreeEntry *
-_getTreeEntry(ori_priv *priv, const char *path)
+_getTreeEntry(ori_priv *priv, const char *cpath)
 {
-    int numc = _numComponents(path);
+    /*int numc = _numComponents(path);
 
     Tree *t = priv->headtree;
     TreeEntry *e = NULL;
@@ -108,7 +108,16 @@ _getTreeEntry(ori_priv *priv, const char *path)
         start = end+1;
     }
 
-    return e;
+    return e;*/
+    std::string path(cpath);
+    if (priv->teCache.hasKey(path)) {
+        return &priv->teCache.get(path);
+    }
+    TreeEntry te = priv->repo->lookupTreeEntry(*priv->head, path);
+    if (te.type == TreeEntry::Null)
+        return NULL;
+    priv->teCache.put(path, te);
+    return &priv->teCache.get(path);
 }
 
 static ExtendedTreeEntry *

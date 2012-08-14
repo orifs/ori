@@ -48,6 +48,8 @@ struct ori_priv
     LRUCache<ObjectHash, Tree, 128> treeCache;
     LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
     LRUCache<ObjectHash, ObjectInfo, 128> objInfoCache;
+
+    LRUCache<std::string, TreeEntry, 128> teCache;
     LRUCache<std::string, ExtendedTreeEntry, 128> eteCache;
 
     LocalRepo *repo;

@@ -467,7 +467,7 @@ Util_PathToVector(const string &path)
             break;
         }
 
-        rval.push_back(path.substr(pos, end - 1));
+        rval.push_back(path.substr(pos, end - pos));
         pos = end + 1;
     }
 
@@ -712,12 +712,23 @@ util_selftest(void)
     // Tests for string utilities
     std::string path("hello.txt");
     assert(StrUtil_Basename(path) == "hello.txt");
+    assert(Util_PathToVector(path).size() == 1);
     path = "a/hello.txt";
     assert(StrUtil_Basename(path) == "hello.txt");
+    assert(Util_PathToVector(path).size() == 2);
     path = "/hello.txt";
     assert(StrUtil_Basename(path) == "hello.txt");
+    assert(Util_PathToVector(path).size() == 1);
     path = "/a/b/c/hello.txt";
     assert(StrUtil_Basename(path) == "hello.txt");
+    assert(Util_PathToVector(path).size() == 4);
+
+    path = "/b/b.txt/file";
+    std::vector<string> pv = Util_PathToVector(path);
+    assert(pv.size() == 3);
+    assert(pv[0] == "b");
+    assert(pv[1] == "b.txt");
+    assert(pv[2] == "file");
 
     // Test for serialization
     std::string testStr;

@@ -1292,7 +1292,8 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
 	    entry.type = TreeEntry::Null;
 	    return entry;
 	}
-        entry = t.tree[*it];
+        entry = (*e).second;//t.tree[*it];
+        //fprintf(stderr, "%d %s ", entry.type, entry.hash.hex().c_str());
     }
 
     return entry;
