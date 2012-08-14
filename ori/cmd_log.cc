@@ -32,7 +32,13 @@ extern LocalRepo repository;
 int
 cmd_log(int argc, const char *argv[])
 {
-    ObjectHash commit = repository.getHead();
+    ObjectHash commit;
+    if (argc >= 2) {
+        commit = ObjectHash::fromHex(argv[1]);
+    }
+    else {
+        commit = repository.getHead();
+    }
 
     while (commit != EMPTY_COMMIT) {
 	Commit c = repository.getCommit(commit);
@@ -43,8 +49,11 @@ cmd_log(int argc, const char *argv[])
 
 	cout << "Commit:  " << commit.hex() << endl;
 	cout << "Parents: " << c.getParents().first.hex() << endl;
+	cout << "Tree:    " << c.getTree().hex() << endl;
 	cout << "Author:  " << c.getUser() << endl;
-	cout << "Date:    " << timeStr << endl;
+	cout << "Date:    " << timeStr;
+        cout << "Status:  " << repository.getMetadata().getMeta(commit,
+                "status") << endl << endl;
 	cout << c.getMessage() << endl << endl;
 
 	commit = c.getParents().first;

@@ -38,7 +38,7 @@ struct ori_priv
     ori_priv(const std::string &repoPath);
     ~ori_priv();
 
-    void _resetHead();
+    void _resetHead(Commit *c);
 
     // Functions to access the cache
     Tree *getTree(const ObjectHash &hash);
@@ -64,8 +64,10 @@ struct ori_priv
     // Initialize temporary written data
     void startWrite();
     bool merge(const TreeDiffEntry &tde);
-    // Commit temp data to repo
-    void commitWrite();
+    // Commit temp data to a FUSE commit
+    void fuseCommit();
+    // Make the last FUSE commit permanent
+    void commitPerm();
 
 
     // Output buffer for commands (ori_cmdoutput.cc)

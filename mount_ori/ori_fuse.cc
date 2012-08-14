@@ -528,7 +528,7 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
 
     if (p->merge(tde)) {
         FUSE_LOG("committing");
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return 0;
@@ -567,7 +567,7 @@ ori_unlink(const char *path)
     }
 
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
     
     return 0;
@@ -617,7 +617,7 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
     // TODO: do this once per commit?
     tde.newAttrs.setAs<size_t>(ATTR_FILESIZE, sb.st_size);
     if (p->merge(tde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return res;
@@ -652,7 +652,7 @@ ori_truncate(const char *path, off_t length)
     newTde.newFilename = tempFile;
     newTde.newAttrs.setAs<size_t>(ATTR_FILESIZE, (size_t)length);
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return res;
@@ -680,7 +680,7 @@ ori_chmod(const char *path, mode_t mode)
     newTde.newAttrs.setAs<mode_t>(ATTR_PERMS, mode);
 
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return 0;
@@ -715,7 +715,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
         newTde.newAttrs.attrs[ATTR_GROUPNAME] = grp->gr_name;
 
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return 0;
@@ -743,7 +743,7 @@ ori_utimens(const char *path, const struct timespec tv[2])
     newTde.newAttrs.setAs<time_t>(ATTR_MTIME, tv[1].tv_sec);
 
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return 0;
@@ -900,7 +900,7 @@ ori_mkdir(const char *path, mode_t mode)
     TreeDiffEntry newTde(path, TreeDiffEntry::NewDir);
     newTde.newAttrs.setCreation(0755);
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return 0;
@@ -926,7 +926,7 @@ ori_rmdir(const char *path)
 
     TreeDiffEntry newTde(path, TreeDiffEntry::DeletedDir);
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return 0;
@@ -962,14 +962,14 @@ ori_rename(const char *from_path, const char *to_path)
         TreeDiffEntry tde(to_path, dest_ete->te.type == TreeEntry::Tree ?
                 TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile);
         p->merge(tde);
-        p->commitWrite();
+        p->fuseCommit();
         p->startWrite();
     }
 
     TreeDiffEntry newTde(from_path, TreeDiffEntry::Renamed);
     newTde.newFilename = to_path;
     if (p->merge(newTde)) {
-        p->commitWrite();
+        p->fuseCommit();
     }
 
     return 0;
@@ -1012,7 +1012,7 @@ ori_init(struct fuse_conn_info *conn)
 	priv->repo->setInstaClone("origin");
 
 	priv->repo->setRemote(remoteRepo.get());
-        priv->_resetHead();
+        priv->_resetHead(NULL);
 
         FUSE_LOG("InstaClone: Enabled!");
     }
@@ -1029,7 +1029,7 @@ static void
 ori_destroy(void *userdata)
 {
     ori_priv *priv = ori_getpriv();
-    priv->commitWrite();
+    priv->commitPerm();
     delete priv;
 
     FUSE_LOG("finished");

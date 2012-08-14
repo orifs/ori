@@ -371,7 +371,16 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
         append(to_merge);
         return true;
     }
-    // TODO: deletedfile + newfile--merge or append?
+    else if ((e->type == TreeDiffEntry::DeletedFile &&
+              to_merge.type == TreeDiffEntry::NewFile) ||
+             (e->type == TreeDiffEntry::DeletedDir &&
+              to_merge.type == TreeDiffEntry::NewDir))
+    {
+        e->type = TreeDiffEntry::Modified;
+        e->newFilename = to_merge.newFilename;
+        e->newAttrs.mergeFrom(to_merge.newAttrs);
+        return true;
+    }
     else
     {
         LOG("%c %c\n", e->type, to_merge.type);
@@ -450,7 +459,9 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
 
             TreeEntry te = flat[tde.filepath];
             flat.erase(tde.filepath);
+            te.attrs.mergeFrom(tde.newAttrs);
             flat[tde.newFilename] = te;
+            assert(te.hasBasicAttrs());
         }
         else {
             assert(false);

@@ -20,7 +20,7 @@ ori_priv::ori_priv(const std::string &repoPath)
         exit(1);
     }
 
-    _resetHead();
+    _resetHead(NULL);
 }
 
 ori_priv::~ori_priv()
@@ -31,14 +31,19 @@ ori_priv::~ori_priv()
 }
 
 void
-ori_priv::_resetHead()
+ori_priv::_resetHead(Commit *c)
 {
-    if (repo->getHead() != EMPTY_COMMIT) {
+    if (c == NULL && repo->getHead() != EMPTY_COMMIT) {
         *head = Commit();
         head->fromBlob(repo->getPayload(repo->getHead()));
-        *headtree = Tree();
-        headtree->fromBlob(repo->getPayload(head->getTree()));
     }
+    else {
+        *head = *c;
+    }
+
+    *headtree = Tree();
+    if (head->getTree() != EMPTY_COMMIT)
+        headtree->fromBlob(repo->getPayload(head->getTree()));
 }
 
 Tree *
@@ -92,36 +97,47 @@ ori_priv::merge(const TreeDiffEntry &tde)
 }
 
 void
-ori_priv::commitWrite()
+ori_priv::fuseCommit()
 {
     if (currTreeDiff != NULL) {
         FUSE_LOG("committing");
 
-        ObjectHash tip = repo->getHead();
-
-        Tree tip_tree;
-        if (tip != EMPTY_COMMIT) {
-            Commit c = repo->getCommit(tip);
-            tip_tree = repo->getTree(c.getTree());
-        }
-        Tree new_tree = currTreeDiff->applyTo(tip_tree.flattened(repo),
+        Tree new_tree = currTreeDiff->applyTo(headtree->flattened(repo),
                 currTempDir.get());
 
         Commit newCommit;
         newCommit.setMessage("Commit from FUSE.");
         repo->commitFromObjects(new_tree.hash(), currTempDir.get(),
-                newCommit);
+                newCommit, "fuse");
 
-        _resetHead();
+        _resetHead(&newCommit);
 
         delete currTreeDiff;
         currTreeDiff = NULL;
         currTempDir.reset();
         eteCache.clear();
+        teCache.clear();
     }
     else {
         FUSE_LOG("commitWrite: nothing to commit");
     }
+}
+
+void
+ori_priv::commitPerm()
+{
+    fuseCommit();
+    MdTransaction::sp tr(repo->getMetadata().begin());
+    tr->setMeta(head->hash(), "status", "normal");
+    tr.reset();
+
+    assert(repo->getMetadata().getMeta(head->hash(), "status") == "normal");
+
+    // Purge other FUSE commits
+    repo->purgeFuseCommits();
+    repo->updateHead(head->hash());
+
+    FUSE_LOG("committing changes permanently");
 }
 
 

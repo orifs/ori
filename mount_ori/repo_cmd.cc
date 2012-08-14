@@ -15,7 +15,7 @@ void cmd_status(ori_priv *p)
 void cmd_commit(ori_priv *p)
 {
     printf("Executing commit\n");
-    p->commitWrite();
+    p->commitPerm();
     p->printf("Commit Hash: %s\nTree Hash: %s\n",
 	   p->head->hash().hex().c_str(),
 	   p->headtree->hash().hex().c_str());

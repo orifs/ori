@@ -949,7 +949,8 @@ LocalRepo::copyObjectsFromTree(Repo *other, const Tree &t)
 }
 
 ObjectHash
-LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c)
+LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
+        const std::string &status)
 {
     assert(opened);
 
@@ -976,10 +977,11 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c)
     // Backrefs
     MdTransaction::sp tr(metadata.begin());
     addCommitBackrefs(c, tr);
-    tr->setMeta(commitHash, "status", "normal");
+    tr->setMeta(commitHash, "status", status);
 
     // Update .ori/HEAD
-    updateHead(commitHash);
+    if (status == "normal")
+        updateHead(commitHash);
 
     printf("Commit Hash: %s\nTree Hash: %s\n",
 	   commitHash.hex().c_str(),
@@ -989,7 +991,7 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c)
 
 ObjectHash
 LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
-        Commit &c)
+        Commit &c, const std::string &status)
 {
     assert(opened);
 
@@ -1002,7 +1004,7 @@ LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
     Tree newTree = getTree(treeHash);
     copyObjectsFromTree(objects, newTree);
 
-    return commitFromTree(treeHash, c);
+    return commitFromTree(treeHash, c, status);
 }
 
 /*
@@ -1053,8 +1055,8 @@ LocalRepo::getObjectInfo(const ObjectHash &objId)
  * Reference Counting Operations
  */
 
-const MetadataLog &
-LocalRepo::getMetadata() const
+MetadataLog &
+LocalRepo::getMetadata()
 {
     return metadata;
 }
@@ -1179,7 +1181,7 @@ LocalRepo::purgeCommit(const ObjectHash &commitId)
 	tx->decRef(*it);
     }
     tx->setMeta(commitId, "status", "purging");
-    metadata.commit(tx.get());
+    tx.reset();
 
     // Purge objects -- Needs to be journaled this is racey
     for (it = objs.begin(); it != objs.end(); it++) {
@@ -1189,9 +1191,25 @@ LocalRepo::purgeCommit(const ObjectHash &commitId)
 
     tx = metadata.begin();
     tx->setMeta(commitId, "status", "purged");
-    metadata.commit(tx.get());
+    tx.reset();
 
     return true;
+}
+
+/*
+ * Purge fuse commits
+ */
+void
+LocalRepo::purgeFuseCommits()
+{
+    vector<Commit> commits = listCommits();
+    for (size_t i = 0; i < commits.size(); i++) {
+        const Commit &c = commits[i];
+        ObjectHash hash = c.hash();
+        if (metadata.getMeta(hash, "status") == "fuse") {
+            assert(purgeCommit(hash));
+        }
+    }
 }
 
 /*

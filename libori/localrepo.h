@@ -123,20 +123,22 @@ public:
     void copyObjectsFromTree(Repo *other, const Tree &t);
 
     /// @returns commit id
-    ObjectHash commitFromTree(const ObjectHash &treeHash, Commit &c);
+    ObjectHash commitFromTree(const ObjectHash &treeHash, Commit &c,
+            const std::string &status="normal");
     ObjectHash commitFromObjects(const ObjectHash &treeHash, Repo *objects,
-            Commit &c);
+            Commit &c, const std::string &status="normal");
 
     void gc();
 
     // Reference Counting Operations
-    const MetadataLog &getMetadata() const;
+    MetadataLog &getMetadata();
     RefcountMap recomputeRefCounts();
     bool rewriteRefCounts(const RefcountMap &refs);
     
     // Purging Operations
     bool purgeObject(const ObjectHash &objId);
     bool purgeCommit(const ObjectHash &commitId);
+    void purgeFuseCommits();
 
     // Grafting Operations
     std::set<ObjectHash> getSubtreeObjects(const ObjectHash &treeId);
