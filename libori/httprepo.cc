@@ -116,7 +116,7 @@ HttpRepo::getObject(const ObjectHash &id)
         assert(num == 0);
 
         if (info.getCompressed()) {
-            payloads[info.hash] = lzmastream(new strstream(payload), DECOMPRESS,
+            payloads[info.hash] = zipstream(new strstream(payload), DECOMPRESS,
                     info.payload_size).readAll();
         }
         else {
