@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#include "fastlz.h"
+
 #include "debug.h"
 #include "tuneables.h"
 #include "stream.h"
@@ -258,11 +260,13 @@ size_t diskstream::sizeHint() const {
     return source->sizeHint();
 }
 
+#ifdef ORI_USE_LZMA
+
 /*
- * lzmastream
+ * LZMA zipstream
  */
 
-lzmastream::lzmastream(bytestream *source, bool compress, size_t size_hint)
+zipstream::zipstream(bytestream *source, bool compress, size_t size_hint)
     : source(source), size_hint(size_hint), output_ended(false)
 {
     assert(source != NULL);
@@ -282,15 +286,15 @@ lzmastream::lzmastream(bytestream *source, bool compress, size_t size_hint)
     }
 }
 
-lzmastream::~lzmastream() {
+zipstream::~zipstream() {
     delete source;
 }
 
-bool lzmastream::ended() {
+bool zipstream::ended() {
     return output_ended || error();
 }
 
-size_t lzmastream::read(uint8_t *buf, size_t n) {
+size_t zipstream::read(uint8_t *buf, size_t n) {
     if (output_ended) return 0;
 
     lzma_action action = source->ended() ? LZMA_FINISH : LZMA_RUN;
@@ -324,11 +328,11 @@ size_t lzmastream::read(uint8_t *buf, size_t n) {
     return strm.total_out - begin_total;
 }
 
-size_t lzmastream::sizeHint() const {
+size_t zipstream::sizeHint() const {
     return size_hint;
 }
 
-size_t lzmastream::inputConsumed() const {
+size_t zipstream::inputConsumed() const {
     return strm.total_in;
 }
 
@@ -361,7 +365,7 @@ const char *lzma_ret_str(lzma_ret ret) {
     }
 }
 
-void lzmastream::setLzmaErr(const char *msg, lzma_ret ret)
+void zipstream::setLzmaErr(const char *msg, lzma_ret ret)
 {
     char buf[512];
     snprintf(buf, 512, "lzmastream %s: %s (%d)\n", msg, lzma_ret_str(ret), ret);
@@ -369,11 +373,86 @@ void lzmastream::setLzmaErr(const char *msg, lzma_ret ret)
     last_errnum = ret;
 }
 
+#endif /* ORI_USE_LZMA */
 
+#ifdef ORI_USE_FASTLZ
 
+/*
+ * FastLZ zipstream
+ */
 
+zipstream::zipstream(bytestream *source, bool compress, size_t size_hint)
+    : source(source),
+      size_hint(size_hint),
+      compress(compress),
+      output_ended(false),
+      output_loaded(false),
+      offset(0),
+      in_buf(NULL)
+{
+    assert(source != NULL);
+    if (size_hint == 0) {
+	// Hack for compression path
+	size_hint = source->sizeHint() * 120 / 100;
+    }
 
+    in_buf = new uint8_t[size_hint];
+}
 
+zipstream::~zipstream() {
+    delete source;
+    delete in_buf;
+}
+
+bool zipstream::ended() {
+    return output_ended; // || error();
+}
+
+size_t zipstream::read(uint8_t *buf, size_t n) {
+    if (output_ended)
+	return 0;
+
+    if (output_loaded) {
+	size_t len = source->sizeHint();
+	uint8_t *buf = new uint8_t[len];
+
+	size_t bytesRead = source->read(buf, len);
+	assert(bytesRead == source->sizeHint());
+
+	output_loaded = true;
+
+	if (compress) {
+	    int compressed = fastlz_compress(buf, len, in_buf);
+	    delete buf;
+	    if (compressed == 0)
+		return 0;
+	} else {
+	    int decompressed = fastlz_decompress(buf, len, in_buf, size_hint);
+	    delete buf;
+	    if (decompressed == 0)
+		return 0;
+	}
+    }
+
+    int to_copy = MIN(n, size_hint - offset);
+    memcpy(buf, in_buf + offset, to_copy);
+    offset += to_copy;
+
+    if (offset == size_hint)
+	output_ended = true;
+
+    return to_copy;
+}
+
+size_t zipstream::sizeHint() const {
+    return size_hint;
+}
+
+size_t zipstream::inputConsumed() const {
+    return offset;
+}
+
+#endif /* ORI_USE_FASTLZ */
 
 /*
  * bytewstream

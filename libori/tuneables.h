@@ -23,7 +23,10 @@
 
 #define LARGEFILE_MINIMUM (1024 * 1024)
 
+// Enable or Disable compression
 #define ENABLE_COMPRESSION 0
+// Minimum compressable object (FastLZ requires 66 bytes)
+#define ZIP_MINIMUM_SIZE 512
 // How much of a payload to check for compressibility
 #define COMPCHECK_BYTES 1024
 // Maximum compression ratio (0.8 means compressed file is 80% size of original)
@@ -34,8 +37,19 @@
 #define PACKFILE_MAXSIZE (1024*1024*64)
 #define PACKFILE_MAXOBJS (2048)
 
+// Choose the hash algorithm (choose one)
 //#define ORI_USE_SHA256
-#define ORI_USE_SKEIN
+//#define ORI_USE_SKEIN
+#if !defined(ORI_USE_SHA256) && !defined(ORI_USE_SKEIN)
+#error "Please select one hash algorithm."
+#endif
+
+// Choose the compression algorithm (choose one)
+//#define ORI_USE_LZMA
+//#define ORI_USE_FASTLZ
+#if !defined(ORI_USE_LZMA) && !defined(ORI_USE_FASTLZ)
+#error "Please select one compression algorithm."
+#endif
 
 #endif /* __TUNEABLES_H__ */
 
