@@ -55,31 +55,35 @@ typedef struct Cmd {
     void (*usage)(void);
 } Cmd;
 
-int cmd_init(int argc, const char *argv[]);
-int cmd_show(int argc, const char *argv[]);
+// General Operations
+int cmd_branches(int argc, const char *argv[]);
+int cmd_branch(int argc, const char *argv[]);
+int cmd_checkout(int argc, const char *argv[]);
 int cmd_clone(int argc, const char *argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, const char *argv[]);
-int cmd_snapshot(int argc, const char *argv[]);
-int cmd_snapshots(int argc, const char *argv[]);
-int cmd_checkout(int argc, const char *argv[]);
-int cmd_pull(int argc, const char *argv[]);
-int cmd_status(int argc, const char *argv[]);
-int cmd_treediff(int argc, const char *argv[]);
-int cmd_branches(int argc, const char *argv[]);
-int cmd_branch(int argc, const char *argv[]);
-int cmd_log(int argc, const char *argv[]);
 int cmd_filelog(int argc, const char *argv[]);
-int cmd_verify(int argc, const char *argv[]);
+int cmd_findheads(int argc, const char *argv[]);
+int cmd_gc(int argc, const char *argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
+int cmd_init(int argc, const char *argv[]);
+int cmd_log(int argc, const char *argv[]);
+int cmd_merge(int argc, const char *argv[]);
+int cmd_pull(int argc, const char *argv[]);
+int cmd_rebuildindex(int argc, const char *argv[]);
+int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_remote(int argc, const char *argv[]);
+int cmd_show(int argc, const char *argv[]);
+int cmd_snapshot(int argc, const char *argv[]);
+int cmd_snapshots(int argc, const char *argv[]);
+int cmd_status(int argc, const char *argv[]);
+int cmd_treediff(int argc, const char *argv[]);
+int cmd_verify(int argc, const char *argv[]);
+
+// Debug Operations
 int cmd_catobj(int argc, const char *argv[]); // Debug
 int cmd_listobj(int argc, const char *argv[]); // Debug
-int cmd_findheads(int argc, const char *argv[]);
-int cmd_rebuildrefs(int argc, const char *argv[]);
-int cmd_rebuildindex(int argc, const char *argv[]);
-int cmd_gc(int argc, const char *argv[]);
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_stats(int argc, const char *argv[]); // Debug
 int cmd_purgeobj(int argc, const char *argv[]); // Debug
@@ -165,6 +169,12 @@ static Cmd commands[] = {
 	"log",
 	"Display a log of commits to the repository",
 	cmd_log,
+	NULL,
+    },
+    {
+	"merge",
+	"Merge two heads",
+	cmd_merge,
 	NULL,
     },
     {
