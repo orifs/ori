@@ -79,7 +79,7 @@ MetadataLog::open(const std::string &filename)
     size_t readSoFar = 0;
     while (true) {
         uint32_t nbytes;
-        size_t n = read(fd, &nbytes, sizeof(uint32_t));
+        int n = read(fd, &nbytes, sizeof(uint32_t));
         readSoFar += sizeof(uint32_t);
         if (n == 0)
             break;

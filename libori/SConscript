@@ -5,6 +5,7 @@ Import('env')
 src = [
     "chunker.cc",
     "commit.cc",
+    "dag.cc",
     "debug.cc",
     "fuse_cmd.cc",
     "httpclient.cc",
