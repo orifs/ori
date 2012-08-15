@@ -60,20 +60,21 @@ struct ori_priv
     // Lock in this order
     RWLock lock_cache; // caches
     RWLock lock_repo; // repo, head(tree), tempdir
+    RWLock lock_cmd_output;
 
     // Functions to access the cache
     Tree *getTree(const ObjectHash &hash);
     LargeBlob *getLargeBlob(const ObjectHash &hash);
     ObjectInfo *getObjectInfo(const ObjectHash &hash);
 
-    TreeEntry *getTreeEntry(const std::string &path);
-    ExtendedTreeEntry *getETE(const std::string &path);
+    bool getETE(const char *path, ExtendedTreeEntry &ete);
 
     // Initialize temporary written data
-    void startWrite();
-    bool merge(const TreeDiffEntry &tde);
+    RWKey::sp startWrite();
+    bool mergeAndCommit(const TreeDiffEntry &tde);
     // Commit temp data to a FUSE commit
-    void fuseCommit();
+    RWKey::sp fuseCommit(RWKey::sp cacheKey=RWKey::sp(),
+            RWKey::sp repoKey=RWKey::sp());
     // Make the last FUSE commit permanent
     void commitPerm();
 
@@ -82,6 +83,9 @@ struct ori_priv
     std::string outputBuffer;
     void printf(const char *fmt, ...);
     size_t readOutput(char *buf, size_t n);
+
+private:
+    bool getTreeEntry(const char *cpath, TreeEntry &te);
 };
 
 ori_priv *ori_getpriv();

@@ -47,9 +47,9 @@ public:
     RWLock();
     ~RWLock();
     RWKey::sp readLock();
-    bool tryReadLock();
+    RWKey::sp tryReadLock();
     RWKey::sp writeLock();
-    bool tryWriteLock();
+    RWKey::sp tryWriteLock();
     void unlock();
     // bool locked();
 private:

@@ -94,7 +94,7 @@ public:
     ObjectHash largeHash;
 
     // TODO: not sure this is the best place
-    void extractToFile(const std::string &filename, Repo *src);
+    void extractToFile(const std::string &filename, Repo *src) const;
 
     bool hasBasicAttrs();
 };

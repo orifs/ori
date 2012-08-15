@@ -335,6 +335,10 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
     if (e == NULL) {
         printf("TreeDiff::merge: appending %s\n", to_merge.filepath.c_str());
         append(to_merge);
+        if (to_merge.type == TreeDiffEntry::NewDir) {
+            // Makes readdir easier to write
+            return true;
+        }
         return false;
     }
 
@@ -368,6 +372,7 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
              (e->type == TreeDiffEntry::DeletedDir &&
               to_merge.type == TreeDiffEntry::NewFile))
     {
+        // file -> dir or v.v.
         append(to_merge);
         return true;
     }

@@ -126,7 +126,7 @@ TreeEntry::~TreeEntry()
 }
 
 void
-TreeEntry::extractToFile(const std::string &filename, Repo *src)
+TreeEntry::extractToFile(const std::string &filename, Repo *src) const
 {
     assert(type != Null);
     Object::sp o(src->getObject(hash));
