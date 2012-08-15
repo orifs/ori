@@ -20,9 +20,12 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <utility>
 
 #include "debug.h"
 #include "util.h"
+#include "dag.h"
+#include "objecthash.h"
 #include "localrepo.h"
 
 using namespace std;
@@ -41,23 +44,31 @@ cmd_merge(int argc, const char *argv[])
     vector<Commit> commits = repository.listCommits();
     vector<Commit>::iterator it;
 
-    DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
+    ObjectHash p1 = ObjectHash::fromHex(argv[1]);
+    ObjectHash p2 = ObjectHash::fromHex(argv[1]);
 
+    DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
+    ObjectHash lca;
+
+    cDag.addNode(ObjectHash(), Commit());
     for (it = commits.begin(); it != commits.end(); it++) {
-	cDag.addNode((*it)->hash(), (*it));
+	cDag.addNode((*it).hash(), (*it));
     }
 
     for (it = commits.begin(); it != commits.end(); it++) {
 	pair<ObjectHash, ObjectHash> p = (*it).getParents();
-	cDag.addChild(p->first, (*it)->hash());
-	if (!p->second.isEmpty())
-	    cDag.addChild(p->first, (*it)->hash());
+	cDag.addChild(p.first, (*it).hash());
+	if (!p.second.isEmpty())
+	    cDag.addChild(p.first, it->hash());
     }
+
+    lca = cDag.findLCA(p1, p2);
+    cout << "LCA: " << lca.hex() << endl;
 
     /*TreeDiff td;
 
-    Commit c1 = repository.getCommit(ObjectHash::fromHex(argv[1]));
-    Commit c2 = repository.getCommit(ObjectHash::fromHex(argv[2]));
+    Commit c1 = repository.getCommit(p1);
+    Commit c2 = repository.getCommit(p2);
 
     Tree t1 = repository.getTree(c1.getTree());
     Tree t2 = repository.getTree(c2.getTree());
