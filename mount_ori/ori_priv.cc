@@ -251,7 +251,7 @@ ori_priv::commitPerm()
     assert(repo->getMetadata().getMeta(headHash, "status") == "normal");
 
     // Purge other FUSE commits
-    repo->purgeFuseCommits();
+    //repo->purgeFuseCommits();
     repo->updateHead(headHash);
 
     FUSE_LOG("committing changes permanently");
