@@ -1,6 +1,8 @@
 #ifndef __OBJECTHASH_H__
 #define __OBJECTHASH_H__
 
+#include <stdint.h>
+
 #include <tr1/unordered_map>
 
 struct ObjectHash {

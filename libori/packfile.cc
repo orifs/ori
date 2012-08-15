@@ -5,6 +5,7 @@
 
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
 
 #include "packfile.h"
 #include "tuneables.h"
@@ -175,8 +176,12 @@ Packfile::commit(PfTransaction *t, Index *idx)
         fileSize += t->payloads[i].size();
         numObjects++;
 
-        IndexEntry ie = {t->infos[i], offsets[i], t->payloads[i].size(),
-            packid};
+        IndexEntry ie;
+	ie.info = t->infos[i];
+	ie.offset = offsets[i];
+	ie.packed_size = t->payloads[i].size();
+	ie.packfile = packid;
+
         idx->updateEntry(t->infos[i].hash, ie);
     }
 
@@ -276,7 +281,8 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
             it != blocks.end();
             it++) {
         lseek(fd, (*it).first, SEEK_SET);
-        size_t len = (*it).second - (*it).first;
+	assert((*it).second >= (*it).first);
+        ssize_t len = (*it).second - (*it).first;
         buf.resize(len);
         ssize_t n = read(fd, &buf[0], len);
         assert(n == len);
