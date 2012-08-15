@@ -81,7 +81,7 @@ public:
     }
     void addChild(_Key parent, _Key child)
     {
-	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(child);
 
 	if ((*it) == nodeMap.end()) {
 	    assert(false);
