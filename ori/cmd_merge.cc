@@ -20,10 +20,12 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <utility>
 
-#include "fuse_cmd.h"
 #include "debug.h"
 #include "util.h"
+#include "dag.h"
+#include "objecthash.h"
 #include "localrepo.h"
 
 using namespace std;
@@ -33,20 +35,51 @@ extern LocalRepo repository;
 int
 cmd_merge(int argc, const char *argv[])
 {
-    Commit c;
-    ObjectHash tip = repository.getHead();
-    if (tip != EMPTY_COMMIT) {
-        c = repository.getCommit(tip);
+    if (argc != 3) {
+	cout << "merge takes two arguments!" << endl;
+	cout << "usage: ori merge <commit 1> <commit 2>" << endl;
+	return 1;
     }
 
-    TreeDiff td;
-    td.diffToDir(c, repository.getRootPath(), &repository);
+    vector<Commit> commits = repository.listCommits();
+    vector<Commit>::iterator it;
+
+    ObjectHash p1 = ObjectHash::fromHex(argv[1]);
+    ObjectHash p2 = ObjectHash::fromHex(argv[1]);
+
+    DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
+    ObjectHash lca;
+
+    cDag.addNode(ObjectHash(), Commit());
+    for (it = commits.begin(); it != commits.end(); it++) {
+	cDag.addNode((*it).hash(), (*it));
+    }
+
+    for (it = commits.begin(); it != commits.end(); it++) {
+	pair<ObjectHash, ObjectHash> p = (*it).getParents();
+	cDag.addChild(p.first, (*it).hash());
+	if (!p.second.isEmpty())
+	    cDag.addChild(p.first, it->hash());
+    }
+
+    lca = cDag.findLCA(p1, p2);
+    cout << "LCA: " << lca.hex() << endl;
+
+    /*TreeDiff td;
+
+    Commit c1 = repository.getCommit(p1);
+    Commit c2 = repository.getCommit(p2);
+
+    Tree t1 = repository.getTree(c1.getTree());
+    Tree t2 = repository.getTree(c2.getTree());
+
+    td.diffTwoTrees(t1.flattened(&repository), t2.flattened(&repository));
 
     for (size_t i = 0; i < td.entries.size(); i++) {
         printf("%c   %s\n",
                 td.entries[i].type,
                 td.entries[i].filepath.c_str());
-    }
+    }*/
 
     return 0;
 }

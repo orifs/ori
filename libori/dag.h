@@ -22,8 +22,9 @@
 #include <stdint.h>
 
 #include <string>
-#include <vector>
 #include <map>
+#include <tr1/unordered_set>
+#include <exception>
 
 template <class _Key, class _Val>
 class DAG;
@@ -32,6 +33,9 @@ template <class _Key, class _Val>
 class DAGNode
 {
 public:
+    DAGNode()
+    {
+    }
     DAGNode(_Key k, _Val v)
 	: k(k), v(v)
     {
@@ -43,7 +47,7 @@ public:
     {
 	return v;
     }
-    std::vector<_Key> listParents()
+    std::tr1::unordered_set<_Key> listParents()
     {
 	return parents;
     }
@@ -52,7 +56,7 @@ private:
     friend class DAG <_Key, _Val>;
     _Key k;
     _Val v;
-    std::vector<_Key> parents;
+    typename std::tr1::unordered_set<_Key> parents;
 };
 
 template <class _Key, class _Val>
@@ -73,7 +77,7 @@ public:
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
 
-	if ((*it) == nodeMap.end()) {
+	if (it == nodeMap.end()) {
 	    assert(false);
 	}
 
@@ -83,14 +87,21 @@ public:
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(child);
 
-	if ((*it) == nodeMap.end()) {
+	if (it == nodeMap.end()) {
 	    assert(false);
 	}
 
-	(*it).second.parents.add(parent);
+	(*it).second.parents.insert(parent);
     }
     _Key findLCA(_Key p1, _Key p2)
     {
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it1;
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it2;
+	typename std::tr1::unordered_set<_Key> p1p, p2p;
+	typename std::tr1::unordered_set<_Key> new_p1p, new_p2p;
+	typename std::tr1::unordered_set<_Key> next_p1p, next_p2p;
+	typename std::tr1::unordered_set<_Key>::iterator it;
+
 	/*
 	 * Step 1: Add next set of nodes in p1 & p2 to unordered_set and paths to
 	 * queue.
@@ -98,9 +109,91 @@ public:
 	 *  - Match: Return path and matching key
 	 *  - Else: Repeat 1
 	 */
+
+	it1 = nodeMap.find(p1);
+	it2 = nodeMap.find(p2);
+	if (it1 == nodeMap.end() || it2 == nodeMap.end())
+	    throw std::exception();
+
+	for (it = it1->second.parents.begin();
+	     it != it1->second.parents.end();
+	     it++)
+	{
+	    p1p.insert(*it);
+	    new_p1p.insert(*it);
+	}
+	for (it = it2->second.parents.begin();
+	     it != it2->second.parents.end();
+	     it++)
+	{
+	    p2p.insert(*it);
+	    new_p2p.insert(*it);
+	}
+
+	// XXX: Check if one is the ancestor of another
+
+	while (1) {
+	    /*
+	     * Check if any of the new keys exist in the set of already walked 
+	     * nodes stored in p1p and p2p.
+	     */
+	    for (it = new_p1p.begin(); it != new_p1p.end(); it++) {
+		typename std::tr1::unordered_set<_Key>::iterator k;
+		k = p2p.find(*it);
+		if (k != p2p.end()) {
+		    return *k;
+		}
+	    }
+	    for (it = new_p2p.begin(); it != new_p2p.end(); it++) {
+		typename std::tr1::unordered_set<_Key>::iterator k;
+		k = p1p.find(*it);
+		if (k != p1p.end()) {
+		    return *k;
+		}
+	    }
+
+	    /*
+	     * Push the next level of parents.
+	     */
+	    for (it = new_p1p.begin(); it != new_p1p.end(); it++) {
+		it1 = nodeMap.find(p1);
+		if (it1 != nodeMap.end()) {
+		    typename std::tr1::unordered_set<_Key>::iterator k;
+		    for (k = it1->second.parents.begin();
+			 k != it1->second.parents.end();
+			 k++)
+		    {
+			next_p1p.insert(*k);
+		    }
+		}
+	    }
+	    for (it = new_p2p.begin(); it != new_p2p.end(); it++) {
+		it2 = nodeMap.find(p1);
+		if (it2 != nodeMap.end()) {
+		    typename std::tr1::unordered_set<_Key>::iterator k;
+		    for (k = it2->second.parents.begin();
+			 k != it2->second.parents.end();
+			 k++)
+		    {
+			next_p2p.insert(*k);
+		    }
+		}
+	    }
+
+	    /*
+	     * Update
+	     */
+	    if (next_p1p.size() == 0 && next_p2p.size() == 0)
+		throw std::exception();
+
+	    new_p1p = next_p1p;
+	    new_p2p = next_p2p;
+	    next_p1p.clear();
+	    next_p2p.clear();
+	}
     }
 private:
-    std::map<_Key, DAGNode<_Key, _Val> > nodeMap;
+    typename std::map<_Key, DAGNode<_Key, _Val> > nodeMap;
 };
 
 #endif /* __DAG_H__ */
