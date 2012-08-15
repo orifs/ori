@@ -32,6 +32,9 @@ template <class _Key, class _Val>
 class DAGNode
 {
 public:
+    DAGNode()
+    {
+    }
     DAGNode(_Key k, _Val v)
 	: k(k), v(v)
     {
@@ -52,7 +55,7 @@ private:
     friend class DAG <_Key, _Val>;
     _Key k;
     _Val v;
-    std::vector<_Key> parents;
+    typename std::vector<_Key> parents;
 };
 
 template <class _Key, class _Val>
@@ -73,7 +76,7 @@ public:
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
 
-	if ((*it) == nodeMap.end()) {
+	if (it == nodeMap.end()) {
 	    assert(false);
 	}
 
@@ -83,11 +86,11 @@ public:
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(child);
 
-	if ((*it) == nodeMap.end()) {
+	if (it == nodeMap.end()) {
 	    assert(false);
 	}
 
-	(*it).second.parents.add(parent);
+	(*it).second.parents.push_back(parent);
     }
     _Key findLCA(_Key p1, _Key p2)
     {
@@ -100,7 +103,7 @@ public:
 	 */
     }
 private:
-    std::map<_Key, DAGNode<_Key, _Val> > nodeMap;
+    typename std::map<_Key, DAGNode<_Key, _Val> > nodeMap;
 };
 
 #endif /* __DAG_H__ */
