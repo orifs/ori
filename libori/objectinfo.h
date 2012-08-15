@@ -1,6 +1,8 @@
 #ifndef __OBJECTINFO_H__
 #define __OBJECTINFO_H__
 
+#include <unistd.h>
+
 #include <string>
 
 #include "objecthash.h"
