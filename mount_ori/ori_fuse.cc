@@ -84,6 +84,7 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 2;
         return 0;
     } else if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        RWKey::sp key = p->lock_cmd_output.writeLock();
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
         stbuf->st_mode = 0600 | S_IFREG;
@@ -827,7 +828,7 @@ ori_rename(const char *from_path, const char *to_path)
     // Check if file exists (can't rename to existing file)
     ExtendedTreeEntry dest_ete;
     bool hasDestETE = p->getETE(to_path, dest_ete);
-    if (!hasDestETE) {
+    if (hasDestETE) {
         TreeDiffEntry tde(to_path, dest_ete.te.type == TreeEntry::Tree ?
                 TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile);
         p->mergeAndCommit(tde);
@@ -878,7 +879,7 @@ ori_init(struct fuse_conn_info *conn)
 	priv->repo->setInstaClone("origin");
 
 	priv->repo->setRemote(remoteRepo.get());
-        priv->_resetHead(NULL);
+        priv->_resetHead(ObjectHash());
 
         FUSE_LOG("InstaClone: Enabled!");
     }

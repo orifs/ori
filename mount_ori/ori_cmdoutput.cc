@@ -7,6 +7,8 @@
 
 void ori_priv::printf(const char *fmt, ...)
 {
+    RWKey::sp key = lock_cmd_output.writeLock();
+
     va_list args;
     va_start(args, fmt);
 

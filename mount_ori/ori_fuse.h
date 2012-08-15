@@ -39,7 +39,7 @@ struct ori_priv
     ori_priv(const std::string &repoPath);
     ~ori_priv();
 
-    void _resetHead(Commit *c);
+    void _resetHead(const ObjectHash &chash);
 
     LRUCache<ObjectHash, Tree, 128> treeCache;
     LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
@@ -76,7 +76,7 @@ struct ori_priv
     RWKey::sp fuseCommit(RWKey::sp cacheKey=RWKey::sp(),
             RWKey::sp repoKey=RWKey::sp());
     // Make the last FUSE commit permanent
-    void commitPerm();
+    RWKey::sp commitPerm();
 
 
     // Output buffer for commands (ori_cmdoutput.cc)

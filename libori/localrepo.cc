@@ -336,6 +336,7 @@ LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
     assert(opened);
 
     if (currTransaction.get()) {
+        // TODO: more efficient
         for (size_t i = 0; i < currTransaction->infos.size(); i++) {
             if (currTransaction->infos[i].hash == objId) {
                 return LocalObject::sp(new LocalObject(currTransaction, i));
@@ -643,6 +644,18 @@ set<ObjectInfo>
 LocalRepo::listObjects()
 {
     return index.getList();
+}
+
+void
+LocalRepo::sync()
+{
+    if (currTransaction.get()) {
+        if (currPackfile.get()) {
+            currPackfile->commit(currTransaction.get(), &index);
+        }
+        currPackfile = packfiles->newPackfile();
+        currTransaction = currPackfile->begin(&index);
+    }
 }
 
 bool
@@ -1027,6 +1040,15 @@ LocalRepo::gc()
 bool
 LocalRepo::hasObject(const ObjectHash &objId)
 {
+    if (currTransaction.get()) {
+        // TODO: more efficient
+        for (size_t i = 0; i < currTransaction->infos.size(); i++) {
+            if (currTransaction->infos[i].hash == objId) {
+                return true;
+            }
+        }
+    }
+
     bool val = index.hasObject(objId);
 
     if (val && remoteRepo != NULL) {

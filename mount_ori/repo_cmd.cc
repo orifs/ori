@@ -15,8 +15,9 @@ void cmd_status(ori_priv *p)
 void cmd_commit(ori_priv *p)
 {
     printf("Executing commit\n");
-    p->commitPerm();
-    p->printf("Commit Hash: %s\nTree Hash: %s\n",
+    RWKey::sp repoKey = p->commitPerm();
+    p->repo->sync();
+    p->printf("Commit from FUSE.\nCommit Hash: %s\nTree Hash: %s\n",
 	   p->head->hash().hex().c_str(),
 	   p->headtree->hash().hex().c_str());
 }

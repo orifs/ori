@@ -20,7 +20,7 @@ ori_priv::ori_priv(const std::string &repoPath)
         exit(1);
     }
 
-    _resetHead(NULL);
+    _resetHead(ObjectHash());
 }
 
 ori_priv::~ori_priv()
@@ -31,14 +31,15 @@ ori_priv::~ori_priv()
 }
 
 void
-ori_priv::_resetHead(Commit *c)
+ori_priv::_resetHead(const ObjectHash &chash)
 {
-    if (c == NULL && repo->getHead() != EMPTY_COMMIT) {
-        *head = Commit();
+    *head = Commit();
+    if (chash.isEmpty() && repo->getHead() != EMPTY_COMMIT) {
         head->fromBlob(repo->getPayload(repo->getHead()));
     }
     else {
-        *head = *c;
+        *head = repo->getCommit(chash);
+        assert(head->hash() == chash);
     }
 
     *headtree = Tree();
@@ -212,10 +213,11 @@ ori_priv::fuseCommit(RWKey::sp cacheKey, RWKey::sp repoKey)
 
         Commit newCommit;
         newCommit.setMessage("Commit from FUSE.");
-        repo->commitFromObjects(new_tree.hash(), currTempDir.get(),
+        ObjectHash commitHash = repo->commitFromObjects(new_tree.hash(), currTempDir.get(),
                 newCommit, "fuse");
 
-        _resetHead(&newCommit);
+        _resetHead(commitHash);
+        assert(repo->hasObject(commitHash));
 
         delete currTreeDiff;
         currTreeDiff = NULL;
@@ -230,22 +232,31 @@ ori_priv::fuseCommit(RWKey::sp cacheKey, RWKey::sp repoKey)
     return repoKey;
 }
 
-void
+RWKey::sp
 ori_priv::commitPerm()
 {
-    RWKey::sp key(fuseCommit());
+    RWKey::sp key;
+    key = fuseCommit();
+
+    repo->sync();
+
+    ObjectHash headHash = head->hash();
+    printf("Making commit %s permanent\n", headHash.hex().c_str());
+    assert(repo->hasObject(headHash));
 
     MdTransaction::sp tr(repo->getMetadata().begin());
-    tr->setMeta(head->hash(), "status", "normal");
+    tr->setMeta(headHash, "status", "normal");
     tr.reset();
 
-    assert(repo->getMetadata().getMeta(head->hash(), "status") == "normal");
+    assert(repo->getMetadata().getMeta(headHash, "status") == "normal");
 
     // Purge other FUSE commits
     repo->purgeFuseCommits();
-    repo->updateHead(head->hash());
+    repo->updateHead(headHash);
 
     FUSE_LOG("committing changes permanently");
+
+    return key;
 }
 
 

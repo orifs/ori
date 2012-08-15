@@ -87,6 +87,7 @@ public:
     int addObject(ObjectType type, const ObjectHash &hash,
             const std::string &payload);
 
+    void sync(); /// sync all changes to disk
     bool rebuildIndex();
 
     LocalObject::sp getLocalObject(const ObjectHash &objId);
