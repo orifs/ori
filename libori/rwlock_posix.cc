@@ -31,9 +31,10 @@ RWLock::~RWLock()
     pthread_rwlock_destroy(&lockHandle);
 }
 
-void RWLock::readLock()
+RWKey::sp RWLock::readLock()
 {
     pthread_rwlock_rdlock(&lockHandle);
+    return RWKey::sp(new RWKey(this));
 }
 
 bool RWLock::tryReadLock()
@@ -41,9 +42,10 @@ bool RWLock::tryReadLock()
     return (pthread_rwlock_tryrdlock(&lockHandle) == 0);
 }
 
-void RWLock::writeLock()
+RWKey::sp RWLock::writeLock()
 {
     pthread_rwlock_wrlock(&lockHandle);
+    return RWKey::sp(new RWKey(this));
 }
 
 bool RWLock::tryWriteLock()

@@ -32,6 +32,7 @@ src = [
     "metadatalog.cc",
     "objecthash.cc",
     "packfile.cc",
+    "rwlock.cc",
 ]
 
 if os.name == 'posix':

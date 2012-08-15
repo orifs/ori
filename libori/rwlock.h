@@ -30,14 +30,25 @@
 #error "UNSUPPORTED OS"
 #endif
 
+#include <tr1/memory>
+
+class RWLock;
+struct RWKey {
+    typedef std::tr1::shared_ptr<RWKey> sp;
+    RWKey(RWLock *l);
+    ~RWKey();
+
+    RWLock *lock;
+};
+
 class RWLock
 {
 public:
     RWLock();
     ~RWLock();
-    void readLock();
+    RWKey::sp readLock();
     bool tryReadLock();
-    void writeLock();
+    RWKey::sp writeLock();
     bool tryWriteLock();
     void unlock();
     // bool locked();

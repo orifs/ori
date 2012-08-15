@@ -46,12 +46,17 @@ ori_priv::_resetHead(Commit *c)
         headtree->fromBlob(repo->getPayload(head->getTree()));
 }
 
+
 Tree *
 ori_priv::getTree(const ObjectHash &hash)
 {
+    RWKey::sp key = lock_cache.readLock();
+
     if (!treeCache.hasKey(hash)) {
         Tree t;
         t.fromBlob(repo->getPayload(hash));
+
+        key.reset(); key = lock_cache.writeLock();
         treeCache.put(hash, t);
     }
     return &treeCache.get(hash);
@@ -60,9 +65,13 @@ ori_priv::getTree(const ObjectHash &hash)
 LargeBlob *
 ori_priv::getLargeBlob(const ObjectHash &hash)
 {
+    RWKey::sp key = lock_cache.readLock();
+
     if (!lbCache.hasKey(hash)) {
         std::tr1::shared_ptr<LargeBlob> lb(new LargeBlob(repo));
         lb->fromBlob(repo->getPayload(hash));
+
+        key.reset(); key = lock_cache.writeLock();
         lbCache.put(hash, lb);
     }
     return lbCache.get(hash).get();
@@ -71,8 +80,12 @@ ori_priv::getLargeBlob(const ObjectHash &hash)
 ObjectInfo *
 ori_priv::getObjectInfo(const ObjectHash &hash)
 {
+    RWKey::sp key = lock_cache.readLock();
+
     if (!objInfoCache.hasKey(hash)) {
         ObjectInfo info = repo->getObjectInfo(hash);
+
+        key.reset(); key = lock_cache.writeLock();
         objInfoCache.put(hash, info);
     }
     return &objInfoCache.get(hash);
@@ -81,6 +94,8 @@ ori_priv::getObjectInfo(const ObjectHash &hash)
 void
 ori_priv::startWrite()
 {
+    RWKey::sp key = lock_repo.writeLock();
+
     if (currTreeDiff == NULL) {
         currTreeDiff = new TreeDiff();
         currTempDir = repo->newTempDir();

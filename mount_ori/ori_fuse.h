@@ -10,6 +10,7 @@
 #include "treediff.h"
 #include "largeblob.h"
 #include "lrucache.h"
+#include "rwlock.h"
 
 // logging.cc
 #define FUSE_LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
@@ -40,11 +41,6 @@ struct ori_priv
 
     void _resetHead(Commit *c);
 
-    // Functions to access the cache
-    Tree *getTree(const ObjectHash &hash);
-    LargeBlob *getLargeBlob(const ObjectHash &hash);
-    ObjectInfo *getObjectInfo(const ObjectHash &hash);
-
     LRUCache<ObjectHash, Tree, 128> treeCache;
     LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
     LRUCache<ObjectHash, ObjectInfo, 128> objInfoCache;
@@ -60,6 +56,18 @@ struct ori_priv
     TreeDiff *currTreeDiff;
     TempDir::sp currTempDir;
     //std::map<std::string, std::string> checkedOutFiles;
+
+    // Lock in this order
+    RWLock lock_cache; // caches
+    RWLock lock_repo; // repo, head(tree), tempdir
+
+    // Functions to access the cache
+    Tree *getTree(const ObjectHash &hash);
+    LargeBlob *getLargeBlob(const ObjectHash &hash);
+    ObjectInfo *getObjectInfo(const ObjectHash &hash);
+
+    TreeEntry *getTreeEntry(const std::string &path);
+    ExtendedTreeEntry *getETE(const std::string &path);
 
     // Initialize temporary written data
     void startWrite();
