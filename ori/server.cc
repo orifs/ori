@@ -113,9 +113,7 @@ void SshServer::cmd_listObjs()
     for (std::set<ObjectInfo>::iterator it = objects.begin();
             it != objects.end();
             it++) {
-        const std::string &blob = (*it).toString();
-        assert(blob.size() == ObjectInfo::SIZE);
-        fs.write(blob.data(), blob.size());
+        fs.writeInfo(*it);
     }
 }
 

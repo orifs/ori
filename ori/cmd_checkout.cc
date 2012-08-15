@@ -143,7 +143,7 @@ cmd_checkout(int argc, const char *argv[])
 	    } else {
 		printf("U	%s\n", (*tipIt).first.c_str());
 		if (repository.getObjectType(te.hash)
-                        != Object::Purged)
+                        != ObjectInfo::Purged)
 		    repository.copyObject(te.hash, path);
 		else
 		    cout << "Object has been purged." << endl;

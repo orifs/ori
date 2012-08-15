@@ -51,12 +51,12 @@ using namespace std;
  * ObjectInfo
  */
 ObjectInfo::ObjectInfo()
-    : type(Object::Null), flags(0), payload_size((uint32_t)-1)
+    : type(Null), flags(0), payload_size((uint32_t)-1)
 {
 }
 
 ObjectInfo::ObjectInfo(const ObjectHash &hash)
-    : type(Object::Null), hash(hash), flags(0), payload_size((uint32_t)-1)
+    : type(Null), hash(hash), flags(0), payload_size((uint32_t)-1)
 {
 }
 
@@ -65,7 +65,7 @@ ObjectInfo::toString() const
 {
     strwstream ss;
 
-    const char *type_str = Object::getStrForType(type);
+    const char *type_str = getStrForType(type);
     if (type_str == NULL) {
         assert(false);
         return "";
@@ -96,36 +96,10 @@ ObjectInfo::fromString(const std::string &info)
     payload_size = ss.readInt<uint32_t>();
 }
 
-/*ssize_t ObjectInfo::writeTo(int fd, bool seekable) {
-    ssize_t status;
-    char header[24];
-    const char *type_str = Object::getStrForType(type);
-
-    if (type_str == NULL)
-        return -1;
-
-    if (seekable) {
-	memcpy(header, type_str, ORI_OBJECT_TYPESIZE);
-	memcpy(header + 4, &flags, ORI_OBJECT_FLAGSSIZE);
-	memcpy(header + 8, &payload_size, ORI_OBJECT_SIZE);
-	memset(header + 16, 0, ORI_OBJECT_SIZE);
-
-        status = pwrite(fd, header, 24, 0);
-        if (status < 0) return status;
-        assert(status == 24);
-
-        return status;
-    }
-    else {
-        // TODO!!! use write() instead
-        assert(false);
-    }
-}*/
-
 bool
 ObjectInfo::hasAllFields() const
 {
-    if (type == Object::Null)
+    if (type == Null)
         return false;
     if (hash.isEmpty())
         return false; // hash shouldn't be all zeros
@@ -153,17 +127,7 @@ void ObjectInfo::print(int fd) const {
     dprintf(fd, "  payload_size = %u\n", payload_size);
 }
 
-
-
-/*
- * Object
- */
-std::string Object::getPayload() {
-    bytestream::ap bs(getPayloadStream());
-    return bs->readAll();
-}
-
-const char *Object::getStrForType(Type type) {
+const char *ObjectInfo::getStrForType(Type type) {
     const char *type_str = NULL;
     switch (type) {
         case Commit:    type_str = "CMMT"; break;
@@ -179,7 +143,7 @@ const char *Object::getStrForType(Type type) {
     return type_str;
 }
 
-Object::Type Object::getTypeForStr(const char *str) {
+ObjectInfo::Type ObjectInfo::getTypeForStr(const char *str) {
     if (strcmp(str, "CMMT") == 0) {
         return Commit;
     }
@@ -197,4 +161,15 @@ Object::Type Object::getTypeForStr(const char *str) {
     }
     return Null;
 }
+
+
+
+/*
+ * Object
+ */
+std::string Object::getPayload() {
+    bytestream::ap bs(getPayloadStream());
+    return bs->readAll();
+}
+
 

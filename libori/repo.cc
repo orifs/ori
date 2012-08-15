@@ -71,7 +71,7 @@ Repo::copyFrom(Object *other)
  * Add a blob to the repository. This is a low-level interface.
  */
 ObjectHash
-Repo::addBlob(Object::Type type, const string &blob)
+Repo::addBlob(ObjectType type, const string &blob)
 {
     ObjectHash hash = Util_HashString(blob);
     addObject(type, hash, blob);
@@ -97,7 +97,7 @@ ObjectHash
 Repo::addSmallFile(const string &path)
 {
     diskstream ds(path);
-    return addBlob(Object::Blob, ds.readAll());
+    return addBlob(ObjectInfo::Blob, ds.readAll());
 }
 
 /*
@@ -123,7 +123,7 @@ Repo::addLargeFile(const string &path)
         }
     }*/
 
-    return make_pair(addBlob(Object::LargeBlob, blob), lb.totalHash);
+    return make_pair(addBlob(ObjectInfo::LargeBlob, blob), lb.totalHash);
 }
 
 /*
@@ -150,7 +150,7 @@ Repo::getTree(const ObjectHash &treeId)
     Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
-    assert(treeId == EMPTYFILE_HASH || o->getInfo().type == Object::Tree);
+    assert(treeId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Tree);
 
     Tree t;
     t.fromBlob(blob);
@@ -164,7 +164,7 @@ Repo::getCommit(const ObjectHash &commitId)
     Object::sp o(getObject(commitId));
     string blob = o->getPayload();
 
-    assert(commitId == EMPTYFILE_HASH || o->getInfo().type == Object::Commit);
+    assert(commitId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Commit);
 
     Commit c;
     if (blob.size() == 0) {

@@ -86,8 +86,10 @@ for t in `find $ORI_TESTS -name '*.sh' | sort`; do
 done
 
 # Delete test repo, temp dir
-cd $ORIG_DIR
-echo "Deleting directories"
-rm -rf $SOURCE_REPO
-rm -rf $SOURCE_FILES
-rm -rf $TEMP_DIR
+if true; then
+    cd $ORIG_DIR
+    echo "Deleting directories"
+    rm -rf $SOURCE_REPO
+    rm -rf $SOURCE_FILES
+    rm -rf $TEMP_DIR
+fi

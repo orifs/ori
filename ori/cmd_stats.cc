@@ -46,20 +46,20 @@ cmd_stats(int argc, const char *argv[])
     set<ObjectInfo> objs = repository.listObjects();
 
     for (set<ObjectInfo>::iterator it = objs.begin(); it != objs.end(); it++) {
-        Object::Type type = (*it).type;
+        ObjectType type = (*it).type;
 
         switch (type) {
-        case Object::Commit:
+        case ObjectInfo::Commit:
         {
             commits++;
             break;
         }
-        case Object::Tree:
+        case ObjectInfo::Tree:
         {
             trees++;
             break;
         }
-        case Object::Blob:
+        case ObjectInfo::Blob:
         {
             blobs++;
             refcount_t refcount = repository.getMetadata().getRefCount((*it).hash);
@@ -71,12 +71,12 @@ cmd_stats(int argc, const char *argv[])
             }
             break;
         }
-        case Object::LargeBlob:
+        case ObjectInfo::LargeBlob:
         {
             largeBlobs++;
             break;
         }
-        case Object::Purged:
+        case ObjectInfo::Purged:
         {
             purgedBlobs++;
             break;

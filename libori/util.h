@@ -37,6 +37,7 @@ int Util_DeleteFile(const std::string &path);
 int Util_RenameFile(const std::string &from, const std::string &to);
 
 ObjectHash Util_HashString(const std::string &str);
+ObjectHash Util_HashBlob(const uint8_t *data, size_t len);
 ObjectHash Util_HashFile(const std::string &path);
 std::string Util_RawHashToHex(const ObjectHash &hash);
 
@@ -45,6 +46,7 @@ std::string Util_GetFullname();
 int Util_SetBlocking(int fd, bool block);
 
 void Util_PrintHex(const std::string &data, off_t off = 0, size_t limit = 0);
+void Util_PrintBacktrace();
 std::string Util_NewUUID();
 bool Util_IsPathRemote(const std::string &path);
 

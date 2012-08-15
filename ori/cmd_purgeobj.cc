@@ -40,7 +40,7 @@ cmd_purgeobj(int argc, const char *argv[])
 
     ObjectHash objId = ObjectHash::fromHex(argv[1]);
 
-    if (repository.getObjectType(objId) != Object::Blob) {
+    if (repository.getObjectType(objId) != ObjectInfo::Blob) {
 	cout << "Error: You can only purge an object with type Blob." << endl;
 	return 1;
     }

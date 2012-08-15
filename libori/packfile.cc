@@ -154,7 +154,7 @@ Packfile::commit(PfTransaction *t, Index *idx)
     lseek(fd, 0, SEEK_END);
     std::vector<offset_t> offsets;
     size_t headers_size = t->infos.size() * ENTRYSIZE;
-    offset_t off = fileSize + 2 + headers_size;
+    offset_t off = fileSize + sizeof(numobjs_t) + headers_size;
     
     strwstream headers_ss;
     headers_ss.writeInt<numobjs_t>(t->infos.size());
@@ -295,7 +295,7 @@ Packfile::receive(bytestream *bs, Index *idx)
 
     lseek(fd, 0, SEEK_END);
     size_t headers_size = num * ENTRYSIZE;
-    offset_t off = fileSize + 2 + headers_size;
+    offset_t off = fileSize + sizeof(numobjs_t) + headers_size;
     std::vector<size_t> obj_sizes;
     
     strwstream headers_ss;

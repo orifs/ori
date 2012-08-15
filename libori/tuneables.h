@@ -35,8 +35,7 @@
 // These are soft maximums ("heuristics")
 // 64 MB
 #define PACKFILE_MAXSIZE (1024*1024*64)
-// ~20KB overhead per packfile?
-#define PACKFILE_MAXOBJS (512)
+#define PACKFILE_MAXOBJS (2048)
 
 // Choose the hash algorithm (choose one)
 //#define ORI_USE_SHA256

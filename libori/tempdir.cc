@@ -141,7 +141,7 @@ TempDir::listObjects()
 }
 
 int
-TempDir::addObject(Object::Type type, const ObjectHash &hash,
+TempDir::addObject(ObjectType type, const ObjectHash &hash,
         const std::string &payload)
 {
     assert(!hash.isEmpty());

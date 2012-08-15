@@ -36,6 +36,7 @@
 #include "object.h"
 #include "httpclient.h"
 #include "httprepo.h"
+#include "packfile.h"
 
 using namespace std;
 
@@ -92,23 +93,38 @@ HttpRepo::getHead()
 Object::sp
 HttpRepo::getObject(const ObjectHash &id)
 {
-    int status;
-    string index;
-    ObjectInfo info = ObjectInfo(id);
-    string payload;
+    LOG("WARNING: single ID request %s", id.hex().c_str());
+    Util_PrintBacktrace();
 
-    status = client->getRequest("/objs/" + id.hex(), payload);
-    if (status < 0) {
-        assert(false);
-        return Object::sp();
+    ObjectHashVec objs;
+    objs.push_back(id);
+    bytestream::ap bs(getObjects(objs));
+    if (bs.get()) {
+        numobjs_t num = bs->readInt<numobjs_t>();
+        assert(num == 1);
+
+        std::string info_str(ObjectInfo::SIZE, '\0');
+        bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
+        ObjectInfo info;
+        info.fromString(info_str);
+
+        uint32_t objSize = bs->readInt<uint32_t>();
+        std::string payload(objSize, '\0');
+        bs->readExact((uint8_t*)&payload[0], objSize);
+
+        num = bs->readInt<numobjs_t>();
+        assert(num == 0);
+
+        if (info.getCompressed()) {
+            payloads[info.hash] = zipstream(new strstream(payload), DECOMPRESS,
+                    info.payload_size).readAll();
+        }
+        else {
+            payloads[info.hash] = payload;
+        }
+        return Object::sp(new HttpObject(this, info));
     }
-
-    info.fromString(payload.substr(0, 16));
-
-    // TODO: add raw data to cache
-    _addPayload(info.hash, payload.substr(16));
-
-    return Object::sp(new HttpObject(this, info));
+    return Object::sp();
 }
 
 ObjectInfo
@@ -139,45 +155,48 @@ HttpRepo::hasObject(const ObjectHash &id) {
 
 bytestream *
 HttpRepo::getObjects(const ObjectHashVec &vec) {
-    NOT_IMPLEMENTED(false);
+    strwstream ss;
+    ss.writeInt<uint32_t>(vec.size());
+    for (size_t i = 0; i < vec.size(); i++) {
+        ss.writeHash(vec[i]);
+    }
+
+    string resp;
+    int status = client->postRequest("/getobjs", ss.str(), resp);
+    bytestream::ap bs(new strstream(resp));
+
+    if (status == 0) {
+        return bs.release();
+    }
     return NULL;
 }
 
 std::set<ObjectInfo>
 HttpRepo::listObjects()
 {
-    int status;
-    string index;
     set<ObjectInfo> rval;
 
-    status = client->getRequest("/index", index);
-    if (status < 0) {
-        assert(false);
-        return rval;
+    string index;
+    int status = client->getRequest("/index", index);
+    strstream ss(index);
+
+    if (status == 0) {
+        uint64_t num = ss.readInt<uint64_t>();
+        for (size_t i = 0; i < num; i++) {
+            ObjectInfo info;
+            ss.readInfo(info);
+            rval.insert(info);
+        }
     }
-
-    // Parse response
-    for (size_t offset = 0; offset < index.size();)
-    {
-        ObjectHash hash;
-        string objInfo;
-        ObjectInfo info;
-
-        hash = ObjectHash::fromHex(index.substr(offset, ObjectHash::SIZE * 2));
-        offset += ObjectHash::SIZE * 2;
-        objInfo = index.substr(offset, 16);
-        offset += 16;
-
-        info = ObjectInfo(hash);
-        info.fromString(objInfo);
-        rval.insert(info);
+    else {
+        assert(false);
     }
 
     return rval;
 }
 
 int
-HttpRepo::addObject(Object::Type type, const ObjectHash &hash,
+HttpRepo::addObject(ObjectType type, const ObjectHash &hash,
             const std::string &payload)
 {
     NOT_IMPLEMENTED(false);
@@ -191,24 +210,20 @@ HttpRepo::listCommits()
 
     string index;
     int status = client->getRequest("/commits", index);
-    if (status < 0) {
-        assert(false);
-        return rval;
+    strstream ss(index);
+
+    if (status == 0) {
+        uint32_t num = ss.readInt<uint32_t>();
+        for (size_t i = 0; i < num; i++) {
+            std::string commit_str;
+            ss.readPStr(commit_str);
+            Commit c;
+            c.fromBlob(commit_str);
+            rval.push_back(c);
+        }
     }
-
-    // Parse response
-    for (size_t offset = 0; offset < index.size();)
-    {
-        int16_t bsize = *(int16_t*)&index[offset];
-        bsize = ntohs(bsize);
-        offset += sizeof(int16_t);
-
-        string blob = index.substr(offset, bsize);
-        offset += bsize;
-
-        Commit c;
-        c.fromBlob(blob);
-        rval.push_back(c);
+    else {
+        assert(false);
     }
 
     return rval;

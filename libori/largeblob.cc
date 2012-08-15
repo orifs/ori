@@ -122,17 +122,11 @@ public:
     }
     virtual void match(const uint8_t *b, uint32_t l)
     {
-	SHA256_CTX state;
-        ObjectHash hash;
-
-	SHA256_Init(&state);
-	SHA256_Update(&state, b, l);
-	SHA256_Final(hash.hash, &state);
-
         // Add the fragment into the repository
         // XXX: Journal for cleanup!
         string blob = string((const char *)b, l);
-        lb->repo->addObject(Object::Blob, hash, blob);
+        ObjectHash hash = Util_HashString(blob);
+        lb->repo->addObject(ObjectInfo::Blob, hash, blob);
 
         // Add the fragment to the LargeBlob object.
 	lb->parts.insert(make_pair(lbOff, LBlobEntry(hash, l)));
@@ -279,7 +273,7 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off)
     size_t to_read = MIN((size_t)left, s);
 
     Object::sp o(repo->getObject((*it).second.hash));
-    assert(o->getInfo().type == Object::Blob);
+    assert(o->getInfo().type == ObjectInfo::Blob);
     const std::string &payload = o->getPayload();
     memcpy(buf, payload.data()+part_off, to_read);
 

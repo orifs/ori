@@ -13,5 +13,5 @@ $ORI_EXE verify
 kill %1
 
 cd $TEMP_DIR
-rm -rf $TEST_REPO2
+#rm -rf $TEST_REPO2
 

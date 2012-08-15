@@ -61,13 +61,13 @@ public:
     virtual std::vector<Commit> listCommits() = 0;
 
     virtual int addObject(
-            Object::Type type,
+            ObjectType type,
             const ObjectHash &hash,
             const std::string &payload
             ) = 0;
 
     // Wrappers
-    virtual ObjectHash addBlob(Object::Type type, const std::string &blob);
+    virtual ObjectHash addBlob(ObjectType type, const std::string &blob);
     bytestream *getObjects(const std::deque<ObjectHash> &objs);
 
     ObjectHash addSmallFile(const std::string &path);

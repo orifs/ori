@@ -11,6 +11,7 @@
 #include <lzma.h>
 
 #include "objecthash.h"
+#include "objectinfo.h"
 #include "tuneables.h"
 
 class basestream
@@ -49,10 +50,11 @@ public:
     int copyToFd(int dstFd);
 
     /// Read Pascal-style string (1 byte length)
-    size_t readPStr(std::string &str);
+    int readPStr(std::string &str);
 
     /// Read ObjectHash
     void readHash(ObjectHash &out);
+    void readInfo(ObjectInfo &out);
 
     /// Reads an integer with proper byte-swapping (TODO)
     template <typename T>
@@ -179,14 +181,15 @@ public:
 
     // High-level functions
     void copyFrom(bytestream *bs);
-    void writePStr(const std::string &str);
+    int writePStr(const std::string &str);
     void writeHash(const ObjectHash &hash);
+    int writeInfo(const ObjectInfo &info);
 
     /// Writes an integer with proper byte-swapping (TODO)
     template <typename T>
-    void writeInt(const T &n) {
+    int writeInt(const T &n) {
         //std::cerr << "Wrote int " << (ssize_t)n << std::endl;
-        write(&n, sizeof(T));
+        return (int)write(&n, sizeof(T));
     }
 };
 
