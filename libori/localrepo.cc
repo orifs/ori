@@ -1516,6 +1516,62 @@ LocalRepo::getHeadTree()
 }
 
 /*
+ * Set merge state
+ */
+void
+LocalRepo::setMergeState(const MergeState &state)
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+    string blob = state.getBlob();
+
+    Util_WriteFile(blob.data(), blob.size(), mergeStatePath);
+}
+
+/*
+ * Get merge state
+ */
+MergeState
+LocalRepo::getMergeState()
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+    MergeState state;
+    string blob;
+    size_t blen;
+    const char *b;
+
+    b = Util_ReadFile(mergeStatePath, &blen);
+    if (b == NULL)
+	throw exception();
+
+    blob.assign(b, blen);
+    state.fromBlob(blob);
+
+    return state;
+}
+
+/*
+ * Clear merge state
+ */
+void
+LocalRepo::clearMergeState()
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+
+    Util_DeleteFile(mergeStatePath);
+}
+
+/*
+ * Has merge state?
+ */
+bool
+LocalRepo::hasMergeState()
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+
+    return Util_FileExists(mergeStatePath);
+}
+
+/*
  * General Operations
  */
 
