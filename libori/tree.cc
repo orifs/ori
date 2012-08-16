@@ -50,6 +50,11 @@ AttrMap::AttrMap()
 {
 }
 
+bool AttrMap::has(const std::string &attrName) const
+{
+    return attrs.find(attrName) != attrs.end();
+}
+
 void AttrMap::setFromFile(const std::string &filename)
 {
     struct stat sb;

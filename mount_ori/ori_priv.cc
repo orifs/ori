@@ -7,7 +7,9 @@
 ori_priv::ori_priv(const std::string &repoPath)
     : repo(new LocalRepo(repoPath)),
     head(new Commit()),
-    headtree(new Tree())
+    headtree(new Tree()),
+
+    currTreeDiff(NULL)
 {
     FUSE_LOG("opening repo at %s", repoPath.c_str());
     if (!repo->open(repoPath)) {
@@ -37,7 +39,7 @@ ori_priv::_resetHead(const ObjectHash &chash)
     if (chash.isEmpty() && repo->getHead() != EMPTY_COMMIT) {
         head->fromBlob(repo->getPayload(repo->getHead()));
     }
-    else {
+    else if (!chash.isEmpty()) {
         *head = repo->getCommit(chash);
         assert(head->hash() == chash);
     }
@@ -109,6 +111,9 @@ ori_priv::getTreeEntry(const char *cpath, TreeEntry &te)
         return true;
     }
 
+    // Special case: empty repo
+    if (headtree->tree.size() == 0) return false;
+
     te = repo->lookupTreeEntry(*head, path);
     if (te.type == TreeEntry::Null)
         return false;
@@ -173,8 +178,11 @@ ori_priv::startWrite()
 
     if (currTreeDiff == NULL) {
         currTreeDiff = new TreeDiff();
-        currTempDir = repo->newTempDir();
         //checkedOutFiles.clear();
+    }
+
+    if (!currTempDir.get()) {
+        currTempDir = repo->newTempDir();
     }
 
     return key;
@@ -221,7 +229,13 @@ ori_priv::fuseCommit(RWKey::sp cacheKey, RWKey::sp repoKey)
 
         delete currTreeDiff;
         currTreeDiff = NULL;
-        currTempDir.reset();
+
+        RWKey::sp tfKey = openedFiles.lock_tempfiles.writeLock();
+        if (!openedFiles.anyFilesOpen()) {
+            currTempDir.reset();
+        }
+        openedFiles.removeUnused();
+
         eteCache.clear();
         teCache.clear();
     }
@@ -240,21 +254,29 @@ ori_priv::commitPerm()
 
     repo->sync();
 
-    ObjectHash headHash = head->hash();
-    printf("Making commit %s permanent\n", headHash.hex().c_str());
-    assert(repo->hasObject(headHash));
+    if (!head->getTree().isEmpty()) {
+        FUSE_LOG("committing changes permanently");
 
-    MdTransaction::sp tr(repo->getMetadata().begin());
-    tr->setMeta(headHash, "status", "normal");
-    tr.reset();
+        ObjectHash headHash = head->hash();
+        printf("Making commit %s permanent\n", headHash.hex().c_str());
+        assert(repo->hasObject(headHash));
 
-    assert(repo->getMetadata().getMeta(headHash, "status") == "normal");
+        MdTransaction::sp tr(repo->getMetadata().begin());
+        tr->setMeta(headHash, "status", "normal");
+        tr.reset();
 
-    // Purge other FUSE commits
-    //repo->purgeFuseCommits();
-    repo->updateHead(headHash);
+        assert(repo->getMetadata().getMeta(headHash, "status") == "normal");
 
-    FUSE_LOG("committing changes permanently");
+        // Purge other FUSE commits
+        //repo->purgeFuseCommits();
+        repo->updateHead(headHash);
+
+        // Make everything nice and clean (TODO?)
+        repo->gc();
+    }
+    else {
+        FUSE_LOG("Nothing to commit permanently");
+    }
 
     return key;
 }

@@ -33,6 +33,7 @@
 #define ATTR_GROUPNAME "Sgroup"
 #define ATTR_CTIME "Sctime"
 #define ATTR_MTIME "Smtime"
+#define ATTR_SYMLINK "Slink"
 
 class AttrMap {
     typedef std::map<std::string, std::string> _MapType;
@@ -51,6 +52,8 @@ public:
         attrs[attrName].resize(sizeof(T));
         memcpy(&attrs[attrName][0], &value, sizeof(T));
     }
+
+    bool has(const std::string &attrName) const;
 
     void setFromFile(const std::string &filename);
     void setCreation(mode_t perms);

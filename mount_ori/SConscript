@@ -9,6 +9,7 @@ src = [
     "logging.cc",
     "ori_cmdoutput.cc",
     "repo_cmd.cc",
+    "ori_openedfiles.cc",
 ]
 
 libs = [

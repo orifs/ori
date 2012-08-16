@@ -430,7 +430,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
                     it++) {
                 if (strncmp(tde.filepath.c_str(), (*it).first.c_str(),
                             tde.filepath.size()) == 0) {
-                    assert(false);
+                    assert((*it).first[tde.filepath.size()] != '/');
                 }
             }
 #endif

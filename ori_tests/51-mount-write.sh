@@ -2,7 +2,7 @@ cd $TEMP_DIR
 mkdir -p $MTPOINT
 
 $MOUNT_ORI_EXE -o repo=$SOURCE_REPO $MTPOINT
-sleep 3
+sleep 1.5
 
 echo "hello" > $MTPOINT/hello
 echo "file 2" > $MTPOINT/file2.tst

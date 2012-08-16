@@ -97,6 +97,8 @@ public:
     {
         if (buf)
             delete[] buf;
+        if (srcFd > 0)
+            ::close(srcFd);
     }
     int open(const string &path)
     {

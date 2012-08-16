@@ -24,6 +24,30 @@ struct mount_ori_config {
 
 void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf);
 
+// ori_openedfiles.cc
+class OpenedFileMgr
+{
+public:
+    OpenedFileMgr();
+
+    void openedFile(const std::string &tempFileName, int fd);
+    void closedFile(int fd);
+    void closedFile(const std::string &tempFileName);
+
+    void removeUnused();
+    bool isOpen(const std::string &tempFileName) const;
+    bool anyFilesOpen() const;
+
+    /// Clients responsible for their own locking
+    RWLock lock_tempfiles;
+
+private:
+    uint64_t numOpenHandles;
+    std::map<std::string, uint32_t> openedFiles;
+    std::map<int, std::string> fdToFilename;
+};
+
+
 // ori_priv.cc
 struct ExtendedTreeEntry
 {
@@ -55,7 +79,8 @@ struct ori_priv
     // Holding temporary written data
     TreeDiff *currTreeDiff;
     TempDir::sp currTempDir;
-    //std::map<std::string, std::string> checkedOutFiles;
+    
+    OpenedFileMgr openedFiles;
 
     // Lock in this order
     RWLock lock_cache; // caches

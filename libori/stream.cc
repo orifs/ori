@@ -96,7 +96,9 @@ int bytestream::copyToFile(const std::string &path) {
     if (rval < 0) {
         ::close(dstFd);
         unlink(path.c_str());
+        return rval;
     }
+    ::close(dstFd);
     return rval;
 }
 
