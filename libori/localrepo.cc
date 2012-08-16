@@ -985,8 +985,18 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
     tr->setMeta(commitHash, "status", status);
 
     // Update .ori/HEAD
-    if (status == "normal")
+    if (status == "normal") {
         updateHead(commitHash);
+
+	// Remove merge state
+	/*
+	 * XXX: During a crash it's possible the merge state needs to be 
+	 * removed, because the commit has been updated.
+	 */
+	if (hasMergeState()) {
+	    clearMergeState();
+	}
+    }
 
     printf("Commit Hash: %s\nTree Hash: %s\n",
 	   commitHash.hex().c_str(),
