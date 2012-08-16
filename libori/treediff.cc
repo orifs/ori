@@ -82,7 +82,8 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 		diffEntry.type = TreeDiffEntry::NewDir;
 	    } else {
 		diffEntry.type = TreeDiffEntry::NewFile;
-		// diffEntry.newFilename = ...
+		diffEntry.newFilename = "";
+		diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
 	    }
 
 	    entries.push_back(diffEntry);
@@ -90,7 +91,7 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 	    TreeEntry entry2 = (*it2).second;
 
 	    if (entry.type != TreeEntry::Tree && entry2.type == TreeEntry::Tree) {
-		// Replaced file with directory
+		// Replaced directory with file
 		TreeDiffEntry diffEntry;
 
 		diffEntry.filepath = path;
@@ -99,10 +100,11 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 
 		diffEntry.type = TreeDiffEntry::NewFile;
 		entries.push_back(diffEntry);
-		// diffEntry.newFilename = ...
+		diffEntry.newFilename = "";
+		diffEntry.hashes = make_pair(entry2.hash, entry2.largeHash);
 	    } else if (entry.type == TreeEntry::Tree &&
 		       entry2.type != TreeEntry::Tree) {
-		// Replaced directory with file
+		// Replaced file with directory
 		TreeDiffEntry diffEntry;
 
 		diffEntry.filepath = path;
@@ -116,14 +118,15 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 		TreeEntry entry2 = (*it2).second;
 
 		// XXX: This should do the right thing even if for some reason
-		// the file was a small file and became a large file.  That 
-		// should never happen though!
+		// the file was a small file and became a large file (with the 
+		// exact same content).  That should never happen though!
 		if (entry.type != TreeEntry::Tree && entry.hash != entry2.hash) {
 		    TreeDiffEntry diffEntry;
 
 		    diffEntry.filepath = path;
 		    diffEntry.type = TreeDiffEntry::Modified;
-		    // diffEntry.newFilename = ...
+		    diffEntry.newFilename = "";
+		    diffEntry.hashes = make_pair(entry2.hash, entry2.largeHash);
 
 		    entries.push_back(diffEntry);
 		}
@@ -293,6 +296,18 @@ TreeDiff::diffToDir(Commit from, const std::string &dir, Repo *r)
     }
 }
 
+const TreeDiffEntry *
+TreeDiff::getLatestEntry(const std::string &path) const
+{
+    std::tr1::unordered_map<std::string, size_t>::const_iterator it =
+        latestEntries.find(path);
+    if (it == latestEntries.end()) {
+        return NULL;
+    }
+
+    return &entries[(*it).second];
+}
+
 TreeDiffEntry *
 TreeDiff::getLatestEntry(const std::string &path)
 {
@@ -313,17 +328,20 @@ void TreeDiff::append(const TreeDiffEntry &to_append)
     latestEntries[to_append.filepath] = entries.size()-1;
 }
 
-bool TreeDiff::merge(const TreeDiffEntry &to_merge)
+/*
+ * merges a single entry into the TreeDiff.
+ */
+bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
 {
     assert(to_merge.type != TreeDiffEntry::Noop);
     assert(to_merge.filepath != "");
 
     // Special case for rename
     if (to_merge.type == TreeDiffEntry::Renamed) {
-        TreeDiffEntry *dest_e = getLatestEntry(to_merge.newFilename);
+	    const TreeDiffEntry *dest_e = getLatestEntry(to_merge.newFilename);
         if (dest_e != NULL && dest_e->type != TreeDiffEntry::DeletedFile &&
                 dest_e->type != TreeDiffEntry::DeletedDir) {
-            printf("TreeDiff::merge: cannot replace an existing file with Renamed\n");
+            printf("TreeDiff::mergeInto: cannot replace an existing file with Renamed\n");
             NOT_IMPLEMENTED(false);
         }
 
@@ -336,7 +354,7 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
         printf("TreeDiff::merge: appending %s\n", to_merge.filepath.c_str());
         append(to_merge);
         if (to_merge.type == TreeDiffEntry::NewDir) {
-            // Makes readdir easier to write
+	    // Makes readdir easier to write
             return true;
         }
         return false;
@@ -394,6 +412,137 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
     return false;
 }
 
+void
+TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
+{
+    vector<TreeDiffEntry>::const_iterator i1;
+    vector<TreeDiffEntry>::const_iterator i2;
+    /*
+     * Resolve directory level conflicts:
+     * 
+     * T1 | T2 | Action
+     * A  | A  | Conflict if hashes do not match
+     * M  | M  | Conflict if hashes do not match
+     * D  | D  | Delete file
+     * M  | D  | Delete file
+     * -  | A  | Add file
+     * -  | M  | Merge new modifications
+     * -  | D  | Delete file
+     *
+     * XXX: Missing functionality to transform delete/add as a file move.
+     */
+
+    for (i1 = d1.entries.begin(); i1 != d1.entries.end(); i1++)
+    {
+	bool fdReplace = false;
+	vector<TreeDiffEntry>::const_iterator e;
+	vector<TreeDiffEntry>::const_iterator e_first;
+
+	/*
+	 * The entries array may contain things in any of the following orders.
+	 * A/n     - Add file or directory
+	 * D/d     - Delete file or directory
+	 * D/d n/A - Replace file or directory with a directory or file
+	 * m       - Modified
+	 *
+	 * The 'e' iterator will point to the latest entry and the 'e_first'
+	 * will point to the delete if it is a file/directory replace.
+	 */
+
+	// Check for file/directory replace
+	if (i1->type == TreeDiffEntry::DeletedFile) {
+	    e = i1 + 1;
+	    e_first = i1;
+	    if (e != d1.entries.end() &&
+		e->type == TreeDiffEntry::NewDir &&
+		e->filepath == e_first->filepath) {
+		fdReplace = true;
+		i1++;
+	    } else {
+		e = i1;
+	    }
+	} else if ((*i1).type == TreeDiffEntry::DeletedDir) {
+	    e = i1 + 1;
+	    e_first = i1;
+	    if (e != d1.entries.end() &&
+		e->type == TreeDiffEntry::NewFile &&
+		e->filepath == e_first->filepath) {
+		fdReplace = true;
+		i1++;
+	    } else {
+		e = i1;
+	    }
+	}
+
+	// Look in other diff
+	const TreeDiffEntry *e_second = d2.getLatestEntry(e->filepath);
+
+	// Determine action
+	TreeDiffEntry::DiffType t1, t2;
+	t1 = e->type;
+	if (e_second) {
+	    t2 = e_second->type;
+	} else {
+	    t2 = TreeDiffEntry::Noop;
+	}
+
+	if (t2 == TreeDiffEntry::Noop) {
+	    if (fdReplace)
+		append(*e_first);
+	    append(*e);
+	} else if (t1 == TreeDiffEntry::NewFile) {
+	    if (t2 == TreeDiffEntry::NewFile) {
+		// Conflict
+		// XXX: Merge conflict
+		assert(false);
+	    } else if (t2 == TreeDiffEntry::NewDir) {
+		// XXX: Merge conflict
+		assert(false);
+	    }
+	} else if (t1 == TreeDiffEntry::NewDir) {
+	    if (t2 == TreeDiffEntry::NewDir ||
+		(fdReplace && t2 == TreeDiffEntry::Modified)) {
+		append(*e);
+	    } else if (t2 == TreeDiffEntry::NewFile) {
+		// XXX: MergeConflict
+		assert(false);
+	    }
+	} else if (t1 == TreeDiffEntry::DeletedFile) {
+	    if (t2 == TreeDiffEntry::NewDir) {
+		// Create new dir after file delete
+		// XXX: assert file was deleted in t2
+		append(*e);
+		append(*e_second);
+	    } else {
+		append(*e);
+	    }
+	} else if (t1 == TreeDiffEntry::DeletedDir) {
+	    if (t2 == TreeDiffEntry::NewFile) {
+		// Create new file after directory delete
+		// XXX: assert directory was deleted in t2
+		append(*e);
+		append(*e_second);
+	    } else {
+		// Append deleted directory
+		append(*e);
+	    }
+	} else if (t1 == TreeDiffEntry::Modified) {
+	    if (t2 == TreeDiffEntry::DeletedFile) {
+		// Append delete
+		append(*e_second);
+	    } else if (t2 == TreeDiffEntry::NewDir) {
+		// Append delete
+		// Append newDir
+	    } else if (t2 == TreeDiffEntry::Modified) {
+		// Append conflict
+	    }
+	} else {
+	    assert(false);
+	}
+    }
+
+    // Append any new objects from 't2'
+}
 
 Tree
 TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
@@ -407,7 +556,12 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         //if (i % 80 == 0 && i > 0) putc('\n', stdout);
         //putc(tde.type, stdout);
         if (tde.type == TreeDiffEntry::NewFile) {
-            pair<ObjectHash, ObjectHash> hashes = dest_repo->addFile(tde.newFilename);
+            pair<ObjectHash, ObjectHash> hashes;
+	    if (tde.newFilename == "") {
+		hashes = tde.hashes;
+	    } else {
+		hashes = dest_repo->addFile(tde.newFilename);
+	    }
             TreeEntry te(hashes.first, hashes.second);
             te.attrs.mergeFrom(tde.newAttrs);
             assert(te.hasBasicAttrs());

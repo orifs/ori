@@ -187,7 +187,7 @@ ori_priv::mergeAndCommit(const TreeDiffEntry &tde)
 
     assert(currTreeDiff != NULL);
     eteCache.invalidate(tde.filepath);
-    bool needs_commit = currTreeDiff->merge(tde);
+    bool needs_commit = currTreeDiff->mergeInto(tde);
     if (needs_commit) {
         fuseCommit(cacheKey, repoKey);
         return true;
