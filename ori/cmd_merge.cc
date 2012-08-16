@@ -45,7 +45,7 @@ cmd_merge(int argc, const char *argv[])
     vector<Commit>::iterator it;
 
     ObjectHash p1 = ObjectHash::fromHex(argv[1]);
-    ObjectHash p2 = ObjectHash::fromHex(argv[1]);
+    ObjectHash p2 = ObjectHash::fromHex(argv[2]);
 
     // Find lowest common ancestor
     DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
@@ -93,20 +93,15 @@ cmd_merge(int argc, const char *argv[])
                 td2.entries[i].filepath.c_str());
     }
 
-    /*
-     * Resolve directory level conflicts:
-     * 
-     * T1 | T2 | Action
-     * A  | A  | Conflict if hashes do not match
-     * M  | M  | Conflict if hashes do not match
-     * D  | D  | Delete file
-     * M  | D  | Delete file
-     * -  | A  | Add file
-     * -  | M  | Merge new modifications
-     * -  | D  | Delete file
-     *
-     * XXX: Missing functionality to transform delete/add as a file move.
-     */
+    TreeDiff mdiff;
+    mdiff.mergeTrees(td1, td2);
+
+    printf("Merged Tree:\n");
+    for (size_t i = 0; i < mdiff.entries.size(); i++) {
+        printf("%c   %s\n",
+                mdiff.entries[i].type,
+                mdiff.entries[i].filepath.c_str());
+    }
 
     // Setup merge state
     MergeState state;
