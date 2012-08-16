@@ -31,12 +31,18 @@
 using namespace std;
 
 TreeDiffEntry::TreeDiffEntry()
-    : type(Noop)
+    : type(Noop),
+      filepath(""),
+      newFilename(""),
+      hashes(make_pair(ObjectHash(), ObjectHash()))
 {
 }
 
 TreeDiffEntry::TreeDiffEntry(const std::string &filepath, DiffType t)
-    : type(t), filepath(filepath)
+    : type(t),
+      filepath(filepath),
+      newFilename(""),
+      hashes(make_pair(ObjectHash(), ObjectHash()))
 {
 }
 
@@ -602,8 +608,13 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
                 te.largeHash = hashes.second;
                 te.type = (!hashes.second.isEmpty()) ? TreeEntry::LargeBlob :
                     TreeEntry::Blob;
-            }
-            else {
+            } else if (!tde.hashes.first.isEmpty()) {
+                pair<ObjectHash, ObjectHash> hashes = tde.hashes;
+		te.hash = hashes.first;
+		te.largeHash = hashes.second;
+                te.type = (!hashes.second.isEmpty()) ? TreeEntry::LargeBlob :
+                    TreeEntry::Blob;
+	    } else {
                 LOG("attribute-only diff");
             }
             
