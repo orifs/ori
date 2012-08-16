@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <iostream>
 #include <string>
 #include <map>
 #include <tr1/unordered_set>
@@ -50,6 +51,13 @@ public:
     std::tr1::unordered_set<_Key> listParents()
     {
 	return parents;
+    }
+    void dump()
+    {
+	typename std::tr1::unordered_set<_Key>::iterator it;
+	for (it = parents.begin(); it != parents.end(); it++) {
+	    std::cout << (*it).hex() << " <- " << k.hex() << std::endl;
+	}
     }
 private:
     template<class, class> friend class DAG;
@@ -119,14 +127,12 @@ public:
 	     it != it1->second.parents.end();
 	     it++)
 	{
-	    p1p.insert(*it);
 	    new_p1p.insert(*it);
 	}
 	for (it = it2->second.parents.begin();
 	     it != it2->second.parents.end();
 	     it++)
 	{
-	    p2p.insert(*it);
 	    new_p2p.insert(*it);
 	}
 
@@ -144,6 +150,9 @@ public:
 		    return *k;
 		}
 	    }
+	    for (it = new_p1p.begin(); it != new_p1p.end(); it++) {
+		p1p.insert(*it);
+	    }
 	    for (it = new_p2p.begin(); it != new_p2p.end(); it++) {
 		typename std::tr1::unordered_set<_Key>::iterator k;
 		k = p1p.find(*it);
@@ -151,12 +160,15 @@ public:
 		    return *k;
 		}
 	    }
+	    for (it = new_p2p.begin(); it != new_p2p.end(); it++) {
+		p2p.insert(*it);
+	    }
 
 	    /*
 	     * Push the next level of parents.
 	     */
 	    for (it = new_p1p.begin(); it != new_p1p.end(); it++) {
-		it1 = nodeMap.find(p1);
+		it1 = nodeMap.find(*it);
 		if (it1 != nodeMap.end()) {
 		    typename std::tr1::unordered_set<_Key>::iterator k;
 		    for (k = it1->second.parents.begin();
@@ -168,7 +180,7 @@ public:
 		}
 	    }
 	    for (it = new_p2p.begin(); it != new_p2p.end(); it++) {
-		it2 = nodeMap.find(p1);
+		it2 = nodeMap.find(*it);
 		if (it2 != nodeMap.end()) {
 		    typename std::tr1::unordered_set<_Key>::iterator k;
 		    for (k = it2->second.parents.begin();
@@ -190,6 +202,13 @@ public:
 	    new_p2p = next_p2p;
 	    next_p1p.clear();
 	    next_p2p.clear();
+	}
+    }
+    void dump() {
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it;
+	for (it = nodeMap.begin(); it != nodeMap.end(); it++)
+	{
+	    it->second.dump();
 	}
     }
 private:
