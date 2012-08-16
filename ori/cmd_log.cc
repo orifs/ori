@@ -42,13 +42,16 @@ cmd_log(int argc, const char *argv[])
 
     while (commit != EMPTY_COMMIT) {
 	Commit c = repository.getCommit(commit);
+	pair<ObjectHash, ObjectHash> p = c.getParents();
 	time_t timeVal = c.getTime();
 	char timeStr[26];
 
 	ctime_r(&timeVal, timeStr);
 
 	cout << "Commit:  " << commit.hex() << endl;
-	cout << "Parents: " << c.getParents().first.hex() << endl;
+	cout << "Parents: " << (p.first.isEmpty() ? "" : p.first.hex())
+			    << " "
+			    << (p.second.isEmpty() ? "" : p.second.hex()) << endl;
 	cout << "Tree:    " << c.getTree().hex() << endl;
 	cout << "Author:  " << c.getUser() << endl;
 	cout << "Date:    " << timeStr;
