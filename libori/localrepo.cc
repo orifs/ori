@@ -970,7 +970,12 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
     }
     
     c.setTree(treeHash);
-    c.setParents(getHead());
+    if (hasMergeState()) {
+	MergeState m = getMergeState();
+	c.setParents(m.getParents().first, m.getParents().second);
+    } else {
+	c.setParents(getHead());
+    }
 
     ObjectHash commitHash = addCommit(c);
 

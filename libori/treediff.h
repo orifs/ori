@@ -33,8 +33,10 @@ struct TreeDiffEntry
         DeletedFile = 'D',
         DeletedDir = 'd',
         Modified = 'm',
-        Renamed = 'R'
+        Renamed = 'R',
 	// ModifiedDiff = 'M'
+	MergeConflict = 'C',
+	MergeResolved = 'c',
     } type;
 
     TreeDiffEntry();

@@ -47,6 +47,7 @@ cmd_merge(int argc, const char *argv[])
     ObjectHash p1 = ObjectHash::fromHex(argv[1]);
     ObjectHash p2 = ObjectHash::fromHex(argv[1]);
 
+    // Find lowest common ancestor
     DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
     ObjectHash lca;
 
@@ -65,21 +66,55 @@ cmd_merge(int argc, const char *argv[])
     lca = cDag.findLCA(p1, p2);
     cout << "LCA: " << lca.hex() << endl;
 
-    /*TreeDiff td;
+    // Construct tree diffs to ancestor to find conflicts
+    TreeDiff td1, td2;
 
     Commit c1 = repository.getCommit(p1);
     Commit c2 = repository.getCommit(p2);
+    Commit cc = repository.getCommit(lca);
 
     Tree t1 = repository.getTree(c1.getTree());
     Tree t2 = repository.getTree(c2.getTree());
+    Tree tc = repository.getTree(cc.getTree());
 
-    td.diffTwoTrees(t1.flattened(&repository), t2.flattened(&repository));
+    td1.diffTwoTrees(t1.flattened(&repository), tc.flattened(&repository));
+    td2.diffTwoTrees(t2.flattened(&repository), tc.flattened(&repository));
 
-    for (size_t i = 0; i < td.entries.size(); i++) {
+    printf("Tree 1:\n");
+    for (size_t i = 0; i < td1.entries.size(); i++) {
         printf("%c   %s\n",
-                td.entries[i].type,
-                td.entries[i].filepath.c_str());
-    }*/
+                td1.entries[i].type,
+                td1.entries[i].filepath.c_str());
+    }
+    printf("Tree 2:\n");
+    for (size_t i = 0; i < td2.entries.size(); i++) {
+        printf("%c   %s\n",
+                td2.entries[i].type,
+                td2.entries[i].filepath.c_str());
+    }
+
+    /*
+     * Resolve directory level conflicts:
+     * 
+     * T1 | T2 | Action
+     * A  | A  | Conflict if hashes do not match
+     * M  | M  | Conflict if hashes do not match
+     * D  | D  | Delete file
+     * M  | D  | Delete file
+     * -  | A  | Add file
+     * -  | M  | Merge new modifications
+     * -  | D  | Delete file
+     *
+     * XXX: Missing functionality to transform delete/add as a file move.
+     */
+
+    // Setup merge state
+    MergeState state;
+    state.setParents(p1, p2);
+
+    repository.setMergeState(state);
+
+    // XXX: Automatically commit if everything is resolved
 
     return 0;
 }
