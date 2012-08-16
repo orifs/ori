@@ -28,7 +28,7 @@
 struct TreeDiffEntry
 {
     enum DiffType {
-        Noop, // only used as placeholder
+        Noop = '-', // only used as placeholder
         NewFile = 'A',
         NewDir = 'n',
         DeletedFile = 'D',

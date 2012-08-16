@@ -92,7 +92,7 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 		diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
 	    }
 
-	    entries.push_back(diffEntry);
+	    append(diffEntry);
 	} else {
 	    TreeEntry entry2 = (*it2).second;
 
@@ -102,10 +102,10 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 
 		diffEntry.filepath = path;
 		diffEntry.type = TreeDiffEntry::DeletedDir;
-		entries.push_back(diffEntry);
+		append(diffEntry);
 
 		diffEntry.type = TreeDiffEntry::NewFile;
-		entries.push_back(diffEntry);
+		append(diffEntry);
 		diffEntry.newFilename = "";
 		diffEntry.hashes = make_pair(entry2.hash, entry2.largeHash);
 	    } else if (entry.type == TreeEntry::Tree &&
@@ -115,10 +115,10 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 
 		diffEntry.filepath = path;
 		diffEntry.type = TreeDiffEntry::DeletedFile;
-		entries.push_back(diffEntry);
+		append(diffEntry);
 
 		diffEntry.type = TreeDiffEntry::NewDir;
-		entries.push_back(diffEntry);
+		append(diffEntry);
 	    } else {
 		// Check for mismatch
 		TreeEntry entry2 = (*it2).second;
@@ -134,7 +134,7 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 		    diffEntry.newFilename = "";
 		    diffEntry.hashes = make_pair(entry2.hash, entry2.largeHash);
 
-		    entries.push_back(diffEntry);
+		    append(diffEntry);
 		}
 	    }
 	}
@@ -154,7 +154,7 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
 	    diffEntry.type = entry.type == TreeEntry::Tree ?
                 TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile;
 
-	    entries.push_back(diffEntry);
+	    append(diffEntry);
 	}
     }
 
@@ -441,7 +441,7 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
     for (i1 = d1.entries.begin(); i1 != d1.entries.end(); i1++)
     {
 	bool fdReplace = false;
-	vector<TreeDiffEntry>::const_iterator e;
+	vector<TreeDiffEntry>::const_iterator e = i1;
 	vector<TreeDiffEntry>::const_iterator e_first;
 
 	/*
@@ -491,6 +491,7 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 	} else {
 	    t2 = TreeDiffEntry::Noop;
 	}
+	printf("%c %c\n", t1, t2);
 
 	if (t2 == TreeDiffEntry::Noop) {
 	    if (fdReplace)
@@ -498,9 +499,13 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 	    append(*e);
 	} else if (t1 == TreeDiffEntry::NewFile) {
 	    if (t2 == TreeDiffEntry::NewFile) {
-		// Conflict
-		// XXX: Merge conflict
-		assert(false);
+		// Conflict?
+		if (e->hashes == e_second->hashes) {
+		    append(*e);
+		} else {
+		    // XXX: Merge conflict
+		    assert(false);
+		}
 	    } else if (t2 == TreeDiffEntry::NewDir) {
 		// XXX: Merge conflict
 		assert(false);
