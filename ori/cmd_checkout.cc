@@ -97,6 +97,9 @@ cmd_checkout(int argc, const char *argv[])
 
     if (argc == 2) {
 	tip = ObjectHash::fromHex(argv[1]);
+
+	// Set the head if the user specified a revision
+	repository.setHead(tip);
     }
 
     if (tip != EMPTY_COMMIT) {

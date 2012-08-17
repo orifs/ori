@@ -103,7 +103,7 @@ LocalRepo_Init(const std::string &rootPath)
     }
 
     // Set branch name
-    if (!Util_WriteFile("default", 7, rootPath + ORI_PATH_BRANCH)) {
+    if (!Util_WriteFile("@default", 8, rootPath + ORI_PATH_HEAD)) {
 	perror("Could not create branch file");
 	return 1;
     }
@@ -1475,7 +1475,7 @@ LocalRepo::listBranches()
 string
 LocalRepo::getBranch()
 {
-    char *branch = Util_ReadFile(rootPath + ORI_PATH_BRANCH, NULL);
+    char *branch = Util_ReadFile(rootPath + ORI_PATH_HEAD, NULL);
 
     if (branch == NULL)
 	return "";
@@ -1503,7 +1503,8 @@ LocalRepo::setBranch(const std::string &name)
 	Util_WriteFile(head.hex().c_str(), ObjectHash::SIZE * 2, branchFile);
     }
 
-    Util_WriteFile(name.c_str(), name.size(), rootPath + ORI_PATH_BRANCH);
+    string ref = "@" + name;
+    Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
 }
 
 /*
@@ -1512,12 +1513,22 @@ LocalRepo::setBranch(const std::string &name)
 ObjectHash
 LocalRepo::getHead()
 {
-    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
-    char *commitId = Util_ReadFile(headPath, NULL);
-    // XXX: Leak!
+    string headPath;
+    string branch = getBranch();
+    string commitId;
 
-    if (commitId == NULL) {
-	return EMPTY_COMMIT;
+    if (branch[0] == '@') {
+	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
+	char *c = Util_ReadFile(headPath, NULL);
+	if (c == NULL) {
+	    return EMPTY_COMMIT;
+	}
+	commitId = c;
+	free(c);
+    } else if (branch[0] == '#') {
+	commitId = branch.substr(1);
+    } else {
+	NOT_IMPLEMENTED(false);
     }
 
     return ObjectHash::fromHex(commitId);
@@ -1529,11 +1540,32 @@ LocalRepo::getHead()
 void
 LocalRepo::updateHead(const ObjectHash &commitId)
 {
-    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
+    string branch = getBranch();
+    string headPath;
 
     assert(!commitId.isEmpty());
 
-    Util_WriteFile(commitId.hex().c_str(), ObjectHash::SIZE * 2, headPath);
+    if (branch[0] == '@') {
+	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
+	Util_WriteFile(commitId.hex().c_str(), ObjectHash::SIZE * 2, headPath);
+    } else if (branch[0] == '#') {
+	string ref = "#" + commitId.hex();
+	Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
+    } else {
+	NOT_IMPLEMENTED(false);
+    }
+}
+
+/*
+ * Set working directory revision, this will set based on a commit's ObjectHash 
+ * rather than updating the current head after a commit.  The command line 
+ * checkout command should be the only way to call this.
+ */
+void
+LocalRepo::setHead(const ObjectHash &commitId)
+{
+    string ref = "#" + commitId.hex();
+    Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
 }
 
 /*
