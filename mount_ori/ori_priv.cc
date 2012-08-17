@@ -52,9 +52,10 @@ ori_priv::_resetHead(const ObjectHash &chash)
 
 
 Tree *
-ori_priv::getTree(const ObjectHash &hash)
+ori_priv::getTree(const ObjectHash &hash, RWKey::sp repoKey)
 {
-    RWKey::sp repoKey = lock_repo.readLock();
+    if (!repoKey.get())
+        repoKey = lock_repo.readLock();
     RWKey::sp key = lock_cache.readLock();
 
     if (!treeCache.hasKey(hash)) {
@@ -100,7 +101,7 @@ ori_priv::getObjectInfo(const ObjectHash &hash)
 
 
 bool
-ori_priv::getTreeEntry(const char *cpath, TreeEntry &te)
+ori_priv::getTreeEntry(const char *cpath, TreeEntry &te, RWKey::sp repoKey)
 {
     std::string path(cpath);
     if (teCache.hasKey(path)) {
@@ -128,14 +129,13 @@ ori_priv::getTreeEntry(const char *cpath, TreeEntry &te)
         std::map<std::string, TreeEntry>::iterator it =
             t->tree.find(comp);
         if (it == t->tree.end()) {
-            FUSE_LOG("getTreeEntry didn't find file");
             te = TreeEntry();
             return false;
         }
 
         te = (*it).second;
         if (te.type == TreeEntry::Tree) {
-            t = getTree(te.hash);
+            t = getTree(te.hash, repoKey);
         }
         else {
             t = NULL;
@@ -180,7 +180,7 @@ ori_priv::getETE(const char *path, ExtendedTreeEntry &ete)
     RWKey::sp repoKey = lock_repo.readLock();
 
     ete = ExtendedTreeEntry();
-    bool hasTE = getTreeEntry(path, ete.te);
+    bool hasTE = getTreeEntry(path, ete.te, repoKey);
     TreeDiffEntry *tde = NULL;
     if (currTreeDiff != NULL) {
         tde = currTreeDiff->getLatestEntry(path);
@@ -219,9 +219,10 @@ ori_priv::getETE(const char *path, ExtendedTreeEntry &ete)
 
 
 RWKey::sp
-ori_priv::startWrite()
+ori_priv::startWrite(RWKey::sp repoKey)
 {
-    RWKey::sp key = lock_repo.writeLock();
+    if (!repoKey.get())
+        repoKey = lock_repo.writeLock();
 
     if (currTreeDiff == NULL) {
         currTreeDiff = new TreeDiff();
@@ -232,14 +233,13 @@ ori_priv::startWrite()
         currTempDir = repo->newTempDir();
     }
 
-    return key;
+    return repoKey;
 }
 
 bool
 ori_priv::mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey)
 {
-    if (!repoKey.get())
-        repoKey = lock_repo.writeLock();
+    assert(repoKey.get());
     RWKey::sp cacheKey = lock_cache.writeLock();
 
     assert(currTreeDiff != NULL);

@@ -155,7 +155,7 @@ TreeEntry::hasBasicAttrs()
     const char *names[] = {ATTR_FILESIZE, ATTR_PERMS, ATTR_USERNAME,
         ATTR_GROUPNAME, ATTR_CTIME, ATTR_MTIME};
     for (size_t i = 0; i < sizeof(names) / sizeof(const char *); i++) {
-        LOG("Checking attr %s", names[i]);
+        //LOG("Checking attr %s", names[i]);
         if (attrs.attrs.find(names[i]) == attrs.attrs.end()) return false;
     }
     return true;

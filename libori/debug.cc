@@ -19,6 +19,7 @@
 
 #include "debug.h"
 #include "localrepo.h"
+#include "mutex.h"
 
 /********************************************************************
  *
@@ -29,6 +30,7 @@
  ********************************************************************/
 
 static int logfd = -1;
+static Mutex lock_log;
 
 void
 get_timespec(struct timespec *ts)
@@ -64,6 +66,8 @@ ori_log(const char *fmt, ...)
 
     get_timespec(&ts);
     strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
+
+    lock_log.lock();
     dprintf(logfd, "%s", (char *)buf);
 
     va_start(ap, fmt);
@@ -72,6 +76,7 @@ ori_log(const char *fmt, ...)
 
     // XXX: May cause performance issues disable on release builds
     fsync(logfd);
+    lock_log.unlock();
 }
 
 int ori_open_log(LocalRepo *repo) {

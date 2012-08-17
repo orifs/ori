@@ -18,7 +18,7 @@ static int mount_ori_opt_proc(void *data, const char *arg, int key, struct
 }
 
 #undef FUSE_SINGLE_THREADED
-#define FUSE_SINGLE_THREADED 1
+#define FUSE_SINGLE_THREADED 0
 
 void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf)
 {

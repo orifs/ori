@@ -14,7 +14,12 @@
 #include "rwlock.h"
 
 // logging.cc
+#ifdef DEBUG
 #define FUSE_LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
+#else
+#define FUSE_LOG(fmt, ...)
+#endif
+
 void ori_fuse_log(const char *what, ...);
 
 // parse_opt.cc
@@ -89,14 +94,14 @@ struct ori_priv
     RWLock lock_cmd_output;
 
     // Functions to access the cache
-    Tree *getTree(const ObjectHash &hash);
+    Tree *getTree(const ObjectHash &hash, RWKey::sp repoKey);
     LargeBlob *getLargeBlob(const ObjectHash &hash);
     ObjectInfo *getObjectInfo(const ObjectHash &hash);
 
     bool getETE(const char *path, ExtendedTreeEntry &ete);
 
     // Initialize temporary written data
-    RWKey::sp startWrite();
+    RWKey::sp startWrite(RWKey::sp repoKey=RWKey::sp());
     bool mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey);
     // Commit temp data to a FUSE commit
     RWKey::sp fuseCommit(RWKey::sp cacheKey=RWKey::sp(),
@@ -111,7 +116,7 @@ struct ori_priv
     size_t readOutput(char *buf, size_t n);
 
 private:
-    bool getTreeEntry(const char *cpath, TreeEntry &te);
+    bool getTreeEntry(const char *cpath, TreeEntry &te, RWKey::sp repoKey);
 };
 
 ori_priv *ori_getpriv();

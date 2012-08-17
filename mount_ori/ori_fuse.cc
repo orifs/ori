@@ -91,7 +91,7 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 2;
         return 0;
     } else if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        RWKey::sp key = p->lock_cmd_output.writeLock();
+        RWKey::sp coKey = p->lock_cmd_output.readLock();
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
         stbuf->st_mode = 0600 | S_IFREG;
@@ -747,7 +747,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	    c = p->repo->getCommit(obj);
 	    obj = c.getTree();
 	    
-	    t = p->getTree(obj);
+	    t = p->getTree(obj, RWKey::sp());
 	} else {
 	    // Snapshot lookup
 	    ObjectHash obj;
@@ -767,7 +767,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	    if (entry.type != TreeEntry::Tree)
 		return -ENOTDIR;
 
-	    t = p->getTree(entry.hash);
+	    t = p->getTree(entry.hash, RWKey::sp());
 	}
     } else {
         ExtendedTreeEntry ete;
@@ -775,12 +775,14 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         if (!hasETE) return -ENOENT;
         if (ete.te.type != TreeEntry::Tree)
             return -ENOTDIR;
-        t = p->getTree(ete.te.hash);
+        t = p->getTree(ete.te.hash, RWKey::sp());
     }
 
     std::string extPath = std::string(path) + "/";
     if (extPath.size() == 2)
         extPath.resize(1); // for root dir '//'
+
+    RWKey::sp repoKey = p->lock_repo.readLock();
 
     for (std::map<std::string, TreeEntry>::iterator it = t->tree.begin();
             it != t->tree.end();
@@ -893,16 +895,16 @@ ori_rename(const char *from_path, const char *to_path)
     bool hasETE = p->getETE(from_path, ete);
     if (!hasETE) return -ENOENT;
 
-    RWKey::sp repoKey = p->startWrite();
-
     // Check if file exists (can't rename to existing file)
     ExtendedTreeEntry dest_ete;
     bool hasDestETE = p->getETE(to_path, dest_ete);
+
+    RWKey::sp repoKey = p->startWrite();
     if (hasDestETE) {
         TreeDiffEntry tde(to_path, dest_ete.te.type == TreeEntry::Tree ?
                 TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile);
         p->mergeAndCommit(tde, repoKey);
-        p->startWrite();
+        p->startWrite(repoKey);
     }
 
     TreeDiffEntry newTde(from_path, TreeDiffEntry::Renamed);
@@ -955,6 +957,12 @@ ori_init(struct fuse_conn_info *conn)
     }
 
     FUSE_LOG("ori filesystem starting ...");
+
+    // Print locks
+    FUSE_LOG("lock_repo: %u", priv->lock_repo.lockNum);
+    FUSE_LOG("lock_cache: %u", priv->lock_cache.lockNum);
+    FUSE_LOG("lock_cmd_output: %u", priv->lock_cmd_output.lockNum);
+    FUSE_LOG("lock_tempfiles: %u", priv->openedFiles.lock_tempfiles.lockNum);
 
     return priv;
 }

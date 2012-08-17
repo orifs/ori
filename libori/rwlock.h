@@ -35,7 +35,7 @@
 class RWLock;
 struct RWKey {
     typedef std::tr1::shared_ptr<RWKey> sp;
-    RWKey(RWLock *l);
+    RWKey(RWLock *l = NULL);
     ~RWKey();
 
     RWLock *lock;
@@ -52,7 +52,10 @@ public:
     RWKey::sp tryWriteLock();
     void unlock();
     // bool locked();
+
+    uint32_t lockNum;
 private:
+    static uint32_t gLockNum;
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
     pthread_rwlock_t lockHandle;
 //#elif defined(__WINDOWS__)

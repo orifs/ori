@@ -20,10 +20,15 @@
  */
 
 #include "rwlock.h"
+#include "debug.h"
+#include "util.h"
+
+#define LOG_LOCKING 0
 
 RWLock::RWLock()
 {
     pthread_rwlock_init(&lockHandle, NULL);
+    lockNum = gLockNum++;
 }
 
 RWLock::~RWLock()
@@ -33,12 +38,23 @@ RWLock::~RWLock()
 
 RWKey::sp RWLock::readLock()
 {
+#if LOG_LOCKING == 1
+    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    LOG("%u readLock: %u", tid, lockNum);
+    //Util_LogBacktrace();
+#endif
+
     pthread_rwlock_rdlock(&lockHandle);
+
+#if LOG_LOCKING == 1
+    LOG("%u success readLock: %u", tid, lockNum);
+#endif
     return RWKey::sp(new RWKey(this));
 }
 
 RWKey::sp RWLock::tryReadLock()
 {
+    NOT_IMPLEMENTED(false);
     if (pthread_rwlock_tryrdlock(&lockHandle) == 0) {
         return RWKey::sp(new RWKey(this));
     }
@@ -47,12 +63,23 @@ RWKey::sp RWLock::tryReadLock()
 
 RWKey::sp RWLock::writeLock()
 {
+#if LOG_LOCKING == 1
+    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    LOG("%u writeLock: %u", tid, lockNum);
+    //Util_LogBacktrace();
+#endif
+
     pthread_rwlock_wrlock(&lockHandle);
+
+#if LOG_LOCKING == 1
+    LOG("%u success writeLock: %u", tid, lockNum);
+#endif
     return RWKey::sp(new RWKey(this));
 }
 
 RWKey::sp RWLock::tryWriteLock()
 {
+    NOT_IMPLEMENTED(false);
     if (pthread_rwlock_trywrlock(&lockHandle) == 0) {
         return RWKey::sp(new RWKey(this));
     }
@@ -62,5 +89,10 @@ RWKey::sp RWLock::tryWriteLock()
 void RWLock::unlock()
 {
     pthread_rwlock_unlock(&lockHandle);
+
+#if LOG_LOCKING == 1
+    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    LOG("%u unlock: %u", tid, lockNum);
+#endif
 }
 

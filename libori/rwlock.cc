@@ -7,5 +7,8 @@ RWKey::RWKey(RWLock *l)
 
 RWKey::~RWKey()
 {
-    lock->unlock();
+    if (lock)
+        lock->unlock();
 }
+
+uint32_t RWLock::gLockNum = 0;
