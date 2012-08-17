@@ -497,7 +497,6 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 	} else {
 	    t2 = TreeDiffEntry::Noop;
 	}
-	printf("%c %c\n", t1, t2);
 
 	if (t2 == TreeDiffEntry::Noop) {
 	    if (fdReplace)
@@ -559,6 +558,36 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
     }
 
     // Append any new objects from 't2'
+}
+
+/*
+ * Rebase the 
+ */
+void
+TreeDiff::mergeChanges(const TreeDiff &d1, const TreeDiff &diff)
+{
+    vector<TreeDiffEntry>::const_iterator it, de;
+
+    for (it = d1.entries.begin(), de = diff.entries.begin();
+	 it != d1.entries.end();
+	 it++, de++)
+    {
+	if (de == diff.entries.end())
+	    return;
+
+	if (((*it).filepath == (*de).filepath) &&
+	    ((*it).type == (*de).type) &&
+	    ((*it).hashes == (*de).hashes)) {
+	    continue;
+	}
+
+	append(*de);
+    }
+
+    for (; de != diff.entries.end(); de++)
+    {
+	append(*de);
+    }
 }
 
 Tree

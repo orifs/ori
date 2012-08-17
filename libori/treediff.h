@@ -67,6 +67,7 @@ public:
     bool mergeInto(const TreeDiffEntry &to_merge);
 
     void mergeTrees(const TreeDiff &d1, const TreeDiff &d2);
+    void mergeChanges(const TreeDiff &d1, const TreeDiff &diff);
 
     Tree applyTo(Tree::Flat flat, Repo *dest_repo);
 
