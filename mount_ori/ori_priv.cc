@@ -1,8 +1,9 @@
-
 #include "ori_fuse.h"
 
 #include <string.h>
 #include <errno.h>
+
+#include "util.h"
 
 ori_priv::ori_priv(const std::string &repoPath)
     : repo(new LocalRepo(repoPath)),
@@ -53,13 +54,12 @@ ori_priv::_resetHead(const ObjectHash &chash)
 Tree *
 ori_priv::getTree(const ObjectHash &hash)
 {
+    RWKey::sp repoKey = lock_repo.readLock();
     RWKey::sp key = lock_cache.readLock();
 
     if (!treeCache.hasKey(hash)) {
-        RWKey::sp repoKey = lock_repo.readLock();
         Tree t;
         t.fromBlob(repo->getPayload(hash));
-        repoKey.reset();
 
         key.reset(); key = lock_cache.writeLock();
         treeCache.put(hash, t);
@@ -70,13 +70,12 @@ ori_priv::getTree(const ObjectHash &hash)
 LargeBlob *
 ori_priv::getLargeBlob(const ObjectHash &hash)
 {
+    RWKey::sp repoKey = lock_repo.readLock();
     RWKey::sp key = lock_cache.readLock();
 
     if (!lbCache.hasKey(hash)) {
-        RWKey::sp repoKey = lock_repo.readLock();
         std::tr1::shared_ptr<LargeBlob> lb(new LargeBlob(repo));
         lb->fromBlob(repo->getPayload(hash));
-        repoKey.reset();
 
         key.reset(); key = lock_cache.writeLock();
         lbCache.put(hash, lb);
@@ -87,19 +86,17 @@ ori_priv::getLargeBlob(const ObjectHash &hash)
 ObjectInfo *
 ori_priv::getObjectInfo(const ObjectHash &hash)
 {
+    RWKey::sp repoKey = lock_repo.readLock();
     RWKey::sp key = lock_cache.readLock();
 
     if (!objInfoCache.hasKey(hash)) {
-        RWKey::sp repoKey = lock_repo.readLock();
         ObjectInfo info = repo->getObjectInfo(hash);
-        repoKey.reset();
 
         key.reset(); key = lock_cache.writeLock();
         objInfoCache.put(hash, info);
     }
     return &objInfoCache.get(hash);
 }
-
 
 
 bool
@@ -114,13 +111,61 @@ ori_priv::getTreeEntry(const char *cpath, TreeEntry &te)
     // Special case: empty repo
     if (headtree->tree.size() == 0) return false;
 
-    te = repo->lookupTreeEntry(*head, path);
-    if (te.type == TreeEntry::Null)
-        return false;
+    Tree *t = headtree;
+
+    std::vector<std::string> components = Util_PathToVector(path);
+    for (size_t i = 0; i < components.size(); i++) {
+        if (t == NULL) {
+            // Got to leaf of tree (e.g. e is a file)
+            // but still have more path components
+            FUSE_LOG("path leaf is a file");
+            te = TreeEntry();
+            return false;
+        }
+
+        const std::string &comp = components[i];
+
+        std::map<std::string, TreeEntry>::iterator it =
+            t->tree.find(comp);
+        if (it == t->tree.end()) {
+            FUSE_LOG("getTreeEntry didn't find file");
+            te = TreeEntry();
+            return false;
+        }
+
+        te = (*it).second;
+        if (te.type == TreeEntry::Tree) {
+            t = getTree(te.hash);
+        }
+        else {
+            t = NULL;
+        }
+    }
+
     teCache.put(path, te);
-    te = teCache.get(path);
     return true;
 }
+
+/*bool
+ori_priv::getTreeEntry(const char *cpath, TreeEntry &te)
+{
+    std::string path(cpath);
+    if (teCache.hasKey(path)) {
+        te = teCache.get(path);
+        return true;
+    }
+
+    // Special case: empty repo
+    if (headtree->tree.size() == 0) return false;
+
+    te = repo->lookupTreeEntry(*head, path);
+    if (te.type == TreeEntry::Null) {
+        FUSE_LOG("getTreeEntry (repo) didn't find file");
+        return false;
+    }
+    teCache.put(path, te);
+    return true;
+}// */
 
 bool
 ori_priv::getETE(const char *path, ExtendedTreeEntry &ete)
@@ -130,7 +175,8 @@ ori_priv::getETE(const char *path, ExtendedTreeEntry &ete)
         ete = eteCache.get(path);
         return true;
     }
-    cacheKey.reset(); cacheKey = lock_cache.writeLock();
+    cacheKey.reset();
+
     RWKey::sp repoKey = lock_repo.readLock();
 
     ete = ExtendedTreeEntry();
@@ -165,6 +211,7 @@ ori_priv::getETE(const char *path, ExtendedTreeEntry &ete)
         return NULL;
     }
 
+    cacheKey = lock_cache.writeLock();
     eteCache.put(path, ete);
     return true;
 }
@@ -189,10 +236,11 @@ ori_priv::startWrite()
 }
 
 bool
-ori_priv::mergeAndCommit(const TreeDiffEntry &tde)
+ori_priv::mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey)
 {
+    if (!repoKey.get())
+        repoKey = lock_repo.writeLock();
     RWKey::sp cacheKey = lock_cache.writeLock();
-    RWKey::sp repoKey = lock_repo.writeLock();
 
     assert(currTreeDiff != NULL);
     eteCache.invalidate(tde.filepath);
@@ -208,10 +256,10 @@ ori_priv::mergeAndCommit(const TreeDiffEntry &tde)
 RWKey::sp
 ori_priv::fuseCommit(RWKey::sp cacheKey, RWKey::sp repoKey)
 {
-    if (!cacheKey)
-        cacheKey = lock_cache.writeLock();
     if (!repoKey)
         repoKey = lock_repo.writeLock();
+    if (!cacheKey)
+        cacheKey = lock_cache.writeLock();
 
     if (currTreeDiff != NULL) {
         FUSE_LOG("committing");

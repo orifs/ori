@@ -51,10 +51,8 @@ RemoteRepo remoteRepo;
 
 int
 _openTempFile(ori_priv *priv, const ExtendedTreeEntry &ete, std::string
-        &tempFile, int flags)
+        &tempFile, int flags, RWKey::sp repoKey)
 {
-    RWKey::sp repoKey = priv->startWrite();
-
     tempFile = "";
     if (ete.changedData &&
             (ete.tde.type == TreeDiffEntry::NewFile ||
@@ -197,24 +195,6 @@ ori_getattr(const char *path, struct stat *stbuf)
 }
 
 static int
-ori_statfs(const char *path, struct statvfs *statv)
-{
-    /*int status;
-    char fullpath[PATH_MAX];
-
-    strcpy(fullpath, ori_getpriv()->datastore);
-    strncat(fullpath, path, PATH_MAX);
-
-    FUSE_LOG("FUSE ori_statfs(path=\"%s\")", path);
-
-    status = statvfs(fullpath, statv);
-    if (status != 0)
-        return -errno;*/
-
-    return 0;
-}
-
-static int
 ori_open(const char *path, struct fuse_file_info *fi)
 {
     FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
@@ -274,12 +254,11 @@ ori_open(const char *path, struct fuse_file_info *fi)
         p->openedFiles.openedFile(ete.tde.newFilename, fi->fh);
     }
     else if (fi->flags & O_WRONLY || fi->flags & O_RDWR) {
-        p->startWrite();
-
+        RWKey::sp repoKey = p->startWrite();
         RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
         std::string tempFile;
-        fi->fh = _openTempFile(p, ete, tempFile, fi->flags);
+        fi->fh = _openTempFile(p, ete, tempFile, fi->flags, repoKey);
         if (fi->fh == NULL_FH) return -EIO;
 
         tfKey.reset();
@@ -288,7 +267,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
         tde.type = TreeDiffEntry::Modified;
         tde.filepath = path;
         tde.newFilename = tempFile;
-        if (p->mergeAndCommit(tde)) {
+        if (p->mergeAndCommit(tde, repoKey)) {
             FUSE_LOG("ori_open: can't restart write here!");
             NOT_IMPLEMENTED(false);
         }
@@ -417,7 +396,8 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
     }
 
     ori_priv *p = ori_getpriv();
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
+    RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
     std::string tempFile = p->currTempDir->newTempFile();
     if (tempFile == "")
@@ -427,7 +407,7 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
     tde.newFilename = tempFile;
     tde.newAttrs.setCreation(mode & (~S_IFREG));
 
-    p->mergeAndCommit(tde);
+    p->mergeAndCommit(tde, repoKey);
 
     return 0;
 }
@@ -452,7 +432,7 @@ ori_unlink(const char *path)
     bool hasETE = p->getETE(path, ete);
     if (!hasETE) return -ENOENT;
 
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
 
     TreeDiffEntry newTde;
     newTde.filepath = path;
@@ -465,7 +445,7 @@ ori_unlink(const char *path)
         newTde.type = TreeDiffEntry::DeletedFile;
     }
 
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
     
     return 0;
 }
@@ -483,7 +463,8 @@ ori_symlink(const char *target_path, const char *link_path)
     }
 
     ori_priv *p = ori_getpriv();
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
+    RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
     std::string tempFile = p->currTempDir->newTempFile();
     if (tempFile == "")
@@ -496,7 +477,7 @@ ori_symlink(const char *target_path, const char *link_path)
     tde.newAttrs.setAs<bool>(ATTR_SYMLINK, true);
     tde.newAttrs.setAs<size_t>(ATTR_FILESIZE, strlen(target_path));
 
-    p->mergeAndCommit(tde);
+    p->mergeAndCommit(tde, repoKey);
 
     return 0;
 }
@@ -582,10 +563,10 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
         return -errno;
     }
 
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
     TreeDiffEntry tde(path, TreeDiffEntry::Modified);
     tde.newAttrs.setAs<size_t>(ATTR_FILESIZE, sb.st_size);
-    p->mergeAndCommit(tde);
+    p->mergeAndCommit(tde, repoKey);
 
     return res;
 }
@@ -608,24 +589,23 @@ ori_truncate(const char *path, off_t length)
     if (!hasETE) return -ENOENT;
     if (ete.te.type == TreeEntry::Tree) return -EIO;
 
-    p->startWrite();
-
-    RWKey::sp key = p->openedFiles.lock_tempfiles.writeLock();
+    RWKey::sp repoKey = p->startWrite();
+    RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
     std::string tempFile;
-    int fh = _openTempFile(p, ete, tempFile, O_RDONLY);
+    int fh = _openTempFile(p, ete, tempFile, O_RDONLY, repoKey);
     if (fh == NULL_FH) return -EIO;
     close(fh);
 
     int res = truncate(tempFile.c_str(), length);
     if (res < 0) return -errno;
 
-    key.reset();
+    tfKey.reset();
 
     TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
     newTde.newFilename = tempFile;
     newTde.newAttrs.setAs<size_t>(ATTR_FILESIZE, (size_t)length);
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
 
     return res;
 }
@@ -647,12 +627,12 @@ ori_chmod(const char *path, mode_t mode)
     bool hasETE = p->getETE(path, ete);
     if (!hasETE) return -ENOENT;
 
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
 
     TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
     newTde.newAttrs.setAs<mode_t>(ATTR_PERMS, mode);
 
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
 
     return 0;
 }
@@ -674,7 +654,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
     bool hasETE = p->getETE(path, ete);
     if (!hasETE) return -ENOENT;
 
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
 
     TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
 
@@ -686,7 +666,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
     if (grp != NULL)
         newTde.newAttrs.attrs[ATTR_GROUPNAME] = grp->gr_name;
 
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
 
     return 0;
 }
@@ -708,12 +688,12 @@ ori_utimens(const char *path, const struct timespec tv[2])
     bool hasETE = p->getETE(path, ete);
     if (!hasETE) return -ENOENT;
 
-    p->startWrite();
-    // access: tv[0], modify: tv[1]
+    RWKey::sp repoKey = p->startWrite();
+    // change attrs?: tv[0], modify: tv[1]
     TreeDiffEntry newTde(path, TreeDiffEntry::Modified);
     newTde.newAttrs.setAs<time_t>(ATTR_MTIME, tv[1].tv_sec);
 
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
 
     return 0;
 }
@@ -721,14 +701,6 @@ ori_utimens(const char *path, const struct timespec tv[2])
 
 
 
-
-static int
-ori_opendir(const char *path, struct fuse_file_info *fi)
-{
-    FUSE_LOG("FUSE ori_opendir(path=\"%s\")", path);
-
-    return 0;
-}
 
 static int
 ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
@@ -853,16 +825,6 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 }
 
 static int
-ori_releasedir(const char *path, struct fuse_file_info *fi)
-{
-    FUSE_LOG("FUSE ori_closedir(path=\"%s\")", path);
-
-    closedir((DIR *)(uintptr_t)fi->fh);
-
-    return 0;
-}
-
-static int
 ori_mkdir(const char *path, mode_t mode)
 {
     FUSE_LOG("FUSE ori_mkdir(path=\"%s\")", path);
@@ -874,11 +836,11 @@ ori_mkdir(const char *path, mode_t mode)
     }
 
     ori_priv *p = ori_getpriv();
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
 
     TreeDiffEntry newTde(path, TreeDiffEntry::NewDir);
     newTde.newAttrs.setCreation(mode & (~S_IFDIR));
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
 
     return 0;
 }
@@ -900,10 +862,10 @@ ori_rmdir(const char *path)
     bool hasETE = p->getETE(path, ete);
     if (!hasETE) return -ENOENT;
 
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
 
     TreeDiffEntry newTde(path, TreeDiffEntry::DeletedDir);
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
 
     return 0;
 }
@@ -931,7 +893,7 @@ ori_rename(const char *from_path, const char *to_path)
     bool hasETE = p->getETE(from_path, ete);
     if (!hasETE) return -ENOENT;
 
-    p->startWrite();
+    RWKey::sp repoKey = p->startWrite();
 
     // Check if file exists (can't rename to existing file)
     ExtendedTreeEntry dest_ete;
@@ -939,13 +901,13 @@ ori_rename(const char *from_path, const char *to_path)
     if (hasDestETE) {
         TreeDiffEntry tde(to_path, dest_ete.te.type == TreeEntry::Tree ?
                 TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile);
-        p->mergeAndCommit(tde);
+        p->mergeAndCommit(tde, repoKey);
         p->startWrite();
     }
 
     TreeDiffEntry newTde(from_path, TreeDiffEntry::Renamed);
     newTde.newFilename = to_path;
-    p->mergeAndCommit(newTde);
+    p->mergeAndCommit(newTde, repoKey);
 
     return 0;
 }

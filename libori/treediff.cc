@@ -367,6 +367,12 @@ bool TreeDiff::merge(const TreeDiffEntry &to_merge)
         e->type = TreeDiffEntry::DeletedFile;
         return false;
     }
+    else if (e->type == TreeDiffEntry::Modified &&
+             to_merge.type == TreeDiffEntry::DeletedDir)
+    {
+        e->type = TreeDiffEntry::DeletedDir;
+        return false;
+    }
     else if ((e->type == TreeDiffEntry::DeletedFile &&
               to_merge.type == TreeDiffEntry::NewDir) ||
              (e->type == TreeDiffEntry::DeletedDir &&

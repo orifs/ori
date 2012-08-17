@@ -51,5 +51,9 @@
 #error "Please select one compression algorithm."
 #endif
 
+// FUSE tuneables
+#define FUSE_ENTRY_CACHE_SIZE 512
+#define FUSE_SINGLE_THREADED 0
+
 #endif /* __TUNEABLES_H__ */
 

@@ -4,6 +4,7 @@
 #include <string>
 #include <tr1/memory>
 
+#include "tuneables.h"
 #include "localrepo.h"
 #include "commit.h"
 #include "tree.h"
@@ -69,8 +70,8 @@ struct ori_priv
     LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
     LRUCache<ObjectHash, ObjectInfo, 128> objInfoCache;
 
-    LRUCache<std::string, TreeEntry, 128> teCache;
-    LRUCache<std::string, ExtendedTreeEntry, 128> eteCache;
+    LRUCache<std::string, TreeEntry, FUSE_ENTRY_CACHE_SIZE> teCache;
+    LRUCache<std::string, ExtendedTreeEntry, FUSE_ENTRY_CACHE_SIZE> eteCache;
 
     LocalRepo *repo;
     Commit *head;
@@ -83,8 +84,8 @@ struct ori_priv
     OpenedFileMgr openedFiles;
 
     // Lock in this order
-    RWLock lock_cache; // caches
     RWLock lock_repo; // repo, head(tree), tempdir
+    RWLock lock_cache; // caches
     RWLock lock_cmd_output;
 
     // Functions to access the cache
@@ -96,7 +97,7 @@ struct ori_priv
 
     // Initialize temporary written data
     RWKey::sp startWrite();
-    bool mergeAndCommit(const TreeDiffEntry &tde);
+    bool mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey);
     // Commit temp data to a FUSE commit
     RWKey::sp fuseCommit(RWKey::sp cacheKey=RWKey::sp(),
             RWKey::sp repoKey=RWKey::sp());
