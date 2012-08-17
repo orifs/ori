@@ -15,6 +15,7 @@ src = [
     "localobject.cc",
     "localrepo.cc",
     "lrucache.cc",
+    "mergestate.cc",
     "monitor.cc",
     "object.cc",
     "peer.cc",

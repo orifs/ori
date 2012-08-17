@@ -29,6 +29,7 @@
 #include "largeblob.h"
 #include "remoterepo.h"
 #include "packfile.h"
+#include "mergestate.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -38,6 +39,7 @@
 #define ORI_PATH_METADATA "/.ori/metadata"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
 #define ORI_PATH_BRANCH "/.ori/BRANCH"
+#define ORI_PATH_MERGESTATE "/.ori/mergestate"
 #define ORI_PATH_LOG "/.ori/ori.log"
 #define ORI_PATH_TMP "/.ori/tmp/"
 #define ORI_PATH_OBJS "/.ori/objs/"
@@ -157,6 +159,10 @@ public:
     ObjectHash getHead();
     void updateHead(const ObjectHash &commitId);
     Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit
+    void setMergeState(const MergeState &state);
+    MergeState getMergeState();
+    void clearMergeState();
+    bool hasMergeState();
 
     // General Operations
     TempDir::sp newTempDir();
@@ -169,8 +175,7 @@ public:
     // Peer Management
     std::map<std::string, Peer> getPeers();
     bool addPeer(const std::string &name, const std::string &path);
-    bool removePeer(const std::string &name);
-    void setInstaClone(const std::string &name, bool val = true);
+    bool removePeer(const std::string &name); void setInstaClone(const std::string &name, bool val = true);
 
     // Static Operations
     static std::string findRootPath(const std::string &path = "");

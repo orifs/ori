@@ -983,7 +983,12 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
     }
     
     c.setTree(treeHash);
-    c.setParents(getHead());
+    if (hasMergeState()) {
+	MergeState m = getMergeState();
+	c.setParents(m.getParents().first, m.getParents().second);
+    } else {
+	c.setParents(getHead());
+    }
 
     ObjectHash commitHash = addCommit(c);
 
@@ -993,8 +998,18 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
     tr->setMeta(commitHash, "status", status);
 
     // Update .ori/HEAD
-    if (status == "normal")
+    if (status == "normal") {
         updateHead(commitHash);
+
+	// Remove merge state
+	/*
+	 * XXX: During a crash it's possible the merge state needs to be 
+	 * removed, because the commit has been updated.
+	 */
+	if (hasMergeState()) {
+	    clearMergeState();
+	}
+    }
 
     printf("Commit Hash: %s\nTree Hash: %s\n",
 	   commitHash.hex().c_str(),
@@ -1535,6 +1550,62 @@ LocalRepo::getHeadTree()
     }
 
     return t;
+}
+
+/*
+ * Set merge state
+ */
+void
+LocalRepo::setMergeState(const MergeState &state)
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+    string blob = state.getBlob();
+
+    Util_WriteFile(blob.data(), blob.size(), mergeStatePath);
+}
+
+/*
+ * Get merge state
+ */
+MergeState
+LocalRepo::getMergeState()
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+    MergeState state;
+    string blob;
+    size_t blen;
+    const char *b;
+
+    b = Util_ReadFile(mergeStatePath, &blen);
+    if (b == NULL)
+	throw exception();
+
+    blob.assign(b, blen);
+    state.fromBlob(blob);
+
+    return state;
+}
+
+/*
+ * Clear merge state
+ */
+void
+LocalRepo::clearMergeState()
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+
+    Util_DeleteFile(mergeStatePath);
+}
+
+/*
+ * Has merge state?
+ */
+bool
+LocalRepo::hasMergeState()
+{
+    string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
+
+    return Util_FileExists(mergeStatePath);
 }
 
 /*
