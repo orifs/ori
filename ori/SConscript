@@ -30,6 +30,7 @@ src = [
     "cmd_stats.cc",
     "cmd_status.cc",
     "cmd_stripmetadata.cc",
+    "cmd_tip.cc",
     "cmd_treediff.cc",
     "cmd_verify.cc",
     "main.cc",

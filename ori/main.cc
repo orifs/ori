@@ -78,6 +78,7 @@ int cmd_show(int argc, const char *argv[]);
 int cmd_snapshot(int argc, const char *argv[]);
 int cmd_snapshots(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
+int cmd_tip(int argc, const char *argv[]);
 int cmd_treediff(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
 
@@ -229,6 +230,12 @@ static Cmd commands[] = {
         "status",
         "Scan for changes since last commit",
         cmd_status,
+        NULL,
+    },
+    {
+        "tip",
+        "Print the latest commit on this branch",
+        cmd_tip,
         NULL,
     },
     {
