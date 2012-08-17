@@ -22,6 +22,8 @@
 #include <iomanip>
 #include <utility>
 
+#include <sys/stat.h>
+
 #include "debug.h"
 #include "util.h"
 #include "dag.h"
@@ -35,17 +37,17 @@ extern LocalRepo repository;
 int
 cmd_merge(int argc, const char *argv[])
 {
-    if (argc != 3) {
-	cout << "merge takes two arguments!" << endl;
-	cout << "usage: ori merge <commit 1> <commit 2>" << endl;
+    if (argc != 2) {
+	cout << "merge takes one arguments!" << endl;
+	cout << "usage: ori merge <commit 1>" << endl;
 	return 1;
     }
 
     vector<Commit> commits = repository.listCommits();
     vector<Commit>::iterator it;
 
-    ObjectHash p1 = ObjectHash::fromHex(argv[1]);
-    ObjectHash p2 = ObjectHash::fromHex(argv[2]);
+    ObjectHash p1 = repository.getHead();
+    ObjectHash p2 = ObjectHash::fromHex(argv[1]);
 
     // Find lowest common ancestor
     DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
@@ -93,6 +95,7 @@ cmd_merge(int argc, const char *argv[])
                 td2.entries[i].filepath.c_str());
     }
 
+    // Compute merge
     TreeDiff mdiff;
     mdiff.mergeTrees(td1, td2);
 
@@ -108,6 +111,44 @@ cmd_merge(int argc, const char *argv[])
     state.setParents(p1, p2);
 
     repository.setMergeState(state);
+
+    // Create diff of working directory updates
+    TreeDiff wdiff;
+    wdiff.mergeChanges(td1, mdiff);
+
+    printf("Merged Tree Diff:\n");
+    for (size_t i = 0; i < wdiff.entries.size(); i++) {
+        printf("%c   %s\n",
+                wdiff.entries[i].type,
+                wdiff.entries[i].filepath.c_str());
+    }
+
+    printf("Updating working directory\n");
+    // Update working directory as necessary
+    for (size_t i = 0; i < wdiff.entries.size(); i++) {
+	TreeDiffEntry e = wdiff.entries[i];
+	string path  = repository.getRootPath() + e.filepath;
+
+	if (e.type == TreeDiffEntry::NewFile) {
+	    printf("N       %s\n", e.filepath.c_str());
+	    repository.copyObject(e.hashes.first, path);
+	} else if (mdiff.entries[i].type == TreeDiffEntry::NewDir) {
+	    printf("N       %s\n", e.filepath.c_str());
+	    mkdir(path.c_str(), 0755);
+	} else if (mdiff.entries[i].type == TreeDiffEntry::DeletedFile) {
+	    printf("D       %s\n", e.filepath.c_str());
+	    Util_DeleteFile(path);
+	} else if (mdiff.entries[i].type == TreeDiffEntry::DeletedDir) {
+	    printf("D       %s\n", e.filepath.c_str());
+	    rmdir(path.c_str()); 
+	} else if (mdiff.entries[i].type == TreeDiffEntry::Modified) {
+	    printf("U       %s\n", e.filepath.c_str());
+	    repository.copyObject(e.hashes.first, path);
+	} else {
+	    printf("Unsupported TreeDiffEntry type %c\n", mdiff.entries[i].type);
+	    NOT_IMPLEMENTED(false);
+	}
+    }
 
     // XXX: Automatically commit if everything is resolved
 
