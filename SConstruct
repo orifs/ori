@@ -97,6 +97,8 @@ env.SetOption('num_jobs', GetNumCPUs(env))
 
 # Add pkg-config options (TODO)
 env.ParseConfig('pkg-config --libs --cflags libevent')
+if sys.platform == "freebsd9" or sys.platform == "freebsd8":
+    env.Append(LIBS = ['execinfo'])
 
 # Configuration
 conf = env.Configure()
