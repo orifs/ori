@@ -23,6 +23,7 @@
 #include <set>
 #include <deque>
 
+#include "dag.h"
 #include "tree.h"
 #include "commit.h"
 #include "object.h"
@@ -83,6 +84,7 @@ public:
     virtual void copyFrom(
             Object *other
             );
+    virtual DAG<ObjectHash, Commit> getCommitDag();
 };
 
 #endif /* __REPO_H__ */

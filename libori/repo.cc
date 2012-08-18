@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <vector>
 #include <set>
 #include <queue>
 #include <iostream>
@@ -29,6 +30,7 @@
 #include "largeblob.h"
 
 #include "debug.h"
+#include "dag.h"
 #include "repo.h"
 #include "localrepo.h"
 #include "sshrepo.h"
@@ -176,5 +178,27 @@ Repo::getCommit(const ObjectHash &commitId)
     c.fromBlob(blob);
 
     return c;
+}
+
+DAG<ObjectHash, Commit>
+Repo::getCommitDag()
+{
+    vector<Commit> commits = listCommits();
+    vector<Commit>::iterator it;
+    DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
+
+    cDag.addNode(ObjectHash(), Commit());
+    for (it = commits.begin(); it != commits.end(); it++) {
+	cDag.addNode((*it).hash(), (*it));
+    }
+
+    for (it = commits.begin(); it != commits.end(); it++) {
+	pair<ObjectHash, ObjectHash> p = (*it).getParents();
+	cDag.addChild(p.first, (*it).hash());
+	if (!p.second.isEmpty())
+	    cDag.addChild(p.first, it->hash());
+    }
+
+    return cDag;
 }
 
