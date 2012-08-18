@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -59,7 +58,7 @@ cmd_listobj(int argc, const char *argv[])
 		break;
 	    default:
 		cout << "Unknown object type (id " << (*it).hash.hex() << ")!" << endl;
-		assert(false);
+		PANIC();
 	}
 	cout << (*it).hash.hex() << " # " << type << endl;
     }

@@ -44,7 +44,7 @@ StatusDirectoryCB(void *arg, const char *path)
 
     if (!Util_IsDirectory(objPath)) {
 	objHash = Util_HashFile(objPath);
-        assert(!objHash.isEmpty());
+        ASSERT(!objHash.isEmpty());
         objPath = objPath.substr(repoRoot.size());
     } else {
 	objPath = objPath.substr(repoRoot.size());
