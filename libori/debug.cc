@@ -70,6 +70,12 @@ ori_log(const char *fmt, ...)
     vdprintf(logfd, fmt, ap);
     va_end(ap);
 
+#ifdef DEBUG
+    va_start(ap, fmt);
+    vdprintf(STDERR_FILENO, fmt, ap);
+    va_end(ap);
+#endif
+
     // XXX: May cause performance issues disable on release builds
     fsync(logfd);
 }

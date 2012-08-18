@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -27,10 +26,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "debug.h"
+#include "util.h"
 #include "sshclient.h"
 #include "sshrepo.h"
-#include "util.h"
-#include "debug.h"
 
 #define D_READ 0
 #define D_WRITE 1
@@ -41,7 +40,7 @@
 SshClient::SshClient(const std::string &remotePath)
     : fdFromChild(-1), fdToChild(-1), childPid(-1)
 {
-    assert(Util_IsPathRemote(remotePath));
+    ASSERT(Util_IsPathRemote(remotePath));
     size_t pos = remotePath.find(':');
     remoteHost = remotePath.substr(0, pos);
     remoteRepo = remotePath.substr(pos+1);
@@ -156,13 +155,13 @@ bool SshClient::connected() {
 }
 
 void SshClient::sendCommand(const std::string &command) {
-    assert(connected());
+    ASSERT(connected());
     streamToChild->writePStr(command);
     fsync(fdToChild);
 }
 
 void SshClient::sendData(const std::string &data) {
-    assert(connected());
+    ASSERT(connected());
     size_t len = data.size();
     size_t off = 0;
     while (len > 0) {
@@ -184,7 +183,7 @@ bytestream *SshClient::getStream() {
 
 bool SshClient::respIsOK() {
     uint8_t resp;
-    assert(read(fdFromChild, &resp, 1) == 1);
+    ASSERT(read(fdFromChild, &resp, 1) == 1);
     if (resp == 0) return true;
     else {
         std::string errStr;

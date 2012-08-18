@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdio.h>
 
 #include <unistd.h>
@@ -29,12 +28,12 @@
 #include <iostream>
 #include <algorithm>
 
-#include "tree.h"
+#include "debug.h"
 #include "util.h"
 #include "scan.h"
 #include "repo.h"
 #include "largeblob.h"
-#include "debug.h"
+#include "tree.h"
 
 using namespace std;
 
@@ -61,7 +60,7 @@ void AttrMap::setFromFile(const std::string &filename)
 
     if (stat(filename.c_str(), &sb) < 0) {
 	perror("stat failed in Tree::addObject");
-	assert(false);
+	PANIC();
     }
 
     struct passwd *upw = getpwuid(sb.st_uid);
@@ -99,7 +98,7 @@ void AttrMap::mergeFrom(const AttrMap &other)
 
 template <> const char *
 AttrMap::getAs<const char *>(const std::string &attrName) {
-    assert(attrs.find(attrName) != attrs.end());
+    ASSERT(attrs.find(attrName) != attrs.end());
     return attrs[attrName].c_str();
 }
 
@@ -133,7 +132,7 @@ TreeEntry::~TreeEntry()
 void
 TreeEntry::extractToFile(const std::string &filename, Repo *src) const
 {
-    assert(type != Null);
+    ASSERT(type != Null);
     Object::sp o(src->getObject(hash));
     if (type == Blob) {
         bytestream::ap bs(o->getPayloadStream());
@@ -197,7 +196,7 @@ Tree::getBlob() const
         } else if (te.type == TreeEntry::LargeBlob) {
             ss.write("lgbl", 4);
         } else {
-            assert(false);
+            PANIC();
         }
 
         ss.writeHash(te.hash);
@@ -238,7 +237,7 @@ Tree::fromBlob(const string &blob)
             entry.type = TreeEntry::LargeBlob;
         }
         else {
-            assert(false);
+            PANIC();
         }
 
         ss.readHash(entry.hash);
@@ -247,16 +246,16 @@ Tree::fromBlob(const string &blob)
         }
         string path;
         int status = ss.readPStr(path);
-        assert(status > 0);
+        ASSERT(status > 0);
 
         size_t num_attrs = ss.readInt<uint32_t>();
         for (size_t i_a = 0; i_a < num_attrs; i_a++) {
             string attrName, attrValue;
 
             status = ss.readPStr(attrName);
-            assert(status > 0);
+            ASSERT(status > 0);
             status = ss.readPStr(attrValue);
-            assert(status > 0);
+            ASSERT(status > 0);
 
             entry.attrs.attrs[attrName] = attrValue;
         }
@@ -334,7 +333,7 @@ Tree::unflatten(const Flat &flat, Repo *r)
             trees[treename].tree[basename] = te;
         }
         else {
-            assert(false && "TreeEntry is type Null");
+            ASSERT(false && "TreeEntry is type Null");
         }
     }
 
@@ -361,7 +360,7 @@ Tree::unflatten(const Flat &flat, Repo *r)
         TreeEntry te = (*flat.find(tree_names[i])).second;
         te.hash = hash;
         te.type = TreeEntry::Tree;
-        assert(te.hasBasicAttrs());
+        ASSERT(te.hasBasicAttrs());
 
         string parent = StrUtil_Dirname(tn);
         trees[parent].tree[StrUtil_Basename(tn)] = te;

@@ -1,4 +1,3 @@
-#include <cassert>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -7,9 +6,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "metadatalog.h"
+#include "debug.h"
 #include "util.h"
 #include "stream.h"
+#include "metadatalog.h"
 
 MdTransaction::MdTransaction(MetadataLog *log)
     : log(log)
@@ -31,7 +31,7 @@ void MdTransaction::addRef(const ObjectHash &hash)
 void MdTransaction::decRef(const ObjectHash &hash)
 {
     counts[hash] -= 1;
-    assert(log->refcounts[hash] + counts[hash] >= 0);
+    ASSERT(log->refcounts[hash] + counts[hash] >= 0);
 }
 
 void MdTransaction::setMeta(const ObjectHash &hash, const std::string &key,
@@ -221,11 +221,11 @@ MetadataLog::commit(MdTransaction *tr)
             it != tr->counts.end();
             it++) {
         const ObjectHash &hash = (*it).first;
-        assert(!hash.isEmpty());
+        ASSERT(!hash.isEmpty());
 
         ws.writeHash(hash);
         refcount_t final_count = refcounts[hash] + (*it).second;
-        assert(final_count >= 0);
+        ASSERT(final_count >= 0);
 
         refcounts[hash] = final_count;
         ws.writeInt(final_count);
@@ -235,7 +235,7 @@ MetadataLog::commit(MdTransaction *tr)
             it != tr->metadata.end();
             it++) {
         const ObjectHash &hash = (*it).first;
-        assert(!hash.isEmpty());
+        ASSERT(!hash.isEmpty());
 
         ws.writeHash(hash);
         uint32_t num_mde = (*it).second.size();

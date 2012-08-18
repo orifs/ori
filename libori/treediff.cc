@@ -328,8 +328,8 @@ TreeDiff::getLatestEntry(const std::string &path)
 
 void TreeDiff::append(const TreeDiffEntry &to_append)
 {
-    assert(to_append.filepath != "");
-    assert(to_append.type != TreeDiffEntry::Noop);
+    ASSERT(to_append.filepath != "");
+    ASSERT(to_append.type != TreeDiffEntry::Noop);
     entries.push_back(to_append);
     latestEntries[to_append.filepath] = entries.size()-1;
 }
@@ -339,8 +339,8 @@ void TreeDiff::append(const TreeDiffEntry &to_append)
  */
 bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
 {
-    assert(to_merge.type != TreeDiffEntry::Noop);
-    assert(to_merge.filepath != "");
+    ASSERT(to_merge.type != TreeDiffEntry::Noop);
+    ASSERT(to_merge.filepath != "");
 
     // Special case for rename
     if (to_merge.type == TreeDiffEntry::Renamed) {
@@ -509,11 +509,11 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 		    append(*e);
 		} else {
 		    // XXX: Merge conflict
-		    assert(false);
+		    NOT_IMPLEMENTED(false);
 		}
 	    } else if (t2 == TreeDiffEntry::NewDir) {
 		// XXX: Merge conflict
-		assert(false);
+		NOT_IMPLEMENTED(false);
 	    }
 	} else if (t1 == TreeDiffEntry::NewDir) {
 	    if (t2 == TreeDiffEntry::NewDir ||
@@ -521,12 +521,12 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 		append(*e);
 	    } else if (t2 == TreeDiffEntry::NewFile) {
 		// XXX: MergeConflict
-		assert(false);
+		NOT_IMPLEMENTED(false);
 	    }
 	} else if (t1 == TreeDiffEntry::DeletedFile) {
 	    if (t2 == TreeDiffEntry::NewDir) {
 		// Create new dir after file delete
-		// XXX: assert file was deleted in t2
+		// XXX: ASSERT file was deleted in t2
 		append(*e);
 		append(*e_second);
 	    } else {
@@ -535,7 +535,7 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 	} else if (t1 == TreeDiffEntry::DeletedDir) {
 	    if (t2 == TreeDiffEntry::NewFile) {
 		// Create new file after directory delete
-		// XXX: assert directory was deleted in t2
+		// XXX: ASSERT directory was deleted in t2
 		append(*e);
 		append(*e_second);
 	    } else {
@@ -553,7 +553,7 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 		// Append conflict
 	    }
 	} else {
-	    assert(false);
+	    NOT_IMPLEMENTED(false);
 	}
     }
 
@@ -610,18 +610,18 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
 	    }
             TreeEntry te(hashes.first, hashes.second);
             te.attrs.mergeFrom(tde.newAttrs);
-            assert(te.hasBasicAttrs());
+            ASSERT(te.hasBasicAttrs());
             flat.insert(make_pair(tde.filepath, te));
         }
         else if (tde.type == TreeDiffEntry::NewDir) {
             TreeEntry te;
             te.type = TreeEntry::Tree;
             te.attrs.mergeFrom(tde.newAttrs);
-            assert(te.hasBasicAttrs());
+            ASSERT(te.hasBasicAttrs());
             flat.insert(make_pair(tde.filepath, te));
         }
         else if (tde.type == TreeDiffEntry::DeletedDir) {
-            assert(flat[tde.filepath].type == TreeEntry::Tree);
+            ASSERT(flat[tde.filepath].type == TreeEntry::Tree);
             flat.erase(tde.filepath);
 #ifdef DEBUG
             // Check that no files still exist in this directory
@@ -630,13 +630,13 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
                     it++) {
                 if (strncmp(tde.filepath.c_str(), (*it).first.c_str(),
                             tde.filepath.size()) == 0) {
-                    assert((*it).first[tde.filepath.size()] != '/');
+                    ASSERT((*it).first[tde.filepath.size()] != '/');
                 }
             }
 #endif
         }
         else if (tde.type == TreeDiffEntry::DeletedFile) {
-            assert(flat[tde.filepath].type == TreeEntry::Blob ||
+            ASSERT(flat[tde.filepath].type == TreeEntry::Blob ||
                    flat[tde.filepath].type == TreeEntry::LargeBlob);
             flat.erase(tde.filepath);
         }
@@ -659,22 +659,22 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
             }
             
             te.attrs.mergeFrom(tde.newAttrs);
-            assert(te.hasBasicAttrs());
+            ASSERT(te.hasBasicAttrs());
 
             flat[tde.filepath] = te;
         }
         else if (tde.type == TreeDiffEntry::Renamed) {
-            assert(flat.find(tde.filepath) != flat.end());
-            assert(flat.find(tde.newFilename) == flat.end());
+            ASSERT(flat.find(tde.filepath) != flat.end());
+            ASSERT(flat.find(tde.newFilename) == flat.end());
 
             TreeEntry te = flat[tde.filepath];
             flat.erase(tde.filepath);
             te.attrs.mergeFrom(tde.newAttrs);
             flat[tde.newFilename] = te;
-            assert(te.hasBasicAttrs());
+            ASSERT(te.hasBasicAttrs());
         }
         else {
-            assert(false);
+	    NOT_IMPLEMENTED(false);
         }
     }
 

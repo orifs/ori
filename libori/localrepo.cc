@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cassert>
 #include <stdbool.h>
 #include <stdint.h>
 #include <cstdio>
@@ -270,7 +269,7 @@ LocalRepo::close()
 LocalRepoLock *
 LocalRepo::lock()
 {
-    assert(opened);
+    ASSERT(opened);
     if (rootPath == "")
         return NULL;
     std::string lfPath = rootPath + ORI_PATH_LOCK;
@@ -296,7 +295,7 @@ LocalRepo::lock()
 void
 LocalRepo::setRemote(Repo *r)
 {
-    assert(remoteRepo == NULL);
+    ASSERT(remoteRepo == NULL);
     remoteRepo = r;
 }
 
@@ -333,7 +332,7 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
 
 LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
 {
-    assert(opened);
+    ASSERT(opened);
 
     if (currTransaction.get()) {
         // TODO: more efficient
@@ -355,7 +354,7 @@ LocalRepo::createObjDirs(const ObjectHash &objId)
     string path = rootPath;
     string hexId = objId.hex();
 
-    assert(path != "");
+    ASSERT(path != "");
 
     path += ORI_PATH_OBJS;
     path += hexId.substr(0,2);
@@ -374,9 +373,9 @@ LocalRepo::objIdToPath(const ObjectHash &objId)
     string rval = rootPath;
     string hexId = objId.hex();
 
-    assert(!objId.isEmpty());
-    assert(hexId.length() == 64);
-    assert(rval != "");
+    ASSERT(!objId.isEmpty());
+    ASSERT(hexId.length() == 64);
+    ASSERT(rval != "");
 
     rval += ORI_PATH_OBJS;
     rval += hexId.substr(0,2);
@@ -392,8 +391,8 @@ int
 LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
         const std::string &payload)
 {
-    assert(opened);
-    assert(!hash.isEmpty());
+    ASSERT(opened);
+    ASSERT(!hash.isEmpty());
 
     if (!currTransaction.get() || currTransaction->full()) {
         if (currPackfile.get()) {
@@ -444,7 +443,7 @@ LocalRepo::addTree(const Tree &tree)
         LocalObject::sp o(getLocalObject((*it).second.hash));
         if (!o) {
             perror("Cannot open object");
-            assert(false);
+            ASSERT(false);
         }
         addBackref((*it).second.hash);
         //o.close();
@@ -923,8 +922,8 @@ LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
         }
 
         Object::sp o(other->getObject(lbe.hash));
-        assert(o->getInfo().type == ObjectInfo::Blob);
-        assert(o->getInfo().payload_size == lbe.length);
+        ASSERT(o->getInfo().type == ObjectInfo::Blob);
+        ASSERT(o->getInfo().payload_size == lbe.length);
         copyFrom(o.get());
     }
 }
@@ -965,10 +964,10 @@ ObjectHash
 LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
         const std::string &status)
 {
-    assert(opened);
+    ASSERT(opened);
 
     Object::sp treeObj(getObject(treeHash));
-    assert(treeObj->getInfo().type == ObjectInfo::Tree);
+    ASSERT(treeObj->getInfo().type == ObjectInfo::Tree);
 
     //LocalRepoLock::ap _lock(lock());
 
@@ -1021,10 +1020,10 @@ ObjectHash
 LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
         Commit &c, const std::string &status)
 {
-    assert(opened);
+    ASSERT(opened);
 
     Object::sp newTreeObj(objects->getObject(treeHash));
-    assert(newTreeObj->getInfo().type == ObjectInfo::Tree);
+    ASSERT(newTreeObj->getInfo().type == ObjectInfo::Tree);
 
     LocalRepoLock::ap _lock(lock());
     copyFrom(newTreeObj.get());
@@ -1157,7 +1156,7 @@ LocalRepo::recomputeRefCounts()
                 break;
             default:
                 printf("Unsupported object type!\n");
-                assert(false);
+                PANIC();
                 break;
         }
     }
@@ -1182,7 +1181,7 @@ LocalRepo::rewriteRefCounts(const RefcountMap &refs)
 bool
 LocalRepo::purgeObject(const ObjectHash &objId)
 {
-    assert(metadata.getRefCount(objId) == 0);
+    ASSERT(metadata.getRefCount(objId) == 0);
 
     const IndexEntry &ie = index.getEntry(objId);
     Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
@@ -1244,7 +1243,7 @@ LocalRepo::purgeFuseCommits()
         const Commit &c = commits[i];
         ObjectHash hash = c.hash();
         if (metadata.getMeta(hash, "status") == "fuse") {
-            assert(purgeCommit(hash));
+            ASSERT(purgeCommit(hash));
         }
     }
 }
@@ -1543,7 +1542,7 @@ LocalRepo::updateHead(const ObjectHash &commitId)
     string branch = getBranch();
     string headPath;
 
-    assert(!commitId.isEmpty());
+    ASSERT(!commitId.isEmpty());
 
     if (branch[0] == '@') {
 	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);

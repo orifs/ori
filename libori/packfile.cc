@@ -1,3 +1,4 @@
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -7,6 +8,7 @@
 #include <stdexcept>
 #include <algorithm>
 
+#include "debug.h"
 #include "packfile.h"
 #include "tuneables.h"
 #include "index.h"
@@ -120,8 +122,8 @@ Packfile::begin(Index *idx)
 /*void
 Packfile::addPayload(ObjectInfo info, const std::string &payload, Index *idx)
 {
-    assert(!full());
-    assert(info.hasAllFields());
+    ASSERT(!full());
+    ASSERT(info.hasAllFields());
 
     lseek(fd, fileSize, SEEK_SET);
     // TODO: compression (detect when compression provides no benefit)
@@ -151,7 +153,7 @@ Packfile::addPayload(ObjectInfo info, const std::string &payload, Index *idx)
 void
 Packfile::commit(PfTransaction *t, Index *idx)
 {
-    assert(t->infos.size() == t->payloads.size());
+    ASSERT(t->infos.size() == t->payloads.size());
     lseek(fd, 0, SEEK_END);
     std::vector<offset_t> offsets;
     size_t headers_size = t->infos.size() * ENTRYSIZE;
@@ -190,7 +192,7 @@ Packfile::commit(PfTransaction *t, Index *idx)
 
 bytestream *Packfile::getPayload(const IndexEntry &entry)
 {
-    assert(entry.packfile == packid); // TODO?
+    ASSERT(entry.packfile == packid); // TODO?
     bytestream *stored = new fdstream(fd, entry.offset, entry.packed_size);
     if (!entry.info.getCompressed()) {
         return stored;
@@ -281,15 +283,15 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
             it != blocks.end();
             it++) {
         lseek(fd, (*it).first, SEEK_SET);
-	assert((*it).second >= (*it).first);
+	ASSERT((*it).second >= (*it).first);
         ssize_t len = (*it).second - (*it).first;
         buf.resize(len);
         ssize_t n = read(fd, &buf[0], len);
-        assert(n == len);
+        ASSERT(n == len);
 
         bs->write(&buf[0], len);
     }
-    assert(!bs->error());
+    ASSERT(!bs->error());
 }
 
 
@@ -378,7 +380,7 @@ PackfileManager::getPackfile(packid_t id)
 Packfile::sp
 PackfileManager::newPackfile()
 {
-    assert(freeList.size() > 0);
+    ASSERT(freeList.size() > 0);
     packid_t id = freeList[0];
     Packfile::sp pf(new Packfile(_getPackfileName(id), id));
     if (freeList.size() == 1) {

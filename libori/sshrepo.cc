@@ -16,7 +16,6 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <cassert>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -30,11 +29,11 @@
 #include <deque>
 #include <vector>
 
+#include "debug.h"
+#include "util.h"
+#include "packfile.h"
 #include "sshclient.h"
 #include "sshrepo.h"
-#include "util.h"
-#include "debug.h"
-#include "packfile.h"
 
 /*
  * SshRepo
@@ -75,7 +74,7 @@ Object::sp SshRepo::getObject(const ObjectHash &id)
     bytestream::ap bs(getObjects(objs));
     if (bs.get()) {
         numobjs_t num = bs->readInt<numobjs_t>();
-        assert(num == 1);
+        ASSERT(num == 1);
 
         std::string info_str(ObjectInfo::SIZE, '\0');
         bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
@@ -87,7 +86,7 @@ Object::sp SshRepo::getObject(const ObjectHash &id)
         bs->readExact((uint8_t*)&payload[0], objSize);
 
         num = bs->readInt<numobjs_t>();
-        assert(num == 0);
+        ASSERT(num == 0);
 
         if (info.getCompressed()) {
             payloads[info.hash] = zipstream(new strstream(payload), DECOMPRESS,
@@ -207,8 +206,8 @@ void SshRepo::_clearPayload(const ObjectHash &id)
 SshObject::SshObject(SshRepo *repo, ObjectInfo info)
     : Object(info), repo(repo)
 {
-    assert(repo != NULL);
-    assert(!info.hash.isEmpty());
+    ASSERT(repo != NULL);
+    ASSERT(!info.hash.isEmpty());
 }
 
 SshObject::~SshObject()

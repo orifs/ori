@@ -28,6 +28,7 @@
 #include "object.h"
 #include "largeblob.h"
 
+#include "debug.h"
 #include "repo.h"
 #include "localrepo.h"
 #include "sshrepo.h"
@@ -150,7 +151,7 @@ Repo::getTree(const ObjectHash &treeId)
     Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
-    assert(treeId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Tree);
+    ASSERT(treeId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Tree);
 
     Tree t;
     t.fromBlob(blob);
@@ -164,12 +165,12 @@ Repo::getCommit(const ObjectHash &commitId)
     Object::sp o(getObject(commitId));
     string blob = o->getPayload();
 
-    assert(commitId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Commit);
+    ASSERT(commitId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Commit);
 
     Commit c;
     if (blob.size() == 0) {
         printf("Error getting commit blob\n");
-        assert(false);
+        PANIC();
         return c;
     }
     c.fromBlob(blob);

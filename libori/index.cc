@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -64,13 +63,14 @@ Index::open(const string &indexFile)
     if (fd < 0) {
         perror("open");
         cout << "Could not open the index file!" << endl;
-        assert(false);
+        PANIC();
         return;
     }
 
 
     if (::fstat(fd, &sb) < 0) {
         perror("fstat");
+        PANIC();
         return;
     }
 
@@ -88,7 +88,7 @@ Index::open(const string &indexFile)
         std::string entry_str(TOTAL_ENTRYSIZE, '\0');
 
         int status = read(fd, &entry_str[0], TOTAL_ENTRYSIZE);
-        assert(status == TOTAL_ENTRYSIZE);
+        ASSERT(status == TOTAL_ENTRYSIZE);
 
         IndexEntry entry;
 
@@ -120,7 +120,7 @@ Index::open(const string &indexFile)
 
     // Reopen append only
     fd = ::open(indexFile.c_str(), O_WRONLY | O_APPEND);
-    assert(fd >= 0); // Assume that the repository lock protects the index
+    ASSERT(fd >= 0); // Assume that the repository lock protects the index
 
     // Delete temporary index if present
     if (Util_FileExists(indexFile + ".tmp")) {
@@ -148,7 +148,7 @@ Index::rewrite()
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fdNew < 0) {
         perror("open");
-        cout << "Could not open a temporary index file!" << endl;
+        WARNING("Could not open a temporary index file!");
         return;
     };
 
@@ -184,7 +184,7 @@ Index::dump()
 void
 Index::updateEntry(const ObjectHash &objId, const IndexEntry &entry)
 {
-    assert(!objId.isEmpty());
+    ASSERT(!objId.isEmpty());
 
     _writeEntry(entry);
 
@@ -196,7 +196,7 @@ const IndexEntry &
 Index::getEntry(const ObjectHash &objId) const
 {
     map<ObjectHash, IndexEntry>::const_iterator it = index.find(objId);
-    assert(it != index.end());
+    ASSERT(it != index.end());
 
     return (*it).second;
 }
@@ -248,6 +248,6 @@ Index::_writeEntry(const IndexEntry &e)
     ss.write(checksum.hash, 16);
 
     const string &final = ss.str();
-    assert(final.size() == TOTAL_ENTRYSIZE);
+    ASSERT(final.size() == TOTAL_ENTRYSIZE);
     write(fd, final.data(), final.size());
 }

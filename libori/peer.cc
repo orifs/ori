@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -23,6 +22,7 @@
 #include <iostream>
 #include <tr1/memory>
 
+#include "debug.h"
 #include "util.h"
 #include "repo.h"
 #include "localrepo.h"
@@ -183,7 +183,7 @@ Peer::fromBlob(const string &blob)
 	    instaCloning = true;
 	} else{
 	    printf("Unsupported peer feature!\n");
-	    assert(false);
+	    PANIC();
 	}
     }
 }

@@ -17,7 +17,6 @@
 #define __STDC_LIMIT_MACROS
 #define _WITH_DPRINTF
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -67,7 +66,7 @@ ObjectInfo::toString() const
 
     const char *type_str = getStrForType(type);
     if (type_str == NULL) {
-        assert(false);
+        PANIC();
         return "";
     }
     ss.write(type_str, ORI_OBJECT_TYPESIZE);
@@ -75,7 +74,7 @@ ObjectInfo::toString() const
     ss.writeInt<uint32_t>(flags);
     ss.writeInt<uint32_t>(payload_size);
 
-    assert(ss.str().size() == SIZE);
+    ASSERT(ss.str().size() == SIZE);
 
     return ss.str();
 }
@@ -83,13 +82,13 @@ ObjectInfo::toString() const
 void
 ObjectInfo::fromString(const std::string &info)
 {
-    assert(info.size() == SIZE);
+    ASSERT(info.size() == SIZE);
     strstream ss(info);
 
     std::string type_str(ORI_OBJECT_TYPESIZE+1, '\0');
     ss.read((uint8_t*)&type_str[0], ORI_OBJECT_TYPESIZE);
     type = getTypeForStr(type_str.c_str());
-    assert(type != Null);
+    ASSERT(type != Null);
 
     ss.readHash(hash);
     flags = ss.readInt<uint32_t>();
@@ -137,7 +136,7 @@ const char *ObjectInfo::getStrForType(Type type) {
         case Purged:    type_str = "PURG"; break;
         default:
             printf("Unknown object type!\n");
-            assert(false);
+            PANIC();
             return NULL;
     }
     return type_str;

@@ -16,7 +16,6 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <cassert>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -68,7 +67,7 @@ HttpRepo::getUUID()
 
     status = client->getRequest("/id", uuid);
     if (status < 0) {
-        assert(false);
+        ASSERT(false);
         return "";
     }
 
@@ -83,7 +82,7 @@ HttpRepo::getHead()
 
     status = client->getRequest("/HEAD", headId);
     if (status < 0) {
-        assert(false);
+        ASSERT(false);
         return ObjectHash();
     }
 
@@ -101,7 +100,7 @@ HttpRepo::getObject(const ObjectHash &id)
     bytestream::ap bs(getObjects(objs));
     if (bs.get()) {
         numobjs_t num = bs->readInt<numobjs_t>();
-        assert(num == 1);
+        ASSERT(num == 1);
 
         std::string info_str(ObjectInfo::SIZE, '\0');
         bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
@@ -113,7 +112,7 @@ HttpRepo::getObject(const ObjectHash &id)
         bs->readExact((uint8_t*)&payload[0], objSize);
 
         num = bs->readInt<numobjs_t>();
-        assert(num == 0);
+        ASSERT(num == 0);
 
         if (info.getCompressed()) {
             payloads[info.hash] = zipstream(new strstream(payload), DECOMPRESS,
@@ -189,7 +188,7 @@ HttpRepo::listObjects()
         }
     }
     else {
-        assert(false);
+        ASSERT(false);
     }
 
     return rval;
@@ -223,7 +222,7 @@ HttpRepo::listCommits()
         }
     }
     else {
-        assert(false);
+        ASSERT(false);
     }
 
     return rval;
@@ -256,8 +255,8 @@ HttpRepo::_clearPayload(const ObjectHash &id)
 HttpObject::HttpObject(HttpRepo *repo, ObjectInfo info)
     : Object(info), repo(repo)
 {
-    assert(repo != NULL);
-    assert(!info.hash.isEmpty());
+    ASSERT(repo != NULL);
+    ASSERT(!info.hash.isEmpty());
 }
 
 HttpObject::~HttpObject()

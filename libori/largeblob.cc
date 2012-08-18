@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -38,10 +37,10 @@
 #error "SHA256 not supported!"
 #endif
 
+#include "debug.h"
 #include "util.h"
 #include "largeblob.h"
 #include "chunker.h"
-#include "debug.h"
 
 using namespace std;
 
@@ -143,13 +142,13 @@ public:
             return 0;
 
         // Sanity checking
-        assert(*b == buf);
-        assert(*l <= bufLen);
-        assert(*o <= bufLen);
+        ASSERT(*b == buf);
+        ASSERT(*l <= bufLen);
+        ASSERT(*o <= bufLen);
 
         if (*o != 0 || *o != *l) {
-            assert(*o > 32); // XXX: Must equal hashLen
-            assert(*l > 32);
+            ASSERT(*o > 32); // XXX: Must equal hashLen
+            ASSERT(*l > 32);
             memcpy(buf, buf + *o - 32, *l - *o + 32);
             *l = *l - *o + 32;
             *o = 32;
@@ -161,10 +160,10 @@ public:
         status = read(srcFd, buf + *l, toRead);
         if (status < 0) {
             perror("Cannot read large file");
-            assert(false);
+            PANIC();
             return -1;
         }
-        assert(status == (int)toRead);
+        ASSERT(status == (int)toRead);
 
         fileOff += status;
         *l += status;
@@ -195,7 +194,7 @@ LargeBlob::chunkFile(const string &path)
     status = cb.open(path);
     if (status < 0) {
 	perror("Cannot open large file for chunking");
-	assert(false);
+	PANIC();
 	return;
     }
 
@@ -214,7 +213,7 @@ LargeBlob::extractFile(const string &path)
 	        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fd < 0) {
         perror("Cannot open file for writing");
-        assert(false);
+        PANIC();
         return;
     }
 
@@ -225,21 +224,21 @@ LargeBlob::extractFile(const string &path)
 
         Object::sp o(repo->getObject((*it).second.hash));
         tmp = o->getPayload();
-        assert(tmp.length() == (*it).second.length);
+        ASSERT(tmp.length() == (*it).second.length);
 
         status = ::write(fd, tmp.data(), tmp.length());
         if (status < 0) {
             perror("write to large object failed");
-            assert(false);
+            PANIC();
             return;
         }
 
-        assert(status == (int)tmp.length());
+        ASSERT(status == (int)tmp.length());
     }
 
 #ifdef DEBUG
     ObjectHash extractedHash = Util_HashFile(path);
-    assert(extractedHash == totalHash);
+    ASSERT(extractedHash == totalHash);
 #endif /* DEBUG */
 }
 
@@ -275,7 +274,7 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off)
     size_t to_read = MIN((size_t)left, s);
 
     Object::sp o(repo->getObject((*it).second.hash));
-    assert(o->getInfo().type == ObjectInfo::Blob);
+    ASSERT(o->getInfo().type == ObjectInfo::Blob);
     const std::string &payload = o->getPayload();
     memcpy(buf, payload.data()+part_off, to_read);
 
