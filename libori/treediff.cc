@@ -171,7 +171,7 @@ struct _scanHelperData {
     Repo *repo;
 };
 
-int _diffToDirHelper(void *arg, const char *path)
+static int _diffToDirHelper(void *arg, const char *path)
 {
     string fullPath = path;
     _scanHelperData *sd = (_scanHelperData *)arg;

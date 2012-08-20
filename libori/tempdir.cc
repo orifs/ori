@@ -18,6 +18,7 @@
 
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -25,6 +26,10 @@
 #include "localobject.h"
 #include "util.h"
 #include "scan.h"
+
+//#ifndef DEBUG
+#define REMOVE_TEMPDIRS
+//#endif
 
 TempDir::TempDir(const std::string &dirpath)
     : dirpath(dirpath), objects_fd(-1)
@@ -39,6 +44,31 @@ TempDir::TempDir(const std::string &dirpath)
     }
 }
 
+static int _rmtreeCb(void *arg, const char *path)
+{
+    struct stat sb;
+    if (lstat(path, &sb) < 0) {
+        perror("~TempDir lstat");
+        return 0;
+    }
+
+    if (S_ISDIR(sb.st_mode)) {
+        Scan_Traverse(path, NULL, _rmtreeCb);
+        if (rmdir(path) < 0) {
+            perror("~TempDir rmdir");
+            return 0;
+        }
+    }
+    else {
+        if (unlink(path) < 0) {
+            perror("~TempDir unlink");
+            return 0;
+        }
+    }
+    
+    return 0;
+}
+
 TempDir::~TempDir()
 {
     if (objects_fd > 0) {
@@ -47,7 +77,10 @@ TempDir::~TempDir()
         objects_fd = -1;
     }
 
-    // TODO: remove the temp dir
+    // Remove the temp dir
+#ifdef REMOVE_TEMPDIRS
+    _rmtreeCb(NULL, dirpath.c_str());
+#endif
 }
 
 std::string

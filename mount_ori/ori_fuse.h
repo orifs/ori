@@ -49,6 +49,7 @@ public:
 
 private:
     uint64_t numOpenHandles;
+    // map from temp filename to number of open handles
     std::map<std::string, uint32_t> openedFiles;
     std::map<int, std::string> fdToFilename;
 };

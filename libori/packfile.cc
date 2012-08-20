@@ -393,7 +393,7 @@ PackfileManager::newPackfile()
 }
 
 
-int _freeListCB(void *ctx, const char *cpath)
+static int _freeListCB(void *ctx, const char *cpath)
 {
     std::vector<packid_t> *existing = (std::vector<packid_t>*)ctx;
     std::string path = StrUtil_Basename(cpath);
