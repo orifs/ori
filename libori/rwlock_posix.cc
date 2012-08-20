@@ -25,6 +25,8 @@
 
 #define LOG_LOCKING 0
 
+#define CHECK_LOCK_ORDER 1
+
 RWLock::RWLock()
 {
     pthread_rwlock_init(&lockHandle, NULL);
@@ -44,11 +46,22 @@ RWKey::sp RWLock::readLock()
     //Util_LogBacktrace();
 #endif
 
+#if CHECK_LOCK_ORDER == 1
+    _checkLockOrdering();
+#endif
+
+    ////////////////////////////
+    // Do the actual locking
     pthread_rwlock_rdlock(&lockHandle);
 
 #if LOG_LOCKING == 1
     LOG("%u success readLock: %u", tid, lockNum);
 #endif
+
+#if CHECK_LOCK_ORDER == 1
+    _updateLocked();
+#endif
+
     return RWKey::sp(new RWKey(this));
 }
 
@@ -69,11 +82,22 @@ RWKey::sp RWLock::writeLock()
     //Util_LogBacktrace();
 #endif
 
+#if CHECK_LOCK_ORDER == 1
+    _checkLockOrdering();
+#endif
+
+    ////////////////////////////
+    // Do the actual locking
     pthread_rwlock_wrlock(&lockHandle);
 
 #if LOG_LOCKING == 1
     LOG("%u success writeLock: %u", tid, lockNum);
 #endif
+
+#if CHECK_LOCK_ORDER == 1
+    _updateLocked();
+#endif
+
     return RWKey::sp(new RWKey(this));
 }
 
@@ -88,7 +112,16 @@ RWKey::sp RWLock::tryWriteLock()
 
 void RWLock::unlock()
 {
+#if CHECK_LOCK_ORDER == 1
+    gOrderMutex.lock();
+#endif
+
     pthread_rwlock_unlock(&lockHandle);
+    
+#if CHECK_LOCK_ORDER == 1
+    gIsLocked[lockNum] = false;
+    gOrderMutex.unlock();
+#endif
 
 #if LOG_LOCKING == 1
     mach_port_t tid = pthread_mach_thread_np(pthread_self());

@@ -90,13 +90,12 @@ struct ori_priv
 
     // Lock in this order
     RWLock lock_repo; // repo, head(tree), tempdir
-    RWLock lock_cache; // caches
     RWLock lock_cmd_output;
 
     // Functions to access the cache
-    Tree *getTree(const ObjectHash &hash, RWKey::sp repoKey);
-    LargeBlob *getLargeBlob(const ObjectHash &hash);
-    ObjectInfo *getObjectInfo(const ObjectHash &hash);
+    Tree getTree(const ObjectHash &hash, RWKey::sp repoKey);
+    LargeBlob getLargeBlob(const ObjectHash &hash);
+    ObjectInfo getObjectInfo(const ObjectHash &hash);
 
     bool getETE(const char *path, ExtendedTreeEntry &ete);
 
@@ -104,8 +103,7 @@ struct ori_priv
     RWKey::sp startWrite(RWKey::sp repoKey=RWKey::sp());
     bool mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey);
     // Commit temp data to a FUSE commit
-    RWKey::sp fuseCommit(RWKey::sp cacheKey=RWKey::sp(),
-            RWKey::sp repoKey=RWKey::sp());
+    RWKey::sp fuseCommit(RWKey::sp repoKey=RWKey::sp());
     // Make the last FUSE commit permanent
     RWKey::sp commitPerm();
 

@@ -293,11 +293,11 @@ ori_read_helper(ori_priv *p, const TreeEntry &te, char *buf, size_t size, off_t 
         return real_read;
     }
     else if (te.type == TreeEntry::LargeBlob) {
-        LargeBlob *lb = p->getLargeBlob(te.hash);
-        //lb->extractFile("temp.tst");
+        const LargeBlob &lb = p->getLargeBlob(te.hash);
+
         size_t total = 0;
         while (total < size) {
-            ssize_t res = lb->read((uint8_t*)(buf + total),
+            ssize_t res = lb.read((uint8_t*)(buf + total),
                     size - total, offset + total);
             if (res <= 0) return res;
             total += res;
@@ -712,9 +712,9 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     filler(buf, "..", NULL, 0);
 
     ori_priv *p = ori_getpriv();
-    Tree *t = NULL;
+    Tree t;
     if (strcmp(path, "/") == 0) {
-        t = p->headtree;
+        t = *p->headtree;
         filler(buf, ORI_CONTROL_FILENAME, NULL, 0);
         filler(buf, ORI_SNAPSHOT_DIRNAME, NULL, 0);
     } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
@@ -784,8 +784,8 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     RWKey::sp repoKey = p->lock_repo.readLock();
 
-    for (std::map<std::string, TreeEntry>::iterator it = t->tree.begin();
-            it != t->tree.end();
+    for (std::map<std::string, TreeEntry>::iterator it = t.tree.begin();
+            it != t.tree.end();
             it++) {
         FUSE_LOG("readdir entry %s", (*it).first.c_str());
 
@@ -960,9 +960,14 @@ ori_init(struct fuse_conn_info *conn)
 
     // Print locks
     FUSE_LOG("lock_repo: %u", priv->lock_repo.lockNum);
-    FUSE_LOG("lock_cache: %u", priv->lock_cache.lockNum);
     FUSE_LOG("lock_cmd_output: %u", priv->lock_cmd_output.lockNum);
     FUSE_LOG("lock_tempfiles: %u", priv->openedFiles.lock_tempfiles.lockNum);
+
+    // Set lock ordering
+    RWLock::LockOrderVector order;
+    order.push_back(priv->lock_repo.lockNum);
+    order.push_back(priv->openedFiles.lock_tempfiles.lockNum);
+    RWLock::setLockOrder(order);
 
     return priv;
 }
