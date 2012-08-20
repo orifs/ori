@@ -17,7 +17,7 @@ Mutex RWLock::gOrderMutex;
 uint32_t RWLock::gLockNum = 0;
 std::map<uint32_t, size_t> RWLock::gLockNumToOrdering;
 std::vector<RWLock::LockOrderVector> RWLock::gLockOrderings;
-std::map<uint32_t, bool> RWLock::gIsLocked;
+std::map<uint32_t, uint64_t> RWLock::gLockedBy;
 
 #define PERMIT_REENTRANT_LOCK 0
 
@@ -33,8 +33,13 @@ void RWLock::setLockOrder(const LockOrderVector &order)
 void RWLock::_checkLockOrdering() {
     gOrderMutex.lock();
 
+    mach_port_t tid = pthread_mach_thread_np(pthread_self());
     if (PERMIT_REENTRANT_LOCK != 1) {
-        assert(!gIsLocked[lockNum]);
+        if (gLockedBy[lockNum] == tid) {
+            fprintf(stderr, "Detected reentrant locking of %u by %u\n",
+                    lockNum, tid);
+        }
+        assert(gLockedBy[lockNum] != tid);
     }
 
     std::map<uint32_t, size_t>::iterator it = gLockNumToOrdering.find(lockNum);
@@ -48,11 +53,11 @@ void RWLock::_checkLockOrdering() {
             }
 
             if (past) {
-                if (gIsLocked[order[i]]) {
-                    fprintf(stderr, "Lock %u is already locked!\n", order[i]);
+                if (gLockedBy[order[i]] == tid) {
+                    fprintf(stderr, "Lock %u locked before %u!\n",
+                            order[i], lockNum);
                 }
-
-                assert(!gIsLocked[order[i]]);
+                assert(gLockedBy[order[i]] != tid);
             }
         }
     }
@@ -63,7 +68,8 @@ void RWLock::_checkLockOrdering() {
 void RWLock::_updateLocked() {
     gOrderMutex.lock();
 
-    gIsLocked[lockNum] = true;
+    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    gLockedBy[lockNum] = tid;
 
     gOrderMutex.unlock();
 }

@@ -119,7 +119,7 @@ void RWLock::unlock()
     pthread_rwlock_unlock(&lockHandle);
     
 #if CHECK_LOCK_ORDER == 1
-    gIsLocked[lockNum] = false;
+    gLockedBy[lockNum] = TID_NOBODY;
     gOrderMutex.unlock();
 #endif
 

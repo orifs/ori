@@ -248,7 +248,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
     if (!hasETE) return -ENOENT;
 
     if (ete.changedData) {
-        RWKey::sp key = p->openedFiles.lock_tempfiles.writeLock();
+        RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
         fi->fh = open(ete.tde.newFilename.c_str(), fi->flags);
 
         p->openedFiles.openedFile(ete.tde.newFilename, fi->fh);
@@ -397,7 +397,7 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
 
     ori_priv *p = ori_getpriv();
     RWKey::sp repoKey = p->startWrite();
-    RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
+    //RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
     std::string tempFile = p->currTempDir->newTempFile();
     if (tempFile == "")
@@ -464,7 +464,7 @@ ori_symlink(const char *target_path, const char *link_path)
 
     ori_priv *p = ori_getpriv();
     RWKey::sp repoKey = p->startWrite();
-    RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
+    //RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
     std::string tempFile = p->currTempDir->newTempFile();
     if (tempFile == "")

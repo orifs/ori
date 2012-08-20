@@ -48,7 +48,7 @@ public:
         typename lru_cache::iterator it = cache.find(key);
 
         if (numItems >= MAX && it == cache.end())
-            evict();
+            evict(ckey);
         if (it != cache.end()) {
             lru.erase((*it).second.second);
             numItems--;
@@ -114,10 +114,8 @@ public:
         numItems = 0;
     }
 private:
-    void evict()
+    void evict(RWKey::sp ckey)
     {
-        RWKey::sp ckey = lock.writeLock();
-
         typename lru_cache::iterator it = cache.find(lru.front());
 
         assert(!lru.empty());

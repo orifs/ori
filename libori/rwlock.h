@@ -36,6 +36,8 @@
 
 #include "mutex.h"
 
+#define TID_NOBODY 0
+
 class RWLock;
 struct RWKey {
     typedef std::tr1::shared_ptr<RWKey> sp;
@@ -67,7 +69,7 @@ private:
     static uint32_t gLockNum;
     static std::map<uint32_t, size_t> gLockNumToOrdering;
     static std::vector<LockOrderVector> gLockOrderings;
-    static std::map<uint32_t, bool> gIsLocked;
+    static std::map<uint32_t, uint64_t> gLockedBy;
 
     void _checkLockOrdering();
     void _updateLocked();
