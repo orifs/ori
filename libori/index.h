@@ -20,7 +20,7 @@
 #include <assert.h>
 
 #include <string>
-#include <map>
+#include <tr1/unordered_map>
 #include <set>
 
 #include "debug.h"
@@ -44,7 +44,7 @@ public:
 private:
     int fd;
     std::string fileName;
-    std::map<ObjectHash, IndexEntry> index;
+    std::tr1::unordered_map<ObjectHash, IndexEntry> index;
 
     void _writeEntry(const IndexEntry &e);
 };

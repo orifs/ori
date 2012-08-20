@@ -25,7 +25,7 @@
 #include <unistd.h>
 
 #include <string>
-#include <map>
+#include <tr1/unordered_map>
 #include <set>
 #include <iostream>
 
@@ -35,6 +35,7 @@
 #include "index.h"
 
 using namespace std;
+using namespace std::tr1;
 
 /// Adds a checksum
 #define TOTAL_ENTRYSIZE (IndexEntry::SIZE + 16)
@@ -157,7 +158,7 @@ Index::rewrite()
     ::close(tmpFd);
 
     // Write new index
-    for (map<ObjectHash, IndexEntry>::iterator it = index.begin();
+    for (unordered_map<ObjectHash, IndexEntry>::iterator it = index.begin();
             it != index.end();
             it++)
     {
@@ -170,7 +171,7 @@ Index::rewrite()
 void
 Index::dump()
 {
-    map<ObjectHash, IndexEntry>::iterator it;
+    unordered_map<ObjectHash, IndexEntry>::iterator it;
 
     cout << "***** BEGIN REPOSITORY INDEX *****" << endl;
     for (it = index.begin(); it != index.end(); it++)
@@ -195,7 +196,7 @@ Index::updateEntry(const ObjectHash &objId, const IndexEntry &entry)
 const IndexEntry &
 Index::getEntry(const ObjectHash &objId) const
 {
-    map<ObjectHash, IndexEntry>::const_iterator it = index.find(objId);
+    unordered_map<ObjectHash, IndexEntry>::const_iterator it = index.find(objId);
     ASSERT(it != index.end());
 
     return (*it).second;
@@ -210,7 +211,7 @@ Index::getInfo(const ObjectHash &objId) const
 bool
 Index::hasObject(const ObjectHash &objId) const
 {
-    map<ObjectHash, IndexEntry>::const_iterator it;
+    unordered_map<ObjectHash, IndexEntry>::const_iterator it;
 
     it = index.find(objId);
 
@@ -221,7 +222,7 @@ set<ObjectInfo>
 Index::getList()
 {
     set<ObjectInfo> lst;
-    map<ObjectHash, IndexEntry>::iterator it;
+    unordered_map<ObjectHash, IndexEntry>::iterator it;
 
     for (it = index.begin(); it != index.end(); it++)
     {
