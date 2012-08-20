@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -59,7 +58,7 @@ SnapshotIndex::open(const string &indexFile)
     if (fd < 0) {
         perror("open");
         cout << "Could not open the index file!" << endl;
-        assert(false);
+        PANIC();
         return;
     };
 
@@ -73,7 +72,7 @@ SnapshotIndex::open(const string &indexFile)
     char *buf = new char[len];
 
     int status = read(fd, buf, len);
-    assert(status == len);
+    ASSERT(status == len);
 
     string blob = string().assign(buf, len);
     string line;
@@ -92,7 +91,7 @@ SnapshotIndex::open(const string &indexFile)
 
     // Reopen append only
     fd = ::open(indexFile.c_str(), O_WRONLY | O_APPEND);
-    assert(fd >= 0); // Assume that the repository lock protects the index
+    ASSERT(fd >= 0); // Assume that the repository lock protects the index
 
     // Delete temporary index if present
     if (Util_FileExists(indexFile + ".tmp")) {
@@ -134,7 +133,7 @@ SnapshotIndex::rewrite()
         indexLine = (*it).second.hex() + " " + (*it).first + "\n";
 
         status = write(fdNew, indexLine.data(), indexLine.size());
-        assert(status == (int)indexLine.size());
+        ASSERT(status == (int)indexLine.size());
     }
 
     Util_RenameFile(newIndex, fileName);
@@ -149,7 +148,7 @@ SnapshotIndex::addSnapshot(const string &name, const ObjectHash &commitId)
 {
     string indexLine;
 
-    assert(!commitId.isEmpty());
+    ASSERT(!commitId.isEmpty());
 
     indexLine = commitId.hex() + " " + name + "\n";
 
@@ -168,7 +167,7 @@ const ObjectHash &
 SnapshotIndex::getSnapshot(const string &name) const
 {
     map<string, ObjectHash>::const_iterator it = snapshots.find(name);
-    assert(it != snapshots.end());
+    ASSERT(it != snapshots.end());
 
     return (*it).second;
 }

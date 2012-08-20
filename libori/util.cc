@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -56,6 +55,7 @@
 #include "skein.h"
 
 #include "tuneables.h"
+#include "debug.h"
 #include "util.h"
 #include "stream.h"
 #include "debug.h"
@@ -231,7 +231,7 @@ retryWrite:
 	}
 
 	// XXX: Need to handle this case!
-	assert(bytesRead == bytesWritten);
+	ASSERT(bytesRead == bytesWritten);
 
 	bytesLeft -= bytesRead;
     }
@@ -266,7 +266,7 @@ Util_MoveFile(const string &origPath, const string &newPath)
 
 	if (unlink(origPath.c_str()) < 0) {
 	    status = -errno;
-	    assert(false);
+	    ASSERT(false);
 	}
     }
 
@@ -481,7 +481,7 @@ Util_GetFullname()
     struct passwd *pw = getpwuid(getuid());
 
     // XXX: Error handling
-    assert(pw != NULL);
+    ASSERT(pw != NULL);
 
     if (pw->pw_gecos != NULL)
         return string(pw->pw_gecos);
@@ -678,40 +678,40 @@ util_selftest(void)
     status = Util_CopyFile("test.orig", "test.a");
     if (status < 0) {
 	printf("Util_CopyFile: %s\n", strerror(-status));
-	assert(false);
+	ASSERT(false);
     }
     status = Util_CopyFile("test.orig", "test.b");
     if (status < 0) {
 	printf("Util_CopyFile: %s\n", strerror(-status));
-	assert(false);
+	ASSERT(false);
     }
     status = Util_MoveFile("test.b", "test.c");
     if (status < 0) {
 	printf("Util_CopyFile: %s\n", strerror(-status));
-	assert(false);
+	ASSERT(false);
     }
     char *fbuf = Util_ReadFile("test.c", NULL);
-    assert(fbuf);
+    ASSERT(fbuf);
     newHash = Util_HashString(fbuf);
     // XXX: Check that 'test.b' does not exist
 
     if (newHash != origHash) {
 	printf("Hash mismatch!\n");
-	assert(false);
+	ASSERT(false);
     }
 
     newHash = Util_HashFile("test.a");
 
     if (newHash != origHash) {
 	printf("Hash mismatch!\n");
-	assert(false);
+	ASSERT(false);
     }
 
     vector<string> tv;
     tv = Util_PathToVector("/abc/def");
-    assert(tv.size() == 2);
-    assert(tv[0] == "abc");
-    assert(tv[1] == "def");
+    ASSERT(tv.size() == 2);
+    ASSERT(tv[0] == "abc");
+    ASSERT(tv[1] == "def");
 
 
     // Tests for stream classes
@@ -721,28 +721,28 @@ util_selftest(void)
     bytestream::ap bs(new fdstream(test_fd, 1, 3));
     uint8_t b;
     bs->read(&b, 1);
-    assert(b == 'e');
+    ASSERT(b == 'e');
 
     // Tests for string utilities
     std::string path("hello.txt");
-    assert(StrUtil_Basename(path) == "hello.txt");
-    assert(Util_PathToVector(path).size() == 1);
+    ASSERT(StrUtil_Basename(path) == "hello.txt");
+    ASSERT(Util_PathToVector(path).size() == 1);
     path = "a/hello.txt";
-    assert(StrUtil_Basename(path) == "hello.txt");
-    assert(Util_PathToVector(path).size() == 2);
+    ASSERT(StrUtil_Basename(path) == "hello.txt");
+    ASSERT(Util_PathToVector(path).size() == 2);
     path = "/hello.txt";
-    assert(StrUtil_Basename(path) == "hello.txt");
-    assert(Util_PathToVector(path).size() == 1);
+    ASSERT(StrUtil_Basename(path) == "hello.txt");
+    ASSERT(Util_PathToVector(path).size() == 1);
     path = "/a/b/c/hello.txt";
-    assert(StrUtil_Basename(path) == "hello.txt");
-    assert(Util_PathToVector(path).size() == 4);
+    ASSERT(StrUtil_Basename(path) == "hello.txt");
+    ASSERT(Util_PathToVector(path).size() == 4);
 
     path = "/b/b.txt/file";
     std::vector<string> pv = Util_PathToVector(path);
-    assert(pv.size() == 3);
-    assert(pv[0] == "b");
-    assert(pv[1] == "b.txt");
-    assert(pv[2] == "file");
+    ASSERT(pv.size() == 3);
+    ASSERT(pv[0] == "b");
+    ASSERT(pv[1] == "b.txt");
+    ASSERT(pv[2] == "file");
 
     // Test for serialization
     std::string testStr;
@@ -760,16 +760,16 @@ util_selftest(void)
     out_stream.writeInt<int32_t>(nums[5]);
 
     strstream in_stream(out_stream.str());
-    assert(in_stream.readInt<uint8_t>() == nums[0]);
-    assert(in_stream.readInt<int8_t>() == nums[1]);
+    ASSERT(in_stream.readInt<uint8_t>() == nums[0]);
+    ASSERT(in_stream.readInt<int8_t>() == nums[1]);
     in_stream.readPStr(testStr);
-    assert(testStr == "hello, world!");
-    assert(in_stream.readInt<uint16_t>() == nums[2]);
-    assert(in_stream.readInt<int16_t>() == nums[3]);
-    assert(in_stream.readInt<uint64_t>() == nums[6]);
-    assert(in_stream.readInt<int64_t>() == nums[7]);
-    assert(in_stream.readInt<uint32_t>() == nums[4]);
-    assert(in_stream.readInt<int32_t>() == nums[5]);
+    ASSERT(testStr == "hello, world!");
+    ASSERT(in_stream.readInt<uint16_t>() == nums[2]);
+    ASSERT(in_stream.readInt<int16_t>() == nums[3]);
+    ASSERT(in_stream.readInt<uint64_t>() == nums[6]);
+    ASSERT(in_stream.readInt<int64_t>() == nums[7]);
+    ASSERT(in_stream.readInt<uint32_t>() == nums[4]);
+    ASSERT(in_stream.readInt<int32_t>() == nums[5]);
 
     printf("Test Succeeded!\n");
     return 0;

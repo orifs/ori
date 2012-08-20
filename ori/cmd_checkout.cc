@@ -44,7 +44,7 @@ StatusDirectoryCB(void *arg, const char *path)
 
     if (!Util_IsDirectory(objPath)) {
 	objHash = Util_HashFile(objPath);
-        assert(!objHash.isEmpty());
+        ASSERT(!objHash.isEmpty());
         objPath = objPath.substr(repoRoot.size());
     } else {
 	objPath = objPath.substr(repoRoot.size());
@@ -97,6 +97,9 @@ cmd_checkout(int argc, const char *argv[])
 
     if (argc == 2) {
 	tip = ObjectHash::fromHex(argv[1]);
+
+	// Set the head if the user specified a revision
+	repository.setHead(tip);
     }
 
     if (tip != EMPTY_COMMIT) {

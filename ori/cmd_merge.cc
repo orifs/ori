@@ -43,27 +43,12 @@ cmd_merge(int argc, const char *argv[])
 	return 1;
     }
 
-    vector<Commit> commits = repository.listCommits();
-    vector<Commit>::iterator it;
-
     ObjectHash p1 = repository.getHead();
     ObjectHash p2 = ObjectHash::fromHex(argv[1]);
 
     // Find lowest common ancestor
-    DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
+    DAG<ObjectHash, Commit> cDag = repository.getCommitDag();
     ObjectHash lca;
-
-    cDag.addNode(ObjectHash(), Commit());
-    for (it = commits.begin(); it != commits.end(); it++) {
-	cDag.addNode((*it).hash(), (*it));
-    }
-
-    for (it = commits.begin(); it != commits.end(); it++) {
-	pair<ObjectHash, ObjectHash> p = (*it).getParents();
-	cDag.addChild(p.first, (*it).hash());
-	if (!p.second.isEmpty())
-	    cDag.addChild(p.first, it->hash());
-    }
 
     lca = cDag.findLCA(p1, p2);
     cout << "LCA: " << lca.hex() << endl;

@@ -26,12 +26,17 @@ class LocalRepo;
 int ori_open_log(LocalRepo *repo);
 
 #ifdef DEBUG
+#define WARNING(fmt, ...) ori_log("WARNING: " fmt "\n", ##__VA_ARGS__)
 #define LOG(fmt, ...) ori_log(fmt "\n", ##__VA_ARGS__)
 #else
+#define WARNING(fmt, ...)
 #define LOG(fmt, ...)
 #endif
 
 #define ASSERT(_x) assert(_x)
+#define PANIC() { printf("PANIC: " \
+                         "function %s, file %s, line %d\n", \
+                         __func__, __FILE__, __LINE__); abort(); }
 #define NOT_IMPLEMENTED(_x) if (!_x) { printf("NOT_IMPLEMENTED: (" #_x "), " \
                                 "function %s, file %s, line %d\n", \
                                 __func__, __FILE__, __LINE__); abort(); }

@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <vector>
 #include <set>
 #include <queue>
 #include <iostream>
@@ -28,6 +29,8 @@
 #include "object.h"
 #include "largeblob.h"
 
+#include "debug.h"
+#include "dag.h"
 #include "repo.h"
 #include "localrepo.h"
 #include "sshrepo.h"
@@ -150,7 +153,7 @@ Repo::getTree(const ObjectHash &treeId)
     Object::sp o(getObject(treeId));
     string blob = o->getPayload();
 
-    assert(treeId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Tree);
+    ASSERT(treeId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Tree);
 
     Tree t;
     t.fromBlob(blob);
@@ -164,16 +167,38 @@ Repo::getCommit(const ObjectHash &commitId)
     Object::sp o(getObject(commitId));
     string blob = o->getPayload();
 
-    assert(commitId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Commit);
+    ASSERT(commitId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Commit);
 
     Commit c;
     if (blob.size() == 0) {
         printf("Error getting commit blob\n");
-        assert(false);
+        PANIC();
         return c;
     }
     c.fromBlob(blob);
 
     return c;
+}
+
+DAG<ObjectHash, Commit>
+Repo::getCommitDag()
+{
+    vector<Commit> commits = listCommits();
+    vector<Commit>::iterator it;
+    DAG<ObjectHash, Commit> cDag = DAG<ObjectHash, Commit>();
+
+    cDag.addNode(ObjectHash(), Commit());
+    for (it = commits.begin(); it != commits.end(); it++) {
+	cDag.addNode((*it).hash(), (*it));
+    }
+
+    for (it = commits.begin(); it != commits.end(); it++) {
+	pair<ObjectHash, ObjectHash> p = (*it).getParents();
+	cDag.addChild(p.first, (*it).hash());
+	if (!p.second.isEmpty())
+	    cDag.addChild(p.first, it->hash());
+    }
+
+    return cDag;
 }
 

@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2012 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -124,7 +139,7 @@ void
 Httpd_head(struct evhttp_request *req, void *arg)
 {
     ObjectHash headId = repository.getHead();
-    assert(!headId.isEmpty());
+    ASSERT(!headId.isEmpty());
     struct evbuffer *buf;
 
     LOG("httpd: gethead");
@@ -245,7 +260,7 @@ Httpd_getObj(struct evhttp_request *req, void *arg)
     }
     objInfo = obj->getInfo().getInfo();
 
-    assert(objInfo.size() == 16);
+    ASSERT(objInfo.size() == 16);
 
     // Transmit
     evbuffer_add(buf, objInfo.data(), objInfo.size());

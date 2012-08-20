@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cassert>
 #include <stdbool.h>
 #include <stdint.h>
 #include <cstdio>
@@ -103,7 +102,7 @@ LocalRepo_Init(const std::string &rootPath)
     }
 
     // Set branch name
-    if (!Util_WriteFile("default", 7, rootPath + ORI_PATH_BRANCH)) {
+    if (!Util_WriteFile("@default", 8, rootPath + ORI_PATH_HEAD)) {
 	perror("Could not create branch file");
 	return 1;
     }
@@ -270,7 +269,7 @@ LocalRepo::close()
 LocalRepoLock *
 LocalRepo::lock()
 {
-    assert(opened);
+    ASSERT(opened);
     if (rootPath == "")
         return NULL;
     std::string lfPath = rootPath + ORI_PATH_LOCK;
@@ -296,7 +295,7 @@ LocalRepo::lock()
 void
 LocalRepo::setRemote(Repo *r)
 {
-    assert(remoteRepo == NULL);
+    ASSERT(remoteRepo == NULL);
     remoteRepo = r;
 }
 
@@ -333,7 +332,7 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
 
 LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
 {
-    assert(opened);
+    ASSERT(opened);
 
     if (currTransaction.get()) {
         // TODO: more efficient
@@ -355,7 +354,7 @@ LocalRepo::createObjDirs(const ObjectHash &objId)
     string path = rootPath;
     string hexId = objId.hex();
 
-    assert(path != "");
+    ASSERT(path != "");
 
     path += ORI_PATH_OBJS;
     path += hexId.substr(0,2);
@@ -374,9 +373,9 @@ LocalRepo::objIdToPath(const ObjectHash &objId)
     string rval = rootPath;
     string hexId = objId.hex();
 
-    assert(!objId.isEmpty());
-    assert(hexId.length() == 64);
-    assert(rval != "");
+    ASSERT(!objId.isEmpty());
+    ASSERT(hexId.length() == 64);
+    ASSERT(rval != "");
 
     rval += ORI_PATH_OBJS;
     rval += hexId.substr(0,2);
@@ -392,8 +391,8 @@ int
 LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
         const std::string &payload)
 {
-    assert(opened);
-    assert(!hash.isEmpty());
+    ASSERT(opened);
+    ASSERT(!hash.isEmpty());
 
     if (!currTransaction.get() || currTransaction->full()) {
         if (currPackfile.get()) {
@@ -444,7 +443,7 @@ LocalRepo::addTree(const Tree &tree)
         LocalObject::sp o(getLocalObject((*it).second.hash));
         if (!o) {
             perror("Cannot open object");
-            assert(false);
+            ASSERT(false);
         }
         addBackref((*it).second.hash);
         //o.close();
@@ -923,8 +922,8 @@ LocalRepo::copyObjectsFromLargeBlob(Repo *other, const LargeBlob &lb)
         }
 
         Object::sp o(other->getObject(lbe.hash));
-        assert(o->getInfo().type == ObjectInfo::Blob);
-        assert(o->getInfo().payload_size == lbe.length);
+        ASSERT(o->getInfo().type == ObjectInfo::Blob);
+        ASSERT(o->getInfo().payload_size == lbe.length);
         copyFrom(o.get());
     }
 }
@@ -965,10 +964,10 @@ ObjectHash
 LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
         const std::string &status)
 {
-    assert(opened);
+    ASSERT(opened);
 
     Object::sp treeObj(getObject(treeHash));
-    assert(treeObj->getInfo().type == ObjectInfo::Tree);
+    ASSERT(treeObj->getInfo().type == ObjectInfo::Tree);
 
     //LocalRepoLock::ap _lock(lock());
 
@@ -1021,10 +1020,10 @@ ObjectHash
 LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
         Commit &c, const std::string &status)
 {
-    assert(opened);
+    ASSERT(opened);
 
     Object::sp newTreeObj(objects->getObject(treeHash));
-    assert(newTreeObj->getInfo().type == ObjectInfo::Tree);
+    ASSERT(newTreeObj->getInfo().type == ObjectInfo::Tree);
 
     LocalRepoLock::ap _lock(lock());
     copyFrom(newTreeObj.get());
@@ -1157,7 +1156,7 @@ LocalRepo::recomputeRefCounts()
                 break;
             default:
                 printf("Unsupported object type!\n");
-                assert(false);
+                PANIC();
                 break;
         }
     }
@@ -1182,7 +1181,7 @@ LocalRepo::rewriteRefCounts(const RefcountMap &refs)
 bool
 LocalRepo::purgeObject(const ObjectHash &objId)
 {
-    assert(metadata.getRefCount(objId) == 0);
+    ASSERT(metadata.getRefCount(objId) == 0);
 
     const IndexEntry &ie = index.getEntry(objId);
     Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
@@ -1244,7 +1243,7 @@ LocalRepo::purgeFuseCommits()
         const Commit &c = commits[i];
         ObjectHash hash = c.hash();
         if (metadata.getMeta(hash, "status") == "fuse") {
-            assert(purgeCommit(hash));
+            ASSERT(purgeCommit(hash));
         }
     }
 }
@@ -1475,7 +1474,7 @@ LocalRepo::listBranches()
 string
 LocalRepo::getBranch()
 {
-    char *branch = Util_ReadFile(rootPath + ORI_PATH_BRANCH, NULL);
+    char *branch = Util_ReadFile(rootPath + ORI_PATH_HEAD, NULL);
 
     if (branch == NULL)
 	return "";
@@ -1503,7 +1502,8 @@ LocalRepo::setBranch(const std::string &name)
 	Util_WriteFile(head.hex().c_str(), ObjectHash::SIZE * 2, branchFile);
     }
 
-    Util_WriteFile(name.c_str(), name.size(), rootPath + ORI_PATH_BRANCH);
+    string ref = "@" + name;
+    Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
 }
 
 /*
@@ -1512,12 +1512,22 @@ LocalRepo::setBranch(const std::string &name)
 ObjectHash
 LocalRepo::getHead()
 {
-    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
-    char *commitId = Util_ReadFile(headPath, NULL);
-    // XXX: Leak!
+    string headPath;
+    string branch = getBranch();
+    string commitId;
 
-    if (commitId == NULL) {
-	return EMPTY_COMMIT;
+    if (branch[0] == '@') {
+	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
+	char *c = Util_ReadFile(headPath, NULL);
+	if (c == NULL) {
+	    return EMPTY_COMMIT;
+	}
+	commitId = c;
+	free(c);
+    } else if (branch[0] == '#') {
+	commitId = branch.substr(1);
+    } else {
+	NOT_IMPLEMENTED(false);
     }
 
     return ObjectHash::fromHex(commitId);
@@ -1529,11 +1539,32 @@ LocalRepo::getHead()
 void
 LocalRepo::updateHead(const ObjectHash &commitId)
 {
-    string headPath = rootPath + ORI_PATH_HEADS + getBranch();
+    string branch = getBranch();
+    string headPath;
 
-    assert(!commitId.isEmpty());
+    ASSERT(!commitId.isEmpty());
 
-    Util_WriteFile(commitId.hex().c_str(), ObjectHash::SIZE * 2, headPath);
+    if (branch[0] == '@') {
+	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
+	Util_WriteFile(commitId.hex().c_str(), ObjectHash::SIZE * 2, headPath);
+    } else if (branch[0] == '#') {
+	string ref = "#" + commitId.hex();
+	Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
+    } else {
+	NOT_IMPLEMENTED(false);
+    }
+}
+
+/*
+ * Set working directory revision, this will set based on a commit's ObjectHash 
+ * rather than updating the current head after a commit.  The command line 
+ * checkout command should be the only way to call this.
+ */
+void
+LocalRepo::setHead(const ObjectHash &commitId)
+{
+    string ref = "#" + commitId.hex();
+    Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
 }
 
 /*

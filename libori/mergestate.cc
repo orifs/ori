@@ -14,16 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <iostream>
 #include <string>
 
-#include "mergestate.h"
+#include "debug.h"
 #include "util.h"
 #include "stream.h"
+#include "mergestate.h"
 
 using namespace std;
 
@@ -66,7 +66,7 @@ MergeState::getBlob() const
         ss.writeHash(parents.first);
         ss.writeHash(parents.second);
     } else {
-	assert(false); // Both parents must be set
+	PANIC(); // Both parents must be set
     }
 
     return ss.str();
@@ -82,7 +82,7 @@ MergeState::fromBlob(const string &blob)
         ss.readHash(parents.first);
         ss.readHash(parents.second);
     } else {
-	assert(false); // Both parents must be set
+	PANIC(); // Both parents must be set
     }
 
     // Verify that everything is set!

@@ -16,7 +16,6 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <cassert>
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -36,9 +35,9 @@
 #include <event2/keyvalq_struct.h>
 
 #include "debug.h"
+#include "util.h"
 #include "httpclient.h"
 #include "httprepo.h"
-#include "util.h"
 
 #define D_READ 0
 #define D_WRITE 1
@@ -56,19 +55,19 @@ HttpClient::HttpClient(const std::string &remotePath)
     if (remotePath.substr(0, 7) == "http://") {
         tmp = remotePath.substr(7);
     } else {
-        assert(false);
+        ASSERT(false);
     }
 
     portPos = tmp.find(':');
     pathPos = tmp.find('/');
     if (portPos != string::npos) {
-        assert(portPos < pathPos);
+        ASSERT(portPos < pathPos);
         remotePort = tmp.substr(portPos + 1, pathPos - portPos - 1);
     } else {
         portPos = pathPos;
         remotePort = "80";
     }
-    assert(pathPos != string::npos);
+    ASSERT(pathPos != string::npos);
 
     remoteHost = tmp.substr(0, portPos);
     remoteRepo = tmp.substr(pathPos + 1);

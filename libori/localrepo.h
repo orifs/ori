@@ -38,7 +38,7 @@
 #define ORI_PATH_SNAPSHOTS "/.ori/snapshots"
 #define ORI_PATH_METADATA "/.ori/metadata"
 #define ORI_PATH_DIRSTATE "/.ori/dirstate"
-#define ORI_PATH_BRANCH "/.ori/BRANCH"
+#define ORI_PATH_HEAD "/.ori/HEAD"
 #define ORI_PATH_MERGESTATE "/.ori/mergestate"
 #define ORI_PATH_LOG "/.ori/ori.log"
 #define ORI_PATH_TMP "/.ori/tmp/"
@@ -158,6 +158,7 @@ public:
     void setBranch(const std::string &name);
     ObjectHash getHead();
     void updateHead(const ObjectHash &commitId);
+    void setHead(const ObjectHash &commitId);
     Tree getHeadTree(); /// @returns empty tree if HEAD is empty commit
     void setMergeState(const MergeState &state);
     MergeState getMergeState();
