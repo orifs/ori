@@ -558,6 +558,17 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
     }
 
     // Append any new objects from 't2'
+    for (i2 = d2.entries.begin(); i2 != d2.entries.end(); i2++)
+    {
+	// Look in other diff
+	const TreeDiffEntry *e = d1.getLatestEntry(i2->filepath);
+
+	if (e == NULL &&
+	    (i2->type == TreeDiffEntry::NewFile ||
+	     i2->type == TreeDiffEntry::NewDir)) {
+	    append(*i2);
+	}
+    }
 }
 
 /*
