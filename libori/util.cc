@@ -76,6 +76,17 @@ Util_FileExists(const string &path)
     return false;
 }
 
+int
+Util_MkDir(const string &path)
+{
+    if (mkdir(path.c_str(), 0755) < 0) {
+	perror("mkdir failed");
+	return -errno;
+    }
+
+    return 0;
+}
+
 /*
  * Check if a file is a directory.
  */
