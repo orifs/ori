@@ -14,6 +14,7 @@ export TEMP_DIR=$ORIG_DIR/tempdir
 export SOURCE_FILES=$TEMP_DIR/files
 export SOURCE_REPO=$TEMP_DIR/source_repo
 export TEST_REPO2=$TEMP_DIR/test_repo2
+export TEST_MERGEREPO=$TEMP_DIR/test_merge
 export MTPOINT=$TEMP_DIR/mtpoint
 
 export PYTHON="/usr/bin/env python"
