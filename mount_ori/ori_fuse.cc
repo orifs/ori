@@ -529,19 +529,20 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
 
     ori_priv *p = ori_getpriv();
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        RWKey::sp key = p->lock_cmd_output.writeLock();
+        //RWKey::sp key = p->lock_cmd_output.writeLock();
+        char fmt_buffer[256];
+        //sprintf(fmt_buffer, "Executing command \"%%.%lus\"\n", size);
+        //p->printf(fmt_buffer, buf);
 
         RepoCmd *cmd = &_commands[0];
         while (true) {
             if (cmd->cmd_name == NULL) {
-                char buffer[256];
-                sprintf(buffer, "Unrecognized command \"%%.%lus\"\n", size);
-                p->printf(buffer, buf);
-                printf(buffer, buf);
+                sprintf(fmt_buffer, "Unrecognized command \"%%.%lus\"\n", size);
+                p->printf(fmt_buffer, buf);
                 break;
             }
 
-            if (strcmp(buf, cmd->cmd_name) == 0) {
+            if (strncmp(buf, cmd->cmd_name, size) == 0) {
                 cmd->func(p);
                 break;
             }

@@ -45,6 +45,11 @@ mkdir $SOURCE_FILES/a/empty_dir
 mkdir $SOURCE_FILES/b
 echo "Foo" > $SOURCE_FILES/b/b.txt
 
+cat > $TEMP_DIR/.gdbinit <<EOM
+file $ORIG_DIR/build/mount_ori/mount_ori
+set args -d -o repo=source_repo,daemon_timeout=5 mtpoint
+EOM
+
 # Initial tests/initialize source repo
 for script in repo_init.sh commit_again.sh; do
     bash -e $SCRIPTS/$script
