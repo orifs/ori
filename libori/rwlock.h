@@ -30,12 +30,18 @@
 #error "UNSUPPORTED OS"
 #endif
 
+#include <vector>
+#include <map>
 #include <tr1/memory>
+
+#include "mutex.h"
+
+#define TID_NOBODY 0
 
 class RWLock;
 struct RWKey {
     typedef std::tr1::shared_ptr<RWKey> sp;
-    RWKey(RWLock *l);
+    RWKey(RWLock *l = NULL);
     ~RWKey();
 
     RWLock *lock;
@@ -52,7 +58,22 @@ public:
     RWKey::sp tryWriteLock();
     void unlock();
     // bool locked();
+
+    typedef std::vector<uint32_t> LockOrderVector;
+    static void setLockOrder(const LockOrderVector &order);
+    ///^ lock orderings cannot be changed once set
+
+    uint32_t lockNum;
 private:
+    static Mutex gOrderMutex;
+    static uint32_t gLockNum;
+    static std::map<uint32_t, size_t> gLockNumToOrdering;
+    static std::vector<LockOrderVector> gLockOrderings;
+    static std::map<uint32_t, uint64_t> gLockedBy;
+
+    void _checkLockOrdering();
+    void _updateLocked();
+
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
     pthread_rwlock_t lockHandle;
 //#elif defined(__WINDOWS__)

@@ -19,11 +19,13 @@
 
 #include <assert.h>
 
-#include "debug.h"
-
 #include <list>
 #include <utility>
 #include <tr1/unordered_map>
+
+#include "debug.h"
+#include "rwlock.h"
+
 
 
 template <class K, class V, int MAX>
@@ -33,22 +35,35 @@ public:
     typedef std::list<K> lru_list;
     typedef std::tr1::unordered_map<K,
             std::pair<V, typename lru_list::iterator> > lru_cache;
-    LRUCache() {
+    LRUCache()
+        : numItems(0)
+    {
     }
     ~LRUCache() {
     }
+
     void put(K key, V value) {
+        RWKey::sp ckey = lock.writeLock();
+
         typename lru_cache::iterator it = cache.find(key);
 
-        if (lru.size() >= MAX && it == cache.end())
-            evict();
-        if (it != cache.end())
+        if (numItems >= MAX && it == cache.end())
+            evict(ckey);
+        if (it != cache.end()) {
             lru.erase((*it).second.second);
+            numItems--;
+        }
+
+        assert(numItems == lru.size());
 
         typename lru_list::iterator p = lru.insert(lru.end(), key);
         cache[key] = std::make_pair(value, p);
+        numItems++;
     }
-    V &get(K key) {
+
+    const V &get(K key) {
+        RWKey::sp ckey = lock.writeLock();
+
         typename lru_cache::iterator it = cache.find(key);
 
         if (it != cache.end()) {
@@ -59,23 +74,47 @@ public:
         //return NULL;
         assert(false);
     }
+
+    /// Atomic get which returns true if key is cached (and value returned)
+    bool get(K key, V &value) {
+        RWKey::sp ckey = lock.writeLock();
+
+        typename lru_cache::iterator it = cache.find(key);
+        if (it == cache.end()) {
+            return false;
+        }
+        else {
+            lru.splice(lru.end(), lru, (*it).second.second);
+            value = (*it).second.first;
+            return true;
+        }
+    }
+
     bool hasKey(K key) {
+        RWKey::sp ckey = lock.readLock();
+
         typename lru_cache::iterator it = cache.find(key);
         return it != cache.end();
     }
     void invalidate(K key) {
+        RWKey::sp ckey = lock.writeLock();
+
         typename lru_cache::iterator it = cache.find(key);
         if (it == cache.end()) return;
 
         lru.erase((*it).second.second);
         cache.erase(it);
+        numItems--;
     }
     void clear() {
+        RWKey::sp ckey = lock.writeLock();
+
         lru.clear();
         cache.clear();
+        numItems = 0;
     }
 private:
-    void evict()
+    void evict(RWKey::sp ckey)
     {
         typename lru_cache::iterator it = cache.find(lru.front());
 
@@ -83,9 +122,14 @@ private:
 
         cache.erase(it);
         lru.pop_front();
+        numItems--;
     }
     lru_list lru;
     lru_cache cache;
+
+    RWLock lock;
+    // Because std::list::size() on GCC is O(N)
+    uint32_t numItems;
 };
 
 #endif /* __LRUCACHE_H__ */

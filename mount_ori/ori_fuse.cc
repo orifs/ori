@@ -91,7 +91,7 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_nlink = 2;
         return 0;
     } else if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        RWKey::sp key = p->lock_cmd_output.writeLock();
+        RWKey::sp coKey = p->lock_cmd_output.readLock();
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
         stbuf->st_mode = 0600 | S_IFREG;
@@ -248,7 +248,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
     if (!hasETE) return -ENOENT;
 
     if (ete.changedData) {
-        RWKey::sp key = p->openedFiles.lock_tempfiles.writeLock();
+        RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
         fi->fh = open(ete.tde.newFilename.c_str(), fi->flags);
 
         p->openedFiles.openedFile(ete.tde.newFilename, fi->fh);
@@ -293,11 +293,11 @@ ori_read_helper(ori_priv *p, const TreeEntry &te, char *buf, size_t size, off_t 
         return real_read;
     }
     else if (te.type == TreeEntry::LargeBlob) {
-        LargeBlob *lb = p->getLargeBlob(te.hash);
-        //lb->extractFile("temp.tst");
+        const LargeBlob &lb = p->getLargeBlob(te.hash);
+
         size_t total = 0;
         while (total < size) {
-            ssize_t res = lb->read((uint8_t*)(buf + total),
+            ssize_t res = lb.read((uint8_t*)(buf + total),
                     size - total, offset + total);
             if (res <= 0) return res;
             total += res;
@@ -397,7 +397,7 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
 
     ori_priv *p = ori_getpriv();
     RWKey::sp repoKey = p->startWrite();
-    RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
+    //RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
     std::string tempFile = p->currTempDir->newTempFile();
     if (tempFile == "")
@@ -464,7 +464,7 @@ ori_symlink(const char *target_path, const char *link_path)
 
     ori_priv *p = ori_getpriv();
     RWKey::sp repoKey = p->startWrite();
-    RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
+    //RWKey::sp tfKey = p->openedFiles.lock_tempfiles.writeLock();
 
     std::string tempFile = p->currTempDir->newTempFile();
     if (tempFile == "")
@@ -529,19 +529,20 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
 
     ori_priv *p = ori_getpriv();
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        RWKey::sp key = p->lock_cmd_output.writeLock();
+        //RWKey::sp key = p->lock_cmd_output.writeLock();
+        char fmt_buffer[256];
+        //sprintf(fmt_buffer, "Executing command \"%%.%lus\"\n", size);
+        //p->printf(fmt_buffer, buf);
 
         RepoCmd *cmd = &_commands[0];
         while (true) {
             if (cmd->cmd_name == NULL) {
-                char buffer[256];
-                sprintf(buffer, "Unrecognized command \"%%.%lus\"\n", size);
-                p->printf(buffer, buf);
-                printf(buffer, buf);
+                sprintf(fmt_buffer, "Unrecognized command \"%%.%lus\"\n", size);
+                p->printf(fmt_buffer, buf);
                 break;
             }
 
-            if (strcmp(buf, cmd->cmd_name) == 0) {
+            if (strncmp(buf, cmd->cmd_name, size) == 0) {
                 cmd->func(p);
                 break;
             }
@@ -712,9 +713,9 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     filler(buf, "..", NULL, 0);
 
     ori_priv *p = ori_getpriv();
-    Tree *t = NULL;
+    Tree t;
     if (strcmp(path, "/") == 0) {
-        t = p->headtree;
+        t = *p->headtree;
         filler(buf, ORI_CONTROL_FILENAME, NULL, 0);
         filler(buf, ORI_SNAPSHOT_DIRNAME, NULL, 0);
     } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
@@ -747,7 +748,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	    c = p->repo->getCommit(obj);
 	    obj = c.getTree();
 	    
-	    t = p->getTree(obj);
+	    t = p->getTree(obj, RWKey::sp());
 	} else {
 	    // Snapshot lookup
 	    ObjectHash obj;
@@ -767,7 +768,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	    if (entry.type != TreeEntry::Tree)
 		return -ENOTDIR;
 
-	    t = p->getTree(entry.hash);
+	    t = p->getTree(entry.hash, RWKey::sp());
 	}
     } else {
         ExtendedTreeEntry ete;
@@ -775,15 +776,17 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         if (!hasETE) return -ENOENT;
         if (ete.te.type != TreeEntry::Tree)
             return -ENOTDIR;
-        t = p->getTree(ete.te.hash);
+        t = p->getTree(ete.te.hash, RWKey::sp());
     }
 
     std::string extPath = std::string(path) + "/";
     if (extPath.size() == 2)
         extPath.resize(1); // for root dir '//'
 
-    for (std::map<std::string, TreeEntry>::iterator it = t->tree.begin();
-            it != t->tree.end();
+    RWKey::sp repoKey = p->lock_repo.readLock();
+
+    for (std::map<std::string, TreeEntry>::iterator it = t.tree.begin();
+            it != t.tree.end();
             it++) {
         FUSE_LOG("readdir entry %s", (*it).first.c_str());
 
@@ -893,16 +896,16 @@ ori_rename(const char *from_path, const char *to_path)
     bool hasETE = p->getETE(from_path, ete);
     if (!hasETE) return -ENOENT;
 
-    RWKey::sp repoKey = p->startWrite();
-
     // Check if file exists (can't rename to existing file)
     ExtendedTreeEntry dest_ete;
     bool hasDestETE = p->getETE(to_path, dest_ete);
+
+    RWKey::sp repoKey = p->startWrite();
     if (hasDestETE) {
         TreeDiffEntry tde(to_path, dest_ete.te.type == TreeEntry::Tree ?
                 TreeDiffEntry::DeletedDir : TreeDiffEntry::DeletedFile);
         p->mergeAndCommit(tde, repoKey);
-        p->startWrite();
+        p->startWrite(repoKey);
     }
 
     TreeDiffEntry newTde(from_path, TreeDiffEntry::Renamed);
@@ -955,6 +958,17 @@ ori_init(struct fuse_conn_info *conn)
     }
 
     FUSE_LOG("ori filesystem starting ...");
+
+    // Print locks
+    FUSE_LOG("lock_repo: %u", priv->lock_repo.lockNum);
+    FUSE_LOG("lock_cmd_output: %u", priv->lock_cmd_output.lockNum);
+    FUSE_LOG("lock_tempfiles: %u", priv->openedFiles.lock_tempfiles.lockNum);
+
+    // Set lock ordering
+    RWLock::LockOrderVector order;
+    order.push_back(priv->lock_repo.lockNum);
+    order.push_back(priv->openedFiles.lock_tempfiles.lockNum);
+    RWLock::setLockOrder(order);
 
     return priv;
 }

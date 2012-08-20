@@ -44,7 +44,7 @@ public:
     void chunkFile(const std::string &path);
     void extractFile(const std::string &path);
     /// May read less than s bytes
-    ssize_t read(uint8_t *buf, size_t s, off_t off);
+    ssize_t read(uint8_t *buf, size_t s, off_t off) const;
     // XXX: Stream read/write operations
     const std::string getBlob();
     void fromBlob(const std::string &blob);

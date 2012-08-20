@@ -58,6 +58,7 @@
 #include "debug.h"
 #include "util.h"
 #include "stream.h"
+#include "debug.h"
 
 using namespace std;
 
@@ -577,6 +578,19 @@ Util_PrintBacktrace()
     char **names = backtrace_symbols(array, num);
     for (int i = 0; i < num; i++) {
         fprintf(stderr, "%s\n", names[i]);
+    }
+    free(names);
+}
+
+void Util_LogBacktrace()
+{
+    const size_t MAX_FRAMES = 128;
+    void *array[MAX_FRAMES];
+
+    int num = backtrace(array, MAX_FRAMES);
+    char **names = backtrace_symbols(array, num);
+    for (int i = 0; i < num; i++) {
+        LOG("%s", names[i]);
     }
     free(names);
 }

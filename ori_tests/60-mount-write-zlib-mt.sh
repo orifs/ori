@@ -31,7 +31,7 @@ cd $MTPOINT
 cd $PKG_NAME
 
 ./configure
-make -j10
+make -j4
 
 
 # Cleanup
