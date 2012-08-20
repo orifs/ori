@@ -1,4 +1,6 @@
+
 #include <cassert>
+#include <stdio.h>
 
 #include "rwlock.h"
 #include "thread.h"

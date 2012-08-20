@@ -19,6 +19,11 @@
  * All rights reserved.
  */
 
+#include <stdint.h>
+
+#include <unistd.h>
+#include <sys/types.h>
+
 #include "rwlock.h"
 #include "debug.h"
 #include "util.h"
@@ -125,7 +130,7 @@ void RWLock::unlock()
     pthread_rwlock_unlock(&lockHandle);
     
 #if CHECK_LOCK_ORDER == 1
-    gLockedBy[lockNum] = TID_NOBODY;
+    gLockedBy[lockNum] = Thread::TID_NOBODY;
     gOrderMutex.unlock();
 #endif
 
