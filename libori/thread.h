@@ -33,6 +33,18 @@
 
 #include <string>
 
+#if defined(__APPLE__)
+typedef mach_port_t threadid_t;
+#elif defined(__linux__)
+typedef pid_t threadid_t;
+#elif defined(__FreeBSD__)
+#include <sys/thr.h>
+typedef long threadid_t;
+#else
+#error "Thread: platform not supported"
+#endif
+
+
 enum ThreadPriority {
     IdlePriority,
     LowPriority,
@@ -46,6 +58,8 @@ enum ThreadState { NotStarted, Stopped, Running, Finished };
 class Thread
 {
 public:
+    const static threadid_t TID_NOBODY = 0;
+
     Thread();
     Thread(const std::string &name);
     virtual ~Thread();
@@ -57,6 +71,8 @@ public:
     virtual void run() = 0;
     int terminate();
     bool wait(unsigned long time = 0xFFFFFFFF); // ULONG_MAX = wait forever
+
+    static threadid_t getID();
 protected:
     static void exit(void *retval);
     void sleep(unsigned long secs);

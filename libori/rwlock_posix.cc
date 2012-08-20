@@ -22,12 +22,18 @@
 #include "rwlock.h"
 #include "debug.h"
 #include "util.h"
+#include "thread.h"
 
 #define LOG_LOCKING 0
 
+#ifdef DEBUG
 #define CHECK_LOCK_ORDER 1
+#else
+#define CHECK_LOCK_ORDER 0
+#endif
 
 RWLock::RWLock()
+    : lockHandle()
 {
     pthread_rwlock_init(&lockHandle, NULL);
     lockNum = gLockNum++;
@@ -41,7 +47,7 @@ RWLock::~RWLock()
 RWKey::sp RWLock::readLock()
 {
 #if LOG_LOCKING == 1
-    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    threadid_t tid = Thread::getID();
     LOG("%u readLock: %u", tid, lockNum);
     //Util_LogBacktrace();
 #endif
@@ -77,7 +83,7 @@ RWKey::sp RWLock::tryReadLock()
 RWKey::sp RWLock::writeLock()
 {
 #if LOG_LOCKING == 1
-    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    threadid_t tid = Thread::getID();
     LOG("%u writeLock: %u", tid, lockNum);
     //Util_LogBacktrace();
 #endif
@@ -124,7 +130,7 @@ void RWLock::unlock()
 #endif
 
 #if LOG_LOCKING == 1
-    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    threadid_t tid = Thread::getID();
     LOG("%u unlock: %u", tid, lockNum);
 #endif
 }

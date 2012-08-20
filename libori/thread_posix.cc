@@ -125,3 +125,18 @@ void EntryWrapper(Thread *t)
     t->run();
 }
 
+
+threadid_t Thread::getID() {
+#if defined(__APPLE__)
+    return pthread_mach_thread_np(pthread_self());
+#elif defined(__linux__)
+    return gettid();
+#elif defined(__FreeBSD__)
+    long lwtid;
+    thr_self(&lwtid);
+    return lwtid;
+#else
+#error "Thread: platform not supported"
+#endif
+}
+

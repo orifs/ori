@@ -133,10 +133,13 @@ Util_RealPath(const string &path)
  * Read a file containing a text string into memory. There may not be any null 
  * characters in the file.
  */
-char *
-Util_ReadFile(const string &path, size_t *flen)
+std::string
+Util_ReadFile(const string &path)
 {
-    FILE *f;
+    diskstream ds(path);
+    return ds.readAll();
+
+    /*FILE *f;
     char *buf;
     size_t len;
 
@@ -160,7 +163,7 @@ Util_ReadFile(const string &path, size_t *flen)
     if (flen != NULL)
 	*flen = len;
 
-    return buf;
+    return buf;*/
 }
 
 /*
@@ -690,8 +693,8 @@ util_selftest(void)
 	printf("Util_CopyFile: %s\n", strerror(-status));
 	ASSERT(false);
     }
-    char *fbuf = Util_ReadFile("test.c", NULL);
-    ASSERT(fbuf);
+    std::string fbuf = Util_ReadFile("test.c");
+    //ASSERT(fbuf);
     newHash = Util_HashString(fbuf);
     // XXX: Check that 'test.b' does not exist
 
@@ -761,15 +764,15 @@ util_selftest(void)
 
     strstream in_stream(out_stream.str());
     ASSERT(in_stream.readInt<uint8_t>() == nums[0]);
-    ASSERT(in_stream.readInt<int8_t>() == nums[1]);
+    ASSERT(in_stream.readInt<int8_t>() == (int8_t)nums[1]);
     in_stream.readPStr(testStr);
     ASSERT(testStr == "hello, world!");
     ASSERT(in_stream.readInt<uint16_t>() == nums[2]);
-    ASSERT(in_stream.readInt<int16_t>() == nums[3]);
+    ASSERT(in_stream.readInt<int16_t>() == (int16_t)nums[3]);
     ASSERT(in_stream.readInt<uint64_t>() == nums[6]);
-    ASSERT(in_stream.readInt<int64_t>() == nums[7]);
+    ASSERT(in_stream.readInt<int64_t>() == (int64_t)nums[7]);
     ASSERT(in_stream.readInt<uint32_t>() == nums[4]);
-    ASSERT(in_stream.readInt<int32_t>() == nums[5]);
+    ASSERT(in_stream.readInt<int32_t>() == (int32_t)nums[5]);
 
     printf("Test Succeeded!\n");
     return 0;

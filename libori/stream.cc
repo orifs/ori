@@ -14,6 +14,8 @@
 #include "tuneables.h"
 #include "stream.h"
 
+#define USE_EXCEPTIONS 1
+
 /*
  * basestream
  */
@@ -238,8 +240,12 @@ diskstream::diskstream(const std::string &filename)
     : fd(-1)
 {
     fd = open(filename.c_str(), O_RDONLY);
-    if (fd < 0)
+    if (fd < 0) {
         setErrno("open");
+        if (USE_EXCEPTIONS)
+            throw std::ios_base::failure("Couldn't open file");
+        return;
+    }
 
     size_t length = lseek(fd, 0, SEEK_END);
     source.reset(new fdstream(fd, 0, length));

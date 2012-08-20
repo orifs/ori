@@ -36,8 +36,6 @@
 
 #include "mutex.h"
 
-#define TID_NOBODY 0
-
 class RWLock;
 struct RWKey {
     typedef std::tr1::shared_ptr<RWKey> sp;

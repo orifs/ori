@@ -1,6 +1,7 @@
 #include <cassert>
 
 #include "rwlock.h"
+#include "thread.h"
 
 RWKey::RWKey(RWLock *l)
     : lock(l)
@@ -33,7 +34,7 @@ void RWLock::setLockOrder(const LockOrderVector &order)
 void RWLock::_checkLockOrdering() {
     gOrderMutex.lock();
 
-    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    threadid_t tid = Thread::getID();
     if (PERMIT_REENTRANT_LOCK != 1) {
         if (gLockedBy[lockNum] == tid) {
             fprintf(stderr, "Detected reentrant locking of %u by %u\n",
@@ -68,7 +69,7 @@ void RWLock::_checkLockOrdering() {
 void RWLock::_updateLocked() {
     gOrderMutex.lock();
 
-    mach_port_t tid = pthread_mach_thread_np(pthread_self());
+    threadid_t tid = Thread::getID();
     gLockedBy[lockNum] = tid;
 
     gOrderMutex.unlock();

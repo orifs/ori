@@ -212,20 +212,18 @@ LocalRepo::open(const string &root)
     if (rootPath.compare("") == 0)
         return false;
 
-    // Read UUID
-    std::string uuid_path = rootPath + ORI_PATH_UUID;
-    char *id_str = Util_ReadFile(uuid_path, NULL);
-    if (id_str == NULL)
-        return false;
-    id = id_str;
-    delete id_str;
+    try {
+        // Read UUID
+        std::string uuid_path = rootPath + ORI_PATH_UUID;
+        id = Util_ReadFile(uuid_path);
 
-    // Read Version
-    char *ver_str = Util_ReadFile(rootPath + ORI_PATH_VERSION, NULL);
-    if (ver_str == NULL)
+        // Read Version
+        version = Util_ReadFile(rootPath + ORI_PATH_VERSION);
+    }
+    catch (std::ios_base::failure &e)
+    {
         return false;
-    version = ver_str;
-    delete ver_str;
+    }
 
     index.open(rootPath + ORI_PATH_INDEX);
     snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
@@ -1474,11 +1472,7 @@ LocalRepo::listBranches()
 string
 LocalRepo::getBranch()
 {
-    char *branch = Util_ReadFile(rootPath + ORI_PATH_HEAD, NULL);
-
-    if (branch == NULL)
-	return "";
-
+    std::string branch = Util_ReadFile(rootPath + ORI_PATH_HEAD);
     return branch;
 }
 
@@ -1518,12 +1512,11 @@ LocalRepo::getHead()
 
     if (branch[0] == '@') {
 	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
-	char *c = Util_ReadFile(headPath, NULL);
-	if (c == NULL) {
+        try {
+            commitId = Util_ReadFile(headPath);
+        } catch (std::ios_base::failure &e) {
 	    return EMPTY_COMMIT;
-	}
-	commitId = c;
-	free(c);
+        }
     } else if (branch[0] == '#') {
 	commitId = branch.substr(1);
     } else {
@@ -1604,14 +1597,8 @@ LocalRepo::getMergeState()
     string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
     MergeState state;
     string blob;
-    size_t blen;
-    const char *b;
 
-    b = Util_ReadFile(mergeStatePath, &blen);
-    if (b == NULL)
-	throw exception();
-
-    blob.assign(b, blen);
+    blob = Util_ReadFile(mergeStatePath);
     state.fromBlob(blob);
 
     return state;

@@ -59,7 +59,7 @@ Peer::Peer(const std::string &path)
     peerFile = path;
 
     if (Util_FileExists(path)) {
-	string blob = Util_ReadFile(path, NULL);
+	string blob = Util_ReadFile(path);
 	fromBlob(blob);
     }
 }
