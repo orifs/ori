@@ -58,11 +58,16 @@ cmd_merge(int argc, const char *argv[])
 
     Commit c1 = repository.getCommit(p1);
     Commit c2 = repository.getCommit(p2);
-    Commit cc = repository.getCommit(lca);
+    Commit cc;
 
     Tree t1 = repository.getTree(c1.getTree());
     Tree t2 = repository.getTree(c2.getTree());
-    Tree tc = repository.getTree(cc.getTree());
+    Tree tc = Tree();
+    
+    if (lca != EMPTY_COMMIT) {
+	Commit cc = repository.getCommit(lca);
+	tc = repository.getTree(cc.getTree());
+    }
 
     td1.diffTwoTrees(t1.flattened(&repository), tc.flattened(&repository));
     td2.diffTwoTrees(t2.flattened(&repository), tc.flattened(&repository));

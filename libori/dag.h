@@ -52,6 +52,10 @@ public:
     {
 	return parents;
     }
+    std::tr1::unordered_set<_Key> listChildren()
+    {
+	return children;
+    }
     void dump()
     {
 	typename std::tr1::unordered_set<_Key>::iterator it;
@@ -65,6 +69,7 @@ private:
     _Key k;
     _Val v;
     typename std::tr1::unordered_set<_Key> parents;
+    typename std::tr1::unordered_set<_Key> children;
 };
 
 template <class _Key, class _Val>
@@ -93,13 +98,15 @@ public:
     }
     void addChild(_Key parent, _Key child)
     {
-	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(child);
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator p = nodeMap.find(parent);
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator c = nodeMap.find(child);
 
-	if (it == nodeMap.end()) {
+	if (p == nodeMap.end() || c == nodeMap.end()) {
 	    assert(false);
 	}
 
-	(*it).second.parents.insert(parent);
+	(*c).second.parents.insert(parent);
+	(*p).second.children.insert(child);
     }
     _Key findLCA(_Key p1, _Key p2)
     {
