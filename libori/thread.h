@@ -22,6 +22,10 @@
 #ifndef __THREAD_H__
 #define __THREAD_H__
 
+#include <stdint.h>
+
+#include <unistd.h>
+
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
 #include <limits.h>
 #include <pthread.h>

@@ -22,6 +22,8 @@
 #ifndef __RWLOCK_H__
 #define __RWLOCK_H__
 
+#include <stdint.h>
+
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
 #include <pthread.h>
 //#elif defined(__WINDOWS__)

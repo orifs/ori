@@ -19,10 +19,14 @@
  * All rights reserved.
  */
 
+#include <stdint.h>
+
 #include <limits.h>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 #include <sched.h>
 
 #include <string>
@@ -130,7 +134,7 @@ threadid_t Thread::getID() {
 #if defined(__APPLE__)
     return pthread_mach_thread_np(pthread_self());
 #elif defined(__linux__)
-    return gettid();
+    return ::syscall(SYS_gettid);
 #elif defined(__FreeBSD__)
     long lwtid;
     thr_self(&lwtid);
