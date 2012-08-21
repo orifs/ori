@@ -194,9 +194,9 @@ Repo::getCommitDag()
 
     for (it = commits.begin(); it != commits.end(); it++) {
 	pair<ObjectHash, ObjectHash> p = (*it).getParents();
-	cDag.addChild(p.first, (*it).hash());
+	cDag.addEdge(p.first, (*it).hash());
 	if (!p.second.isEmpty())
-	    cDag.addChild(p.first, it->hash());
+	    cDag.addEdge(p.first, it->hash());
     }
 
     return cDag;
