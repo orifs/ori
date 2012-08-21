@@ -22,24 +22,6 @@ SshServer::SshServer()
 {
 }
 
-/*typedef std::vector<char *> args_vec;
-args_vec sep_args(char *str) {
-    size_t len = strlen(str);
-    args_vec rval;
-
-    size_t last = 0;
-    for (size_t i = 1; i < len; i++) {
-        if (str[i] == ' ' || str[i] == '\n') {
-            str[i] = '\0';
-            rval.push_back(str+last);
-            last = i+1;
-        }
-    }
-    //rval.push_back(str+last);
-
-    return rval;
-}*/
-
 #define OK 0
 #define ERROR 1
 
@@ -60,9 +42,11 @@ void SshServer::serve() {
         exit(1);
     }
 
-    printf("READY\n");
-    fflush(stdout);
+    uint8_t respOK = OK;
+    write(STDOUT_FILENO, &respOK, 1);
     fsync(STDOUT_FILENO);
+    fflush(stdout);
+
 
     while (true) {
         // Get command

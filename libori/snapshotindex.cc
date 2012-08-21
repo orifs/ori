@@ -65,6 +65,7 @@ SnapshotIndex::open(const string &indexFile)
 
     if (::fstat(fd, &sb) < 0) {
         perror("fstat");
+        PANIC();
         return;
     }
 

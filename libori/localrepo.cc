@@ -741,7 +741,8 @@ LocalRepo::pull(Repo *r)
 
     LocalRepoLock::ap _lock(lock());
 
-    receive(r->getObjects(toPull));
+    bytestream::ap objs(r->getObjects(toPull));
+    receive(objs.get());
 
     // Perform the pull
     while (!toPull.empty()) {
@@ -799,7 +800,8 @@ LocalRepo::pull(Repo *r)
         }
 
         if (newObjs.size() > 0) {
-            receive(r->getObjects(newObjs));
+            objs.reset(r->getObjects(newObjs));
+            receive(objs.get());
         }
 
         // Add the object to this repo

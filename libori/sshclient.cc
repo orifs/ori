@@ -127,9 +127,8 @@ int SshClient::connect()
     Util_SetBlocking(STDERR_FILENO, true);
 
     // Wait for READY from server
-    std::string ready(6, '\0');
-    read(fdFromChild, &ready[0], 6);
-    if (ready != "READY\n") {
+    if (!respIsOK()) {
+        printf("Couldn't connect to SSH server!\n");
         return -1;
     }
 
@@ -182,15 +181,15 @@ bytestream *SshClient::getStream() {
 }
 
 bool SshClient::respIsOK() {
-    uint8_t resp;
-    ASSERT(read(fdFromChild, &resp, 1) == 1);
-    if (resp == 0) return true;
+    uint8_t resp = 0;
+    int status = read(fdFromChild, &resp, 1);
+    if (status == 1 && resp == 0) return true;
     else {
         std::string errStr;
         fdstream fs(fdFromChild, -1);
         fs.readPStr(errStr);
         LOG("SSH error: %s", errStr.c_str());
-        fprintf(stderr, "SSH error: %s\n", errStr.c_str());
+        fprintf(stderr, "SSH error (%d): %s\n", (int)resp, errStr.c_str());
         return false;
     }
 }
