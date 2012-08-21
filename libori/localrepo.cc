@@ -1334,6 +1334,7 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
     TreeEntry entry = TreeEntry();
 
     // Set the hash to point to the root
+    entry.type = TreeEntry::Tree;
     entry.hash = c.getTree();
 
     for (it = pv.begin(); it != pv.end(); it++) {
@@ -1343,10 +1344,10 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
 	if (e == t.tree.end()) {
 	    entry = TreeEntry();
 	    entry.type = TreeEntry::Null;
+	    entry.hash = ObjectHash(); // Set empty hash
 	    return entry;
 	}
-        entry = (*e).second;//t.tree[*it];
-        //fprintf(stderr, "%d %s ", entry.type, entry.hash.hex().c_str());
+        entry = (*e).second;
     }
 
     return entry;
