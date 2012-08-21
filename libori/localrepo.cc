@@ -333,11 +333,9 @@ LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
     ASSERT(opened);
 
     if (currTransaction.get()) {
-        // TODO: more efficient
-        for (size_t i = 0; i < currTransaction->infos.size(); i++) {
-            if (currTransaction->infos[i].hash == objId) {
-                return LocalObject::sp(new LocalObject(currTransaction, i));
-            }
+        if (currTransaction->has(objId)) {
+            return LocalObject::sp(new LocalObject(currTransaction,
+                        currTransaction->hashToIx[objId]));
         }
     }
 
@@ -1052,13 +1050,8 @@ LocalRepo::gc()
 bool
 LocalRepo::hasObject(const ObjectHash &objId)
 {
-    if (currTransaction.get()) {
-        // TODO: more efficient
-        for (size_t i = 0; i < currTransaction->infos.size(); i++) {
-            if (currTransaction->infos[i].hash == objId) {
-                return true;
-            }
-        }
+    if (currTransaction.get() && currTransaction->has(objId)) {
+        return true;
     }
 
     bool val = index.hasObject(objId);

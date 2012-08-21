@@ -2,6 +2,7 @@
 #define __PACKFILE_H__
 
 #include <tr1/memory>
+#include <tr1/unordered_map>
 #include <deque>
 
 #include "objecthash.h"
@@ -36,11 +37,14 @@ public:
 
     bool full() const;
     void addPayload(ObjectInfo info, const std::string &payload);
+    bool has(const ObjectHash &hash) const;
 
     std::vector<ObjectInfo> infos;
     std::vector<std::string> payloads;
     size_t totalSize;
     bool committed;
+
+    std::tr1::unordered_map<ObjectHash, size_t> hashToIx;
 
 private:
     Packfile *pf;

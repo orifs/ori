@@ -75,6 +75,12 @@ PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
     }
 
     infos.push_back(info);
+    hashToIx[info.hash] = infos.size()-1;
+}
+
+bool PfTransaction::has(const ObjectHash &hash) const
+{
+    return hashToIx.find(hash) != hashToIx.end();
 }
 
 
