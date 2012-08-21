@@ -34,6 +34,7 @@ public:
 
     std::string getUUID();
     ObjectHash getHead();
+    int distance();
 
     Object::sp getObject(const ObjectHash &id);
     ObjectInfo getObjectInfo(const ObjectHash &id);

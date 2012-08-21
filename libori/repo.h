@@ -43,6 +43,7 @@ public:
     // Repo information
     virtual std::string getUUID() = 0;
     virtual ObjectHash getHead() = 0;
+    virtual int distance() = 0;
 
     // Objects
     virtual Object::sp getObject(

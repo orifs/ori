@@ -27,6 +27,8 @@
 class RemoteRepo
 {
 public:
+    typedef std::tr1::shared_ptr<RemoteRepo> sp;
+
     RemoteRepo();
     ~RemoteRepo();
     bool connect(const std::string &url);

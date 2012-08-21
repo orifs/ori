@@ -809,6 +809,13 @@ LocalRepo::pull(Repo *r)
     }
 }
 
+
+void
+LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
+{
+    std::vector<RemoteRepo::sp> candidates;
+}
+
 void
 LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
 {

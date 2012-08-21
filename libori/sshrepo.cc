@@ -29,6 +29,8 @@
 #include <deque>
 #include <vector>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "debug.h"
 #include "util.h"
 #include "packfile.h"
@@ -65,6 +67,24 @@ ObjectHash SshRepo::getHead()
         bs->readHash(hash);
     }
     return hash;
+}
+
+int
+SshRepo::distance()
+{
+    boost::posix_time::ptime t_begin =
+        boost::posix_time::microsec_clock::local_time();
+
+    // Send hello command
+    client->sendCommand("hello");
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    std::string version;
+    bs->readPStr(version);
+    
+    boost::posix_time::ptime t_end =
+        boost::posix_time::microsec_clock::local_time();
+    return (t_end - t_begin).total_milliseconds();
 }
 
 Object::sp SshRepo::getObject(const ObjectHash &id)

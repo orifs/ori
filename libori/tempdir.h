@@ -44,6 +44,7 @@ public:
     std::string newTempFile();
     
     // Repo implementation
+    int distance() { return 0; }
     std::string getUUID() { NOT_IMPLEMENTED(false); }
     ObjectHash getHead() { NOT_IMPLEMENTED(false); }
     Object::sp getObject(const ObjectHash &objId);

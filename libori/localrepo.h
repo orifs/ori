@@ -81,6 +81,7 @@ public:
     bool hasRemote();
 
     // Repo implementation
+    int distance() { return 0; }
     Object::sp getObject(const ObjectHash &id);
     ObjectInfo getObjectInfo(const ObjectHash &objId);
     bool hasObject(const ObjectHash &objId);
@@ -113,6 +114,7 @@ public:
 
     // Clone/pull operations
     void pull(Repo *r);
+    void multiPull(RemoteRepo::sp defaultRemote);
     void transmit(bytewstream *bs, const std::vector<ObjectHash> &objs);
     void receive(bytestream *bs);
     bytestream *getObjects(const std::vector<ObjectHash> &objs);

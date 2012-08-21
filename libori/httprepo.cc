@@ -30,6 +30,8 @@
 
 #include <openssl/sha.h>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include "debug.h"
 #include "util.h"
 #include "object.h"
@@ -87,6 +89,20 @@ HttpRepo::getHead()
     }
 
     return ObjectHash::fromHex(headId);
+}
+
+int
+HttpRepo::distance()
+{
+    boost::posix_time::ptime t_begin =
+        boost::posix_time::microsec_clock::local_time();
+
+    std::string uuid = getUUID();
+    assert(uuid != "");
+    
+    boost::posix_time::ptime t_end =
+        boost::posix_time::microsec_clock::local_time();
+    return (t_end - t_begin).total_milliseconds();
 }
 
 Object::sp
