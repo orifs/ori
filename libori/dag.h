@@ -74,6 +74,16 @@ private:
     typename std::tr1::unordered_set<_Key> children;
 };
 
+template <class _Key, class _Val_Old, class _Val_New>
+class DAGMapCB
+{
+public:
+    virtual _Val_New map(_Key k, _Val_Old v) = 0;
+};
+
+template <class _Key, class _Val>
+class DAG;
+
 template <class _Key, class _Val>
 class DAG
 {
@@ -83,6 +93,22 @@ public:
     }
     ~DAG()
     {
+    }
+    /*
+     * Fill this DAG in from another to compute a one to one mapping.
+     */
+    template <class _Val_Old>
+    void graphMap(DAGMapCB<_Key, _Val_Old, _Val> &m, DAG<_Key, _Val_Old> d)
+    {
+	typename std::map<_Key, DAGNode<_Key, _Val_Old> >::iterator it;
+
+	for (it = d.nodeMap.begin(); it != d.nodeMap.end(); it++)
+	{
+	    _Key k = (*it).first;
+	    addNode(k, m.map(k, (*it).second.getValue()));
+	    nodeMap[k].parents = (*it).second.parents;
+	    nodeMap[k].children = (*it).second.children;
+	}
     }
     /*
      * Add a graph node
@@ -288,6 +314,7 @@ public:
 	}
     }
 private:
+    template<class, class> friend class DAG;
     typename std::map<_Key, DAGNode<_Key, _Val> > nodeMap;
 };
 
