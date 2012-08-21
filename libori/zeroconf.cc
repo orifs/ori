@@ -123,7 +123,7 @@ void ori_run_mdns(evutil_socket_t fd, short what, void *ctx)
     }
 }
 
-struct event *MDNS_Start(uint16_t port_num, struct event_base *evbase)
+void MDNS_Register(uint16_t port_num)
 {
     DNSServiceErrorType err = DNSServiceRegister(
             &registerRef,
@@ -138,7 +138,7 @@ struct event *MDNS_Start(uint16_t port_num, struct event_base *evbase)
             NULL);
     if (err != kDNSServiceErr_NoError) {
         printf("Error setting up mDNS!\n");
-        return NULL;
+        return;
     }
 
     err = DNSServiceProcessResult(registerRef);
@@ -146,9 +146,12 @@ struct event *MDNS_Start(uint16_t port_num, struct event_base *evbase)
         printf("Error setting up mDNS!\n");
         exit(1);
     }
+}
 
+struct event *MDNS_Browse(struct event_base *evbase)
+{
     // Find other ORI services on this network
-    err = DNSServiceBrowse(
+    DNSServiceErrorType err = DNSServiceBrowse(
             &browseRef,
             0, 0,
             ORI_SERVICE_TYPE,
@@ -214,7 +217,7 @@ int cmd_mdnsserver(int argc, const char *argv[])
 {
     printf("Starting mDNS server...\n");
     struct event_base *evbase = event_base_new();
-    struct event *mdns_event = MDNS_Start(rand() % 1000 + 1000, evbase);
+    struct event *mdns_event = MDNS_Browse(evbase);
     event_add(mdns_event, NULL);
 
     MDNS_RegisterBrowseCallback(_print_cb);

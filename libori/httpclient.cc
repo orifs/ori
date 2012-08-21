@@ -89,12 +89,21 @@ HttpClient::connect()
     uint16_t port;
 
     base = event_base_new();
-    dnsBase = evdns_base_new(base, /* Add DNS servers */ 0);
+    dnsBase = evdns_base_new(base, /* Add DNS servers */ 1);
+    if (dnsBase == NULL) {
+        LOG("HTTP client couldn't set up evdns!");
+        return -1;
+    }
 
     port = strtoul(remotePort.c_str(), NULL, 10);
 
     // TODO: doesn't resolve hostnames
-    con = evhttp_connection_base_new(base, dnsBase, remoteHost.c_str(), port);
+    std::string remoteIP = Util_ResolveHost(remoteHost);
+    con = evhttp_connection_base_new(base, dnsBase, remoteIP.c_str(), port);
+    if (con == NULL) {
+        LOG("HTTP client couldn't set up connection!");
+        return -1;
+    }
 
     return 0;
 }

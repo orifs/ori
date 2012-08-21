@@ -65,17 +65,17 @@ cmd_pull(int argc, const char *argv[])
     }
 
     {
-	RemoteRepo srcRepo;
-	if (!srcRepo.connect(srcRoot)) {
+        RemoteRepo::sp srcRepo(new RemoteRepo());
+	if (!srcRepo->connect(srcRoot)) {
             printf("Error connecting to %s\n", srcRoot.c_str());
             return 1;
         }
 
         printf("Pulling from %s\n", srcRoot.c_str());
-        repository.pull(srcRepo.get());
+        repository.multiPull(srcRepo);
 
         // XXX: Need to rely on sync log.
-        repository.updateHead(srcRepo->getHead());
+        repository.updateHead(srcRepo->get()->getHead());
     }
 
     // TODO: more efficient backref tracking

@@ -421,16 +421,10 @@ Httpd_main(uint16_t port)
 
 #if !defined(WITHOUT_MDNS)
     // mDNS
-    struct event *mdns_evt = MDNS_Start(port, base);
-    if (mdns_evt)
-        event_add(mdns_evt, NULL);
+    MDNS_Register(port);
 #endif
 
     event_base_dispatch(base);
-#if !defined(WITHOUT_MDNS)
-    if (mdns_evt)
-        event_free(mdns_evt);
-#endif
     evhttp_free(httpd);
 }
 

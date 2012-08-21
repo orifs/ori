@@ -46,12 +46,15 @@ using namespace std;
  */
 
 HttpRepo::HttpRepo(HttpClient *client)
-    : client(client)
+    : client(client), containedObjs(NULL)
 {
 }
 
 HttpRepo::~HttpRepo()
 {
+    if (containedObjs) {
+        delete containedObjs;
+    }
 }
 
 void
@@ -108,8 +111,8 @@ HttpRepo::distance()
 Object::sp
 HttpRepo::getObject(const ObjectHash &id)
 {
-    LOG("WARNING: single ID request %s", id.hex().c_str());
-    Util_PrintBacktrace();
+    //LOG("WARNING: single ID request %s", id.hex().c_str());
+    //Util_PrintBacktrace();
 
     ObjectHashVec objs;
     objs.push_back(id);
@@ -160,12 +163,23 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
 
 bool
 HttpRepo::hasObject(const ObjectHash &id) {
-    int status;
+    /*int status;
     string payload;
 
     status = client->getRequest("/objinfo/" + id.hex(), payload);
 
-    return (status == 0);
+    return (status == 0);*/
+    if (!containedObjs) {
+        containedObjs = new std::tr1::unordered_set<ObjectHash>();
+        std::set<ObjectInfo> objs = listObjects();
+        for (std::set<ObjectInfo>::iterator it = objs.begin();
+                it != objs.end();
+                it++) {
+            containedObjs->insert((*it).hash);
+        }
+    }
+
+    return containedObjs->find(id) != containedObjs->end();
 }
 
 bytestream *

@@ -37,6 +37,7 @@
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
+#include <boost/bind.hpp>
 
 using namespace std;
 
@@ -47,6 +48,7 @@ using namespace std;
 #include "util.h"
 #include "scan.h"
 #include "debug.h"
+#include "zeroconf.h"
 
 int
 LocalRepo_Init(const std::string &rootPath)
@@ -810,10 +812,149 @@ LocalRepo::pull(Repo *r)
 }
 
 
+struct CandidatesList {
+    std::vector<RemoteRepo::sp> remotes;
+    std::vector<int> distances;
+    std::set<std::string> hostnames;
+
+    void addCandidate(const OriPeer &peer) {
+        std::stringstream ss;
+        ss << "http://" << peer.hostname << ":" << peer.port << "/";
+
+        if (hostnames.find(ss.str()) != hostnames.end()) {
+            return;
+        }
+
+        RemoteRepo::sp remote(new RemoteRepo());
+        remote->connect(ss.str());
+        int dist = remote->get()->distance();
+        hostnames.insert(ss.str());
+
+        // Insert in sorted order
+        bool inserted = false;
+        for (size_t i = 0; i < distances.size(); i++) {
+            if (distances[i] >= dist) {
+                distances.insert(distances.begin()+i, dist);
+                remotes.insert(remotes.begin()+i, remote);
+                inserted = true;
+                break;
+            }
+        }
+        if (!inserted) {
+            distances.push_back(dist);
+            remotes.push_back(remote);
+        }
+
+        fprintf(stderr, "Discovered new peer %s (dist %d), now %lu peers\n",
+                ss.str().c_str(), dist, distances.size());
+    }
+};
+
 void
 LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
 {
-    std::vector<RemoteRepo::sp> candidates;
+    CandidatesList candidates;
+
+    struct event_base *evbase = event_base_new();
+    struct event *mdns_event = MDNS_Browse(evbase);
+    event_add(mdns_event, NULL);
+    MDNS_RegisterBrowseCallback(boost::bind(&CandidatesList::addCandidate,
+                &candidates, _1));
+
+    // TODO: for testing
+    //candidates.remotes.push_back(defaultRemote);
+    //candidates.distances.push_back(defaultRemote->get()->distance());
+
+    event_base_loop(evbase, EVLOOP_NONBLOCK);
+
+
+    Repo *def = defaultRemote->get();
+    vector<Commit> remoteCommits = def->listCommits();
+    deque<ObjectHash> toPull;
+
+    for (size_t i = 0; i < remoteCommits.size(); i++) {
+        ObjectHash hash = remoteCommits[i].hash();
+        if (!hasObject(hash)) {
+            toPull.push_back(hash);
+            // TODO: partial pull
+        }
+    }
+
+    LocalRepoLock::ap _lock(lock());
+
+    // Perform the pull
+    while (!toPull.empty()) {
+        // Look for new peers
+        event_base_loop(evbase, EVLOOP_NONBLOCK);
+
+        ObjectHash hash = toPull.front();
+        toPull.pop_front();
+
+        // Find a source for this object
+        Repo *pullFrom = NULL;
+        for (size_t i = 0; i < candidates.distances.size(); i++) {
+            const RemoteRepo::sp &remote = candidates.remotes[i];
+            if (remote->get()->hasObject(hash)) {
+                pullFrom = remote->get();
+                break;
+            }
+        }
+        
+        if (pullFrom == NULL) {
+            fprintf(stderr, "Couldn't find a source for object %s\n",
+                    hash.hex().c_str());
+            toPull.push_back(hash);
+            sleep(1);
+            continue;
+        }
+
+        Object::sp o(pullFrom->getObject(hash));
+        if (!o) {
+            printf("Error getting object %s\n", hash.hex().c_str());
+            continue;
+        }
+
+        // Enqueue the object's references
+        ObjectType t = o->getInfo().type;
+        /*printf("Pulling object %s (%s)\n", hash.c_str(),
+                Object::getStrForType(t));*/
+
+        if (t == ObjectInfo::Commit) {
+            Commit c;
+            c.fromBlob(o->getPayload());
+            if (!hasObject(c.getTree())) {
+                toPull.push_back(c.getTree());
+            }
+        }
+        else if (t == ObjectInfo::Tree) {
+            Tree t;
+            t.fromBlob(o->getPayload());
+            for (map<string, TreeEntry>::iterator it = t.tree.begin();
+                    it != t.tree.end();
+                    it++) {
+                const ObjectHash &entry_hash = (*it).second.hash;
+                if (!hasObject(entry_hash)) {
+                    toPull.push_back(entry_hash);
+                }
+            }
+        }
+        else if (t == ObjectInfo::LargeBlob) {
+            LargeBlob lb(this);
+            lb.fromBlob(o->getPayload());
+
+            for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
+                    pit != lb.parts.end();
+                    pit++) {
+                const ObjectHash &h = (*pit).second.hash;
+                if (!hasObject(h)) {
+                    toPull.push_back(h);
+                }
+            }
+        }
+
+        // Add the object to this repo
+        copyFrom(o.get());
+    }
 }
 
 void

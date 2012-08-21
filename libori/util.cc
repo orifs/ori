@@ -31,6 +31,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <execinfo.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #include <iostream>
 #include <iomanip>
@@ -642,6 +644,33 @@ Util_IsPathRemote(const string &path) {
     if (pos == 0) return false;
     if (pos == path.npos) return false;
     return true;
+}
+
+
+std::string
+Util_ResolveHost(const string &hostname) {
+    struct addrinfo hints;
+    struct addrinfo *result;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_flags = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_ADDRCONFIG | AI_V4MAPPED;
+
+    int status = getaddrinfo(hostname.c_str(), "80", &hints, &result);
+    if (status < 0) {
+        perror("getaddrinfo");
+        return "";
+    }
+
+    struct sockaddr_in *sa = (struct sockaddr_in *)result->ai_addr;
+    char buf[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &sa->sin_addr, buf, INET_ADDRSTRLEN);
+
+    freeaddrinfo(result);
+
+    fprintf(stderr, "Resolved IP addr: %s\n", buf);
+    return buf;
 }
 
 

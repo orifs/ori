@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+#include <tr1/unordered_set>
 
 #include "repo.h"
 
@@ -53,6 +54,8 @@ private:
     void _clearPayload(const ObjectHash &id);
 
     std::map<ObjectHash, std::string> payloads;
+
+    std::tr1::unordered_set<ObjectHash> *containedObjs;
 };
 
 class HttpObject : public Object
