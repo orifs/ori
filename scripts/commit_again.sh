@@ -22,7 +22,7 @@ $PYTHON $SCRIPTS/changefile.py "$SOURCE_FILES/file10.tst"
 echo "a" >> $SOURCE_FILES/file10.tst
 
 # Copy changes to repo
-rsync -rv --delete --exclude=".ori" $SOURCE_FILES/ $SOURCE_REPO/
+rsync -rcv --delete --exclude=".ori" $SOURCE_FILES/ $SOURCE_REPO/
 
 # Status, commit
 echo "Committing changes"

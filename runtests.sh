@@ -33,7 +33,7 @@ fi
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
 mkdir -p $SOURCE_FILES
-for i in {6..11}; do
+for i in {10..10}; do
     SIZE=$((2**(i+1)))
     echo "Creating random file size ${SIZE}k"
     #dd if=/dev/urandom of="$SOURCE_FILES/file$i.tst" bs=2k count=$SIZE
@@ -53,7 +53,7 @@ EOM
 
 # Initial tests/initialize source repo
 for script in repo_init.sh commit_again.sh; do
-    bash -e $SCRIPTS/$script
+    bash -ex $SCRIPTS/$script
     if [ "$?" -ne "0" ] ; then
         echo "Script $script failed!"
         exit 1

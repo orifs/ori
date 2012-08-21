@@ -90,7 +90,7 @@ MetadataLog::open(const std::string &filename)
 
         if (readSoFar + nbytes > (size_t)sb.st_size) {
             // TODO: check end of log for consistency
-            printf("Corruption in this entry!\n");
+            fprintf(stderr, "Corruption in this entry!\n");
             return false;
         }
 
@@ -106,7 +106,7 @@ MetadataLog::open(const std::string &filename)
         uint32_t num_rc = ss.readInt<uint32_t>();
         uint32_t num_md = ss.readInt<uint32_t>();
 
-        fprintf(stderr, "Reading %u refcount entries\n", num_rc);
+        //fprintf(stderr, "Reading %u refcount entries\n", num_rc);
         for (size_t i = 0; i < num_rc; i++) {
             ObjectHash hash;
             ss.readHash(hash);
@@ -115,7 +115,7 @@ MetadataLog::open(const std::string &filename)
             refcounts[hash] = refcount;
         }
 
-        fprintf(stderr, "Reading %u metadata entries\n", num_md);
+        //fprintf(stderr, "Reading %u metadata entries\n", num_md);
         for (size_t i = 0; i < num_md; i++) {
             ObjectHash hash;
             ss.readHash(hash);
