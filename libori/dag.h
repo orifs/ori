@@ -27,6 +27,8 @@
 #include <tr1/unordered_set>
 #include <exception>
 
+#include "debug.h"
+
 template <class _Key, class _Val>
 class DAG;
 
@@ -72,6 +74,16 @@ private:
     typename std::tr1::unordered_set<_Key> children;
 };
 
+template <class _Key, class _Val_Old, class _Val_New>
+class DAGMapCB
+{
+public:
+    virtual _Val_New map(_Key k, _Val_Old v) = 0;
+};
+
+template <class _Key, class _Val>
+class DAG;
+
 template <class _Key, class _Val>
 class DAG
 {
@@ -82,10 +94,76 @@ public:
     ~DAG()
     {
     }
+    /*
+     * Fill this DAG in from another to compute a one to one mapping.
+     */
+    template <class _Val_Old>
+    void graphMap(DAGMapCB<_Key, _Val_Old, _Val> &m, DAG<_Key, _Val_Old> d)
+    {
+	typename std::map<_Key, DAGNode<_Key, _Val_Old> >::iterator it;
+
+	for (it = d.nodeMap.begin(); it != d.nodeMap.end(); it++)
+	{
+	    _Key k = (*it).first;
+	    addNode(k, m.map(k, (*it).second.getValue()));
+	    nodeMap[k].parents = (*it).second.parents;
+	    nodeMap[k].children = (*it).second.children;
+	}
+    }
+    /*
+     * Add a graph node
+     */
     void addNode(_Key k, _Val v)
     {
 	nodeMap[k] = DAGNode<_Key, _Val>(k, v);
     }
+    /*
+     * Delete a graph node
+     */
+    void delNode(_Key k)
+    {
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator n = nodeMap.find(k);
+
+	ASSERT(n != nodeMap.end());
+
+	std::tr1::unordered_set<_Key> parents = (*n).listParents();
+	std::tr1::unordered_set<_Key> children = (*n).listChildren();
+	typename std::tr1::unordered_set<_Key>::iterator i;
+
+	// Break edges to parents
+	for (i = parents.begin(); i != parents.end(); i++)
+	{
+	    typename std::map<_Key, DAGNode<_Key, _Val> >::iterator p;
+	    p = nodeMap.find(*i);
+	    p.children.erase(k);
+	}
+
+	// Break edges to children
+	for (i = children.begin(); i != children.end(); i++)
+	{
+	    typename std::map<_Key, DAGNode<_Key, _Val> >::iterator c;
+	    c = nodeMap.find(*i);
+	    c.parents.erase(k);
+	}
+    }
+    /*
+     * Prune node, attempts to remove a graph node and update the edges, with 
+     * the constraint that a node may have at most two parents.
+     */
+    void pruneNode(_Key k)
+    {
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator n = nodeMap.find(k);
+
+	ASSERT(n != nodeMap.end());
+
+	std::tr1::unordered_set<_Key> children = (*n).listChildren();
+	typename std::tr1::unordered_set<_Key>::iterator i;
+
+	NOT_IMPLEMENTED(false);
+    }
+    /*
+     * Get a graph node
+     */
     _Val getNode(_Key k)
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
@@ -96,18 +174,35 @@ public:
 
 	return (*it).second.getValue();
     }
-    void addChild(_Key parent, _Key child)
+    /*
+     * Add a graph edge
+     */
+    void addEdge(_Key parent, _Key child)
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator p = nodeMap.find(parent);
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator c = nodeMap.find(child);
 
-	if (p == nodeMap.end() || c == nodeMap.end()) {
-	    assert(false);
-	}
+	ASSERT(p != nodeMap.end() && c != nodeMap.end());
 
 	(*c).second.parents.insert(parent);
 	(*p).second.children.insert(child);
     }
+    /*
+     * Delete a graph edge
+     */
+    void delEdge(_Key parent, _Key child)
+    {
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator p = nodeMap.find(parent);
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator c = nodeMap.find(child);
+
+	ASSERT(p != nodeMap.end() && c != nodeMap.end());
+
+	(*c).second.parents.erase(parent);
+	(*p).second.children.erase(child);
+    }
+    /*
+     * Find the Lowest Common Ancestor (LCA) of two keys
+     */
     _Key findLCA(_Key p1, _Key p2)
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it1;
@@ -120,7 +215,7 @@ public:
 	/*
 	 * Step 1: Add next set of nodes in p1 & p2 to unordered_set and paths to
 	 * queue.
-	 * Step 2: Check if any of these nodes are in the the existing sets.
+	 * Step 2: Check if any of these nodes are in the existing sets.
 	 *  - Match: Return path and matching key
 	 *  - Else: Repeat 1
 	 */
@@ -219,6 +314,7 @@ public:
 	}
     }
 private:
+    template<class, class> friend class DAG;
     typename std::map<_Key, DAGNode<_Key, _Val> > nodeMap;
 };
 

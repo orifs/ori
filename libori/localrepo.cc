@@ -1368,6 +1368,7 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
     TreeEntry entry = TreeEntry();
 
     // Set the hash to point to the root
+    entry.type = TreeEntry::Tree;
     entry.hash = c.getTree();
 
     for (it = pv.begin(); it != pv.end(); it++) {
@@ -1377,10 +1378,10 @@ LocalRepo::lookupTreeEntry(const Commit &c, const string &path)
 	if (e == t.tree.end()) {
 	    entry = TreeEntry();
 	    entry.type = TreeEntry::Null;
+	    entry.hash = ObjectHash(); // Set empty hash
 	    return entry;
 	}
-        entry = (*e).second;//t.tree[*it];
-        //fprintf(stderr, "%d %s ", entry.type, entry.hash.hex().c_str());
+        entry = (*e).second;
     }
 
     return entry;
@@ -1436,7 +1437,7 @@ public:
         printf("Commit: %s\n", commitId.hex().c_str());
         printf("Tree: %s\n", treeId.hex().c_str());
 
-        // Copy objects
+	// Copy objects
         objects = src->getSubtreeObjects(treeId);
         for (it = objects.begin(); it != objects.end(); it++)
         {
@@ -1458,22 +1459,106 @@ private:
     LocalRepo *dst;
 };
 
+class GraftDAGObject
+{
+public:
+    GraftDAGObject()
+    {
+    }
+    GraftDAGObject(ObjectHash h, Commit c)
+	: hash(h), commit(c)
+    {
+    }
+    ~GraftDAGObject()
+    {
+    }
+    bool setPath(const string &path, LocalRepo *srcRepo)
+    {
+	TreeEntry e = srcRepo->lookupTreeEntry(commit, path);
+
+	objHash = e.hash;
+	if (objHash.isEmpty())
+	{
+	    // Commit does not contain this path!
+	    objHash = EMPTYFILE_HASH;
+	    objs.insert(objHash);
+	    return true;
+	}
+	if (e.type == TreeEntry::Tree) {
+	    objs = srcRepo->getSubtreeObjects(objHash);
+	} else {
+	    objs.insert(objHash);
+	}
+
+	return !objHash.isEmpty();
+    }
+    bool isEmpty()
+    {
+	return objHash.isEmpty();
+    }
+private:
+    // Source references
+    ObjectHash hash;
+    Commit commit;
+    ObjectHash objHash;
+    set<ObjectHash> objs;
+    // Destination references
+};
+
+class GraftMapper : public DAGMapCB<ObjectHash, Commit, GraftDAGObject>
+{
+public:
+    GraftMapper(LocalRepo *dstRepo, LocalRepo *srcRepo, const string &path)
+    {
+        dst = dstRepo;
+        src = srcRepo;
+        srcPath = path;
+    }
+    ~GraftMapper()
+    {
+    }
+    virtual GraftDAGObject map(ObjectHash k, Commit v)
+    {
+	bool success;
+	GraftDAGObject r = GraftDAGObject(k, v);
+
+	if (!k.isEmpty()) {
+	    success = r.setPath(srcPath, src);
+	    ASSERT(success == true);
+	}
+
+	return r;
+    }
+private:
+    string srcPath;
+    LocalRepo *src;
+    LocalRepo *dst;
+};
+
 /*
  * Graft a subtree from Repo 'r' to this repository.
  */
-string
+ObjectHash
 LocalRepo::graftSubtree(LocalRepo *r,
                    const std::string &srcPath,
                    const std::string &dstPath)
 {
-    GraftCB cb = GraftCB(this, r, srcPath);
-    set<ObjectHash> changes;
+    GraftMapper f = GraftMapper(this, r, srcPath);
+    DAG<ObjectHash, Commit> cDag = r->getCommitDag();
+    DAG<ObjectHash, GraftDAGObject> gDag = DAG<ObjectHash, GraftDAGObject>();
 
-    printf("Hello!\n");
-    changes = r->walkHistory(cb);
+    gDag.graphMap(f, cDag);
+
+    if (gDag.getNode(r->getHead()).isEmpty()) {
+	return ObjectHash();
+    }
+
+    // XXX: Prune graft nodes
 
     // XXX: TODO
     NOT_IMPLEMENTED(false);
+
+    return ObjectHash();
 }
 
 /*

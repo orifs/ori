@@ -51,6 +51,7 @@ cmd_graft(int argc, const char *argv[])
 {
     string srcRoot, dstRoot, srcRelPath, dstRelPath;
     LocalRepo srcRepo, dstRepo;
+    ObjectHash graftHead;
 
     if (argc != 3) {
         cout << "Error in correct number of arguments." << endl;
@@ -62,7 +63,12 @@ cmd_graft(int argc, const char *argv[])
     srcRelPath = Util_RealPath(argv[1]);
     dstRelPath = Util_RealPath(argv[2]);
 
-    if (srcRelPath == "" || dstRelPath == "") {
+    if (srcRelPath == "") {
+        cout << "Error: Source file or directory does not exist!" << endl;
+	return 1;
+    }
+
+    if (dstRelPath == "") {
         cout << "Error: Unable to resolve relative paths." << endl;
         return 1;
     }
@@ -90,7 +96,11 @@ cmd_graft(int argc, const char *argv[])
     cout << srcRelPath << endl;
     cout << dstRelPath << endl;
 
-    dstRepo.graftSubtree(&srcRepo, srcRelPath, dstRelPath);
+    graftHead = dstRepo.graftSubtree(&srcRepo, srcRelPath, dstRelPath);
+    if (graftHead.isEmpty()) {
+	printf("Error: Could not find a file or directory with this name!");
+	return 1;
+    }
 
     return 0;
 }

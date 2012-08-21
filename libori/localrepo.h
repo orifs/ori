@@ -150,9 +150,9 @@ public:
     std::set<ObjectHash> walkHistory(HistoryCB &cb);
     TreeEntry lookupTreeEntry(const Commit &c, const std::string &path);
     ObjectHash lookup(const Commit &c, const std::string &path);
-    std::string graftSubtree(LocalRepo *r,
-                             const std::string &srcPath,
-                             const std::string &dstPath);
+    ObjectHash graftSubtree(LocalRepo *r,
+                            const std::string &srcPath,
+                            const std::string &dstPath);
 
     // Working Directory Operations
     std::set<std::string> listBranches();
