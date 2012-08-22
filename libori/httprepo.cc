@@ -163,12 +163,6 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
 
 bool
 HttpRepo::hasObject(const ObjectHash &id) {
-    /*int status;
-    string payload;
-
-    status = client->getRequest("/objinfo/" + id.hex(), payload);
-
-    return (status == 0);*/
     if (!containedObjs) {
         containedObjs = new std::tr1::unordered_set<ObjectHash>();
         std::set<ObjectInfo> objs = listObjects();

@@ -71,7 +71,7 @@ cmd_pull(int argc, const char *argv[])
             return 1;
         }
 
-        printf("Pulling from %s\n", srcRoot.c_str());
+        printf("Multi-pulling from %s\n", srcRoot.c_str());
         repository.multiPull(srcRepo);
 
         // XXX: Need to rely on sync log.

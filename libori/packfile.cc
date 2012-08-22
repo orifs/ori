@@ -281,6 +281,8 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
         std::string info_str = objects[i].info.toString();
         bs->write(info_str.data(), info_str.size());
         bs->writeInt<uint32_t>(objects[i].packed_size);
+
+        //fprintf(stderr, "Obj %lu packed size %u\n", i, objects[i].packed_size);
     }
 
     // Transmit objects
@@ -294,6 +296,7 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
         buf.resize(len);
         ssize_t n = read(fd, &buf[0], len);
         ASSERT(n == len);
+        //fprintf(stderr, "Wrote block size %ld\n", len);
 
         bs->write(&buf[0], len);
     }
@@ -338,6 +341,7 @@ Packfile::receive(bytestream *bs, Index *idx)
 
     std::vector<uint8_t> data;
     for (size_t i = 0; i < num; i++) {
+        //fprintf(stderr, "Reading %lu packed size %lu\n", i, obj_sizes[i]);
         data.resize(obj_sizes[i]);
         bs->readExact(&data[0], obj_sizes[i]);
         

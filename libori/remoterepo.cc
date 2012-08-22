@@ -45,6 +45,7 @@ RemoteRepo::~RemoteRepo()
 bool
 RemoteRepo::connect(const string &url)
 {
+    this->url = url;
     if (Util_IsPathRemote(url)) {
         if (strncmp(url.c_str(), "http://", 7) == 0) {
             hc.reset(new HttpClient(url));

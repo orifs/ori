@@ -35,10 +35,15 @@ public:
     void disconnect();
     Repo *operator->();
     Repo *get();
+
+    const std::string &getURL() const {
+        return url;
+    }
 private:
     Repo *r;
     std::tr1::shared_ptr<HttpClient> hc;
     std::tr1::shared_ptr<SshClient> sc;
+    std::string url;
 };
 
 #endif /* __REMOTEREPO_H__ */

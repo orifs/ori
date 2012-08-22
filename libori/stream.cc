@@ -531,8 +531,8 @@ strwstream::strwstream(size_t reserved)
 
 ssize_t strwstream::write(const void *bytes, size_t n)
 {
-    if (buf.capacity() - buf.size() < n)
-        buf.reserve(buf.capacity()+n);
+    //if (buf.capacity() - buf.size() < n)
+    //    buf.reserve(buf.capacity()+n);
 
     size_t oldSize = buf.size();
     buf.resize(oldSize+n);

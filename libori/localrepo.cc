@@ -812,9 +812,22 @@ LocalRepo::pull(Repo *r)
 }
 
 
-struct CandidatesList {
+struct MultiPullOp {
+    MultiPullOp(LocalRepo &r)
+        : repo(r)
+    {
+    }
+    LocalRepo &repo;
+
+    // Pull queue
+    deque<ObjectHash> toPull;
+    tr1::unordered_set<ObjectHash> toPullSet;
+
+    // Remotes
     std::vector<RemoteRepo::sp> remotes;
     std::vector<int> distances;
+    vector<ObjectHashVec> toMultiPull;
+
     std::set<std::string> hostnames;
 
     void addCandidate(const OriPeer &peer) {
@@ -826,7 +839,10 @@ struct CandidatesList {
         }
 
         RemoteRepo::sp remote(new RemoteRepo());
-        remote->connect(ss.str());
+        if (!remote->connect(ss.str())) {
+            fprintf(stderr, "Error connecting to %s\n", ss.str().c_str());
+            return;
+        }
         int dist = remote->get()->distance();
         hostnames.insert(ss.str());
 
@@ -836,6 +852,8 @@ struct CandidatesList {
             if (distances[i] >= dist) {
                 distances.insert(distances.begin()+i, dist);
                 remotes.insert(remotes.begin()+i, remote);
+                toMultiPull.insert(toMultiPull.begin()+i, ObjectHashVec());
+
                 inserted = true;
                 break;
             }
@@ -843,117 +861,126 @@ struct CandidatesList {
         if (!inserted) {
             distances.push_back(dist);
             remotes.push_back(remote);
+            toMultiPull.push_back(ObjectHashVec());
         }
 
         fprintf(stderr, "Discovered new peer %s (dist %d), now %lu peers\n",
                 ss.str().c_str(), dist, distances.size());
+    }
+
+    void enqueue(const ObjectHash &hash) {
+        if (repo.hasObject(hash)) return;
+        if (toPullSet.find(hash) != toPullSet.end()) return;
+        toPull.push_back(hash);
+        toPullSet.insert(hash);
     }
 };
 
 void
 LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
 {
-    CandidatesList candidates;
+    MultiPullOp mpo(*this);
 
     struct event_base *evbase = event_base_new();
     struct event *mdns_event = MDNS_Browse(evbase);
     event_add(mdns_event, NULL);
-    MDNS_RegisterBrowseCallback(boost::bind(&CandidatesList::addCandidate,
-                &candidates, _1));
+    MDNS_RegisterBrowseCallback(boost::bind(&MultiPullOp::addCandidate,
+                &mpo, _1));
 
-    // TODO: for testing
-    //candidates.remotes.push_back(defaultRemote);
-    //candidates.distances.push_back(defaultRemote->get()->distance());
+    mpo.remotes.push_back(defaultRemote);
+    mpo.distances.push_back(defaultRemote->get()->distance());
+    mpo.toMultiPull.push_back(ObjectHashVec());
 
     event_base_loop(evbase, EVLOOP_NONBLOCK);
 
 
-    Repo *def = defaultRemote->get();
-    vector<Commit> remoteCommits = def->listCommits();
-    deque<ObjectHash> toPull;
-
+    // Commits to pull
+    vector<Commit> remoteCommits = defaultRemote->get()->listCommits();
     for (size_t i = 0; i < remoteCommits.size(); i++) {
         ObjectHash hash = remoteCommits[i].hash();
-        if (!hasObject(hash)) {
-            toPull.push_back(hash);
-            // TODO: partial pull
-        }
+        mpo.enqueue(hash);
+        // TODO: partial pull
     }
 
     LocalRepoLock::ap _lock(lock());
 
-    // Perform the pull
-    while (!toPull.empty()) {
-        // Look for new peers
-        event_base_loop(evbase, EVLOOP_NONBLOCK);
+    while (!mpo.toPull.empty()) {
+        // Consolidate pulls from remote repos
+        while (!mpo.toPull.empty()) {
+            // Look for new peers
+            event_base_loop(evbase, EVLOOP_NONBLOCK);
 
-        ObjectHash hash = toPull.front();
-        toPull.pop_front();
+            ObjectHash hash = mpo.toPull.front();
+            mpo.toPull.pop_front();
 
-        // Find a source for this object
-        Repo *pullFrom = NULL;
-        for (size_t i = 0; i < candidates.distances.size(); i++) {
-            const RemoteRepo::sp &remote = candidates.remotes[i];
-            if (remote->get()->hasObject(hash)) {
-                pullFrom = remote->get();
-                break;
-            }
-        }
-        
-        if (pullFrom == NULL) {
-            fprintf(stderr, "Couldn't find a source for object %s\n",
-                    hash.hex().c_str());
-            toPull.push_back(hash);
-            sleep(1);
-            continue;
-        }
-
-        Object::sp o(pullFrom->getObject(hash));
-        if (!o) {
-            printf("Error getting object %s\n", hash.hex().c_str());
-            continue;
-        }
-
-        // Enqueue the object's references
-        ObjectType t = o->getInfo().type;
-        /*printf("Pulling object %s (%s)\n", hash.c_str(),
-                Object::getStrForType(t));*/
-
-        if (t == ObjectInfo::Commit) {
-            Commit c;
-            c.fromBlob(o->getPayload());
-            if (!hasObject(c.getTree())) {
-                toPull.push_back(c.getTree());
-            }
-        }
-        else if (t == ObjectInfo::Tree) {
-            Tree t;
-            t.fromBlob(o->getPayload());
-            for (map<string, TreeEntry>::iterator it = t.tree.begin();
-                    it != t.tree.end();
-                    it++) {
-                const ObjectHash &entry_hash = (*it).second.hash;
-                if (!hasObject(entry_hash)) {
-                    toPull.push_back(entry_hash);
+            // Find a source for this object
+            bool found = false;
+            for (size_t i = 0; i < mpo.distances.size(); i++) {
+                const RemoteRepo::sp &remote = mpo.remotes[i];
+                if (remote->get()->hasObject(hash)) {
+                    mpo.toMultiPull[i].push_back(hash);
+                    found = true;
+                    break;
                 }
             }
-        }
-        else if (t == ObjectInfo::LargeBlob) {
-            LargeBlob lb(this);
-            lb.fromBlob(o->getPayload());
-
-            for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
-                    pit != lb.parts.end();
-                    pit++) {
-                const ObjectHash &h = (*pit).second.hash;
-                if (!hasObject(h)) {
-                    toPull.push_back(h);
-                }
+            if (!found) {
+                fprintf(stderr, "Couldn't find a source for object %s\n",
+                        hash.hex().c_str());
+                // TODO: keep retrying?
+                mpo.toPull.push_back(hash);
+                sleep(1);
+                continue;
             }
         }
 
-        // Add the object to this repo
-        copyFrom(o.get());
+        assert(mpo.toPull.size() == 0);
+        mpo.toPullSet.clear();
+
+        // Perform the pulls
+        for (size_t i = 0; i < mpo.toMultiPull.size(); i++) {
+            ObjectHashVec &hashes = mpo.toMultiPull[i];
+            if (hashes.size() == 0) continue;
+
+            fprintf(stderr, "Pulling %lu objects from %s\n", hashes.size(),
+                    mpo.remotes[i]->getURL().c_str());
+            bytestream::ap bs(mpo.remotes[i]->get()->getObjects(hashes));
+            receive(bs.get());
+
+            // Load more objects
+            for (size_t ix_h = 0; ix_h < hashes.size(); ix_h++) {
+                LocalObject::sp obj(getLocalObject(hashes[ix_h]));
+                ObjectType t = obj->getInfo().type;
+
+                if (t == ObjectInfo::Commit) {
+                    Commit c;
+                    c.fromBlob(obj->getPayload());
+                    mpo.enqueue(c.getTree());
+                }
+                else if (t == ObjectInfo::Tree) {
+                    Tree t;
+                    t.fromBlob(obj->getPayload());
+                    for (map<string, TreeEntry>::iterator it = t.tree.begin();
+                            it != t.tree.end();
+                            it++) {
+                        const ObjectHash &entry_hash = (*it).second.hash;
+                        mpo.enqueue(entry_hash);
+                    }
+                }
+                else if (t == ObjectInfo::LargeBlob) {
+                    LargeBlob lb(this);
+                    lb.fromBlob(obj->getPayload());
+
+                    for (map<uint64_t, LBlobEntry>::iterator pit = lb.parts.begin();
+                            pit != lb.parts.end();
+                            pit++) {
+                        const ObjectHash &h = (*pit).second.hash;
+                        mpo.enqueue(h);
+                    }
+                }
+            }
+
+            hashes.clear();
+        }
     }
 }
 
