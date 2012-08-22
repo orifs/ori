@@ -89,6 +89,7 @@ public:
     TreeEntry();
     TreeEntry(const ObjectHash &hash, const ObjectHash &lhash);
     ~TreeEntry();
+    bool isTree();
 
     EntryType	type;
     AttrMap attrs;

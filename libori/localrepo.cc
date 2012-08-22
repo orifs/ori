@@ -392,6 +392,10 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
     ASSERT(opened);
     ASSERT(!hash.isEmpty());
 
+    if (hash == EMPTYFILE_HASH) {
+	return 0;
+    }
+
     if (!currTransaction.get() || currTransaction->full()) {
         if (currPackfile.get()) {
             currPackfile->commit(currTransaction.get(), &index);
@@ -1587,61 +1591,17 @@ LocalRepo::lookup(const Commit &c, const string &path)
     return objId;
 }
 
-
-class GraftCB : public HistoryCB
-{
-public:
-    GraftCB(LocalRepo *dstRepo, LocalRepo *srcRepo, const string &path)
-    {
-        dst = dstRepo;
-        src = srcRepo;
-        srcPath = path;
-    }
-    virtual ~GraftCB()
-    {
-    }
-    virtual ObjectHash cb(const ObjectHash &commitId, Commit *c)
-    {
-        ObjectHash treeId = src->lookup(*c, srcPath);
-        set<ObjectHash> objects;
-        set<ObjectHash>::iterator it;
-
-        if (treeId.isEmpty())
-            return ObjectHash();
-
-        printf("Commit: %s\n", commitId.hex().c_str());
-        printf("Tree: %s\n", treeId.hex().c_str());
-
-	// Copy objects
-        objects = src->getSubtreeObjects(treeId);
-        for (it = objects.begin(); it != objects.end(); it++)
-        {
-	    if (!dst->hasObject(*it)) {
-                // XXX: Copy object without loading it all into memory!
-	        dst->addBlob(src->getObjectType(*it), src->getPayload(*it));
-	    }
-        }
-
-        // XXX: Create merge commit
-
-        // XXX: Copy files and mark in working state.
-
-        return ObjectHash();
-    }
-private:
-    string srcPath;
-    LocalRepo *src;
-    LocalRepo *dst;
-};
-
 class GraftDAGObject
 {
 public:
     GraftDAGObject()
+	: hash(), commit(), objEntry(), objs(),
+	  pFirst(), pSecond(), commitHash()
     {
     }
     GraftDAGObject(ObjectHash h, Commit c)
-	: hash(h), commit(c)
+	: hash(h), commit(c), objEntry(), objs(),
+	  pFirst(), pSecond(), commitHash()
     {
     }
     ~GraftDAGObject()
@@ -1649,35 +1609,111 @@ public:
     }
     bool setPath(const string &path, LocalRepo *srcRepo)
     {
-	TreeEntry e = srcRepo->lookupTreeEntry(commit, path);
+	objEntry = srcRepo->lookupTreeEntry(commit, path);
 
-	objHash = e.hash;
-	if (objHash.isEmpty())
+	if (objEntry.hash.isEmpty())
 	{
 	    // Commit does not contain this path!
-	    objHash = EMPTYFILE_HASH;
-	    objs.insert(objHash);
+	    // XXX: Set type based on tip or don't commit
+	    objEntry.hash = EMPTYFILE_HASH;
+	    objs.insert(EMPTYFILE_HASH);
 	    return true;
 	}
-	if (e.type == TreeEntry::Tree) {
-	    objs = srcRepo->getSubtreeObjects(objHash);
+
+	if (objEntry.isTree()) {
+	    objs = srcRepo->getSubtreeObjects(objEntry.hash);
+	} else if (objEntry.type == TreeEntry::LargeBlob) {
+	    NOT_IMPLEMENTED(false);
+	    // XXX: Add fragments to objs list
 	} else {
-	    objs.insert(objHash);
+	    objs.insert(objEntry.hash);
 	}
 
-	return !objHash.isEmpty();
+	return true;
     }
-    bool isEmpty()
+    bool isEmpty() const
     {
-	return objHash.isEmpty();
+	return objEntry.hash.isEmpty();
+    }
+    const ObjectHash getHash() const
+    {
+	return commitHash;
+    }
+    void setParents(const ObjectHash &p1 = EMPTY_COMMIT,
+		    const ObjectHash &p2 = EMPTY_COMMIT)
+    {
+	pFirst = p1;
+	pSecond = p2;
+    }
+    void graft(LocalRepo *srcRepo, LocalRepo *dstRepo,
+	       const string &srcPath, const string &dstPath)
+    {
+	Commit tip;
+	Commit c = Commit();
+	ObjectHash treeHash;
+	Tree::Flat fdtree;
+
+	if (isEmpty()) {
+	    commitHash = ObjectHash();
+	    return;
+	}
+
+	if (dstRepo->getHead().isEmpty()) {
+	    fdtree = Tree::Flat();
+	} else {
+	    tip = dstRepo->getCommit(dstRepo->getHead());
+	    Tree dtree = dstRepo->getTree(tip.getTree());
+	    fdtree = dtree.flattened(dstRepo);
+	}
+
+	if (objEntry.isTree()) {
+	    Tree stree = srcRepo->getTree(objEntry.hash);
+	    Tree::Flat fstree = stree.flattened(srcRepo);
+
+	    for (Tree::Flat::iterator it = fstree.begin();
+		 it != fstree.end();
+		 it++)
+	    {
+		fdtree[dstPath + (*it).first] = (*it).second;
+	    }
+	} else {
+	    // XXX: Ideally we should prevent this commit
+	    if (objEntry.type != TreeEntry::Null)
+		fdtree[dstPath] = objEntry;
+	}
+
+        for (set<ObjectHash>::iterator it = objs.begin();
+	     it != objs.end();
+	     it++)
+        {
+	    if (!dstRepo->hasObject(*it)) {
+		// XXX: Copy object without loading it all into memory!
+	        dstRepo->addBlob(srcRepo->getObjectType(*it),
+				 srcRepo->getPayload(*it));
+	    }
+        }
+
+	Tree commitTree = Tree::unflatten(fdtree, dstRepo);
+
+	c.setMessage(commit.getMessage());
+	c.setUser(commit.getUser());
+	c.setTime(commit.getTime());
+	c.setGraft(srcRepo->getRootPath(), srcPath, hash);
+	c.setParents(pFirst, pSecond);
+	c.setTree(commitTree.hash());
+
+	commitHash = dstRepo->addCommit(c);
     }
 private:
     // Source references
     ObjectHash hash;
     Commit commit;
-    ObjectHash objHash;
+    TreeEntry objEntry;
     set<ObjectHash> objs;
     // Destination references
+    ObjectHash pFirst;
+    ObjectHash pSecond;
+    ObjectHash commitHash;
 };
 
 class GraftMapper : public DAGMapCB<ObjectHash, Commit, GraftDAGObject>
@@ -1730,10 +1766,39 @@ LocalRepo::graftSubtree(LocalRepo *r,
 
     // XXX: Prune graft nodes
 
-    // XXX: TODO
-    NOT_IMPLEMENTED(false);
+    // Graft individual changes
+    ObjectHash tip = r->getHead();
+    std::list<ObjectHash> bu = gDag.getBottomUp(tip);
+    std::list<ObjectHash>::iterator it;
+    for (it = bu.begin(); it != bu.end(); it++)
+    {
+	cout << "Grafting " << (*it).hex() << endl;
 
-    return ObjectHash();
+	// Compute and set parents
+	tr1::unordered_set<ObjectHash> parents = gDag.getParents(*it);
+	tr1::unordered_set<ObjectHash>::iterator p;
+
+	p = parents.begin();
+	if (parents.size() == 0) {
+	    gDag.getNode(*it).setParents();
+	} else if (parents.size() == 1) {
+	    ObjectHash p1 = gDag.getNode(*p).getHash();
+	    gDag.getNode(*it).setParents(p1);
+	} else if (parents.size() == 2) {
+	    ObjectHash p1 = gDag.getNode(*p).getHash();
+	    p++;
+	    ObjectHash p2 = gDag.getNode(*p).getHash();
+	    gDag.getNode(*it).setParents(p1, p2);
+	} else {
+	    NOT_IMPLEMENTED(false);
+	}
+
+	gDag.getNode(*it).graft(r, this, srcPath, dstPath);
+    }
+
+    GraftDAGObject gTip = gDag.getNode(tip);
+
+    return gTip.getHash();
 }
 
 /*
