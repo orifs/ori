@@ -257,9 +257,7 @@ LocalRepo::open(const string &root)
 void
 LocalRepo::close()
 {
-    if (currTransaction.get()) {
-        currPackfile->commit(currTransaction.get(), &index);
-    }
+    currTransaction.reset();
     index.close();
     snapshots.close();
     packfiles.reset();
@@ -322,6 +320,8 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
     if (!o) {
 	if (remoteRepo != NULL) {
 	    // XXX: Save object locally
+            fprintf(stderr, "Instaclone getting object %s\n",
+                    objId.hex().c_str());
 	    Object::sp ro = remoteRepo->getObject(objId);
 
 	    if (!ro)
@@ -422,7 +422,7 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
     }
 
     if (currTransaction->full()) {
-        currPackfile->commit(currTransaction.get(), &index);
+        currTransaction.reset();
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);
     }
@@ -673,10 +673,9 @@ LocalRepo::listObjects()
 void
 LocalRepo::sync()
 {
-    if (currTransaction.get()) {
-        if (currPackfile.get()) {
-            currPackfile->commit(currTransaction.get(), &index);
-        }
+    bool full = currTransaction->full();
+    currTransaction.reset();
+    if (full) {
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);
     }
