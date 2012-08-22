@@ -3,6 +3,7 @@ import sys
 Import('env')
 
 src = [
+    "cmd_backup.cc",
     "cmd_branch.cc",
     "cmd_branches.cc",
     "cmd_catobj.cc",

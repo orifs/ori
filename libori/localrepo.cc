@@ -396,10 +396,17 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
 	return 0;
     }
 
-    if (!currTransaction.get() || currTransaction->full()) {
-        if (currPackfile.get()) {
-            currPackfile->commit(currTransaction.get(), &index);
-        }
+    if (!currPackfile.get()) {
+        currPackfile = packfiles->newPackfile();
+        currTransaction = currPackfile->begin(&index);
+    }
+
+    if (!currTransaction.get()) {
+        currTransaction = currPackfile->begin(&index);
+    }
+
+    if (currTransaction->full()) {
+        currPackfile->commit(currTransaction.get(), &index);
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);
     }
