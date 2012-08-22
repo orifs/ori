@@ -158,10 +158,12 @@ private:
     size_t size_hint;
 
     bool compress;
-    bool output_ended;
-    bool output_loaded;
+    bool input_processed;
+    std::string input; // TODO
+    std::vector<uint8_t> output;
+
     size_t offset;
-    uint8_t *in_buf;
+    bool output_ended;
 };
 
 #endif /* ORI_USE_FASTLZ */

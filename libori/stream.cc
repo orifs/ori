@@ -392,24 +392,21 @@ void zipstream::setLzmaErr(const char *msg, lzma_ret ret)
 zipstream::zipstream(bytestream *source, bool compress, size_t size_hint)
     : source(source),
       size_hint(size_hint),
+
       compress(compress),
-      output_ended(false),
-      output_loaded(false),
+      input_processed(false),
+
       offset(0),
-      in_buf(NULL)
+      output_ended(false)
 {
     assert(source != NULL);
-    if (size_hint == 0) {
-	// Hack for compression path
-	size_hint = source->sizeHint() * 120 / 100;
+    if (size_hint > 0) {
+        output.resize(size_hint);
     }
-
-    in_buf = new uint8_t[size_hint];
 }
 
 zipstream::~zipstream() {
     delete source;
-    delete in_buf;
 }
 
 bool zipstream::ended() {
@@ -417,36 +414,40 @@ bool zipstream::ended() {
 }
 
 size_t zipstream::read(uint8_t *buf, size_t n) {
-    if (output_ended)
-	return 0;
+    if (output_ended) return 0;
 
-    if (output_loaded) {
-	size_t len = source->sizeHint();
-	uint8_t *buf = new uint8_t[len];
+    if (!input_processed) {
+        input = source->readAll();
+        if (output.size() == 0) {
+            NOT_IMPLEMENTED(compress);
+            output.resize(input.size() * 1.3);
+        }
 
-	size_t bytesRead = source->read(buf, len);
-	assert(bytesRead == source->sizeHint());
-
-	output_loaded = true;
-
+        int finalSize = 0;
 	if (compress) {
-	    int compressed = fastlz_compress(buf, len, in_buf);
-	    delete buf;
-	    if (compressed == 0)
-		return 0;
+	    finalSize = fastlz_compress(&input[0], input.size(), &output[0]);
+	    if (finalSize == 0) {
+		last_error = "FastLZ couldn't compress";
+                return 0;
+            }
 	} else {
-	    int decompressed = fastlz_decompress(buf, len, in_buf, size_hint);
-	    delete buf;
-	    if (decompressed == 0)
-		return 0;
+	    finalSize = fastlz_decompress(&input[0], input.size(), &output[0],
+                    output.size());
+	    if (finalSize == 0) {
+		last_error = "FastLZ couldn't decompress";
+                return 0;
+            }
 	}
+
+        output.resize(finalSize);
+	input_processed = true;
     }
 
-    int to_copy = MIN(n, size_hint - offset);
-    memcpy(buf, in_buf + offset, to_copy);
+    size_t to_copy = MIN(n, output.size() - offset);
+    memcpy(buf, &output[offset], to_copy);
     offset += to_copy;
 
-    if (offset == size_hint)
+    if (offset == output.size())
 	output_ended = true;
 
     return to_copy;
@@ -457,7 +458,7 @@ size_t zipstream::sizeHint() const {
 }
 
 size_t zipstream::inputConsumed() const {
-    return offset;
+    return (size_t)((offset / (float)output.size()) * input.size());
 }
 
 #endif /* ORI_USE_FASTLZ */
