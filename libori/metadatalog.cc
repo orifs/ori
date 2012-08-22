@@ -189,7 +189,7 @@ MetadataLog::getMeta(const ObjectHash &hash, const std::string &key) const
     MetadataMap::const_iterator it = metadata.find(hash);
     if (it == metadata.end())
         return "";
-    std::map<std::string, std::string>::const_iterator mit = (*it).second.find(key);
+    ObjMetadata::const_iterator mit = (*it).second.find(key);
     if (mit == (*it).second.end())
         return "";
     return (*mit).second;
@@ -241,7 +241,7 @@ MetadataLog::commit(MdTransaction *tr)
         uint32_t num_mde = (*it).second.size();
         ws.writeInt(num_mde);
 
-        for (std::map<std::string, std::string>::iterator mit =
+        for (ObjMetadata::iterator mit =
                 (*it).second.begin();
                 mit != (*it).second.end();
                 mit++) {

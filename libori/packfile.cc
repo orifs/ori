@@ -53,15 +53,27 @@ PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
 #endif
 
 #if ENABLE_COMPRESSION
-    uint8_t buf[COMPCHECK_BYTES];
     zipstream ls(new strstream(payload), COMPRESS);
-    size_t n = ls.read(buf, COMPCHECK_BYTES);
-    float ratio = (float)n / (float)ls.inputConsumed();
+    uint8_t buf[COMPCHECK_BYTES];
+    size_t compSize = 0;
+    bool compress = false;
 
-    if (ratio <= COMPCHECK_RATIO) {
+    if (payload.size() > ZIP_MINIMUM_SIZE) {
+        compSize = ls.read(buf, COMPCHECK_BYTES);
+        float ratio = (float)compSize / (float)ls.inputConsumed();
+
+        fprintf(stderr, "Object %s compression ratio: %f\n",
+                info.hash.hex().c_str(), ratio);
+        if (ratio <= COMPCHECK_RATIO) {
+            compress = true;
+        }
+    }
+
+    if (compress) {
         // Okay to compress
         info.flags |= ORI_FLAG_COMPRESSED;
-        strwstream ss(std::string((char*)buf, n));
+        // Reuse compression test data
+        strwstream ss(std::string((char*)buf, compSize));
         ss.copyFrom(&ls);
         
         payloads.push_back(ss.str());

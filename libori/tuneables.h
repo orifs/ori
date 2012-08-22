@@ -24,7 +24,7 @@
 #define LARGEFILE_MINIMUM (1024 * 1024)
 
 // Enable or Disable compression
-#define ENABLE_COMPRESSION 0
+#define ENABLE_COMPRESSION 1
 // Minimum compressable object (FastLZ requires 66 bytes)
 #define ZIP_MINIMUM_SIZE 512
 // How much of a payload to check for compressibility

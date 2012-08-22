@@ -16,7 +16,7 @@ opts.AddVariables(
     ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "1"),
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
     ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
-    ("COMPRESSION_ALGO", "Compression algorithm (LZMA or FASTLZ).", "FASTLZ"),
+    ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY).", "FASTLZ"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
 
@@ -52,8 +52,10 @@ if env["COMPRESSION_ALGO"] == "LZMA":
     env.Append(CPPFLAGS = [ "-DORI_USE_LZMA" ])
 elif env["COMPRESSION_ALGO"] == "FASTLZ":
     env.Append(CPPFLAGS = [ "-DORI_USE_FASTLZ" ])
+elif env["COMPRESSION_ALGO"] == "SNAPPY":
+    env.Append(CPPFLAGS = [ "-DORI_USE_SNAPPY" ])
 else:
-    print "Error unsupported hash algorithm"
+    print "Error unsupported compression algorithm"
     sys.exit(-1)
 
 if env["WITH_MDNS"] != "1":
@@ -123,14 +125,26 @@ if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
 
 conf.Finish()
 
-# Targets
+# libori
 Export('env')
+SConscript('libori/SConscript', variant_dir='build/libori')
+
+# Set compile options for binaries
+env.Append(LIBS = ["ori", "skein", "fastlz", "snappy"],
+           LIBPATH = ['#build/libori',
+                      '#build/libskein',
+                      '#build/libfastlz',
+                      '#build/snappy-1.0.5'],
+           CPPPATH = ['#libori',
+                      '#libskein',
+                      '#libfastlz']
+           )
 
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
+SConscript('snappy-1.0.5/SConscript', variant_dir='build/snappy-1.0.5')
 SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
 SConscript('libskein/SConscript', variant_dir='build/libskein')
-SConscript('libori/SConscript', variant_dir='build/libori')
 SConscript('ori/SConscript', variant_dir='build/ori')
 if env["WITH_HTTPD"] == "1":
     SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')

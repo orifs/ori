@@ -1,15 +1,16 @@
 #ifndef __METADATALOG_H__
 #define __METADATALOG_H__
 
-#include <map>
 #include <string>
 #include <tr1/memory>
+#include <tr1/unordered_map>
 
 #include "objecthash.h"
 
 typedef int32_t refcount_t;
-typedef std::map<ObjectHash, refcount_t> RefcountMap;
-typedef std::map<ObjectHash, std::map<std::string, std::string> > MetadataMap;
+typedef std::tr1::unordered_map<ObjectHash, refcount_t> RefcountMap;
+typedef std::tr1::unordered_map<std::string, std::string> ObjMetadata;
+typedef std::tr1::unordered_map<ObjectHash, ObjMetadata > MetadataMap;
 
 class MetadataLog;
 class MdTransaction
