@@ -24,6 +24,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <list>
 #include <tr1/unordered_set>
 #include <exception>
 
@@ -311,6 +312,38 @@ public:
 	for (it = nodeMap.begin(); it != nodeMap.end(); it++)
 	{
 	    it->second.dump();
+	}
+    }
+    std::list<_Key> getBottomUp(_Key tip) {
+	std::tr1::unordered_set<_Key> s;
+	std::list<_Key> v;
+	std::list<_Key> q;
+	std::list<_Key> nextQ;
+
+	q.push_back(tip);
+	while (true) {
+	    for (typename std::list<_Key>::iterator it = q.begin();
+		 it != q.end();
+		 it++)
+	    {
+		typename std::tr1::unordered_set<_Key>::iterator p;
+		p = s.find(*it);
+		if (p == s.end()) {
+		    v.push_front(*it);
+		    s.insert(*it);
+		    typename std::tr1::unordered_set<_Key>::iterator jt;
+		    for (jt = nodeMap[*it].listParents().begin();
+			 jt != nodeMap[*it].listParents().end();
+			 jt++)
+		    {
+			nextQ.push_back(*jt);
+		    }
+		}
+	    }
+
+	    q.clear();
+	    q = nextQ;
+	    nextQ.clear();
 	}
     }
 private:
