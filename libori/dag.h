@@ -322,6 +322,9 @@ public:
 
 	q.push_back(tip);
 	while (true) {
+	    if (q.size() == 0)
+		return v;
+
 	    for (typename std::list<_Key>::iterator it = q.begin();
 		 it != q.end();
 		 it++)
