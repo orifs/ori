@@ -127,6 +127,8 @@ cmd_graft(int argc, const char *argv[])
 	return 1;
     }
 
+    repository.updateHead(graftHead);
+
     return 0;
 }
 
