@@ -129,6 +129,12 @@ TreeEntry::~TreeEntry()
 {
 }
 
+bool
+TreeEntry::isTree()
+{
+    return type == Tree;
+}
+
 void
 TreeEntry::extractToFile(const std::string &filename, Repo *src) const
 {
@@ -286,6 +292,9 @@ _recFlatten(
     }
 }
 
+/*
+ * Constructs a flat tree given the repository that this tree was taken from.
+ */
 Tree::Flat
 Tree::flattened(Repo *r) const
 {
@@ -310,6 +319,10 @@ bool _tree_gt(const std::string &t1, const std::string &t2)
     return _num_path_components(t1) > _num_path_components(t2);
 }
 
+/*
+ * Commits a flat tree into the repository 'r'. This function returns a tree 
+ * object for the root tree that was committed.
+ */
 Tree
 Tree::unflatten(const Flat &flat, Repo *r)
 {
