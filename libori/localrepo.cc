@@ -1412,53 +1412,6 @@ LocalRepo::lookup(const Commit &c, const string &path)
     return objId;
 }
 
-
-class GraftCB : public HistoryCB
-{
-public:
-    GraftCB(LocalRepo *dstRepo, LocalRepo *srcRepo, const string &path)
-    {
-        dst = dstRepo;
-        src = srcRepo;
-        srcPath = path;
-    }
-    virtual ~GraftCB()
-    {
-    }
-    virtual ObjectHash cb(const ObjectHash &commitId, Commit *c)
-    {
-        ObjectHash treeId = src->lookup(*c, srcPath);
-        set<ObjectHash> objects;
-        set<ObjectHash>::iterator it;
-
-        if (treeId.isEmpty())
-            return ObjectHash();
-
-        printf("Commit: %s\n", commitId.hex().c_str());
-        printf("Tree: %s\n", treeId.hex().c_str());
-
-	// Copy objects
-        objects = src->getSubtreeObjects(treeId);
-        for (it = objects.begin(); it != objects.end(); it++)
-        {
-	    if (!dst->hasObject(*it)) {
-                // XXX: Copy object without loading it all into memory!
-	        dst->addBlob(src->getObjectType(*it), src->getPayload(*it));
-	    }
-        }
-
-        // XXX: Create merge commit
-
-        // XXX: Copy files and mark in working state.
-
-        return ObjectHash();
-    }
-private:
-    string srcPath;
-    LocalRepo *src;
-    LocalRepo *dst;
-};
-
 class GraftDAGObject
 {
 public:
