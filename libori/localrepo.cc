@@ -1056,7 +1056,7 @@ LocalRepo::hasObject(const ObjectHash &objId)
         return true;
     }
 
-    bool val = index.hasObject(objId);
+    bool val = index.hasObject(objId) || objId == EMPTYFILE_HASH;
 
     if (val && remoteRepo != NULL) {
 	val = remoteRepo->hasObject(objId);
