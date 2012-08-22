@@ -140,6 +140,8 @@ public:
     
     // Purging Operations
     bool purgeObject(const ObjectHash &objId);
+    void decrefLB(const ObjectHash &lbhash, MdTransaction::sp tr);
+    void decrefTree(const ObjectHash &thash, MdTransaction::sp tr);
     bool purgeCommit(const ObjectHash &commitId);
     void purgeFuseCommits();
 

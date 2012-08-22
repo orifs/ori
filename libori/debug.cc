@@ -56,12 +56,7 @@ ori_log(const char *fmt, ...)
     char buf[32];
 
     if (logfd == -1) {
-#ifdef DEBUG
-        logfd = STDERR_FILENO;
         return;
-#else
-        return;
-#endif
     }
 
     get_timespec(&ts);

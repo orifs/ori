@@ -66,7 +66,10 @@ cmd_pull(int argc, const char *argv[])
 
     {
 	RemoteRepo srcRepo;
-	srcRepo.connect(srcRoot);
+	if (!srcRepo.connect(srcRoot)) {
+            printf("Error connecting to %s\n", srcRoot.c_str());
+            return 1;
+        }
 
         printf("Pulling from %s\n", srcRoot.c_str());
         repository.pull(srcRepo.get());

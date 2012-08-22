@@ -18,6 +18,7 @@
 #define __OBJECTHASH_H__
 
 #include <stdint.h>
+#include <string.h>
 
 #include <tr1/unordered_map>
 
@@ -27,8 +28,12 @@ struct ObjectHash {
     ObjectHash();
     static ObjectHash fromHex(std::string hex);
 
-    bool operator <(const ObjectHash &other) const;
-    bool operator ==(const ObjectHash &other) const;
+    bool operator <(const ObjectHash &other) const {
+        return memcmp(hash, other.hash, SIZE) < 0;
+    }
+    bool operator ==(const ObjectHash &other) const {
+        return memcmp(hash, other.hash, SIZE) == 0;
+    }
     bool operator !=(const ObjectHash &other) const {
         return !(*this == other);
     }

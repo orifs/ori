@@ -37,7 +37,7 @@ ObjectHash::ObjectHash(const char *source)
     memcpy(hash, source, SIZE);
 }
 
-uint8_t hexdigit(char c)
+static uint8_t hexdigit(char c)
 {
     ASSERT(isdigit(c) || (c >= 'a' && c <= 'f'));
     if (isdigit(c))
@@ -61,7 +61,7 @@ ObjectHash ObjectHash::fromHex(std::string hex)
     return rval;
 }
 
-bool ObjectHash::operator <(const ObjectHash &other) const
+/*bool ObjectHash::operator <(const ObjectHash &other) const
 {
     return memcmp(hash, other.hash, SIZE) < 0;
 }
@@ -69,7 +69,7 @@ bool ObjectHash::operator <(const ObjectHash &other) const
 bool ObjectHash::operator ==(const ObjectHash &other) const
 {
     return memcmp(hash, other.hash, SIZE) == 0;
-}
+}*/
 
 bool ObjectHash::isEmpty() const
 {

@@ -33,7 +33,17 @@ void OpenedFileMgr::closedFile(const std::string &tempFileName)
 
 void OpenedFileMgr::removeUnused()
 {
-    // TODO
+    for (std::map<std::string, uint32_t>::iterator it = openedFiles.begin();
+            it != openedFiles.end();
+            it++)
+    {
+        if ((*it).second == 0) {
+            // Remove this file
+            if (unlink((*it).first.c_str()) < 0) {
+                perror("removedUnused unlink");
+            }
+        }
+    }
 }
 
 bool OpenedFileMgr::isOpen(const std::string &tempFileName) const

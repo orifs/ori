@@ -333,11 +333,9 @@ LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
     ASSERT(opened);
 
     if (currTransaction.get()) {
-        // TODO: more efficient
-        for (size_t i = 0; i < currTransaction->infos.size(); i++) {
-            if (currTransaction->infos[i].hash == objId) {
-                return LocalObject::sp(new LocalObject(currTransaction, i));
-            }
+        if (currTransaction->has(objId)) {
+            return LocalObject::sp(new LocalObject(currTransaction,
+                        currTransaction->hashToIx[objId]));
         }
     }
 
@@ -743,7 +741,8 @@ LocalRepo::pull(Repo *r)
 
     LocalRepoLock::ap _lock(lock());
 
-    receive(r->getObjects(toPull));
+    bytestream::ap objs(r->getObjects(toPull));
+    receive(objs.get());
 
     // Perform the pull
     while (!toPull.empty()) {
@@ -801,7 +800,8 @@ LocalRepo::pull(Repo *r)
         }
 
         if (newObjs.size() > 0) {
-            receive(r->getObjects(newObjs));
+            objs.reset(r->getObjects(newObjs));
+            receive(objs.get());
         }
 
         // Add the object to this repo
@@ -1052,13 +1052,8 @@ LocalRepo::gc()
 bool
 LocalRepo::hasObject(const ObjectHash &objId)
 {
-    if (currTransaction.get()) {
-        // TODO: more efficient
-        for (size_t i = 0; i < currTransaction->infos.size(); i++) {
-            if (currTransaction->infos[i].hash == objId) {
-                return true;
-            }
-        }
+    if (currTransaction.get() && currTransaction->has(objId)) {
+        return true;
     }
 
     bool val = index.hasObject(objId);
@@ -1181,6 +1176,9 @@ LocalRepo::purgeObject(const ObjectHash &objId)
 {
     ASSERT(metadata.getRefCount(objId) == 0);
 
+    if (currTransaction.get())
+        currTransaction.reset();
+
     const IndexEntry &ie = index.getEntry(objId);
     Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
     packfile->purge(objId);
@@ -1191,14 +1189,52 @@ LocalRepo::purgeObject(const ObjectHash &objId)
 /*
  * Purge commit
  */
+void
+LocalRepo::decrefLB(const ObjectHash &lbhash, MdTransaction::sp tr)
+{
+    tr->decRef(lbhash);
+    if (metadata.getRefCount(lbhash) == 1) {
+        // Going to be purged, decref children
+        LargeBlob lb(this);
+        lb.fromBlob(getPayload(lbhash));
+        for (std::map<uint64_t, LBlobEntry>::iterator it = lb.parts.begin();
+                it != lb.parts.end();
+                it++) {
+            const LBlobEntry &entry = (*it).second;
+            tr->decRef(entry.hash);
+        }
+    }
+}
+
+void
+LocalRepo::decrefTree(const ObjectHash &thash, MdTransaction::sp tr)
+{
+    tr->decRef(thash);
+    if (metadata.getRefCount(thash) == 1) {
+        // Going to be purged, decref children
+        Tree t = getTree(thash);
+        for (std::map<std::string, TreeEntry>::iterator it = t.tree.begin();
+                it != t.tree.end();
+                it++) {
+            const TreeEntry &te = (*it).second;
+            if (te.type == TreeEntry::Tree) {
+                decrefTree(te.hash, tr);
+            }
+            else if (te.type == TreeEntry::LargeBlob) {
+                decrefLB(te.hash, tr);
+            }
+            else {
+                tr->decRef(te.hash);
+            }
+        }
+    }
+}
+
 bool
 LocalRepo::purgeCommit(const ObjectHash &commitId)
 {
     const Commit c = getCommit(commitId);
     ObjectHash rootTree;
-    set<ObjectHash> objs;
-    set<ObjectHash>::iterator it;
-    MdTransaction::sp tx;
 
     // Check all branches
     if (commitId == getHead()) {
@@ -1207,18 +1243,16 @@ LocalRepo::purgeCommit(const ObjectHash &commitId)
     }
 
     rootTree = c.getTree();
-    objs = getSubtreeObjects(rootTree);
 
+    MdTransaction::sp tx = metadata.begin();
     // Drop reference counts
-    tx = metadata.begin();
-    for (it = objs.begin(); it != objs.end(); it++) {
-	tx->decRef(*it);
-    }
+    decrefTree(rootTree, tx);
     tx->setMeta(commitId, "status", "purging");
     tx.reset();
 
-    // Purge objects -- Needs to be journaled this is racey
-    for (it = objs.begin(); it != objs.end(); it++) {
+    // Purge objects -- TODO Needs to be journaled this is racey
+    std::set<ObjectHash> objs = getSubtreeObjects(rootTree);
+    for (std::set<ObjectHash>::iterator it = objs.begin(); it != objs.end(); it++) {
 	if (metadata.getRefCount(*it) == 0)
 	    purgeObject(*it);
     }
