@@ -47,7 +47,7 @@ public:
     ~DAGNode()
     {
     }
-    _Val getValue()
+    _Val& getValue()
     {
 	return v;
     }
@@ -165,7 +165,7 @@ public:
     /*
      * Get a graph node
      */
-    _Val getNode(_Key k)
+    _Val& getNode(_Key k)
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
 
