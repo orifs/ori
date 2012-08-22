@@ -56,13 +56,13 @@ cmd_log(int argc, const char *argv[])
 	cout << "Author:  " << c.getUser() << endl;
 	cout << "Date:    " << timeStr;
         cout << "Status:  " << repository.getMetadata().getMeta(commit,
-                "status") << endl << endl;
+                "status") << endl;
 	if (!c.getGraftCommit().isEmpty()) {
 	    cout << "Graft:   from " << c.getGraftRepo().first << ":"
 				     << c.getGraftRepo().second << endl;
 	    cout << "         Commit " << c.getGraftCommit().hex() << endl;
 	}
-	cout << c.getMessage() << endl << endl;
+	cout << endl << c.getMessage() << endl << endl;
 
 	commit = c.getParents().first;
 	// XXX: Handle merge cases
