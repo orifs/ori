@@ -390,6 +390,10 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
     ASSERT(opened);
     ASSERT(!hash.isEmpty());
 
+    if (hash == EMPTYFILE_HASH) {
+	return 0;
+    }
+
     if (!currTransaction.get() || currTransaction->full()) {
         if (currPackfile.get()) {
             currPackfile->commit(currTransaction.get(), &index);
@@ -1056,7 +1060,7 @@ LocalRepo::hasObject(const ObjectHash &objId)
         return true;
     }
 
-    bool val = index.hasObject(objId) || objId == EMPTYFILE_HASH;
+    bool val = index.hasObject(objId);
 
     if (val && remoteRepo != NULL) {
 	val = remoteRepo->hasObject(objId);
@@ -1416,11 +1420,13 @@ class GraftDAGObject
 {
 public:
     GraftDAGObject()
-	: hash(), commit(), objEntry(), objs(), commitHash()
+	: hash(), commit(), objEntry(), objs(),
+	  pFirst(), pSecond(), commitHash()
     {
     }
     GraftDAGObject(ObjectHash h, Commit c)
-	: hash(h), commit(c), objEntry(), objs(), commitHash()
+	: hash(h), commit(c), objEntry(), objs(),
+	  pFirst(), pSecond(), commitHash()
     {
     }
     ~GraftDAGObject()
@@ -1450,13 +1456,19 @@ public:
 
 	return true;
     }
-    bool isEmpty()
+    bool isEmpty() const
     {
 	return objEntry.hash.isEmpty();
     }
-    ObjectHash getHash()
+    const ObjectHash getHash() const
     {
 	return commitHash;
+    }
+    void setParents(const ObjectHash &p1 = EMPTY_COMMIT,
+		    const ObjectHash &p2 = EMPTY_COMMIT)
+    {
+	pFirst = p1;
+	pSecond = p2;
     }
     void graft(LocalRepo *srcRepo, LocalRepo *dstRepo,
 	       const string &srcPath, const string &dstPath)
@@ -1512,7 +1524,7 @@ public:
 	c.setUser(commit.getUser());
 	c.setTime(commit.getTime());
 	c.setGraft(srcRepo->getRootPath(), srcPath, hash);
-	// c.setParents()
+	c.setParents(pFirst, pSecond);
 	c.setTree(commitTree.hash());
 
 	commitHash = dstRepo->addCommit(c);
@@ -1524,6 +1536,8 @@ private:
     TreeEntry objEntry;
     set<ObjectHash> objs;
     // Destination references
+    ObjectHash pFirst;
+    ObjectHash pSecond;
     ObjectHash commitHash;
 };
 
@@ -1584,6 +1598,26 @@ LocalRepo::graftSubtree(LocalRepo *r,
     for (it = bu.begin(); it != bu.end(); it++)
     {
 	cout << "Grafting " << (*it).hex() << endl;
+
+	// Compute and set parents
+	tr1::unordered_set<ObjectHash> parents = gDag.getParents(*it);
+	tr1::unordered_set<ObjectHash>::iterator p;
+
+	p = parents.begin();
+	if (parents.size() == 0) {
+	    gDag.getNode(*it).setParents();
+	} else if (parents.size() == 1) {
+	    ObjectHash p1 = gDag.getNode(*p).getHash();
+	    gDag.getNode(*it).setParents(p1);
+	} else if (parents.size() == 2) {
+	    ObjectHash p1 = gDag.getNode(*p).getHash();
+	    p++;
+	    ObjectHash p2 = gDag.getNode(*p).getHash();
+	    gDag.getNode(*it).setParents(p1, p2);
+	} else {
+	    NOT_IMPLEMENTED(false);
+	}
+
 	gDag.getNode(*it).graft(r, this, srcPath, dstPath);
     }
 

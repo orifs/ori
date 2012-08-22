@@ -176,6 +176,19 @@ public:
 	return (*it).second.getValue();
     }
     /*
+     * Get a node's parents
+     */
+    std::tr1::unordered_set<_Key> getParents(_Key k)
+    {
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
+
+	if (it == nodeMap.end()) {
+	    assert(false);
+	}
+
+	return (*it).second.listParents();
+    }
+    /*
      * Add a graph edge
      */
     void addEdge(_Key parent, _Key child)
@@ -314,6 +327,7 @@ public:
 	    it->second.dump();
 	}
     }
+    // XXX: THIS DOES NOT PRODUCE THE RIGHT ORDERING
     std::list<_Key> getBottomUp(_Key tip) {
 	std::tr1::unordered_set<_Key> s = std::tr1::unordered_set<_Key>();
 	std::list<_Key> v = std::list<_Key>();
