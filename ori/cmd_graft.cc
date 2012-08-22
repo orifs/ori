@@ -50,6 +50,7 @@ int
 cmd_graft(int argc, const char *argv[])
 {
     string srcRoot, dstRoot, srcRelPath, dstRelPath;
+    string dstName = "";
     LocalRepo srcRepo, dstRepo;
     ObjectHash graftHead;
 
@@ -69,12 +70,30 @@ cmd_graft(int argc, const char *argv[])
     }
 
     if (dstRelPath == "") {
-        cout << "Error: Unable to resolve relative paths." << endl;
-        return 1;
+	// Try stripping last string and recompute
+	string newDstPath = argv[2];
+	if (newDstPath.find_last_of("/") == newDstPath.npos) {
+	    dstName = argv[2];
+	    dstRelPath = "./";
+	} else {
+	    dstName = newDstPath.substr(newDstPath.find_last_of("/") + 1);
+	    dstRelPath = newDstPath.substr(0, newDstPath.find_last_of("/") + 1);
+	}
+	dstRelPath = Util_RealPath(dstRelPath);
+	if (dstRelPath == "") {
+	    cout << "Error: Unable to resolve relative paths." << endl;
+	    return 1;
+	}
     }
+
+    dstRelPath = dstRelPath + "/";
 
     srcRoot = LocalRepo::findRootPath(srcRelPath);
     dstRoot = LocalRepo::findRootPath(dstRelPath);
+    if (srcRoot[srcRoot.length() - 1] != '/')
+	srcRoot = srcRoot + "/";
+    if (dstRoot[dstRoot.length() - 1] != '/')
+	dstRoot = dstRoot + "/";
 
     if (srcRoot == "") {
         cout << "Error: source path is not a repository." << endl;
@@ -90,11 +109,17 @@ cmd_graft(int argc, const char *argv[])
     dstRepo.open(dstRoot);
 
     // Transform the paths to be relative to repository root.
-    srcRelPath = srcRelPath.substr(srcRoot.length());
-    dstRelPath = dstRelPath.substr(dstRoot.length());
+    srcRelPath = srcRelPath.substr(srcRoot.length() - 1);
+    dstRelPath = dstRelPath.substr(dstRoot.length() - 1);
+    dstRelPath = dstRelPath + dstName;
 
-    cout << srcRelPath << endl;
-    cout << dstRelPath << endl;
+    // Append name if it's not specified
+    if (dstRelPath[dstRelPath.size() - 1] == '/') {
+	dstName = srcRelPath.substr(srcRelPath.find_last_of("/") + 1);
+	dstRelPath = dstRelPath + dstName;
+    }
+
+    cout << "Grafting from " << srcRelPath << " to " << dstRelPath << endl;
 
     graftHead = dstRepo.graftSubtree(&srcRepo, srcRelPath, dstRelPath);
     if (graftHead.isEmpty()) {
