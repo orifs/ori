@@ -320,11 +320,20 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
     LocalObject::sp o(getLocalObject(objId));
 
     if (!o) {
-	if (remoteRepo != NULL)
+	if (remoteRepo != NULL) {
 	    // XXX: Save object locally
-	    return remoteRepo->getObject(objId);
-	else
+	    Object::sp ro = remoteRepo->getObject(objId);
+
+	    if (!ro)
+		return Object::sp();
+
+	    auto_ptr<bytestream> bs(ro->getPayloadStream());
+	    addBlob(ro->getInfo().type, bs->readAll());
+
+	    return ro;
+	} else {
 	    return Object::sp();
+	}
     }
 
     return Object::sp(o);
@@ -340,6 +349,13 @@ LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
                         currTransaction->hashToIx[objId]));
         }
     }
+
+    /*
+     * The object may not be present locally as is the case with
+     * instacloning.
+     */
+    if (!index.hasObject(objId))
+	return LocalObject::sp();
 
     const IndexEntry &ie = index.getEntry(objId);
     Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
@@ -1645,8 +1661,8 @@ public:
 	pFirst = p1;
 	pSecond = p2;
     }
-    void graft(LocalRepo *srcRepo, LocalRepo *dstRepo,
-	       const string &srcPath, const string &dstPath)
+    Commit graft(LocalRepo *srcRepo, LocalRepo *dstRepo,
+	             const string &srcPath, const string &dstPath)
     {
 	Commit tip;
 	Commit c = Commit();
@@ -1655,7 +1671,7 @@ public:
 
 	if (isEmpty()) {
 	    commitHash = ObjectHash();
-	    return;
+	    return c;
 	}
 
 	if (dstRepo->getHead().isEmpty()) {
@@ -1703,6 +1719,8 @@ public:
 	c.setTree(commitTree.hash());
 
 	commitHash = dstRepo->addCommit(c);
+
+	return c;
     }
 private:
     // Source references
@@ -1783,20 +1801,34 @@ LocalRepo::graftSubtree(LocalRepo *r,
 	    gDag.getNode(*it).setParents();
 	} else if (parents.size() == 1) {
 	    ObjectHash p1 = gDag.getNode(*p).getHash();
+	    if (p1.isEmpty())
+		p1 = getHead();
 	    gDag.getNode(*it).setParents(p1);
 	} else if (parents.size() == 2) {
 	    ObjectHash p1 = gDag.getNode(*p).getHash();
+	    if (p1.isEmpty())
+		p1 = getHead();
 	    p++;
 	    ObjectHash p2 = gDag.getNode(*p).getHash();
+	    if (p2.isEmpty())
+		p2 = getHead();
 	    gDag.getNode(*it).setParents(p1, p2);
 	} else {
 	    NOT_IMPLEMENTED(false);
 	}
 
-	gDag.getNode(*it).graft(r, this, srcPath, dstPath);
+	Commit c = gDag.getNode(*it).graft(r, this, srcPath, dstPath);
+
+	if (!gDag.getNode(*it).isEmpty())
+	{
+	    // Backrefs
+	    MdTransaction::sp tr(metadata.begin());
+	    addCommitBackrefs(c, tr);
+	    tr->setMeta(c.hash(), "status", "graft");
+	}
     }
 
-    GraftDAGObject gTip = gDag.getNode(tip);
+    GraftDAGObject& gTip = gDag.getNode(tip);
 
     return gTip.getHash();
 }
