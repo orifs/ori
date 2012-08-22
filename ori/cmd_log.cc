@@ -57,6 +57,11 @@ cmd_log(int argc, const char *argv[])
 	cout << "Date:    " << timeStr;
         cout << "Status:  " << repository.getMetadata().getMeta(commit,
                 "status") << endl << endl;
+	if (!c.getGraftCommit().isEmpty()) {
+	    cout << "Graft:   from " << c.getGraftRepo().first << ":"
+				     << c.getGraftRepo().second << endl;
+	    cout << "         Commit " << c.getGraftCommit().hex() << endl;
+	}
 	cout << c.getMessage() << endl << endl;
 
 	commit = c.getParents().first;

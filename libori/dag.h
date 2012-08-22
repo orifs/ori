@@ -24,6 +24,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <list>
 #include <tr1/unordered_set>
 #include <exception>
 
@@ -175,6 +176,19 @@ public:
 	return (*it).second.getValue();
     }
     /*
+     * Get a node's parents
+     */
+    std::tr1::unordered_set<_Key> getParents(_Key k)
+    {
+	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
+
+	if (it == nodeMap.end()) {
+	    assert(false);
+	}
+
+	return (*it).second.listParents();
+    }
+    /*
      * Add a graph edge
      */
     void addEdge(_Key parent, _Key child)
@@ -311,6 +325,47 @@ public:
 	for (it = nodeMap.begin(); it != nodeMap.end(); it++)
 	{
 	    it->second.dump();
+	}
+    }
+    // XXX: THIS DOES NOT PRODUCE THE RIGHT ORDERING
+    std::list<_Key> getBottomUp(_Key tip) {
+	std::tr1::unordered_set<_Key> s = std::tr1::unordered_set<_Key>();
+	std::list<_Key> v = std::list<_Key>();
+	std::list<_Key> q = std::list<_Key>();
+	std::list<_Key> nextQ = std::list<_Key>();
+
+	q.push_back(tip);
+	while (true) {
+	    if (q.size() == 0)
+		return v;
+
+	    for (typename std::list<_Key>::iterator it = q.begin();
+		 it != q.end();
+		 it++)
+	    {
+		typename std::tr1::unordered_set<_Key>::iterator p;
+		p = s.find(*it);
+		if (p == s.end()) {
+		    v.push_front(*it);
+		    s.insert(*it);
+
+		    std::tr1::unordered_set<_Key> parents;
+		    typename std::tr1::unordered_set<_Key>::iterator jt;
+
+		    parents = nodeMap[*it].listParents();
+
+		    for (jt = parents.begin();
+			 jt != parents.end();
+			 jt++)
+		    {
+			nextQ.push_back(*jt);
+		    }
+		}
+	    }
+
+	    q.clear();
+	    q = nextQ;
+	    nextQ.clear();
 	}
     }
 private:
