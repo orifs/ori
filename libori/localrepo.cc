@@ -318,11 +318,20 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
     LocalObject::sp o(getLocalObject(objId));
 
     if (!o) {
-	if (remoteRepo != NULL)
+	if (remoteRepo != NULL) {
 	    // XXX: Save object locally
-	    return remoteRepo->getObject(objId);
-	else
+	    Object::sp ro = remoteRepo->getObject(objId);
+
+	    if (!ro)
+		return Object::sp();
+
+	    auto_ptr<bytestream> bs(ro->getPayloadStream());
+	    addBlob(ro->getInfo().type, bs->readAll());
+
+	    return ro;
+	} else {
 	    return Object::sp();
+	}
     }
 
     return Object::sp(o);
@@ -338,6 +347,13 @@ LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
                         currTransaction->hashToIx[objId]));
         }
     }
+
+    /*
+     * The object may not be present locally as is the case with
+     * instacloning.
+     */
+    if (!index.hasObject(objId))
+	return LocalObject::sp();
 
     const IndexEntry &ie = index.getEntry(objId);
     Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
