@@ -1467,6 +1467,10 @@ public:
     {
 	return objEntry.hash.isEmpty();
     }
+    ObjectHash getHash()
+    {
+	return commitHash;
+    }
     void graft(LocalRepo *srcRepo, LocalRepo *dstRepo,
 	       const string &srcPath, const string &dstPath)
     {
@@ -1474,6 +1478,11 @@ public:
 	Commit c = Commit();
 	ObjectHash treeHash;
 	Tree::Flat fdtree;
+
+	if (isEmpty()) {
+	    commitHash = ObjectHash();
+	    return;
+	}
 
 	if (dstRepo->getHead().isEmpty()) {
 	    fdtree = Tree::Flat();
@@ -1494,7 +1503,9 @@ public:
 		fdtree[dstPath + (*it).first] = (*it).second;
 	    }
 	} else {
-	    fdtree[dstPath] = objEntry;
+	    // XXX: Ideally we should prevent this commit
+	    if (objEntry.type != TreeEntry::Null)
+		fdtree[dstPath] = objEntry;
 	}
 
         for (set<ObjectHash>::iterator it = objs.begin();
@@ -1517,7 +1528,7 @@ public:
 	// c.setParents()
 	c.setTree(commitTree.hash());
 
-	// dstRepo->addCommit(c);
+	commitHash = dstRepo->addCommit(c);
     }
 private:
     // Source references
@@ -1580,17 +1591,18 @@ LocalRepo::graftSubtree(LocalRepo *r,
     // XXX: Prune graft nodes
 
     // Graft individual changes
-    std::list<ObjectHash> bu = gDag.getBottomUp(r->getHead());
+    ObjectHash tip = r->getHead();
+    std::list<ObjectHash> bu = gDag.getBottomUp(tip);
     std::list<ObjectHash>::iterator it;
     for (it = bu.begin(); it != bu.end(); it++)
     {
+	cout << "Grafting " << (*it).hex() << endl;
 	gDag.getNode(*it).graft(r, this, srcPath, dstPath);
     }
 
-    // XXX: TODO
-    NOT_IMPLEMENTED(false);
+    GraftDAGObject gTip = gDag.getNode(tip);
 
-    return ObjectHash();
+    return gTip.getHash();
 }
 
 /*
