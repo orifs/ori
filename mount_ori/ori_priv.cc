@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "util.h"
+#include "oriutil.h"
 
 ori_priv::ori_priv(const std::string &repoPath)
     : repo(new LocalRepo(repoPath)),

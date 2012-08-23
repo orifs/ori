@@ -32,7 +32,7 @@
 
 #include "debug.h"
 #include "scan.h"
-#include "util.h"
+#include "oriutil.h"
 #include "peer.h"
 #include "localrepo.h"
 

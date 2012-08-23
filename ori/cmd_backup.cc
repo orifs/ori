@@ -22,7 +22,8 @@ cmd_backup(int argc, const char *argv[])
     if (config.get<std::string>("backup.method") == "s3") {
         backup.reset(new S3BackupService(
                 config.get<std::string>("s3.accessKeyID"),
-                config.get<std::string>("s3.secretAccessKey")
+                config.get<std::string>("s3.secretAccessKey"),
+                config.get<std::string>("s3.bucketName")
                 ));
     }
     else {

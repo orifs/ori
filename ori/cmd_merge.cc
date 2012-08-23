@@ -25,7 +25,7 @@
 #include <sys/stat.h>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "dag.h"
 #include "objecthash.h"
 #include "localrepo.h"

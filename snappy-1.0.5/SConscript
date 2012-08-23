@@ -1,0 +1,12 @@
+import os
+
+Import('env')
+
+src = [
+    "snappy-sinksource.cc",
+    "snappy-stubs-internal.cc",
+    "snappy.cc",
+]
+
+env.StaticLibrary("snappy", src, CPPPATH = [ "#snappy-1.0.5", "$CPPPATH" ])
+

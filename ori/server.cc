@@ -13,7 +13,7 @@
 
 #include "debug.h"
 #include "server.h"
-#include "util.h"
+#include "oriutil.h"
 #include "localrepo.h"
 
 extern LocalRepo repository;

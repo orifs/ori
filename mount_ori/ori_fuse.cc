@@ -36,7 +36,7 @@
 using namespace std;
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "remoterepo.h"
 #include "fuse_cmd.h"
 

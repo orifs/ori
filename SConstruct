@@ -70,9 +70,9 @@ if env["BUILDTYPE"] == "DEBUG":
     env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
 	"-Wno-deprecated-declarations" ])
 elif env["BUILDTYPE"] == "PERF":
-    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG"])
+    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-O2"])
 elif env["BUILDTYPE"] == "RELEASE":
-    env.Append(CPPFLAGS = "-DNDEBUG")
+    env.Append(CPPFLAGS = ["-DNDEBUG", "-O2"])
 else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
@@ -147,7 +147,7 @@ env.Append(LIBS = ["ori", "skein", "fastlz", "snappy"],
 if env["WITH_LIBS3"] == "1":
     SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
     env.Append(LIBPATH = '#build/libs3-2.0')
-    env.Append(LIBS = 'libs3')
+    env.Append(LIBS = ['libs3', 'libxml2', 'curl'])
 
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')

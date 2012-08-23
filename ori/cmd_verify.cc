@@ -21,7 +21,7 @@
 #include <iostream>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "localrepo.h"
 
 using namespace std;

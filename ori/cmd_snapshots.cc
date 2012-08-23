@@ -26,7 +26,7 @@
 
 #include "debug.h"
 #include "scan.h"
-#include "util.h"
+#include "oriutil.h"
 #include "localrepo.h"
 
 using namespace std;
