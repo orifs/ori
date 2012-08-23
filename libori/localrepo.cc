@@ -225,6 +225,7 @@ LocalRepo::open(const string &root)
         return false;
     }
 
+    // XXX: Check and rebuild index on error
     index.open(rootPath + ORI_PATH_INDEX);
     snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
     if (!metadata.open(rootPath + ORI_PATH_METADATA))
