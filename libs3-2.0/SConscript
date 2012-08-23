@@ -1,0 +1,22 @@
+import os
+import sys
+import os.path
+import glob
+
+Import('env')
+
+proot = Dir('#').abspath
+src = ['src/'+os.path.basename(s) for s in
+        glob.glob('{}/libs3-2.0/src/*.c'.format(proot))]
+src.remove('src/mingw_functions.c')
+src.remove('src/mingw_s3_functions.c')
+
+env.Append(CPPDEFINES={'LIBS3_VER_MAJOR': '\\"2\\"',
+    'LIBS3_VER_MINOR': '\\"0\\"',
+    'LIBS3_VER': '\\"2.0\\"'})
+
+if sys.platform == "darwin":
+    env.Append(CPPPATH=['/usr/include/libxml2'])
+
+env.StaticLibrary("libs3", src, CPPPATH = [ "#libs3-2.0/inc", "$CPPPATH" ])
+
