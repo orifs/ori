@@ -409,10 +409,6 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
     ASSERT(opened);
     ASSERT(!hash.isEmpty());
 
-    if (hash == EMPTYFILE_HASH) {
-	return 0;
-    }
-
     if (!currPackfile.get()) {
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);
