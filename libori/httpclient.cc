@@ -35,7 +35,7 @@
 #include <event2/keyvalq_struct.h>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "httpclient.h"
 #include "httprepo.h"
 

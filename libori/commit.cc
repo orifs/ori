@@ -22,7 +22,7 @@
 #include <string>
 
 #include "commit.h"
-#include "util.h"
+#include "oriutil.h"
 #include "stream.h"
 
 using namespace std;

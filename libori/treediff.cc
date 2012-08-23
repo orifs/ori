@@ -24,7 +24,7 @@
 
 #include "treediff.h"
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "scan.h"
 #include "largeblob.h"
 

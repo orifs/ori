@@ -30,7 +30,7 @@
 #include <iostream>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "object.h"
 #include "index.h"
 

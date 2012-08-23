@@ -15,6 +15,7 @@ opts.AddVariables(
     ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "1"),
     ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "1"),
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
+    ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "1"),
     ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
     ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY).", "FASTLZ"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
@@ -125,20 +126,28 @@ if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
 
 conf.Finish()
 
-# libori
 Export('env')
+
+# libori
+env.Append(CPPPATH = ['#libskein',
+                      '#libfastlz'])
+if env["WITH_LIBS3"] == "1":
+    env.Append(CPPPATH = '#libs3-2.0/inc')
+
 SConscript('libori/SConscript', variant_dir='build/libori')
 
 # Set compile options for binaries
 env.Append(LIBS = ["ori", "skein", "fastlz", "snappy"],
+           CPPPATH = ['#libori'],
            LIBPATH = ['#build/libori',
                       '#build/libskein',
                       '#build/libfastlz',
-                      '#build/snappy-1.0.5'],
-           CPPPATH = ['#libori',
-                      '#libskein',
-                      '#libfastlz']
-           )
+                      '#build/snappy-1.0.5'])
+
+if env["WITH_LIBS3"] == "1":
+    SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
+    env.Append(LIBPATH = '#build/libs3-2.0')
+    env.Append(LIBS = 'libs3')
 
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')

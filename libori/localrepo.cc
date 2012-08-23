@@ -45,7 +45,7 @@ using namespace std;
 #include "remoterepo.h"
 #include "sshrepo.h"
 #include "largeblob.h"
-#include "util.h"
+#include "oriutil.h"
 #include "scan.h"
 #include "debug.h"
 #include "zeroconf.h"

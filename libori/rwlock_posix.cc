@@ -26,7 +26,7 @@
 
 #include "rwlock.h"
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "thread.h"
 
 #define LOG_LOCKING 0

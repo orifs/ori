@@ -32,7 +32,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "packfile.h"
 #include "sshclient.h"
 #include "sshrepo.h"

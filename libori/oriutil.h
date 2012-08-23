@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __UTIL_H__
-#define __UTIL_H__
+#ifndef __ORIUTIL_H__
+#define __ORIUTIL_H__
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -56,5 +56,5 @@ std::string Util_ResolveHost(const std::string &hostname);
 std::string StrUtil_Basename(const std::string &path);
 std::string StrUtil_Dirname(const std::string &path);
 
-#endif /* __UTIL_H__ */
+#endif /* __ORIUTIL_H__ */
 

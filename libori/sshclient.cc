@@ -27,7 +27,7 @@
 #include <sys/socket.h>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "sshclient.h"
 #include "sshrepo.h"
 

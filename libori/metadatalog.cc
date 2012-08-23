@@ -7,7 +7,7 @@
 #include <fcntl.h>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "stream.h"
 #include "metadatalog.h"
 

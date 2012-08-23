@@ -29,12 +29,13 @@ src = [
     "tempdir.cc",
     "tree.cc",
     "treediff.cc",
-    "util.cc",
+    "oriutil.cc",
     "fuse_cmd.cc",
     "metadatalog.cc",
     "objecthash.cc",
     "packfile.cc",
     "rwlock.cc",
+    "backup_s3.cc",
 ]
 
 if os.name == 'posix':
@@ -43,5 +44,5 @@ if os.name == 'posix':
 if env["WITH_MDNS"] == "1":
     src.append("zeroconf.cc")
 
-env.StaticLibrary("ori", src, CPPPATH = [ "#libori", "#libskein", "#libfastlz", "$CPPPATH" ])
+env.StaticLibrary("ori", src)
 

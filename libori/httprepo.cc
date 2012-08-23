@@ -33,7 +33,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "object.h"
 #include "httpclient.h"
 #include "httprepo.h"

@@ -24,7 +24,7 @@
 
 #include <string>
 
-#include "util.h"
+#include "oriutil.h"
 #include "fuse_cmd.h"
 
 std::string OF_ControlPath()

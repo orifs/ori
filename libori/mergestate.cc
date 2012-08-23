@@ -21,7 +21,7 @@
 #include <string>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "stream.h"
 #include "mergestate.h"
 

@@ -29,7 +29,7 @@
 #include <algorithm>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "scan.h"
 #include "repo.h"
 #include "largeblob.h"

@@ -28,7 +28,7 @@
 #include "httprepo.h"
 #include "httpclient.h"
 #include "remoterepo.h"
-#include "util.h"
+#include "oriutil.h"
 
 using namespace std;
 

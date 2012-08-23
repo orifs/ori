@@ -38,7 +38,7 @@
 #endif
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "largeblob.h"
 #include "chunker.h"
 

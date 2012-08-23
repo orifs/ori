@@ -12,7 +12,7 @@
 #include "packfile.h"
 #include "tuneables.h"
 #include "index.h"
-#include "util.h"
+#include "oriutil.h"
 #include "scan.h"
 
 

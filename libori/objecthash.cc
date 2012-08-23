@@ -23,7 +23,7 @@
 #include <algorithm>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "objecthash.h"
 
 ObjectHash::ObjectHash()

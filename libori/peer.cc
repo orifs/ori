@@ -23,7 +23,7 @@
 #include <tr1/memory>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "repo.h"
 #include "localrepo.h"
 #include "httpclient.h"

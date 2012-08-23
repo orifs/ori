@@ -24,7 +24,7 @@
 
 #include "tempdir.h"
 #include "localobject.h"
-#include "util.h"
+#include "oriutil.h"
 #include "scan.h"
 
 //#ifndef DEBUG

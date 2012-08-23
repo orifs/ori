@@ -25,7 +25,7 @@
 
 #include "tuneables.h"
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "object.h"
 #include "largeblob.h"
 

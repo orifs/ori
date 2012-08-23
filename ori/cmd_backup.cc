@@ -18,13 +18,18 @@ cmd_backup(int argc, const char *argv[])
     boost::property_tree::ptree config;
     boost::property_tree::ini_parser::read_ini(configFileName, config);
 
-    BackupService *backup = NULL;
+    BackupService::sp backup;
     if (config.get<std::string>("backup.method") == "s3") {
-        return 0;
+        backup.reset(new S3BackupService(
+                config.get<std::string>("s3.accessKeyID"),
+                config.get<std::string>("s3.secretAccessKey")
+                ));
     }
     else {
         fprintf(stderr, "Backup method %s not supported\n",
                 config.get<std::string>("backup.method").c_str());
         return 1;
     }
+
+    return 0;
 }

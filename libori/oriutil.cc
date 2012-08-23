@@ -58,7 +58,7 @@
 
 #include "tuneables.h"
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "stream.h"
 #include "debug.h"
 

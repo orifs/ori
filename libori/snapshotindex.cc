@@ -30,7 +30,7 @@
 #include <set>
 
 #include "debug.h"
-#include "util.h"
+#include "oriutil.h"
 #include "snapshotindex.h"
 
 using namespace std;
