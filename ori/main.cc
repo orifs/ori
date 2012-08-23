@@ -56,6 +56,7 @@ typedef struct Cmd {
 } Cmd;
 
 // General Operations
+int cmd_backup(int argc, const char *argv[]);
 int cmd_branches(int argc, const char *argv[]);
 int cmd_branch(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
@@ -100,6 +101,12 @@ static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
 
 static Cmd commands[] = {
+    {
+        "backup",
+        "Backup or restore the repository",
+        cmd_backup,
+        NULL
+    },
     {
         "branch",
         "Set or print current branch",

@@ -88,8 +88,8 @@ Scan_RTraverse(const char *path,
                int (*f)(void *arg, const char *))
 {
     int status;
-    DIR *dir;
-    struct dirent *entry;
+    DIR *dir = NULL;
+    struct dirent *entry = NULL;
     char fullpath[PATH_MAX];
 
     if (path == NULL) {
@@ -98,12 +98,17 @@ Scan_RTraverse(const char *path,
         dir = opendir(path);
     }
 
+    if (dir == NULL) {
+        perror("Scan_RTraverse opendir");
+        return -1;
+    }
+
     while ((entry = readdir(dir)) != NULL) {
         if (path != NULL) {
             strcpy(fullpath, path);
             strncat(fullpath, "/", PATH_MAX);
         } else {
-            fullpath[0] = 0;
+            fullpath[0] = '\0';
         }
         strncat(fullpath, entry->d_name, PATH_MAX);
 
@@ -127,8 +132,10 @@ Scan_RTraverse(const char *path,
         if (entry->d_type == DT_DIR) {
             status = Scan_RTraverse(fullpath, arg, f);
             if (status != 0) {
-                closedir(dir);
-                return status;
+                //closedir(dir);
+                //return status;
+                fprintf(stderr, "Couldn't scan directory %s\n", fullpath);
+                continue;
             }
         }
     }

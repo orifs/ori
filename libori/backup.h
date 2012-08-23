@@ -18,7 +18,21 @@ private:
 
 class MemoryObject : public Object {
 public:
-    MemoryObject();
+    MemoryObject(const ObjectInfo &info, const std::string &payload)
+        : Object(info), payload(payload)
+    {
+    }
+
+    bytestream *getPayloadStream() {
+        return new strstream(payload);
+    }
+
+    std::string getPayload() {
+        return payload;
+    }
+
+private:
+    std::string payload;
 };
 
 class BackupService {
@@ -46,6 +60,7 @@ protected:
     HasKeyCache hasKeyCache;
 };
 
+struct S3BucketContext;
 class S3BackupService : public BackupService {
 public:
     S3BackupService(const std::string &accessKeyID,
@@ -61,6 +76,8 @@ private:
     std::string accessKeyID;
     std::string secretAccessKey;
     std::string bucketName;
+
+    std::tr1::shared_ptr<S3BucketContext> ctx;
 };
 
 #endif
