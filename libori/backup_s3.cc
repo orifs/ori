@@ -1,4 +1,7 @@
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/param.h>
+#include <fcntl.h>
 
 #include "libs3.h"
 
@@ -91,43 +94,91 @@ void _setStructStatusCB(S3Status status,
     struct_p->status = status;
 }
 
-struct _getObjData {
+struct _getDataData {
+    _getDataData(std::string &out) : out(out) {}
     S3Status status;
-    std::string data;
+    std::string &out;
 };
 
-S3Status _getObjDataCB(int bufferSize,
+S3Status _getDataCB(int bufferSize,
         const char *buffer,
         void *cbdata)
 {
-    _getObjData *od = (_getObjData *)cbdata;
-    size_t oldSize = od->data.size();
-    od->data.resize(oldSize + bufferSize);
-    memcpy(&od->data[oldSize], buffer, bufferSize);
+    _getDataData *od = (_getDataData *)cbdata;
+    size_t oldSize = od->out.size();
+    od->out.resize(oldSize + bufferSize);
+    memcpy(&od->out[oldSize], buffer, bufferSize);
 
     return S3StatusOK;
 }
 
-Object::sp S3BackupService::getObj(const std::string &key)
+bool S3BackupService::getData(const std::string &key, std::string &out)
 {
     S3GetObjectHandler handler;
     handler.responseHandler.propertiesCallback = _ignoreRespPropsCB;
-    handler.responseHandler.completeCallback = _setStructStatusCB<_getObjData>;
-    handler.getObjectDataCallback = _getObjDataCB;
+    handler.responseHandler.completeCallback = _setStructStatusCB<_getDataData>;
+    handler.getObjectDataCallback = _getDataCB;
 
-    _getObjData data;
+    _getDataData data(out);
+    out.resize(0);
     S3_get_object(ctx.get(), key.c_str(), NULL,
             0, 0, NULL, &handler, &data);
 
     if (data.status != S3StatusOK) {
         fprintf(stderr, "%s\n", S3_get_status_name(data.status));
-        return Object::sp();
+        return false;
     }
 
-    ObjectInfo info;
-    info.fromString(data.data.substr(0, ObjectInfo::SIZE));
+    return true;
+}
 
-    return Object::sp(new MemoryObject(info, data.data.substr(ObjectInfo::SIZE)));
+////////////////////////////////
+// putFile
+
+struct _putFileData {
+    _putFileData(int fd) : fd(fd) {}
+    ~_putFileData() { if (fd > 0) close(fd); }
+
+    S3Status status;
+    int fd;
+};
+
+int _putFileCB(int bufSize, char *buf, void *cbdata) {
+    _putFileData *pd = (_putFileData *)cbdata;
+    return read(pd->fd, buf, bufSize);
+}
+
+bool S3BackupService::putFile(const std::string &key, const std::string &filename)
+{
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd < 0) {
+        perror("S3BackupService::putFile open");
+        return false;
+    }
+
+    struct stat sb;
+    if (stat(filename.c_str(), &sb) < 0) {
+        perror("S3BackupService::putFile stat");
+        return false;
+    }
+
+    _putFileData data(fd);
+
+    S3PutObjectHandler handler;
+    handler.responseHandler.propertiesCallback = _ignoreRespPropsCB;
+    handler.responseHandler.completeCallback = _setStructStatusCB<_putFileData>;
+    handler.putObjectDataCallback = _putFileCB;
+
+    S3_put_object(ctx.get(), key.c_str(),
+            sb.st_size,
+            NULL, NULL, &handler, &data);
+
+    if (data.status != S3StatusOK) {
+        fprintf(stderr, "%s\n", S3_get_status_name(data.status));
+        return false;
+    }
+
+    return true;
 }
 
 ////////////////////////////////

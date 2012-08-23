@@ -52,7 +52,22 @@ public:
     }
 
     virtual bool realHasKey(const std::string &key) = 0;
-    virtual Object::sp getObj(const std::string &key) = 0;
+
+    virtual bool getData(const std::string &key, std::string &out) = 0;
+    virtual bool putFile(const std::string &key, const std::string &filename) =
+        0;
+
+    virtual Object::sp getObj(const std::string &key) {
+        std::string data;
+        bool success = getData(key, data);
+        if (!success) return Object::sp();
+
+        ObjectInfo info;
+        info.fromString(data.substr(0, ObjectInfo::SIZE));
+        return Object::sp(new MemoryObject(info,
+                    data.substr(ObjectInfo::SIZE)));
+    }
+
     virtual bool putObj(const std::string &key, Object::sp obj) = 0;
 
 protected:
@@ -69,7 +84,8 @@ public:
     ~S3BackupService();
 
     bool realHasKey(const std::string &key);
-    Object::sp getObj(const std::string &key);
+    bool getData(const std::string &key, std::string &out);
+    bool putFile(const std::string &key, const std::string &filename);
     bool putObj(const std::string &key, Object::sp obj);
 
 private:

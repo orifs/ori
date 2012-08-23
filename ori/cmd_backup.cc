@@ -44,5 +44,7 @@ cmd_backup(int argc, const char *argv[])
     std::cout << "file10:\n" << backup->getObj("file10.tst")->getPayload() <<
         std::endl;
 
+    backup->putFile("metadata", ".ori/metadata");
+
     return 0;
 }
