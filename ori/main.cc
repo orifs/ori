@@ -346,6 +346,7 @@ lookupcmd(const char *cmd)
 
 int util_selftest(void);
 int LRUCache_selfTest(void);
+int Key_selfTest(void);
 
 static int
 cmd_selftest(int argc, const char *argv[])
@@ -353,6 +354,7 @@ cmd_selftest(int argc, const char *argv[])
     int result = 0;
     result += util_selftest();
     result += LRUCache_selfTest();
+    result += Key_selfTest();
 
     if (result != 0) {
         cout << -result << " errors occurred." << endl;
