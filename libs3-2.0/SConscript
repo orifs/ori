@@ -15,8 +15,10 @@ env.Append(CPPDEFINES={'LIBS3_VER_MAJOR': '\\"2\\"',
     'LIBS3_VER_MINOR': '\\"0\\"',
     'LIBS3_VER': '\\"2.0\\"'})
 
-if sys.platform == "darwin":
+if sys.platform == "darwin" or sys.platform == "linux2":
     env.Append(CPPPATH=['/usr/include/libxml2'])
+elif sys.platform == "freebsd9":
+    env.Append(CPPPATH=['/usr/local/include/libxml2'])
 
 env.StaticLibrary("libs3", src, CPPPATH = [ "#libs3-2.0/inc", "$CPPPATH" ])
 
