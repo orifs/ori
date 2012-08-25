@@ -183,6 +183,15 @@ Util_ReadFile(const string &path)
  * Write an in memory blob to a file.
  */
 bool
+Util_WriteFile(const std::string &blob, const string &path)
+{
+    return Util_WriteFile(blob.data(), blob.length(), path);
+}
+
+/*
+ * Write an in memory blob to a file.
+ */
+bool
 Util_WriteFile(const char *blob, size_t len, const string &path)
 {
     FILE *f;

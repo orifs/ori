@@ -56,6 +56,7 @@ typedef struct Cmd {
 } Cmd;
 
 // General Operations
+int cmd_addkey(int argc, const char *argv[]);
 int cmd_backup(int argc, const char *argv[]);
 int cmd_branches(int argc, const char *argv[]);
 int cmd_branch(int argc, const char *argv[]);
@@ -75,6 +76,7 @@ int cmd_pull(int argc, const char *argv[]);
 int cmd_rebuildindex(int argc, const char *argv[]);
 int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_remote(int argc, const char *argv[]);
+int cmd_setkey(int argc, const char *argv[]);
 int cmd_show(int argc, const char *argv[]);
 int cmd_snapshot(int argc, const char *argv[]);
 int cmd_snapshots(int argc, const char *argv[]);
@@ -101,6 +103,12 @@ static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
 
 static Cmd commands[] = {
+    {
+        "addkey",
+        "Add a trusted public key to the repository",
+        cmd_addkey,
+        NULL
+    },
     {
         "backup",
         "Backup or restore the repository",
@@ -214,6 +222,12 @@ static Cmd commands[] = {
 	"Remote connection management",
 	cmd_remote,
 	NULL,
+    },
+    {
+        "setkey",
+        "Set the repository private key for signing commits",
+        cmd_setkey,
+        NULL
     },
     {
         "show",

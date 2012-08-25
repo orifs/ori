@@ -28,6 +28,7 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
@@ -79,11 +80,36 @@ PublicKey::open(const string &keyfile)
 }
 
 string
+PublicKey::getName()
+{
+    assert(false);
+
+    return "";
+}
+
+string
+PublicKey::getEmail()
+{
+    string rval;
+    STACK_OF(OPENSSL_STRING) *email;
+
+    assert(x509 != NULL);
+
+    email = X509_get1_email(x509);
+    rval = sk_OPENSSL_STRING_value(email, 0);
+    X509_email_free(email);
+
+    return rval;
+}
+
+string
 PublicKey::computeDigest()
 {
     stringstream rval;
     unsigned int n;
     unsigned char md[EVP_MAX_MD_SIZE];
+
+    assert(x509 != NULL);
 
     if (!X509_digest(x509, EVP_sha1(), md, &n))
     {
@@ -105,6 +131,8 @@ PublicKey::verify(const string &blob,
 {
     int err;
     EVP_MD_CTX ctx;
+
+    assert(x509 != NULL && key != NULL);
 
     EVP_VerifyInit(&ctx, EVP_sha256());
     EVP_VerifyUpdate(&ctx, blob.data(), blob.size());

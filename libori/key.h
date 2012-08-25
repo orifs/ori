@@ -37,6 +37,8 @@ public:
     PublicKey();
     ~PublicKey();
     void open(const std::string &keyfile);
+    std::string getName();
+    std::string getEmail();
     std::string computeDigest();
     bool verify(const std::string &blob, const std::string &digest);
 private:

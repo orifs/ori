@@ -3,6 +3,7 @@ import sys
 Import('env')
 
 src = [
+    "cmd_addkey.cc",
     "cmd_backup.cc",
     "cmd_branch.cc",
     "cmd_branches.cc",
@@ -25,6 +26,7 @@ src = [
     "cmd_rebuildrefs.cc",
     "cmd_refcount.cc",
     "cmd_remote.cc",
+    "cmd_setkey.cc",
     "cmd_show.cc",
     "cmd_snapshot.cc",
     "cmd_snapshots.cc",

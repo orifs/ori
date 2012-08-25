@@ -81,6 +81,13 @@ LocalRepo_Init(const std::string &rootPath)
         return 1;
     }
 
+    // Create trusted keys directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/trusted";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/trusted' directory");
+        return 1;
+    }
+
     // Create refs directory
     tmpDir = rootPath + ORI_PATH_DIR + "/refs";
     if (mkdir(tmpDir.c_str(), 0755) < 0) {

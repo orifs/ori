@@ -45,6 +45,8 @@
 #define ORI_PATH_OBJS "/.ori/objs/"
 #define ORI_PATH_HEADS "/.ori/refs/heads/"
 #define ORI_PATH_REMOTES "/.ori/refs/remotes/"
+#define ORI_PATH_PRIVATEKEY "/.ori/private.pem"
+#define ORI_PATH_TRUSTED "/.ori/trusted/"
 #define ORI_PATH_LOCK "/.ori/lock"
 
 int LocalRepo_Init(const std::string &path);
