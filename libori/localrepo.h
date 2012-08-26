@@ -30,6 +30,7 @@
 #include "remoterepo.h"
 #include "packfile.h"
 #include "mergestate.h"
+#include "key.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -182,7 +183,12 @@ public:
     // Peer Management
     std::map<std::string, Peer> getPeers();
     bool addPeer(const std::string &name, const std::string &path);
-    bool removePeer(const std::string &name); void setInstaClone(const std::string &name, bool val = true);
+    bool removePeer(const std::string &name);
+    void setInstaClone(const std::string &name, bool val = true);
+
+    // Key Management
+    PrivateKey getPrivateKey();
+    std::map<std::string, PublicKey> getPublicKeys();
 
     // Static Operations
     static std::string findRootPath(const std::string &path = "");

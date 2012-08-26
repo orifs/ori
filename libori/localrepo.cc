@@ -2147,6 +2147,44 @@ LocalRepo::setInstaClone(const std::string &name, bool val)
 }
 
 /*
+ * Key Management
+ */
+
+PrivateKey
+LocalRepo::getPrivateKey()
+{
+    PrivateKey key;
+
+    key.open(rootPath + ORI_PATH_PRIVATEKEY);
+
+    return key;
+}
+
+int
+publicKeyCB(void *arg, const char *path)
+{
+    map<string, PublicKey> *keys = (map<string, PublicKey> *)arg;
+    PublicKey key = PublicKey();
+
+    key.open(path);
+
+    (*keys)[key.computeDigest()] = key;
+
+    return 0;
+}
+
+map<string, PublicKey>
+LocalRepo::getPublicKeys()
+{
+    string keyDir = rootPath + ORI_PATH_TRUSTED;
+    map<string, PublicKey> keys;
+
+    Scan_Traverse(keyDir.c_str(), (void *)&keys, publicKeyCB);
+
+    return keys;
+}
+
+/*
  * Static Operations
  */
 

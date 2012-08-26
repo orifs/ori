@@ -70,6 +70,7 @@ int cmd_gc(int argc, const char *argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
 int cmd_init(int argc, const char *argv[]);
+int cmd_listkeys(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
 int cmd_merge(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
@@ -180,6 +181,12 @@ static Cmd commands[] = {
         "Initialize the repository",
         cmd_init,
         NULL,
+    },
+    {
+	"listkeys",
+	"Display a list of trusted public keys",
+	cmd_listkeys,
+	NULL,
     },
     {
 	"log",

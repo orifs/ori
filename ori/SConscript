@@ -16,6 +16,7 @@ src = [
     "cmd_gc.cc",
     "cmd_graft.cc",
     "cmd_init.cc",
+    "cmd_listkeys.cc",
     "cmd_listobj.cc",
     "cmd_log.cc",
     "cmd_merge.cc",
