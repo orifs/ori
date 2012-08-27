@@ -37,7 +37,7 @@ S3BackupService::S3BackupService(
     S3UriStyle uriStyle = S3UriStylePath;
     const char *hostname = "localhost:4567";
     S3_initialize(NULL, S3_INIT_ALL, hostname);
-    fprintf(stderr, "Using fakes3\n");
+    fprintf(stderr, "S3BackupService using fakes3\n");
 #else
     S3Protocol s3proto = S3ProtocolHTTP;
     S3UriStyle uriStyle = S3UriStyleVirtualHost;

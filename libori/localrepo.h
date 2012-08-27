@@ -51,6 +51,7 @@
 #define ORI_PATH_PRIVATEKEY "/.ori/private.pem"
 #define ORI_PATH_TRUSTED "/.ori/trusted/"
 #define ORI_PATH_LOCK "/.ori/lock"
+#define ORI_PATH_BACKUP_CONF "/.ori/backup.conf"
 
 int LocalRepo_Init(const std::string &path);
 

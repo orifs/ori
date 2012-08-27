@@ -18,17 +18,26 @@ hashKey(const ObjectHash &hash) {
 int
 cmd_backup(int argc, const char *argv[])
 {
-    if (argc < 2) {
-        printf("Usage: ori backup configfile.ini\n");
+    if (argc >= 4) {
+        printf("Usage: ori backup [configfile.ini] [fakes3-host]\n");
         return 1;
     }
 
-    std::string configFileName = argv[1];
+    std::string configFileName;
+    if (argc >= 2) {
+        configFileName = argv[1];
+    }
+    else {
+        configFileName = repository.getRootPath() + ORI_PATH_BACKUP_CONF;
+    }
+
+    assert(configFileName != "");
     boost::property_tree::ptree config;
     boost::property_tree::ini_parser::read_ini(configFileName, config);
 
     BackupService::sp backup;
-    if (config.get<std::string>("backup.method") == "s3") {
+    if (config.get<std::string>("backup.method") == "s3" ||
+            config.get<std::string>("backup.method") == "fakes3") {
         backup.reset(new S3BackupService(
                 config.get<std::string>("s3.accessKeyID"),
                 config.get<std::string>("s3.secretAccessKey"),
@@ -38,6 +47,12 @@ cmd_backup(int argc, const char *argv[])
         if (argc >= 3) {
             ((S3BackupService*)backup.get())->setHostname(argv[2]);
         }
+        //assert(config.get<std::string>("backup.method") == "fakes3");
+        if (config.get<std::string>("backup.method") != "fakes3") {
+            fprintf(stderr, "Warning: using s3 backup method with fakes3 build\n");
+        }
+#else
+        assert(config.get<std::string>("backup.method") == "s3");
 #endif
     }
     else {
