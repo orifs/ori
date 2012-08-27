@@ -32,6 +32,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
+#include <openssl/safestack.h>
 
 #ifdef OPENSSL_NO_SHA256
 #error "SHA256 not supported!"

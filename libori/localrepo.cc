@@ -272,19 +272,29 @@ LocalRepo::close()
     opened = false;
 }
 
-LocalRepoLock *
+LocalRepoLock::sp
 LocalRepo::lock()
 {
     ASSERT(opened);
     if (rootPath == "")
-        return NULL;
-    std::string lfPath = rootPath + ORI_PATH_LOCK;
-    std::string idPath = rootPath + ORI_PATH_UUID;
+        return LocalRepoLock::sp();
 
-    int rval = symlink(idPath.c_str(), lfPath.c_str());
+    if (repoProcessLock.get()) {
+        return repoProcessLock;
+    }
+
+    std::string lfPath = rootPath + ORI_PATH_LOCK;
+    char pnum_str[64];
+    sprintf(pnum_str, "%u", getpid());
+
+    int rval = symlink(pnum_str, lfPath.c_str());
     if (rval < 0) {
         if (errno == EEXIST) {
-            printf("Repository at %s is already locked\nAnother instance of ORI may currently be using it\n", rootPath.c_str());
+            ssize_t n = readlink(lfPath.c_str(), pnum_str, 63);
+            pnum_str[n] = '\0';
+            fprintf(stderr, "Repository at %s is already locked\n",
+                    rootPath.c_str());
+            fprintf(stderr, "Another instance of ORI (pid %s) may currently be using it\n", pnum_str);
         } else {
             perror("symlink");
         }
@@ -292,7 +302,8 @@ LocalRepo::lock()
         exit(1);
     }
 
-    return new LocalRepoLock(lfPath);
+    repoProcessLock.reset(new LocalRepoLock(lfPath));
+    return repoProcessLock;
 }
 
 /*
@@ -771,7 +782,7 @@ LocalRepo::pull(Repo *r)
         }
     }
 
-    LocalRepoLock::ap _lock(lock());
+    LocalRepoLock::sp _lock(lock());
 
     bytestream::ap objs(r->getObjects(toPull));
     receive(objs.get());
@@ -932,7 +943,7 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
         // TODO: partial pull
     }
 
-    LocalRepoLock::ap _lock(lock());
+    LocalRepoLock::sp _lock(lock());
 
     while (!mpo.toPull.empty()) {
         // Consolidate pulls from remote repos
@@ -1228,7 +1239,7 @@ LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
     Object::sp newTreeObj(objects->getObject(treeHash));
     ASSERT(newTreeObj->getInfo().type == ObjectInfo::Tree);
 
-    LocalRepoLock::ap _lock(lock());
+    LocalRepoLock::sp _lock(lock());
     copyFrom(newTreeObj.get());
 
     Tree newTree = getTree(treeHash);

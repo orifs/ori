@@ -36,7 +36,7 @@ void printError(const std::string &what)
 void SshServer::serve() {
     fdstream fs(STDIN_FILENO, -1);
 
-    LocalRepoLock::ap lock(repository.lock());
+    LocalRepoLock::sp lock(repository.lock());
     if (!lock.get()) {
         printError("Couldn't lock repo");
         exit(1);

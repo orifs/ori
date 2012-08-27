@@ -17,6 +17,8 @@
 #ifndef __LOCALREPO_H__
 #define __LOCALREPO_H__
 
+#include <tr1/memory>
+
 #include "repo.h"
 #include "index.h"
 #include "snapshotindex.h"
@@ -49,6 +51,7 @@
 #define ORI_PATH_PRIVATEKEY "/.ori/private.pem"
 #define ORI_PATH_TRUSTED "/.ori/trusted/"
 #define ORI_PATH_LOCK "/.ori/lock"
+#define ORI_PATH_BACKUP_CONF "/.ori/backup.conf"
 
 int LocalRepo_Init(const std::string &path);
 
@@ -65,7 +68,7 @@ class LocalRepoLock
 public:
     LocalRepoLock(const std::string &filename);
     ~LocalRepoLock();
-    typedef std::auto_ptr<LocalRepoLock> ap;
+    typedef std::tr1::shared_ptr<LocalRepoLock> sp;
 };
 
 class LocalRepo : public Repo
@@ -76,7 +79,7 @@ public:
     bool open(const std::string &root = "");
     void close();
     void save();
-    LocalRepoLock *lock();
+    LocalRepoLock::sp lock();
 
     // Remote Repository (Thin/Insta-clone)
     void setRemote(Repo *r);
@@ -212,6 +215,9 @@ private:
     Packfile::sp currPackfile;
     PfTransaction::sp currTransaction;
     PackfileManager::sp packfiles;
+
+    // Repo lock
+    LocalRepoLock::sp repoProcessLock;
 
     // Remote Operations
     Repo *remoteRepo;
