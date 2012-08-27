@@ -5,11 +5,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "debug.h"
 #include "oriutil.h"
 #include "stream.h"
 #include "metadatalog.h"
+#include "posixexception.h"
 
 MdTransaction::MdTransaction(MetadataLog *log)
     : log(log)
@@ -144,7 +146,7 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
     int newFd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (newFd < 0) {
         perror("MetadataLog::rewrite open");
-        throw new std::runtime_error("MetadataLog::rewrite open");
+        throw PosixException(errno);
     }
 
     int oldFd = fd;

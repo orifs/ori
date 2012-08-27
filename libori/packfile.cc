@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include <sstream>
 #include <stdexcept>
@@ -14,6 +15,7 @@
 #include "index.h"
 #include "oriutil.h"
 #include "scan.h"
+#include "posixexception.h"
 
 
 PfTransaction::PfTransaction(Packfile *pf, Index *idx)
@@ -105,13 +107,13 @@ Packfile::Packfile(const std::string &filename, packid_t id)
     fd = ::open(filename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (fd < 0) {
         perror("Packfile open");
-        throw std::runtime_error("POSIX");
+        throw PosixException(errno);
     }
 
     struct stat sb;
     if (fstat(fd, &sb) < 0) {
         perror("Packfile fstat");
-        throw std::runtime_error("POSIX");
+        throw PosixException(errno);
     }
 
     fileSize = sb.st_size;
@@ -463,7 +465,7 @@ PackfileManager::_writeFreeList()
     int fd = ::open(freeListPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
         perror("PackfileManager::_loadFreeList open");
-        throw std::runtime_error("POSIX");
+        throw PosixException(errno);
     }
     const std::string &str = ss.str();
     write(fd, str.data(), str.size());
