@@ -127,6 +127,11 @@ if not (has_event or has_event2):
     print 'Please install libevent 2.0+'
     Exit(1)
 
+# OpenSSL needs to be overridden on OS X
+if sys.platform == "darwin":
+    env.Append(LIBPATH=['/usr/local/Cellar/openssl/1.0.1c/lib'],
+               CPPPATH=['/usr/local/Cellar/openssl/1.0.1c/include'])
+
 if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
     if not conf.CheckLibWithHeader('dns_sd','dns_sd.h','C'):
 	print 'Please install libdns_sd'

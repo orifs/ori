@@ -54,6 +54,7 @@ public:
     virtual bool realHasKey(const std::string &key) = 0;
 
     virtual bool getData(const std::string &key, std::string &out) = 0;
+    virtual bool putData(const std::string &key, const std::string &data) = 0;
     virtual bool putFile(const std::string &key, const std::string &filename) = 0;
 
     virtual Object::sp getObj(const std::string &key) {
@@ -67,7 +68,10 @@ public:
                     data.substr(ObjectInfo::SIZE)));
     }
 
-    virtual bool putObj(const std::string &key, Object::sp obj) = 0;
+    virtual bool putObj(const std::string &key, Object::sp obj) {
+        std::string data = obj->getInfo().toString() + obj->getPayload();
+        return putData(key, data);
+    }
 
 protected:
     typedef std::tr1::unordered_map<std::string, bool> HasKeyCache;
@@ -82,15 +86,20 @@ public:
             const std::string &bucketName);
     ~S3BackupService();
 
+#ifdef USE_FAKES3
+    void setHostname(const std::string &hostname);
+#endif
+
     bool realHasKey(const std::string &key);
     bool getData(const std::string &key, std::string &out);
     bool putFile(const std::string &key, const std::string &filename);
-    bool putObj(const std::string &key, Object::sp obj);
+    bool putData(const std::string &key, const std::string &data);
 
 private:
     std::string accessKeyID;
     std::string secretAccessKey;
     std::string bucketName;
+    std::string _hostname;
 
     std::tr1::shared_ptr<S3BucketContext> ctx;
 };

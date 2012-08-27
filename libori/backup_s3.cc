@@ -37,8 +37,9 @@ S3BackupService::S3BackupService(
     S3UriStyle uriStyle = S3UriStylePath;
     const char *hostname = "localhost:4567";
     S3_initialize(NULL, S3_INIT_ALL, hostname);
+    fprintf(stderr, "Using fakes3\n");
 #else
-    S3Protocol s3proto = S3ProtocolHTTPS;
+    S3Protocol s3proto = S3ProtocolHTTP;
     S3UriStyle uriStyle = S3UriStyleVirtualHost;
     const char *hostname = NULL;
     S3_initialize(NULL, S3_INIT_ALL, NULL);
@@ -49,6 +50,7 @@ S3BackupService::S3BackupService(
     handler.propertiesCallback = _ignoreRespPropsCB;
     handler.completeCallback = _setStatusCB;
 
+#ifndef USE_FAKES3
     S3Status status;
     S3_test_bucket(s3proto,
             uriStyle,
@@ -63,6 +65,7 @@ S3BackupService::S3BackupService(
     if (status != S3StatusOK) {
         throw BackupError(S3_get_status_name(status));
     }
+#endif
 
     ctx.reset(new S3BucketContext());
     ctx->hostName = hostname;
@@ -78,6 +81,15 @@ S3BackupService::~S3BackupService()
     S3_deinitialize();
 }
 
+#ifdef USE_FAKES3
+void S3BackupService::setHostname(const std::string &hostname)
+{
+    _hostname = hostname;
+    ctx->hostName = _hostname.c_str();
+    printf("Set hostname to %s\n", hostname.c_str());
+}
+#endif
+
 bool S3BackupService::realHasKey(const std::string &key)
 {
     S3ResponseHandler handler;
@@ -88,7 +100,8 @@ bool S3BackupService::realHasKey(const std::string &key)
     S3_head_object(ctx.get(), key.c_str(), NULL,
             &handler, &status);
     if (status != S3StatusOK) {
-        fprintf(stderr, "realHasKey: %s\n", S3_get_status_name(status));
+        if (status != S3StatusHttpErrorNotFound)
+            fprintf(stderr, "realHasKey: %s\n", S3_get_status_name(status));
         return false;
     }
     
@@ -96,7 +109,7 @@ bool S3BackupService::realHasKey(const std::string &key)
 }
 
 ////////////////////////////////
-// getObj
+// getData
 
 template <typename T>
 void _setStructStatusCB(S3Status status,
@@ -146,6 +159,50 @@ bool S3BackupService::getData(const std::string &key, std::string &out)
 }
 
 ////////////////////////////////
+// putData
+
+struct _putDataData {
+    S3Status status;
+
+    std::string payload;
+    uint64_t offset;
+};
+
+int _putDataCB(int bufSize, char *buf, void *cbdata) {
+    _putDataData *od = (_putDataData *)cbdata;
+
+    size_t to_copy = MIN(bufSize, od->payload.size() - od->offset);
+
+    memcpy(buf, &od->payload[od->offset], to_copy);
+    od->offset += to_copy;
+
+    return to_copy;
+}
+
+bool S3BackupService::putData(const std::string &key, const std::string &data)
+{
+    _putDataData od;
+    od.payload = data;
+    od.offset = 0;
+
+    S3PutObjectHandler handler;
+    handler.responseHandler.propertiesCallback = _ignoreRespPropsCB;
+    handler.responseHandler.completeCallback = _setStructStatusCB<_putDataData>;
+    handler.putObjectDataCallback = _putDataCB;
+
+    S3_put_object(ctx.get(), key.c_str(),
+            data.size(),
+            NULL, NULL, &handler, &od);
+
+    if (od.status != S3StatusOK) {
+        fprintf(stderr, "putObj: %s\n", S3_get_status_name(od.status));
+        return false;
+    }
+
+    return true;
+}
+
+////////////////////////////////
 // putFile
 
 struct _putFileData {
@@ -188,63 +245,6 @@ bool S3BackupService::putFile(const std::string &key, const std::string &filenam
 
     if (data.status != S3StatusOK) {
         fprintf(stderr, "putFile: %s\n", S3_get_status_name(data.status));
-        return false;
-    }
-
-    return true;
-}
-
-////////////////////////////////
-// putObj
-
-struct _putObjData {
-    S3Status status;
-
-    bool info_written;
-    std::string info_str;
-    std::string payload;
-    uint64_t offset;
-};
-
-int _putObjCB(int bufSize, char *buf, void *cbdata) {
-    _putObjData *od = (_putObjData *)cbdata;
-
-    if (!od->info_written) {
-        assert(bufSize >= ObjectInfo::SIZE);
-
-        memcpy(buf, od->info_str.data(), ObjectInfo::SIZE);
-        od->info_written = true;
-        return ObjectInfo::SIZE;
-    }
-    else {
-        size_t to_copy = MIN(bufSize, od->payload.size() - od->offset);
-
-        memcpy(buf, &od->payload[od->offset], to_copy);
-        od->offset += to_copy;
-
-        return to_copy;
-    }
-}
-
-bool S3BackupService::putObj(const std::string &key, Object::sp obj)
-{
-    _putObjData data;
-    data.info_written = false;
-    data.info_str = obj->getInfo().toString();
-    data.payload = obj->getPayload();
-    data.offset = 0;
-
-    S3PutObjectHandler handler;
-    handler.responseHandler.propertiesCallback = _ignoreRespPropsCB;
-    handler.responseHandler.completeCallback = _setStructStatusCB<_putObjData>;
-    handler.putObjectDataCallback = _putObjCB;
-
-    S3_put_object(ctx.get(), key.c_str(),
-            obj->getInfo().payload_size + ObjectInfo::SIZE,
-            NULL, NULL, &handler, &data);
-
-    if (data.status != S3StatusOK) {
-        fprintf(stderr, "putObj: %s\n", S3_get_status_name(data.status));
         return false;
     }
 

@@ -34,6 +34,11 @@ cmd_backup(int argc, const char *argv[])
                 config.get<std::string>("s3.secretAccessKey"),
                 config.get<std::string>("s3.bucketName")
                 ));
+#ifdef USE_FAKES3
+        if (argc >= 3) {
+            ((S3BackupService*)backup.get())->setHostname(argv[2]);
+        }
+#endif
     }
     else {
         fprintf(stderr, "Backup method %s not supported\n",
@@ -70,62 +75,65 @@ cmd_backup(int argc, const char *argv[])
         pushedCommits = repository.listCommits();
     }
 
+    strwstream commitIdStream(bsCommitIDs);
 
     std::deque<ObjectHash> toPush;
     for (size_t i = 0; i < pushedCommits.size(); i++) {
         printf("Backing up commit %s\n", pushedCommits[i].hash().hex().c_str());
         toPush.push_back(pushedCommits[i].hash());
-    }
 
-    // Push everything
-    while (toPush.size() > 0) {
-        ObjectHash hash = toPush.front();
-        toPush.pop_front();
+        while (toPush.size() > 0) {
+            ObjectHash hash = toPush.front();
+            toPush.pop_front();
 
-        Object::sp obj = repository.getObject(hash);
-        ObjectInfo::Type type = obj->getInfo().type;
+            Object::sp obj = repository.getObject(hash);
+            ObjectInfo::Type type = obj->getInfo().type;
 
-        // Add more objects
-        if (type == ObjectInfo::Commit) {
-            if (repository.getMetadata().getMeta(hash, "status") == "purged")
-                continue;
+            // Add more objects
+            if (type == ObjectInfo::Commit) {
+                if (repository.getMetadata().getMeta(hash, "status") == "purged")
+                    continue;
 
-            Commit c = repository.getCommit(hash);
-            if (!backup->hasKey(hashKey(c.getTree())))
+                Commit c = repository.getCommit(hash);
+                //if (!backup->hasKey(hashKey(c.getTree())))
                 toPush.push_back(c.getTree());
-        }
-        else if (type == ObjectInfo::Tree) {
-            Tree t = repository.getTree(hash);
-            for (std::map<std::string, TreeEntry>::iterator it = t.tree.begin();
-                    it != t.tree.end();
-                    it++) {
-                const TreeEntry &te = (*it).second;
-                if (!backup->hasKey(hashKey(te.hash)))
-                    toPush.push_back(te.hash);
             }
-        }
-        else if (type == ObjectInfo::LargeBlob) {
-            LargeBlob lb(&repository);
-            lb.fromBlob(repository.getPayload(hash));
-            for (std::map<uint64_t, LBlobEntry>::iterator it = lb.parts.begin();
-                    it != lb.parts.end();
-                    it++) {
-                const LBlobEntry &lbe = (*it).second;
-                if (!backup->hasKey(hashKey(lbe.hash)))
-                    toPush.push_back(lbe.hash);
+            else if (type == ObjectInfo::Tree) {
+                Tree t = repository.getTree(hash);
+                for (std::map<std::string, TreeEntry>::iterator it = t.tree.begin();
+                        it != t.tree.end();
+                        it++) {
+                    const TreeEntry &te = (*it).second;
+                    if (te.type != TreeEntry::Blob ||
+                            !backup->hasKey(hashKey(te.hash)))
+                        toPush.push_back(te.hash);
+                }
+            }
+            else if (type == ObjectInfo::LargeBlob) {
+                LargeBlob lb(&repository);
+                lb.fromBlob(repository.getPayload(hash));
+                for (std::map<uint64_t, LBlobEntry>::iterator it = lb.parts.begin();
+                        it != lb.parts.end();
+                        it++) {
+                    const LBlobEntry &lbe = (*it).second;
+                    if (!backup->hasKey(hashKey(lbe.hash)))
+                        toPush.push_back(lbe.hash);
+                }
+            }
+
+            // Push to backup
+            if (!backup->putObj(hashKey(hash), obj)) {
+                printf("Error putting %s\n", hash.hex().c_str());
             }
         }
 
-        // Push to backup
-        if (!backup->putObj(hashKey(hash), obj)) {
-            printf("Error putting %s\n", hash.hex().c_str());
-        }
+        // Update commit IDs
+        commitIdStream.writeHash(pushedCommits[i].hash());
+        backup->putData(ORI_BACKUP "/meta/commitIDs", commitIdStream.str());
     }
 
     // Push metadata
     backup->putFile(ORI_BACKUP "/meta/metadata", ".ori/metadata");
-
-    // Update commit IDs (TODO)
 
     return 0;
 }

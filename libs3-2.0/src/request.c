@@ -118,20 +118,22 @@ static void request_headers_done(Request *request)
         return;
     }
 
-    request->propertiesCallbackMade = 1;
-
     // Get the http response code
     long httpResponseCode;
     request->httpResponseCode = 0;
     if (curl_easy_getinfo(request->curl, CURLINFO_RESPONSE_CODE, 
                           &httpResponseCode) != CURLE_OK) {
         // Not able to get the HTTP response code - error
+        fprintf(stderr, "CURL internal error\n");
         request->status = S3StatusInternalError;
         return;
     }
     else {
         request->httpResponseCode = httpResponseCode;
     }
+
+    if (httpResponseCode > 0) {
+    request->propertiesCallbackMade = 1;
 
     response_headers_handler_done(&(request->responseHeadersHandler), 
                                   request->curl);
@@ -144,6 +146,7 @@ static void request_headers_done(Request *request)
         request->status = (*(request->propertiesCallback))
             (&(request->responseHeadersHandler.responseProperties), 
              request->callbackData);
+    }
     }
 }
 
@@ -769,19 +772,11 @@ static S3Status compose_uri(char *buffer, int bufferSize,
             uri_append("%s.%s", bucketContext->bucketName, hostName);
         }
         else {
-//#ifdef USE_FAKES3
-//            uri_append("%s:4567/%s", hostName, bucketContext->bucketName);
-//#else
             uri_append("%s/%s", hostName, bucketContext->bucketName);
-//#endif
         }
     }
     else {
-//#ifdef USE_FAKES3
-//        uri_append("%s:4567", hostName);
-//#else
         uri_append("%s", hostName);
-//#endif
     }
 
     uri_append("%s", "/");
@@ -796,6 +791,9 @@ static S3Status compose_uri(char *buffer, int bufferSize,
         uri_append("%s%s", (subResource && subResource[0]) ? "&" : "?",
                    queryParams);
     }
+
+    /*write(STDERR_FILENO, buffer, bufferSize);
+    write(STDERR_FILENO, "\n", 1);*/
 
     return S3StatusOK;
 }
@@ -918,6 +916,12 @@ static S3Status setup_curl(Request *request,
         request->headers = 
             curl_slist_append(request->headers, values->amzHeaders[i]);
     }
+
+#ifdef USE_FAKES3
+    // Fix for Expect:
+    curl_easy_setopt_safe(CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+    //curl_easy_setopt_safe(CURLOPT_VERBOSE, 1);
+#endif
 
     // Set the HTTP headers
     curl_easy_setopt_safe(CURLOPT_HTTPHEADER, request->headers);
@@ -1210,6 +1214,7 @@ void request_perform(const RequestParams *params, S3RequestContext *context)
     else {
         CURLcode code = curl_easy_perform(request->curl);
         if ((code != CURLE_OK) && (request->status == S3StatusOK)) {
+            fprintf(stderr, "CURL error: %s\n", curl_easy_strerror(code));
             request->status = request_curl_code_to_status(code);
         }
         // Finish the request, ensuring that all callbacks have been made, and
