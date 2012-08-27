@@ -77,6 +77,7 @@ int cmd_pull(int argc, const char *argv[]);
 int cmd_rebuildindex(int argc, const char *argv[]);
 int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_remote(int argc, const char *argv[]);
+int cmd_removekey(int argc, const char *argv[]);
 int cmd_setkey(int argc, const char *argv[]);
 int cmd_show(int argc, const char *argv[]);
 int cmd_snapshot(int argc, const char *argv[]);
@@ -228,6 +229,12 @@ static Cmd commands[] = {
 	"remote",
 	"Remote connection management",
 	cmd_remote,
+	NULL,
+    },
+    {
+	"removekey",
+	"Remove a public key from the repository",
+	cmd_removekey,
 	NULL,
     },
     {
