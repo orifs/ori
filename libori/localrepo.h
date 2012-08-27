@@ -30,6 +30,7 @@
 #include "remoterepo.h"
 #include "packfile.h"
 #include "mergestate.h"
+#include "key.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"
@@ -45,6 +46,8 @@
 #define ORI_PATH_OBJS "/.ori/objs/"
 #define ORI_PATH_HEADS "/.ori/refs/heads/"
 #define ORI_PATH_REMOTES "/.ori/refs/remotes/"
+#define ORI_PATH_PRIVATEKEY "/.ori/private.pem"
+#define ORI_PATH_TRUSTED "/.ori/trusted/"
 #define ORI_PATH_LOCK "/.ori/lock"
 
 int LocalRepo_Init(const std::string &path);
@@ -180,7 +183,12 @@ public:
     // Peer Management
     std::map<std::string, Peer> getPeers();
     bool addPeer(const std::string &name, const std::string &path);
-    bool removePeer(const std::string &name); void setInstaClone(const std::string &name, bool val = true);
+    bool removePeer(const std::string &name);
+    void setInstaClone(const std::string &name, bool val = true);
+
+    // Key Management
+    PrivateKey getPrivateKey();
+    std::map<std::string, PublicKey> getPublicKeys();
 
     // Static Operations
     static std::string findRootPath(const std::string &path = "");

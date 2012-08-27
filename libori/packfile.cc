@@ -52,7 +52,7 @@ PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
     }
 #endif
 
-#if ENABLE_COMPRESSION
+#ifdef ENABLE_COMPRESSION
     zipstream ls(new strstream(payload), COMPRESS);
     uint8_t buf[COMPCHECK_BYTES];
     size_t compSize = 0;

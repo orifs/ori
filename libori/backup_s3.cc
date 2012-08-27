@@ -1,5 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/param.h>
 #include <fcntl.h>
 

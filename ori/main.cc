@@ -56,6 +56,7 @@ typedef struct Cmd {
 } Cmd;
 
 // General Operations
+int cmd_addkey(int argc, const char *argv[]);
 int cmd_backup(int argc, const char *argv[]);
 int cmd_branches(int argc, const char *argv[]);
 int cmd_branch(int argc, const char *argv[]);
@@ -69,12 +70,14 @@ int cmd_gc(int argc, const char *argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, const char *argv[]);
 int cmd_init(int argc, const char *argv[]);
+int cmd_listkeys(int argc, const char *argv[]);
 int cmd_log(int argc, const char *argv[]);
 int cmd_merge(int argc, const char *argv[]);
 int cmd_pull(int argc, const char *argv[]);
 int cmd_rebuildindex(int argc, const char *argv[]);
 int cmd_rebuildrefs(int argc, const char *argv[]);
 int cmd_remote(int argc, const char *argv[]);
+int cmd_setkey(int argc, const char *argv[]);
 int cmd_show(int argc, const char *argv[]);
 int cmd_snapshot(int argc, const char *argv[]);
 int cmd_snapshots(int argc, const char *argv[]);
@@ -101,6 +104,12 @@ static int cmd_help(int argc, const char *argv[]);
 static int cmd_selftest(int argc, const char *argv[]);
 
 static Cmd commands[] = {
+    {
+        "addkey",
+        "Add a trusted public key to the repository",
+        cmd_addkey,
+        NULL
+    },
     {
         "backup",
         "Backup or restore the repository",
@@ -174,6 +183,12 @@ static Cmd commands[] = {
         NULL,
     },
     {
+	"listkeys",
+	"Display a list of trusted public keys",
+	cmd_listkeys,
+	NULL,
+    },
+    {
 	"log",
 	"Display a log of commits to the repository",
 	cmd_log,
@@ -214,6 +229,12 @@ static Cmd commands[] = {
 	"Remote connection management",
 	cmd_remote,
 	NULL,
+    },
+    {
+        "setkey",
+        "Set the repository private key for signing commits",
+        cmd_setkey,
+        NULL
     },
     {
         "show",
@@ -346,6 +367,7 @@ lookupcmd(const char *cmd)
 
 int util_selftest(void);
 int LRUCache_selfTest(void);
+int Key_selfTest(void);
 
 static int
 cmd_selftest(int argc, const char *argv[])
@@ -353,6 +375,7 @@ cmd_selftest(int argc, const char *argv[])
     int result = 0;
     result += util_selftest();
     result += LRUCache_selfTest();
+    result += Key_selfTest();
 
     if (result != 0) {
         cout << -result << " errors occurred." << endl;

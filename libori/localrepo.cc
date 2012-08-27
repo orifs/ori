@@ -81,6 +81,13 @@ LocalRepo_Init(const std::string &rootPath)
         return 1;
     }
 
+    // Create trusted keys directory
+    tmpDir = rootPath + ORI_PATH_DIR + "/trusted";
+    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+        perror("Could not create '.ori/trusted' directory");
+        return 1;
+    }
+
     // Create refs directory
     tmpDir = rootPath + ORI_PATH_DIR + "/refs";
     if (mkdir(tmpDir.c_str(), 0755) < 0) {
@@ -2137,6 +2144,44 @@ LocalRepo::setInstaClone(const std::string &name, bool val)
     if (it != peers.end()) {
 	(*it).second.setInstaClone(val);
     }
+}
+
+/*
+ * Key Management
+ */
+
+PrivateKey
+LocalRepo::getPrivateKey()
+{
+    PrivateKey key;
+
+    key.open(rootPath + ORI_PATH_PRIVATEKEY);
+
+    return key;
+}
+
+int
+publicKeyCB(void *arg, const char *path)
+{
+    map<string, PublicKey> *keys = (map<string, PublicKey> *)arg;
+    PublicKey key = PublicKey();
+
+    key.open(path);
+
+    (*keys)[key.computeDigest()] = key;
+
+    return 0;
+}
+
+map<string, PublicKey>
+LocalRepo::getPublicKeys()
+{
+    string keyDir = rootPath + ORI_PATH_TRUSTED;
+    map<string, PublicKey> keys;
+
+    Scan_Traverse(keyDir.c_str(), (void *)&keys, publicKeyCB);
+
+    return keys;
 }
 
 /*

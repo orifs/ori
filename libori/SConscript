@@ -11,6 +11,7 @@ src = [
     "httpclient.cc",
     "httprepo.cc",
     "index.cc",
+    "key.cc",
     "largeblob.cc",
     "localobject.cc",
     "localrepo.cc",

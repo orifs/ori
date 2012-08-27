@@ -31,6 +31,7 @@ int Util_MkDir(const std::string &path);
 size_t Util_FileSize(const std::string &path);
 std::string Util_RealPath(const std::string &path);
 std::string Util_ReadFile(const std::string &path);
+bool Util_WriteFile(const std::string &blob, const std::string &path);
 bool Util_WriteFile(const char *blob, size_t len, const std::string &path);
 int Util_CopyFile(const std::string &origPath, const std::string &newPath);
 int Util_MoveFile(const std::string &origPath, const std::string &newPath);

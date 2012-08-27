@@ -19,7 +19,8 @@ opts.AddVariables(
     ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
         "0"),
     ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
-    ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY).", "FASTLZ"),
+    ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY; NONE).", 
+	"FASTLZ"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
 
@@ -52,11 +53,13 @@ else:
     sys.exit(-1)
 
 if env["COMPRESSION_ALGO"] == "LZMA":
-    env.Append(CPPFLAGS = [ "-DORI_USE_LZMA" ])
+    env.Append(CPPFLAGS = [ "-DORI_USE_LZMA", "-DENABLE_COMPRESSION" ])
 elif env["COMPRESSION_ALGO"] == "FASTLZ":
-    env.Append(CPPFLAGS = [ "-DORI_USE_FASTLZ" ])
+    env.Append(CPPFLAGS = [ "-DORI_USE_FASTLZ", "-DENABLE_COMPRESSION" ])
 elif env["COMPRESSION_ALGO"] == "SNAPPY":
-    env.Append(CPPFLAGS = [ "-DORI_USE_SNAPPY" ])
+    env.Append(CPPFLAGS = [ "-DORI_USE_SNAPPY", "-DENABLE_COMPRESSION" ])
+elif env["COMPRESSION_ALGO"] == "NONE":
+    print "Building without compression"
 else:
     print "Error unsupported compression algorithm"
     sys.exit(-1)
