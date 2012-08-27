@@ -27,6 +27,7 @@ src = [
     "cmd_rebuildrefs.cc",
     "cmd_refcount.cc",
     "cmd_remote.cc",
+    "cmd_removekey.cc",
     "cmd_setkey.cc",
     "cmd_show.cc",
     "cmd_snapshot.cc",

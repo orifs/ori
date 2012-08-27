@@ -23,6 +23,7 @@
 #include <iostream>
 
 #include "debug.h"
+#include "oriutil.h"
 #include "localrepo.h"
 
 using namespace std;
@@ -53,7 +54,7 @@ cmd_removekey(int argc, const char *argv[])
 	return 1;
     }
 
-    if (Util_DeleteFile(rootPAth + ORI_PATH_TRUSTED + argv[1]) < 0) {
+    if (Util_DeleteFile(rootPath + ORI_PATH_TRUSTED + argv[1]) < 0) {
 	cout << "Failed to delete key!" << endl;
 	return 1;
     }
