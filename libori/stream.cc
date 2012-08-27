@@ -187,8 +187,6 @@ size_t strstream::sizeHint() const
  * fdstream
  */
 
-// TODO: error checking
-
 fdstream::fdstream(int fd, off_t offset, size_t length)
     : fd(fd), offset(offset), length(length), left(length)
 {

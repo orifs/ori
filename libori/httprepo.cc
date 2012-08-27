@@ -57,13 +57,6 @@ HttpRepo::~HttpRepo()
     }
 }
 
-void
-HttpRepo::preload(const std::vector<std::string> &objs)
-{
-    // TODO
-    return;
-}
-
 std::string
 HttpRepo::getUUID()
 {

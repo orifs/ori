@@ -640,12 +640,6 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	    return "Object with unknown type!";
     }
 
-    // Check object metadata
-    /*if (!o->checkMetadata()) {
-        return "Object metadata hash mismatch!";
-    }*/
-    // TODO
-
     if (!o->getInfo().hasAllFields()) {
         return "Object info missing some fileds!";
     }

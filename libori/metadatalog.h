@@ -24,8 +24,6 @@ public:
     void decRef(const ObjectHash &hash);
     void setMeta(const ObjectHash &hash, const std::string &key,
             const std::string &value);
-
-    // TODO: cancel this transaction
 private:
     friend class MetadataLog;
     MetadataLog *log;

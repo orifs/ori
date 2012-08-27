@@ -119,14 +119,11 @@ int SshClient::connect()
     fdFromChild = pipe_from_child[D_READ];
     streamToChild.reset(new fdwstream(fdToChild));
 
-    // TODO: sync here
-    //sleep(2);
-
     // SSH sets stderr to nonblock, possibly screwing up stdout (according to
     // rsync)
     Util_SetBlocking(STDERR_FILENO, true);
 
-    // Wait for READY from server
+    // Sync by waiting for message from server
     if (!respIsOK()) {
         printf("Couldn't connect to SSH server!\n");
         return -1;

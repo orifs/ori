@@ -137,37 +137,6 @@ Packfile::begin(Index *idx)
     return PfTransaction::sp(new PfTransaction(this, idx));
 }
 
-/*void
-Packfile::addPayload(ObjectInfo info, const std::string &payload, Index *idx)
-{
-    ASSERT(!full());
-    ASSERT(info.hasAllFields());
-
-    lseek(fd, fileSize, SEEK_SET);
-    // TODO: compression (detect when compression provides no benefit)
-    // If compressed, change info
-
-    // Headers
-    strwstream headers;
-    headers.writeInt<uint8_t>(1);
-
-    offset_t newOffset = fileSize + 1 + 1 * ENTRYSIZE;
-    headers.write(info.toString().data(), ObjectInfo::SIZE);
-    headers.writeInt<uint32_t>(info.payload_size);
-    headers.writeInt<offset_t>(newOffset);
-
-    write(fd, headers.str().data(), headers.str().size());
-    fileSize += headers.str().size();
-
-    int bytesWritten = write(fd, payload.data(), payload.size());
-
-    numObjects++;
-    fileSize += bytesWritten;
-
-    IndexEntry ie = {info, newOffset, bytesWritten, packid};
-    idx->updateEntry(info.hash, ie);
-}*/
-
 void
 Packfile::commit(PfTransaction *t, Index *idx)
 {
@@ -210,7 +179,7 @@ Packfile::commit(PfTransaction *t, Index *idx)
 
 bytestream *Packfile::getPayload(const IndexEntry &entry)
 {
-    ASSERT(entry.packfile == packid); // TODO?
+    ASSERT(entry.packfile == packid);
     bytestream *stored = new fdstream(fd, entry.offset, entry.packed_size);
     if (!entry.info.getCompressed()) {
         return stored;

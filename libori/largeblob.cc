@@ -245,7 +245,6 @@ LargeBlob::extractFile(const string &path)
 ssize_t
 LargeBlob::read(uint8_t *buf, size_t s, off_t off) const
 {
-    // TODO: this is not as clean as I would like
     map<uint64_t, LBlobEntry>::const_iterator it =
         parts.upper_bound(off);
     it--;

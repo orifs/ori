@@ -75,7 +75,6 @@ MetadataLog::open(const std::string &filename)
         return false;
     }
 
-    // TODO: read log
     size_t readSoFar = 0;
     while (true) {
         uint32_t nbytes;
@@ -89,7 +88,7 @@ MetadataLog::open(const std::string &filename)
         }
 
         if (readSoFar + nbytes > (size_t)sb.st_size) {
-            // TODO: check end of log for consistency
+            // TODO: truncate this entry
             fprintf(stderr, "Corruption in this entry!\n");
             return false;
         }
@@ -145,7 +144,7 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
     int newFd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (newFd < 0) {
         perror("MetadataLog::rewrite open");
-        return; // TODO: return false
+        throw new std::runtime_error("MetadataLog::rewrite open");
     }
 
     int oldFd = fd;
