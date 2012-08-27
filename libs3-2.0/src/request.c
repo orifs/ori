@@ -738,6 +738,9 @@ static S3Status compose_auth_header(const RequestParams *params,
 }
 
 
+#include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
 // Compose the URI to use for the request given the request parameters
 static S3Status compose_uri(char *buffer, int bufferSize,
                             const S3BucketContext *bucketContext,
@@ -766,11 +769,19 @@ static S3Status compose_uri(char *buffer, int bufferSize,
             uri_append("%s.%s", bucketContext->bucketName, hostName);
         }
         else {
+//#ifdef USE_FAKES3
+//            uri_append("%s:4567/%s", hostName, bucketContext->bucketName);
+//#else
             uri_append("%s/%s", hostName, bucketContext->bucketName);
+//#endif
         }
     }
     else {
+//#ifdef USE_FAKES3
+//        uri_append("%s:4567", hostName);
+//#else
         uri_append("%s", hostName);
+//#endif
     }
 
     uri_append("%s", "/");
@@ -785,7 +796,7 @@ static S3Status compose_uri(char *buffer, int bufferSize,
         uri_append("%s%s", (subResource && subResource[0]) ? "&" : "?",
                    queryParams);
     }
-    
+
     return S3StatusOK;
 }
 
@@ -1229,6 +1240,7 @@ void request_finish(Request *request)
             case 0:
                 // This happens if the request never got any HTTP response
                 // headers at all, we call this a ConnectionFailed error
+                fprintf(stderr, "No HTTP response headers\n");
                 request->status = S3StatusConnectionFailed;
                 break;
             case 100: // Some versions of libcurl erroneously set HTTP
@@ -1300,6 +1312,7 @@ S3Status request_curl_code_to_status(CURLcode code)
         return S3StatusFailedToConnect;
     case CURLE_WRITE_ERROR:
     case CURLE_OPERATION_TIMEDOUT:
+        fprintf(stderr, "timed out\n");
         return S3StatusConnectionFailed;
     case CURLE_PARTIAL_FILE:
         return S3StatusOK;

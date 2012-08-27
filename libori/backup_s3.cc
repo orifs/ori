@@ -30,18 +30,29 @@ S3BackupService::S3BackupService(
       secretAccessKey(secretAccessKey),
       bucketName(bucketName)
 {
+#ifdef USE_FAKES3
+    S3Protocol s3proto = S3ProtocolHTTP;
+    S3UriStyle uriStyle = S3UriStylePath;
+    const char *hostname = "localhost:4567";
+    S3_initialize(NULL, S3_INIT_ALL, hostname);
+#else
+    S3Protocol s3proto = S3ProtocolHTTPS;
+    S3UriStyle uriStyle = S3UriStyleVirtualHost;
+    const char *hostname = NULL;
     S3_initialize(NULL, S3_INIT_ALL, NULL);
+#endif
+
 
     S3ResponseHandler handler;
     handler.propertiesCallback = _ignoreRespPropsCB;
     handler.completeCallback = _setStatusCB;
 
     S3Status status;
-    S3_test_bucket(S3ProtocolHTTPS,
-            S3UriStyleVirtualHost,
+    S3_test_bucket(s3proto,
+            uriStyle,
             accessKeyID.c_str(),
             secretAccessKey.c_str(),
-            NULL,
+            hostname,
             bucketName.c_str(),
             0, NULL,
             NULL,
@@ -52,10 +63,10 @@ S3BackupService::S3BackupService(
     }
 
     ctx.reset(new S3BucketContext());
-    ctx->hostName = NULL;
+    ctx->hostName = hostname;
     ctx->bucketName = bucketName.c_str();
-    ctx->protocol = S3ProtocolHTTPS;
-    ctx->uriStyle = S3UriStyleVirtualHost;
+    ctx->protocol = s3proto;
+    ctx->uriStyle = uriStyle;
     ctx->accessKeyId = accessKeyID.c_str();
     ctx->secretAccessKey = secretAccessKey.c_str();
 }
@@ -75,7 +86,7 @@ bool S3BackupService::realHasKey(const std::string &key)
     S3_head_object(ctx.get(), key.c_str(), NULL,
             &handler, &status);
     if (status != S3StatusOK) {
-        fprintf(stderr, "%s\n", S3_get_status_name(status));
+        fprintf(stderr, "realHasKey: %s\n", S3_get_status_name(status));
         return false;
     }
     
@@ -125,7 +136,7 @@ bool S3BackupService::getData(const std::string &key, std::string &out)
             0, 0, NULL, &handler, &data);
 
     if (data.status != S3StatusOK) {
-        fprintf(stderr, "%s\n", S3_get_status_name(data.status));
+        fprintf(stderr, "getData: %s\n", S3_get_status_name(data.status));
         return false;
     }
 
@@ -174,7 +185,7 @@ bool S3BackupService::putFile(const std::string &key, const std::string &filenam
             NULL, NULL, &handler, &data);
 
     if (data.status != S3StatusOK) {
-        fprintf(stderr, "%s\n", S3_get_status_name(data.status));
+        fprintf(stderr, "putFile: %s\n", S3_get_status_name(data.status));
         return false;
     }
 
@@ -231,7 +242,7 @@ bool S3BackupService::putObj(const std::string &key, Object::sp obj)
             NULL, NULL, &handler, &data);
 
     if (data.status != S3StatusOK) {
-        fprintf(stderr, "%s\n", S3_get_status_name(data.status));
+        fprintf(stderr, "putObj: %s\n", S3_get_status_name(data.status));
         return false;
     }
 

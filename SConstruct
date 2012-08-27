@@ -16,6 +16,8 @@ opts.AddVariables(
     ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "1"),
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
     ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "1"),
+    ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
+        "0"),
     ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
     ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY).", "FASTLZ"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
@@ -61,6 +63,9 @@ else:
 
 if env["WITH_MDNS"] != "1":
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
+
+if env["USE_FAKES3"] == "1":
+    env.Append(CPPDEFINES = ['USE_FAKES3'])
 
 if env["WITH_GPROF"] == "1":
     env.Append(CPPFLAGS = [ "-pg" ])

@@ -54,8 +54,7 @@ public:
     virtual bool realHasKey(const std::string &key) = 0;
 
     virtual bool getData(const std::string &key, std::string &out) = 0;
-    virtual bool putFile(const std::string &key, const std::string &filename) =
-        0;
+    virtual bool putFile(const std::string &key, const std::string &filename) = 0;
 
     virtual Object::sp getObj(const std::string &key) {
         std::string data;
