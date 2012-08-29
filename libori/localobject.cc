@@ -51,7 +51,8 @@ using namespace std;
  * Object
  */
 LocalObject::LocalObject(PfTransaction::sp transaction, size_t ix)
-    : Object(transaction->infos[ix]), transaction(transaction), ix_tr(ix)
+    : Object(transaction->infos[ix]), transaction(transaction), ix_tr(ix),
+      packfile()
 {
 }
 
