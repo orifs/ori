@@ -108,11 +108,15 @@ Object::sp SshRepo::getObject(const ObjectHash &id)
         num = bs->readInt<numobjs_t>();
         ASSERT(num == 0);
 
+#ifdef ENABLE_COMPRESSION
         if (info.getCompressed()) {
             payloads[info.hash] = zipstream(new strstream(payload), DECOMPRESS,
                     info.payload_size).readAll();
         }
-        else {
+        else
+#endif
+        {
+            assert(!info.getCompressed());
             payloads[info.hash] = payload;
         }
         return Object::sp(new SshObject(this, info));

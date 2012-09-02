@@ -70,11 +70,17 @@ bytestream *LocalObject::getPayloadStream() {
         return packfile->getPayload(entry);
     }
     if (transaction.get()) {
+#ifdef ENABLE_COMPRESSION
         if (info.getCompressed()) {
             return new zipstream(new strstream(transaction->payloads[ix_tr]),
                         DECOMPRESS, info.payload_size);
         }
-        return new strstream(transaction->payloads[ix_tr]);
+        else
+#endif
+        {
+            assert(!info.getCompressed());
+            return new strstream(transaction->payloads[ix_tr]);
+        }
     }
     return NULL;
 }

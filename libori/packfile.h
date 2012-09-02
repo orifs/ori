@@ -3,6 +3,7 @@
 
 #include <tr1/memory>
 #include <tr1/unordered_map>
+#include <set>
 #include <deque>
 
 #include "objecthash.h"
@@ -68,7 +69,7 @@ public:
     //void addPayload(ObjectInfo info, const std::string &payload, Index *idx);
     bytestream *getPayload(const IndexEntry &entry);
     /// @returns true when the packfile is empty
-    bool purge(const ObjectHash &hash);
+    bool purge(const std::set<ObjectHash> &hset, Index *idx);
 
 
     typedef void (*ReadEntryCb)(const ObjectInfo &info, offset_t off);

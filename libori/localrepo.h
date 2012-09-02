@@ -216,6 +216,9 @@ private:
     PfTransaction::sp currTransaction;
     PackfileManager::sp packfiles;
 
+    // Purging
+    std::set<ObjectHash> purged;
+
     // Repo lock
     LocalRepoLock::sp repoProcessLock;
 

@@ -104,7 +104,7 @@ bool PfTransaction::has(const ObjectHash &hash) const
 Packfile::Packfile(const std::string &filename, packid_t id)
     : fd(-1), filename(filename), packid(id), numObjects(0), fileSize(0)
 {
-    fd = ::open(filename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
+    fd = ::open(filename.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
         perror("Packfile open");
         throw PosixException(errno);
@@ -183,16 +183,87 @@ bytestream *Packfile::getPayload(const IndexEntry &entry)
 {
     ASSERT(entry.packfile == packid);
     bytestream *stored = new fdstream(fd, entry.offset, entry.packed_size);
+#ifndef ENABLE_COMPRESSION
+    assert(!entry.info.getCompressed());
+    return stored;
+#else
     if (!entry.info.getCompressed()) {
         return stored;
     }
     return new zipstream(stored, DECOMPRESS, entry.info.payload_size);
+#endif
 }
 
-bool Packfile::purge(const ObjectHash &hash)
+bool Packfile::purge(const std::set<ObjectHash> &hset, Index *idx)
 {
-    NOT_IMPLEMENTED(false);
-    return false;
+    PfTransaction::sp tr = begin(idx);
+    
+    // Read the current contents
+    lseek(fd, 0, SEEK_SET);
+    std::vector<uint32_t> storedSizes;
+
+    fdstream fs(fd, 0);
+    while (!fs.ended()) {
+        std::string payload;
+        std::set<size_t> skip;
+
+        numobjs_t num;
+        try {
+            num = fs.readInt<numobjs_t>();
+        }
+        catch (std::ios_base::failure &e) {
+            break;
+        }
+
+        storedSizes.resize(num);
+
+        // Read headers
+        for (size_t i = 0; i < num; i++) {
+            ObjectInfo info;
+            fs.readInfo(info);
+            uint32_t ssize = fs.readInt<uint32_t>();
+            offset_t off = fs.readInt<uint32_t>();
+
+            storedSizes[i] = ssize;
+
+            if (hset.find(info.hash) != hset.end()) {
+                skip.insert(i);
+            }
+            else {
+                tr->infos.push_back(info);
+            }
+        }
+
+        // Read payloads
+        for (size_t i = 0; i < num; i++) {
+            payload.resize(storedSizes[i]);
+            fs.read((uint8_t*)&payload[0], storedSizes[i]);
+
+            if (skip.find(i) != skip.end()) {
+                continue;
+            }
+
+            tr->payloads.push_back(payload);
+        }
+    }
+
+    // Make a tempfile
+    std::string tmpFilename = filename + ".tmp";
+    int oldFd = fd;
+    fd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT, 0644);
+    if (fd < 0) {
+        perror("Packfile::purge open");
+        throw PosixException(errno);
+    }
+
+    ::close(oldFd);
+    Util_RenameFile(tmpFilename, filename);
+
+    // Commit the transaction
+    bool empty = tr->payloads.size() == 0;
+    tr.reset();
+
+    return empty;
 }
 
 

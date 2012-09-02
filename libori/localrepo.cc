@@ -427,6 +427,8 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
     ASSERT(opened);
     ASSERT(!hash.isEmpty());
 
+    purged.erase(hash);
+
     if (!currPackfile.get()) {
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);
@@ -1249,11 +1251,33 @@ LocalRepo::commitFromObjects(const ObjectHash &treeHash, Repo *objects,
 void
 LocalRepo::gc()
 {
+    // Commit all ongoing transactions
+    if (currTransaction.get())
+        currTransaction.reset();
+
     // Compact the index
     index.rewrite();
 
     // Compact the metadata log
     metadata.rewrite();
+
+    // Do purges
+    std::set<packid_t> purgePacks;
+    for (std::set<ObjectHash>::iterator it = purged.begin();
+            it != purged.end();
+            it++) {
+        const IndexEntry &ie = index.getEntry((*it));
+        purgePacks.insert(ie.packfile);
+    }
+
+    for (std::set<packid_t>::iterator it = purgePacks.begin();
+            it != purgePacks.end();
+            it++) {
+        Packfile::sp pack = packfiles->getPackfile((*it));
+        pack->purge(purged, &index);
+    }
+
+    purged.clear();
 }
 
 /*
@@ -1389,9 +1413,11 @@ LocalRepo::purgeObject(const ObjectHash &objId)
     if (currTransaction.get())
         currTransaction.reset();
 
-    const IndexEntry &ie = index.getEntry(objId);
+    /*const IndexEntry &ie = index.getEntry(objId);
     Packfile::sp packfile = packfiles->getPackfile(ie.packfile);
-    packfile->purge(objId);
+    packfile->purge(objId);*/
+
+    purged.insert(objId);
 
     return true;
 }

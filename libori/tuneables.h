@@ -45,7 +45,7 @@
 // Choose the compression algorithm (choose one)
 //#define ORI_USE_LZMA
 //#define ORI_USE_FASTLZ
-#if !defined(ORI_USE_LZMA) && !defined(ORI_USE_FASTLZ)
+#if defined(ORI_USE_COMPRESISON) && !defined(ORI_USE_LZMA) && !defined(ORI_USE_FASTLZ)
 #error "Please select one compression algorithm."
 #endif
 
