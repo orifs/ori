@@ -171,6 +171,10 @@ SConscript('ori/SConscript', variant_dir='build/ori')
 if env["WITH_HTTPD"] == "1":
     SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
 
+if env["WITH_FUSE"] == "1":
+    env.Install('$PREFIX','build/mount_ori/mount_ori')
 env.Install('$PREFIX','build/ori/ori')
+if env["WITH_HTTPD"] == "1":
+    env.Install('$PREFIX','build/ori_httpd/ori_httpd')
 env.Alias('install','$PREFIX')
 
