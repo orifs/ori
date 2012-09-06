@@ -13,7 +13,8 @@ Build Dependencies:
  - pkg-config
 
 Dependences:
- - openssl
+ - openssl (tested with 1.0.1+)
+ - boost headers (tested with 1.48+)
  - liblzma (XZ Utils)
  - libevent 2.0
  - mDNSResponder
