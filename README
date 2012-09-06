@@ -8,6 +8,11 @@ system operations in a platform independent way.
 Installation
 ============
 
+Platforms:
+ - Linux 3.0+ Arch Linux and Ubuntu
+ - MacOS X 10.7+
+ - FreeBSD 8/9
+
 Build Dependencies:
  - scons 2.0+
  - pkg-config
