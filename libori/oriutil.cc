@@ -31,7 +31,10 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <execinfo.h>
+
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <netdb.h>
 
 #include <iostream>
