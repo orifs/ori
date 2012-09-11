@@ -8,6 +8,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <tr1/unordered_set>
 
 #include "debug.h"
 #include "packfile.h"
@@ -330,14 +331,28 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
     }
 
     // Transmit object infos
-    bs->writeInt<numobjs_t>(objects.size());
+    std::tr1::unordered_set<ObjectHash> includedHashes;
+    numobjs_t totalObjs = 0;
+
+    strwstream infos_ss;
     for (size_t i = 0; i < objects.size(); i++) {
+        if (includedHashes.find(objects[i].info.hash) != includedHashes.end()) {
+            // Duplicate object
+            fprintf(stderr, "WARNING packfile: duplicate object in transmit\n");
+            continue;
+        }
+        includedHashes.insert(objects[i].info.hash);
+        totalObjs++;
+
         std::string info_str = objects[i].info.toString();
-        bs->write(info_str.data(), info_str.size());
-        bs->writeInt<uint32_t>(objects[i].packed_size);
+        infos_ss.write(info_str.data(), info_str.size());
+        infos_ss.writeInt<uint32_t>(objects[i].packed_size);
 
         //fprintf(stderr, "Obj %lu packed size %u\n", i, objects[i].packed_size);
     }
+
+    bs->writeInt<numobjs_t>(totalObjs);
+    bs->write(infos_ss.str().data(), infos_ss.str().size());
 
     // Transmit objects
     std::vector<uint8_t> buf;
@@ -376,6 +391,7 @@ Packfile::receive(bytestream *bs, Index *idx)
         bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
         ObjectInfo info;
         info.fromString(info_str);
+        //info.print();
 
         uint32_t obj_size = bs->readInt<uint32_t>();
         obj_sizes.push_back(obj_size);

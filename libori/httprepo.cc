@@ -134,7 +134,7 @@ HttpRepo::getObject(const ObjectHash &id)
         else
 #endif
         {
-            assert(info.getCompressed());
+            assert(!info.getCompressed());
             payloads[info.hash] = payload;
         }
         return Object::sp(new HttpObject(this, info));
