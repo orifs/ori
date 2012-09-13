@@ -308,11 +308,11 @@ ori_priv::commitPerm()
         assert(repo->getMetadata().getMeta(headHash, "status") == "normal");
 
         // Purge other FUSE commits
-        repo->purgeFuseCommits();
+        //repo->purgeFuseCommits();
         repo->updateHead(headHash);
 
         // Make everything nice and clean (TODO?)
-        repo->gc();
+        //repo->gc();
     }
     else {
         FUSE_LOG("Nothing to commit permanently");

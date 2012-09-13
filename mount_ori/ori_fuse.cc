@@ -81,6 +81,10 @@ ori_getattr(const char *path, struct stat *stbuf)
 {
     FUSE_LOG("FUSE ori_getattr(path=\"%s\")", path);
 
+    if (strcmp(path, "") == 0) {
+        throw std::runtime_error("Can't getattr empty path!");
+    }
+
     memset(stbuf, 0, sizeof(struct stat));
 
     ori_priv *p = ori_getpriv();
@@ -155,7 +159,7 @@ ori_getattr(const char *path, struct stat *stbuf)
 
 	// XXX: Mask writable attributes
 	stbuf->st_mode |= te.attrs.getAs<mode_t>(ATTR_PERMS);
-	struct passwd *pw = getpwnam(te.attrs.getAs<const char *>(ATTR_USERNAME));
+	struct passwd *pw = getpwnam(te.attrs.getAsStr(ATTR_USERNAME).c_str());
 	stbuf->st_uid = pw->pw_uid;
 	stbuf->st_gid = pw->pw_gid; // TODO: process running as diff. group?
 	stbuf->st_size = te.attrs.getAs<size_t>(ATTR_FILESIZE);
@@ -184,7 +188,7 @@ ori_getattr(const char *path, struct stat *stbuf)
     }
 
     stbuf->st_mode |= ete.te.attrs.getAs<mode_t>(ATTR_PERMS);
-    struct passwd *pw = getpwnam(ete.te.attrs.getAs<const char *>(ATTR_USERNAME));
+    struct passwd *pw = getpwnam(ete.te.attrs.getAsStr(ATTR_USERNAME).c_str());
     stbuf->st_uid = pw->pw_uid;
     stbuf->st_gid = pw->pw_gid; // TODO: process running as diff. group?
     stbuf->st_size = ete.te.attrs.getAs<size_t>(ATTR_FILESIZE);
@@ -938,6 +942,15 @@ ori_init(struct fuse_conn_info *conn)
     }
 
     ori_priv *priv = new ori_priv(config.repo_path);
+
+    struct stat sb;
+    std::string lfPath = priv->repo->getRootPath() + ORI_PATH_LOCK;
+    if (lstat(lfPath.c_str(), &sb) == 0) {
+        // Repo is already locked
+        fprintf(stderr, "ERROR: repo at %s is currently locked\n",
+                config.repo_path);
+        exit(1);
+    }
 
     if (config.clone_path != NULL) {
 	ObjectHash revId = remoteRepo->getHead();

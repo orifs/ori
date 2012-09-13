@@ -96,13 +96,6 @@ void AttrMap::mergeFrom(const AttrMap &other)
     }
 }
 
-template <> const char *
-AttrMap::getAs<const char *>(const std::string &attrName) {
-    ASSERT(attrs.find(attrName) != attrs.end());
-    return attrs[attrName].c_str();
-}
-
-
 /********************************************************************
  *
  *

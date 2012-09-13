@@ -47,6 +47,11 @@ public:
         return *(T *)attrs[attrName].data();
     }
 
+    const std::string &getAsStr(const std::string &attrName) {
+        ASSERT(attrs.find(attrName) != attrs.end());
+        return (*attrs.find(attrName)).second;
+    }
+
     template <typename T>
     void setAs(const std::string &attrName, const T &value) {
         attrs[attrName].resize(sizeof(T));

@@ -295,6 +295,7 @@ LocalRepo::lock()
             fprintf(stderr, "Repository at %s is already locked\n",
                     rootPath.c_str());
             fprintf(stderr, "Another instance of ORI (pid %s) may currently be using it\n", pnum_str);
+            Util_PrintBacktrace();
         } else {
             perror("symlink");
         }
@@ -684,8 +685,11 @@ LocalRepo::listObjects()
 void
 LocalRepo::sync()
 {
-    bool full = currTransaction->full();
-    currTransaction.reset();
+    bool full = true;
+    if (currTransaction.get()) {
+        full = currTransaction->full();
+        currTransaction.reset();
+    }
     if (full) {
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);
@@ -1121,9 +1125,14 @@ LocalRepo::addCommitBackrefs(const Commit &c, MdTransaction::sp tr)
     if (!c.getParents().second.isEmpty())
         metadata.addRef(c.getParents().second, tr);
     
-    metadata.addRef(c.getTree(), tr);
-    if (metadata.getRefCount(c.getTree()) == 0) {
-        Tree t = getTree(c.getTree());
+    ObjectHash treeHash = c.getTree();
+    if (treeHash.isEmpty()) {
+        throw std::runtime_error("Commit tree is empty!");
+    }
+
+    metadata.addRef(treeHash, tr);
+    if (metadata.getRefCount(treeHash) == 0) {
+        Tree t = getTree(treeHash);
         addTreeBackrefs(t, tr);
     }
 }
