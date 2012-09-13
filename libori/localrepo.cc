@@ -1519,7 +1519,8 @@ LocalRepo::purgeFuseCommits()
         const Commit &c = commits[i];
         ObjectHash hash = c.hash();
         if (metadata.getMeta(hash, "status") == "fuse") {
-            ASSERT(purgeCommit(hash));
+            bool status = purgeCommit(hash);
+            ASSERT(status);
         }
     }
 }
