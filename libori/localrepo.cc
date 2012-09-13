@@ -1024,12 +1024,20 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
 void
 LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
 {
+    std::tr1::unordered_set<ObjectHash> includedHashes;
+
     typedef std::vector<IndexEntry> IndexEntryVec;
     std::map<Packfile::sp, IndexEntryVec> packs;
     for (size_t i = 0; i < objs.size(); i++) {
-        const IndexEntry &ie = index.getEntry(objs[i]);
-        Packfile::sp pf = packfiles->getPackfile(ie.packfile);
-        packs[pf].push_back(ie);
+        if (includedHashes.find(objs[i]) == includedHashes.end()) {
+            const IndexEntry &ie = index.getEntry(objs[i]);
+            Packfile::sp pf = packfiles->getPackfile(ie.packfile);
+            packs[pf].push_back(ie);
+            includedHashes.insert(objs[i]);
+        }
+        else {
+            fprintf(stderr, "WARNING: duplicate object in LocalRepo::transmit\n");
+        }
     }
 
     for (std::map<Packfile::sp, IndexEntryVec>::iterator it = packs.begin();

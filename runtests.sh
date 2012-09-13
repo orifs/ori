@@ -46,6 +46,12 @@ mkdir $SOURCE_FILES/a/empty_dir
 mkdir $SOURCE_FILES/b
 echo "Foo" > $SOURCE_FILES/b/b.txt
 
+# Add Linux kernel?
+if true; then
+    #curl "http://www.kernel.org/pub/linux/kernel/v3.0/testing/linux-3.6-rc5.tar.bz2" | tar -C "$SOURCE_FILES" -xvf -
+    tar -C "$SOURCE_FILES" -xvf ori-perf/data/linux-tip.tgz
+fi
+
 cat > $TEMP_DIR/.gdbinit <<EOM
 file $ORIG_DIR/build/mount_ori/mount_ori
 set args -d -o repo=source_repo,daemon_timeout=5 mtpoint
