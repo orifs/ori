@@ -151,6 +151,9 @@ Tree
 Repo::getTree(const ObjectHash &treeId)
 {
     Object::sp o(getObject(treeId));
+    if (!o.get()) {
+        throw std::runtime_error("Object not found");
+    }
     string blob = o->getPayload();
 
     ASSERT(treeId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::Tree);
