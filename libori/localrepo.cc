@@ -2091,7 +2091,8 @@ LocalRepo::newTempDir()
         perror("mkdtemp");
         return TempDir::sp();
     }
-    printf("Temporary directory at %s\n", templ);
+    // XXX: Excessive logging
+    // printf("Temporary directory at %s\n", templ);
     return TempDir::sp(new TempDir(templ));
 }
 

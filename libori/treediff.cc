@@ -357,7 +357,9 @@ bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
 
     TreeDiffEntry *e = getLatestEntry(to_merge.filepath);
     if (e == NULL) {
-        printf("TreeDiff::merge: appending %s\n", to_merge.filepath.c_str());
+	// XXX: Excessive logging
+	// printf("TreeDiff::merge: appending %s\n", 
+	// to_merge.filepath.c_str());
         append(to_merge);
         if (to_merge.type == TreeDiffEntry::NewDir) {
 	    // Makes readdir easier to write
