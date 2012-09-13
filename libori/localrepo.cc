@@ -1237,9 +1237,9 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
 	}
     }
 
-    printf("Commit Hash: %s\nTree Hash: %s\n",
-	   commitHash.hex().c_str(),
-	   treeHash.hex().c_str());
+    LOG("Commit Hash: %s\nTree Hash: %s\n",
+	commitHash.hex().c_str(),
+	treeHash.hex().c_str());
     return commitHash;
 }
 

@@ -49,7 +49,7 @@ get_timespec(struct timespec *ts)
 }
 
 void
-ori_log(const char *fmt, ...)
+ori_log(int level, const char *fmt, ...)
 {
     va_list ap;
     struct timespec ts;
@@ -58,6 +58,11 @@ ori_log(const char *fmt, ...)
     if (logfd == -1) {
         return;
     }
+
+#ifdef DEBUG
+    if (level > LEVEL_MSG)
+	return;
+#endif /* DEBUG */
 
     get_timespec(&ts);
     strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
