@@ -40,8 +40,9 @@ void OpenedFileMgr::removeUnused()
         if ((*it).second == 0) {
             // Remove this file
             if (unlink((*it).first.c_str()) < 0) {
-                perror("removedUnused unlink");
-            }
+		// XXX: Too many errors printed!
+		// perror("removedUnused unlink");
+     }
         }
     }
 }

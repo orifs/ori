@@ -608,8 +608,8 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         const TreeDiffEntry &tde = entries[i];
         if (tde.type == TreeDiffEntry::Noop) continue;
 
-        printf("Applying %c   %s (%s)\n", tde.type, tde.filepath.c_str(),
-                tde.newFilename.c_str());
+        LOG("Applying %c   %s (%s)\n", tde.type, tde.filepath.c_str(),
+            tde.newFilename.c_str());
         //if (i % 80 == 0 && i > 0) putc('\n', stdout);
         //putc(tde.type, stdout);
         if (tde.type == TreeDiffEntry::NewFile) {
@@ -694,7 +694,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
             it++) {
         printf("%s %s\n", (*it).first.c_str(), (*it).second.hash.c_str());
     }*/
-    putc('\n', stdout);
+    //putc('\n', stdout);
 
     Tree rval = Tree::unflatten(flat, dest_repo);
     //dest_repo->addBlob(Object::Tree, rval.getBlob());
