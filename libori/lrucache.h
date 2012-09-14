@@ -21,6 +21,7 @@
 
 #include <list>
 #include <utility>
+#include <stdexcept>
 #include <tr1/unordered_map>
 
 #include "debug.h"
@@ -70,9 +71,8 @@ public:
             lru.splice(lru.end(), lru, (*it).second.second);
             return (*it).second.first;
         }
-        // throw
-        //return NULL;
-        assert(false);
+
+        throw std::runtime_error("Key doesn't exist!");
     }
 
     /// Atomic get which returns true if key is cached (and value returned)

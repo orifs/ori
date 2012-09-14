@@ -234,9 +234,14 @@ ori_priv::startWrite(RWKey::sp repoKey)
 bool
 ori_priv::mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey)
 {
-    assert(repoKey.get());
+    if (!repoKey) {
+        throw std::runtime_error("mergeAndCommit needs a locked repo");
+    }
 
-    assert(currTreeDiff != NULL);
+    if (currTreeDiff == NULL || !currTempDir) {
+        throw std::runtime_error("Call startWrite before calling mergeAndCommit");
+    }
+
     eteCache.invalidate(tde.filepath);
     bool needs_commit = currTreeDiff->mergeInto(tde);
     if (needs_commit) {

@@ -338,6 +338,7 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
     LocalObject::sp o(getLocalObject(objId));
 
     if (!o) {
+        fprintf(stderr, "Object not found: %s\n", objId.hex().c_str());
 	if (remoteRepo != NULL) {
 	    // XXX: Save object locally
             fprintf(stderr, "Instaclone getting object %s\n",

@@ -17,7 +17,8 @@ void OpenedFileMgr::closedFile(int fd)
     std::map<int, std::string>::iterator it = fdToFilename.find(fd);
     assert(it != fdToFilename.end());
 
-    const std::string &tfn = (*it).second;
+    std::string tfn = (*it).second;
+    fdToFilename.erase(it);
     closedFile(tfn);
 }
 
@@ -33,6 +34,8 @@ void OpenedFileMgr::closedFile(const std::string &tempFileName)
 
 void OpenedFileMgr::removeUnused()
 {
+    std::vector<std::string> toErase;
+
     for (std::map<std::string, uint32_t>::iterator it = openedFiles.begin();
             it != openedFiles.end();
             it++)
@@ -42,7 +45,12 @@ void OpenedFileMgr::removeUnused()
             if (unlink((*it).first.c_str()) < 0) {
                 perror("removedUnused unlink");
             }
+            toErase.push_back((*it).first);
         }
+    }
+
+    for (size_t i = 0; i < toErase.size(); i++) {
+        openedFiles.erase(toErase[i]);
     }
 }
 

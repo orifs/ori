@@ -45,6 +45,10 @@ PfTransaction::_checkCompressionRatio(const std::string &payload)
 void
 PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
 {
+    if (committed) {
+        throw std::runtime_error("Adding payload to already-committed transaction!");
+    }
+
 #if DEBUG
     for (size_t i = 0; i < infos.size(); i++) {
         if (infos[i].hash == info.hash) {
@@ -143,7 +147,10 @@ Packfile::begin(Index *idx)
 void
 Packfile::commit(PfTransaction *t, Index *idx)
 {
-    ASSERT(t->infos.size() == t->payloads.size());
+    if (t->infos.size() != t->payloads.size()) {
+        throw std::runtime_error("PfTransaction infos.size() != payloads.size())");
+    }
+
     lseek(fd, 0, SEEK_END);
     std::vector<offset_t> offsets;
     size_t headers_size = t->infos.size() * ENTRYSIZE;
@@ -174,7 +181,8 @@ Packfile::commit(PfTransaction *t, Index *idx)
 	ie.packed_size = t->payloads[i].size();
 	ie.packfile = packid;
 
-        idx->updateEntry(t->infos[i].hash, ie);
+        idx->updateEntry(ie.info.hash, ie);
+        fprintf(stderr, "Committing %s to PF\n", ie.info.hash.hex().c_str());
     }
 
     t->committed = true;
@@ -224,6 +232,7 @@ bool Packfile::purge(const std::set<ObjectHash> &hset, Index *idx)
             fs.readInfo(info);
             uint32_t ssize = fs.readInt<uint32_t>();
             offset_t off = fs.readInt<uint32_t>();
+            (void)off;
 
             storedSizes[i] = ssize;
 
@@ -364,6 +373,9 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
         ssize_t len = (*it).second - (*it).first;
         buf.resize(len);
         ssize_t n = read(fd, &buf[0], len);
+        if (n < 0 || n != len) {
+            throw PosixException(errno);
+        }
         ASSERT(n == len);
         //fprintf(stderr, "Wrote block size %ld\n", len);
 

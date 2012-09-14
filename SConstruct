@@ -78,9 +78,9 @@ if env["BUILDTYPE"] == "DEBUG":
     env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
 	"-Wno-deprecated-declarations" ])
 elif env["BUILDTYPE"] == "PERF":
-    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-O2"])
+    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-Wall", "-O0"])
 elif env["BUILDTYPE"] == "RELEASE":
-    env.Append(CPPFLAGS = ["-DNDEBUG", "-O2"])
+    env.Append(CPPFLAGS = ["-DNDEBUG", "-Wall", "-O2"])
 else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
