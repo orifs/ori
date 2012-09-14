@@ -39,6 +39,7 @@ public:
     bool full() const;
     void addPayload(ObjectInfo info, const std::string &payload);
     bool has(const ObjectHash &hash) const;
+    void commit();
 
     std::vector<ObjectInfo> infos;
     std::vector<std::string> payloads;

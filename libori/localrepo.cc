@@ -441,6 +441,7 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
     }
 
     if (currTransaction->full()) {
+        currTransaction->commit();
         currTransaction.reset();
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);
@@ -689,6 +690,7 @@ LocalRepo::sync()
     bool full = true;
     if (currTransaction.get()) {
         full = currTransaction->full();
+        currTransaction->commit();
         currTransaction.reset();
     }
     if (full) {
@@ -1270,8 +1272,10 @@ void
 LocalRepo::gc()
 {
     // Commit all ongoing transactions
-    if (currTransaction.get())
+    if (currTransaction.get()) {
+        currTransaction->commit();
         currTransaction.reset();
+    }
 
     // Compact the index
     index.rewrite();

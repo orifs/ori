@@ -27,7 +27,7 @@ PfTransaction::PfTransaction(Packfile *pf, Index *idx)
 PfTransaction::~PfTransaction()
 {
     if (!committed)
-        pf->commit(this, idx);
+        commit();
 }
 
 bool PfTransaction::full() const
@@ -100,6 +100,14 @@ PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
 bool PfTransaction::has(const ObjectHash &hash) const
 {
     return hashToIx.find(hash) != hashToIx.end();
+}
+
+void PfTransaction::commit()
+{
+    pf->commit(this, idx);
+    if (!committed) {
+        throw std::runtime_error("Unknown error committing PfTransaction");
+    }
 }
 
 
@@ -182,7 +190,6 @@ Packfile::commit(PfTransaction *t, Index *idx)
 	ie.packfile = packid;
 
         idx->updateEntry(ie.info.hash, ie);
-        fprintf(stderr, "Committing %s to PF\n", ie.info.hash.hex().c_str());
     }
 
     t->committed = true;
