@@ -21,15 +21,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void ori_log(const char *fmt, ...);
+void ori_log(int level, const char *fmt, ...);
 class LocalRepo;
 int ori_open_log(LocalRepo *repo);
 
+#define LEVEL_ERR	0 /* Error */
+#define LEVEL_MSG	1 /* Stdout */
+#define LEVEL_LOG	2 /* Log */
+#define LEVEL_DBG	3 /* Debug */
+#define LEVEL_VRB	4 /* Verbose */
+
 #ifdef DEBUG
-#define WARNING(fmt, ...) ori_log("WARNING: " fmt "\n", ##__VA_ARGS__)
-#define LOG(fmt, ...) ori_log(fmt "\n", ##__VA_ARGS__)
+#define WARNING(fmt, ...) ori_log(LEVEL_ERR, "WARNING: " fmt "\n", ##__VA_ARGS__)
+#define MSG(fmt, ...) ori_log(LEVEL_MSG, fmt "\n", ##__VA_ARGS__)
+#define LOG(fmt, ...) ori_log(LEVEL_LOG, fmt "\n", ##__VA_ARGS__)
 #else
 #define WARNING(fmt, ...)
+#define MSG(fmt, ...)
 #define LOG(fmt, ...)
 #endif
 

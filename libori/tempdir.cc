@@ -72,7 +72,7 @@ static int _rmtreeCb(void *arg, const char *path)
 TempDir::~TempDir()
 {
     if (objects_fd > 0) {
-        printf("Closing temp dir\n");
+	// XXX: printf("Closing temp dir\n");
         close(objects_fd);
         objects_fd = -1;
     }
