@@ -71,7 +71,7 @@ SnapshotIndex::open(const string &indexFile)
 
     int len = sb.st_size;
     string blob(len, '\0');
-    int status = read(fd, &blob[0], len);
+    int status UNUSED = read(fd, &blob[0], len);
     ASSERT(status == len);
 
     string line;

@@ -77,7 +77,7 @@ SshRepo::distance()
 
     // Send hello command
     client->sendCommand("hello");
-    bool ok = client->respIsOK();
+    bool ok UNUSED = client->respIsOK();
     bytestream::ap bs(client->getStream());
     std::string version;
     bs->readPStr(version);
