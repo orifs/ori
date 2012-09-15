@@ -13,6 +13,11 @@
 #include "lrucache.h"
 #include "rwlock.h"
 
+#define NULL_FH 0
+#define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME
+#define ORI_SNAPSHOT_DIRNAME ".snapshot"
+#define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
+
 // logging.cc
 #ifdef DEBUG
 #define FUSE_LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
@@ -76,6 +81,7 @@ struct ori_priv
     LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
     LRUCache<ObjectHash, ObjectInfo, 128> objInfoCache;
 
+    LRUCache<std::string, nlink_t, 128> nlinkCache;
     LRUCache<std::string, TreeEntry, FUSE_ENTRY_CACHE_SIZE> teCache;
     LRUCache<std::string, ExtendedTreeEntry, FUSE_ENTRY_CACHE_SIZE> eteCache;
 
@@ -99,6 +105,7 @@ struct ori_priv
     ObjectInfo getObjectInfo(const ObjectHash &hash);
 
     bool getETE(const char *path, ExtendedTreeEntry &ete);
+    nlink_t computeNLink(const char *path);
 
     // Initialize temporary written data
     RWKey::sp startWrite(RWKey::sp repoKey=RWKey::sp());

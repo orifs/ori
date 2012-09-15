@@ -40,11 +40,6 @@ using namespace std;
 #include "remoterepo.h"
 #include "fuse_cmd.h"
 
-#define NULL_FH 0
-#define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME
-#define ORI_SNAPSHOT_DIRNAME ".snapshot"
-#define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
-
 mount_ori_config config;
 RemoteRepo remoteRepo;
 
@@ -88,13 +83,7 @@ ori_getattr(const char *path, struct stat *stbuf)
     memset(stbuf, 0, sizeof(struct stat));
 
     ori_priv *p = ori_getpriv();
-    if (strcmp(path, "/") == 0) {
-        stbuf->st_uid = geteuid();
-        stbuf->st_gid = getegid();
-        stbuf->st_mode = 0755 | S_IFDIR;
-        stbuf->st_nlink = 2;
-        return 0;
-    } else if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         RWKey::sp coKey = p->lock_cmd_output.readLock();
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
@@ -167,6 +156,20 @@ ori_getattr(const char *path, struct stat *stbuf)
 	stbuf->st_ctime = te.attrs.getAs<time_t>(ATTR_CTIME);
 
 	return 0;
+    }
+
+    if (strcmp(path, "/") == 0) {
+        stbuf->st_uid = geteuid();
+        stbuf->st_gid = getegid();
+        stbuf->st_mode = 0755 | S_IFDIR;
+
+        if (p->nlinkCache.hasKey("/")) {
+            stbuf->st_nlink = p->nlinkCache.get("/");
+        }
+        else {
+            stbuf->st_nlink = p->computeNLink("/");
+        }
+        return 0;
     }
 
     ExtendedTreeEntry ete;
@@ -792,12 +795,11 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     for (std::map<std::string, TreeEntry>::iterator it = t.tree.begin();
             it != t.tree.end();
             it++) {
-        FUSE_LOG("readdir entry %s", (*it).first.c_str());
+        //FUSE_LOG("readdir entry %s", (*it).first.c_str());
 
         // Check for deletions
         if (p->currTreeDiff != NULL) {
             std::string fullPath = extPath + (*it).first;
-            FUSE_LOG("fullpath %s", fullPath.c_str());
 
             TreeDiffEntry *tde = p->currTreeDiff->getLatestEntry(fullPath);
             if (tde != NULL && (tde->type == TreeDiffEntry::DeletedFile ||

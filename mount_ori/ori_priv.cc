@@ -3,6 +3,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <map>
+
 #include "oriutil.h"
 
 ori_priv::ori_priv(const std::string &repoPath)
@@ -211,6 +213,118 @@ ori_priv::getETE(const char *path, ExtendedTreeEntry &ete)
     return true;
 }
 
+nlink_t
+ori_priv::computeNLink(const char *path)
+{
+    nlink_t total = 2;
+
+    ori_priv *p = ori_getpriv();
+    Tree t;
+    if (strcmp(path, "/") == 0) {
+        t = *headtree;
+        total += 2;
+    } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
+        std::map<std::string, ObjectHash> snapshots = p->repo->listSnapshots();
+        total += snapshots.size();
+        return total;
+    } else if (strncmp(path,
+		       ORI_SNAPSHOT_DIRPATH,
+		       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        std::string snapshot = path;
+        std::string relPath;
+	size_t pos = 0;
+
+	snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+	pos = snapshot.find('/', pos);
+	if (pos == snapshot.npos) {
+	    // Snapshot root
+	    ObjectHash obj = p->repo->lookupSnapshot(snapshot);
+	    Commit c;
+
+	    if (obj.isEmpty())
+		return -ENOENT;
+ 
+	    c = p->repo->getCommit(obj);
+	    obj = c.getTree();
+	    
+	    t = p->getTree(obj, RWKey::sp());
+	} else {
+	    // Snapshot lookup
+	    ObjectHash obj;
+	    Commit c;
+	    TreeEntry entry;
+
+	    relPath = snapshot.substr(pos);
+	    snapshot = snapshot.substr(0, pos - 1);
+
+	    obj = p->repo->lookupSnapshot(snapshot);
+	    if (obj.isEmpty())
+		return 0;
+ 
+	    c = p->repo->getCommit(obj);
+
+	    entry = p->repo->lookupTreeEntry(c, relPath);
+	    if (entry.type != TreeEntry::Tree)
+		return 0;
+
+	    t = p->getTree(entry.hash, RWKey::sp());
+	}
+    } else {
+        ExtendedTreeEntry ete;
+        bool hasETE = p->getETE(path, ete);
+        if (!hasETE) return 0;
+        if (ete.te.type != TreeEntry::Tree)
+            throw std::runtime_error("Called computeNLink on a non-directory");
+        t = p->getTree(ete.te.hash, RWKey::sp());
+    }
+
+    std::string extPath = std::string(path) + "/";
+    if (extPath.size() == 2)
+        extPath.resize(1); // for root dir '//'
+
+    RWKey::sp repoKey = p->lock_repo.readLock();
+
+    for (std::map<std::string, TreeEntry>::iterator it = t.tree.begin();
+            it != t.tree.end();
+            it++) {
+
+        // Check for deletions
+        bool isDir = (*it).second.type == TreeEntry::Tree;
+
+        if (p->currTreeDiff != NULL) {
+            std::string fullPath = extPath + (*it).first;
+            TreeDiffEntry *tde = p->currTreeDiff->getLatestEntry(fullPath);
+            if (tde != NULL && (tde->type == TreeDiffEntry::DeletedFile ||
+                                tde->type == TreeDiffEntry::DeletedDir)) {
+                continue;
+            }
+        }
+        
+        if (isDir) total += 1;
+    }
+
+    // Check for additions
+    if (p->currTreeDiff != NULL) {
+        for (size_t i = 0; i < p->currTreeDiff->entries.size(); i++) {
+            const TreeDiffEntry &tde = p->currTreeDiff->entries[i];
+            if (strncmp(extPath.c_str(), tde.filepath.c_str(), extPath.size())
+                    != 0) {
+                continue;
+            }
+
+            if (strchr(tde.filepath.c_str()+extPath.size(), '/') != NULL)
+                continue;
+
+            if (tde.type == TreeDiffEntry::NewDir) {
+                total += 1;
+            }
+        }
+    }
+
+    nlinkCache.put(path, total);
+    return total;
+}
+
 
 
 RWKey::sp
@@ -242,6 +356,9 @@ ori_priv::mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey)
         throw std::runtime_error("Call startWrite before calling mergeAndCommit");
     }
 
+    nlinkCache.invalidate(tde.filepath);
+    if (tde.filepath.size() > 1)
+        nlinkCache.invalidate(StrUtil_Basename(tde.filepath));
     eteCache.invalidate(tde.filepath);
     bool needs_commit = currTreeDiff->mergeInto(tde);
     if (needs_commit) {
