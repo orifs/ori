@@ -28,7 +28,7 @@
 
 ObjectHash::ObjectHash()
 {
-    memset(hash, 0, SIZE);
+    clear();
 }
 
 // Private constructor
@@ -70,6 +70,11 @@ bool ObjectHash::operator ==(const ObjectHash &other) const
 {
     return memcmp(hash, other.hash, SIZE) == 0;
 }*/
+
+void ObjectHash::clear()
+{
+    memset(hash, 0, SIZE);
+}
 
 bool ObjectHash::isEmpty() const
 {

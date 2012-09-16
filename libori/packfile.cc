@@ -537,7 +537,7 @@ PackfileManager::_loadFreeList()
     std::string freeListPath = rootPath + PFMGR_FREELIST;
     int fd = ::open(freeListPath.c_str(), O_RDONLY);
     if (fd < 0) {
-        perror("PackfileManager::_loadFreeList open");
+        //perror("PackfileManager::_loadFreeList open");
         return false;
     }
 

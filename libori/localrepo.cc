@@ -943,6 +943,7 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
     for (size_t i = 0; i < remoteCommits.size(); i++) {
         ObjectHash hash = remoteCommits[i].hash();
         mpo.enqueue(hash);
+        fprintf(stderr, "Adding %s (commit)\n", hash.hex().c_str());
         // TODO: partial pull
     }
 
@@ -971,7 +972,7 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
                 }
             }
             if (!found) {
-                fprintf(stderr, "Couldn't find a source for object %s\n",
+                fprintf(stderr, "No source for %s\n",
                         hash.hex().c_str());
                 // TODO: keep retrying?
                 mpo.toPull.push_back(hash);

@@ -38,6 +38,7 @@ struct ObjectHash {
         return !(*this == other);
     }
 
+    void clear();
     // TODO: empty hash "\0...\0" is valid?...
     bool isEmpty() const;
     /// Returns the hash as a hex string (size 2*SIZE)

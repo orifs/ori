@@ -39,6 +39,8 @@ Commit::Commit()
     : message(), treeObjId(), user(), snapshotName(),
       date(0), graftRepo(), graftPath(), graftCommitId()
 {
+    parents.first.clear();
+    parents.second.clear();
 }
 
 Commit::~Commit()
@@ -160,7 +162,7 @@ Commit::getBlob() const
     }
 
     ss.writePStr(user);
-    ss.writeInt(date);
+    ss.writeInt<uint64_t>(date);
     ss.writePStr(snapshotName);
 
     if (graftRepo != "") {
@@ -197,7 +199,7 @@ Commit::fromBlob(const string &blob)
     }
 
     ss.readPStr(user);
-    date = ss.readInt<time_t>();
+    date = ss.readInt<uint64_t>();
     ss.readPStr(snapshotName);
 
     uint8_t hasGraft = ss.readInt<uint8_t>();
@@ -218,5 +220,9 @@ Commit::fromBlob(const string &blob)
 ObjectHash
 Commit::hash() const
 {
-    return Util_HashString(getBlob());
+    const std::string &blob = getBlob();
+    ObjectHash h = Util_HashString(blob);
+    fprintf(stderr, "Commit blob len %lu, hash %s\n", blob.size(),
+            h.hex().c_str());
+    return h;
 }
