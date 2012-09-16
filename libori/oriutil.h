@@ -25,6 +25,9 @@
 
 #include "objecthash.h"
 
+// GCC Only
+#define UNUSED __attribute__((unused))
+
 bool Util_FileExists(const std::string &path);
 bool Util_IsDirectory(const std::string &path);
 int Util_MkDir(const std::string &path);

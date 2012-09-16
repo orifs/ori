@@ -77,11 +77,13 @@ struct ori_priv
 
     void _resetHead(const ObjectHash &chash);
 
-    LRUCache<ObjectHash, Tree, 128> treeCache;
-    LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>, 64> lbCache;
-    LRUCache<ObjectHash, ObjectInfo, 128> objInfoCache;
 
-    LRUCache<std::string, nlink_t, 128> nlinkCache;
+    LRUCache<ObjectHash, Tree, FUSE_TREE_CACHE_SIZE> treeCache;
+    LRUCache<ObjectHash, std::tr1::shared_ptr<LargeBlob>,
+	     FUSE_LARGEBLOB_CACHE_SIZE> lbCache;
+    LRUCache<ObjectHash, ObjectInfo, FUSE_OBJINFO_CACHE_SIZE> objInfoCache;
+
+    LRUCache<std::string, nlink_t, FUSE_NLINK_CACHE_SIZE> nlinkCache;
     LRUCache<std::string, TreeEntry, FUSE_ENTRY_CACHE_SIZE> teCache;
     LRUCache<std::string, ExtendedTreeEntry, FUSE_ENTRY_CACHE_SIZE> eteCache;
 

@@ -10,6 +10,7 @@
 
 #include <lzma.h>
 
+#include "oriutil.h"
 #include "objecthash.h"
 #include "objectinfo.h"
 #include "tuneables.h"
@@ -60,7 +61,7 @@ public:
     template <typename T>
     T readInt() {
         T rval;
-        bool success = readExact((uint8_t*)&rval, sizeof(T));
+        bool success UNUSED = readExact((uint8_t*)&rval, sizeof(T));
         assert(success);
         //std::cerr << "Read int " << (ssize_t)rval << std::endl;
         return rval;

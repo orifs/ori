@@ -50,7 +50,19 @@
 #endif
 
 // FUSE tuneables
-#define FUSE_ENTRY_CACHE_SIZE 512
+#ifdef DEBUG
+#define FUSE_TREE_CACHE_SIZE		128
+#define FUSE_LARGEBLOB_CACHE_SIZE	64
+#define FUSE_OBJINFO_CACHE_SIZE		128
+#define FUSE_NLINK_CACHE_SIZE		128
+#define FUSE_ENTRY_CACHE_SIZE		512
+#else /* Performance or Relase Build */
+#define FUSE_TREE_CACHE_SIZE		1024
+#define FUSE_LARGEBLOB_CACHE_SIZE	64
+#define FUSE_OBJINFO_CACHE_SIZE		(4 * 1024)
+#define FUSE_NLINK_CACHE_SIZE		1024
+#define FUSE_ENTRY_CACHE_SIZE		(4 * 1024)
+#endif
 #define FUSE_SINGLE_THREADED 0
 
 #endif /* __TUNEABLES_H__ */

@@ -88,7 +88,7 @@ Index::open(const string &indexFile)
     for (i = 0; i < entries; i++) {
         std::string entry_str(TOTAL_ENTRYSIZE, '\0');
 
-        int status = read(fd, &entry_str[0], TOTAL_ENTRYSIZE);
+        int status UNUSED = read(fd, &entry_str[0], TOTAL_ENTRYSIZE);
         ASSERT(status == TOTAL_ENTRYSIZE);
 
         IndexEntry entry;

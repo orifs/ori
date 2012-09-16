@@ -1533,7 +1533,7 @@ LocalRepo::purgeFuseCommits()
         const Commit &c = commits[i];
         ObjectHash hash = c.hash();
         if (metadata.getMeta(hash, "status") == "fuse") {
-            bool status = purgeCommit(hash);
+            bool status UNUSED = purgeCommit(hash);
             ASSERT(status);
         }
     }
