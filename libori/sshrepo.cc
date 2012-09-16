@@ -42,12 +42,15 @@
  */
 
 SshRepo::SshRepo(SshClient *client)
-    : client(client)
+    : client(client), containedObjs(NULL)
 {
 }
 
 SshRepo::~SshRepo()
 {
+    if (containedObjs) {
+        delete containedObjs;
+    }
 }
 
 std::string SshRepo::getUUID()
@@ -78,6 +81,7 @@ SshRepo::distance()
     // Send hello command
     client->sendCommand("hello");
     bool ok = client->respIsOK();
+    assert(ok);
     bytestream::ap bs(client->getStream());
     std::string version;
     bs->readPStr(version);
@@ -153,8 +157,17 @@ SshRepo::getObjectInfo(const ObjectHash &id)
 }
 
 bool SshRepo::hasObject(const ObjectHash &id) {
-    NOT_IMPLEMENTED(false);
-    return false;
+    if (!containedObjs) {
+        containedObjs = new std::tr1::unordered_set<ObjectHash>();
+        std::set<ObjectInfo> objs = listObjects();
+        for (std::set<ObjectInfo>::iterator it = objs.begin();
+                it != objs.end();
+                it++) {
+            containedObjs->insert((*it).hash);
+        }
+    }
+
+    return containedObjs->find(id) != containedObjs->end();
 }
 
 std::set<ObjectInfo> SshRepo::listObjects()
