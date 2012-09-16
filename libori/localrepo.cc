@@ -946,6 +946,7 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
         // TODO: partial pull
     }
 
+    size_t totalObjs = 0, closerObjs = 0;
     LocalRepoLock::sp _lock(lock());
 
     while (!mpo.toPull.empty()) {
@@ -964,6 +965,8 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
                 if (remote->get()->hasObject(hash)) {
                     mpo.toMultiPull[i].push_back(hash);
                     found = true;
+                    if (remote.get() != defaultRemote.get())
+                        closerObjs++;
                     break;
                 }
             }
@@ -975,6 +978,8 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
                 sleep(1);
                 continue;
             }
+
+            totalObjs++;
         }
 
         assert(mpo.toPull.size() == 0);
@@ -1026,6 +1031,8 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
             hashes.clear();
         }
     }
+
+    printf("Speed-up: %lu of %lu objects\n", closerObjs, totalObjs);
 }
 
 void
