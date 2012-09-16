@@ -222,7 +222,8 @@ Commit::hash() const
 {
     const std::string &blob = getBlob();
     ObjectHash h = Util_HashString(blob);
-    fprintf(stderr, "Commit blob len %lu, hash %s\n", blob.size(),
+    /*fprintf(stderr, "Commit blob len %lu, hash %s\n", blob.size(),
             h.hex().c_str());
+    Util_PrintHex(blob);*/
     return h;
 }
