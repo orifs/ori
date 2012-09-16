@@ -667,10 +667,10 @@ Util_ResolveHost(const string &hostname) {
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_flags = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_ADDRCONFIG | AI_V4MAPPED;
+    //hints.ai_flags = AI_ADDRCONFIG | AI_V4MAPPED;
 
     int status = getaddrinfo(hostname.c_str(), "80", &hints, &result);
-    if (status < 0) {
+    if (status < 0 || result == NULL) {
         perror("getaddrinfo");
         return "";
     }
