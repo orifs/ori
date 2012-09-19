@@ -431,7 +431,7 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
 
     purged.erase(hash);
 
-    if (hasObject(hash)) return 0;
+    if (isObjectStored(hash)) return 0;
 
     if (!currPackfile.get()) {
         currPackfile = packfiles->newPackfile();
@@ -1316,13 +1316,19 @@ LocalRepo::gc()
  * Return true if the repository has the object.
  */
 bool
-LocalRepo::hasObject(const ObjectHash &objId)
+LocalRepo::isObjectStored(const ObjectHash &objId)
 {
     if (currTransaction.get() && currTransaction->has(objId)) {
         return true;
     }
 
-    bool val = index.hasObject(objId);
+    return index.hasObject(objId);
+}
+
+bool
+LocalRepo::hasObject(const ObjectHash &objId)
+{
+    bool val = isObjectStored(objId);
 
     if (val && remoteRepo != NULL) {
 	val = remoteRepo->hasObject(objId);

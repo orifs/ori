@@ -91,6 +91,7 @@ public:
     Object::sp getObject(const ObjectHash &id);
     ObjectInfo getObjectInfo(const ObjectHash &objId);
     bool hasObject(const ObjectHash &objId);
+    bool isObjectStored(const ObjectHash &objId);
     //std::set<ObjectInfo> slowListObjects();
     std::set<ObjectInfo> listObjects();
     int addObject(ObjectType type, const ObjectHash &hash,

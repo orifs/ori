@@ -189,8 +189,12 @@ Index::updateEntry(const ObjectHash &objId, const IndexEntry &entry)
 
     _writeEntry(entry);
 
+    if (index.find(objId) != index.end()) {
+        fprintf(stderr, "WARNING: duplicate updateEntry\n");
+    }
+
     // Add to in-memory index
-    index[entry.info.hash] = entry;
+    index[objId] = entry;
 }
 
 const IndexEntry &
