@@ -431,6 +431,8 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
 
     purged.erase(hash);
 
+    if (hasObject(hash)) return 0;
+
     if (!currPackfile.get()) {
         currPackfile = packfiles->newPackfile();
         currTransaction = currPackfile->begin(&index);

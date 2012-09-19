@@ -59,7 +59,8 @@ void AttrMap::setFromFile(const std::string &filename)
     struct stat sb;
 
     if (stat(filename.c_str(), &sb) < 0) {
-	perror("stat failed in Tree::addObject");
+	perror("AttrMap::setFromFile stat");
+        fprintf(stderr, "(%s)\n", filename.c_str());
 	PANIC();
     }
 
