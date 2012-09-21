@@ -67,6 +67,9 @@ else:
 if env["WITH_MDNS"] != "1":
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
 
+if env["WITH_LIBS3"] == "1":
+    env.Append(CPPFLAGS = [ "-DWITH_LIBS3" ])
+
 if env["USE_FAKES3"] == "1":
     env.Append(CPPDEFINES = ['USE_FAKES3'])
 

@@ -36,7 +36,6 @@ src = [
     "objecthash.cc",
     "packfile.cc",
     "rwlock.cc",
-    "backup_s3.cc",
 ]
 
 if os.name == 'posix':
@@ -44,6 +43,9 @@ if os.name == 'posix':
 
 if env["WITH_MDNS"] == "1":
     src.append("zeroconf.cc")
+
+if env["WITH_LIBS3"] == "1":
+    src.append("backup_s3.cc")
 
 env.StaticLibrary("ori", src)
 

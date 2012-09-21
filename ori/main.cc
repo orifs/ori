@@ -57,7 +57,9 @@ typedef struct Cmd {
 
 // General Operations
 int cmd_addkey(int argc, const char *argv[]);
+#ifdef WITH_LIBS3
 int cmd_backup(int argc, const char *argv[]);
+#endif /* WITH_LIBS3 */
 int cmd_branches(int argc, const char *argv[]);
 int cmd_branch(int argc, const char *argv[]);
 int cmd_checkout(int argc, const char *argv[]);
@@ -111,12 +113,14 @@ static Cmd commands[] = {
         cmd_addkey,
         NULL
     },
+#ifdef WITH_LIBS3
     {
         "backup",
         "Backup or restore the repository",
         cmd_backup,
         NULL
     },
+#endif /* WITH_LIBS3 */
     {
         "branch",
         "Set or print current branch",

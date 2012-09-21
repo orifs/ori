@@ -4,7 +4,6 @@ Import('env')
 
 src = [
     "cmd_addkey.cc",
-    "cmd_backup.cc",
     "cmd_branch.cc",
     "cmd_branches.cc",
     "cmd_catobj.cc",
@@ -41,6 +40,9 @@ src = [
     "main.cc",
     "server.cc",
 ]
+
+if env["WITH_LIBS3"] == "1":
+    src.append("cmd_backup.cc")
 
 libs = [
         "crypto",
