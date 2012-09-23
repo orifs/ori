@@ -15,7 +15,6 @@
  */
 
 #define __STDC_LIMIT_MACROS
-#define _WITH_DPRINTF
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,11 +118,20 @@ bool ObjectInfo::operator <(const ObjectInfo &other) const {
     return false;
 }
 
+#define OBJINFO_PRINTBUF	512
 void ObjectInfo::print(int fd) const {
-    dprintf(fd, "Object info for %s\n", hash.hex().c_str());
-    dprintf(fd, "  type = %s\n", getStrForType(type));
-    dprintf(fd, "  flags = %08X\n", flags);
-    dprintf(fd, "  payload_size = %u\n", payload_size);
+    char buf[OBJINFO_PRINTBUF];
+    size_t len;
+
+    len = snprintf(buf, OBJINFO_PRINTBUF,
+		   "Object info for %s\n", hash.hex().c_str());
+    len += snprintf(buf + len, OBJINFO_PRINTBUF - len,
+		    "  type = %s\n", getStrForType(type));
+    len += snprintf(buf + len, OBJINFO_PRINTBUF - len,
+		    "  flags = %08X\n", flags);
+    len += snprintf(buf + len, OBJINFO_PRINTBUF - len,
+		    "  payload_size = %u\n", payload_size);
+    write(fd, buf, len);
 }
 
 const char *ObjectInfo::getStrForType(Type type) {
