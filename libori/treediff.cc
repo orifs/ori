@@ -610,7 +610,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         const TreeDiffEntry &tde = entries[i];
         if (tde.type == TreeDiffEntry::Noop) continue;
 
-        LOG("Applying %c   %s (%s)\n", tde.type, tde.filepath.c_str(),
+        LOG("Applying %c   %s (%s)", tde.type, tde.filepath.c_str(),
             tde.newFilename.c_str());
         //if (i % 80 == 0 && i > 0) putc('\n', stdout);
         //putc(tde.type, stdout);

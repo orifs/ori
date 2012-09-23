@@ -1250,9 +1250,8 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
 	}
     }
 
-    LOG("Commit Hash: %s\nTree Hash: %s\n",
-	commitHash.hex().c_str(),
-	treeHash.hex().c_str());
+    LOG("Commit Hash: %s", commitHash.hex().c_str());
+    LOG("Tree Hash: %s", treeHash.hex().c_str());
     return commitHash;
 }
 

@@ -21,7 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void ori_log(int level, const char *fmt, ...);
+void ori_log(int level, const char *fmt, ...)
+    __attribute__((format(printf, 2, 3)));
 class LocalRepo;
 int ori_open_log(LocalRepo *repo);
 

@@ -209,8 +209,7 @@ MetadataLog::commit(MdTransaction *tr)
     uint32_t num_md = tr->metadata.size();
     if (num_rc + num_md == 0) return;
     
-    LOG("Committing %u refcount changes, %u metadata entries\n",
-	num_rc, num_md);
+    LOG("Committing %u refcount changes, %u metadata entries", num_rc, num_md);
 
     //write(fd, &num, sizeof(uint32_t));
 
