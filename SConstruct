@@ -21,6 +21,7 @@ opts.AddVariables(
     ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
     ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY; NONE).", 
 	"FASTLZ"),
+    ("CHUNKING_ALGO", "Chunking algorithm (RK; FIXED).", "RK"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
 
@@ -62,6 +63,14 @@ elif env["COMPRESSION_ALGO"] == "NONE":
     print "Building without compression"
 else:
     print "Error unsupported compression algorithm"
+    sys.exit(-1)
+
+if env["CHUNKING_ALGO"] == "RK":
+    env.Append(CPPFLAGS = [ "-DORI_USE_RK" ])
+elif env["CHUNKING_ALGO"] == "FIXED":
+    env.Append(CPPFLAGS = [ "-DORI_USE_FIXED" ])
+else:
+    print "Error unsupported chunking algorithm"
     sys.exit(-1)
 
 if env["WITH_MDNS"] != "1":

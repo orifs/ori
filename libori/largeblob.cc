@@ -40,7 +40,14 @@
 #include "debug.h"
 #include "oriutil.h"
 #include "largeblob.h"
+
+#ifdef ORI_USE_RK
 #include "rkchunker.h"
+#endif /* ORI_USE_RK */
+
+#ifdef ORI_USE_FIXED
+#include "fchunker.h"
+#endif /* ORI_USE_FIXED */
 
 using namespace std;
 
@@ -189,7 +196,13 @@ LargeBlob::chunkFile(const string &path)
 {
     int status;
     FileChunkerCB cb = FileChunkerCB(this);
+#ifdef ORI_USE_RK
     RKChunker<4096, 2048, 8192> c = RKChunker<4096, 2048, 8192>();
+#endif /* ORI_USE_RK */
+
+#ifdef ORI_USE_FIXED
+    FChunker<4096> c = FChunker<4096>();
+#endif /* ORI_USE_FIXED */
 
     status = cb.open(path);
     if (status < 0) {
