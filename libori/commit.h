@@ -51,6 +51,7 @@ public:
     void fromBlob(const std::string &blob);
 
     ObjectHash hash() const; // TODO: cache this
+    void print() const;
 private:
     std::pair<ObjectHash, ObjectHash> parents;
     std::string message;

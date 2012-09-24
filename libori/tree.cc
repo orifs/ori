@@ -383,3 +383,39 @@ Tree::hash() const
 {
     return Util_HashString(getBlob());
 }
+
+void
+Tree::print() const
+{
+    map<string, TreeEntry>::const_iterator it;
+
+    for (it = tree.begin(); it != tree.end(); it++)
+    {
+	cout << "Path: " << (*it).first << endl;
+	switch ((*it).second.type)
+	{
+	    case TreeEntry::Null:
+		cout << "  Type: Null" << endl;
+		break;
+	    case TreeEntry::Blob:
+		cout << "  Type: Blob" << endl;
+		break;
+	    case TreeEntry::LargeBlob:
+		cout << "  Type: LargeBlob" << endl;
+		break;
+	    case TreeEntry::Tree:
+		cout << "  Type: Tree" << endl;
+		break;
+	    default:
+		NOT_IMPLEMENTED(false);
+		break;
+	}
+
+	cout << "  Hash: " << (*it).second.hash.hex() << endl;
+	if ((*it).second.type == TreeEntry::LargeBlob)
+	    cout << "  Large Hash: " << (*it).second.largeHash.hex() << endl;
+
+	// XXX: AttrMap.print()
+    }
+}
+

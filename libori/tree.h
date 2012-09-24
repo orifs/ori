@@ -121,6 +121,7 @@ public:
     Flat flattened(Repo *r) const;
     static Tree unflatten(const Flat &flat, Repo *r);
 
+    void print() const;
 
     std::map<std::string, TreeEntry> tree;
 };

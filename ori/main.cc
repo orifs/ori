@@ -91,6 +91,7 @@ int cmd_verify(int argc, const char *argv[]);
 
 // Debug Operations
 int cmd_catobj(int argc, const char *argv[]); // Debug
+int cmd_dumpobj(int argc, const char *argv[]); // Debug
 int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_stats(int argc, const char *argv[]); // Debug
@@ -301,6 +302,12 @@ static Cmd commands[] = {
 	"catobj",
 	"Print an object from the repository (DEBUG)",
 	cmd_catobj,
+	NULL,
+    },
+    {
+	"dumpobj",
+	"Print the structured representation of a repository object (DEBUG)",
+	cmd_dumpobj,
 	NULL,
     },
     {

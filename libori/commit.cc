@@ -227,3 +227,29 @@ Commit::hash() const
     Util_PrintHex(blob);*/
     return h;
 }
+
+void
+Commit::print() const
+{
+    time_t timeVal = date;
+    char timeStr[26];
+
+    ctime_r(&timeVal, timeStr);
+
+    cout << "Parents: "
+	 << (parents.first.isEmpty() ? "" : parents.first.hex())
+	 << " "
+	 << (parents.second.isEmpty() ? "" : parents.second.hex()) << endl;
+    cout << "Tree:    " << treeObjId.hex() << endl;
+    cout << "Author:  " << user << endl;
+    cout << "Date:    " << timeStr;
+    if (!graftCommitId.isEmpty()) {
+	cout << "Graft Repo: " << graftRepo << endl;
+	cout << "Graft Path: " << graftPath << endl;
+	cout << "Graft Commit: " << graftCommitId.hex() << endl;
+    }
+    cout << "----- BEGIN MESSAGE -----" << endl;
+    cout << message << endl;
+    cout << "----- END MESSAGE -----" << endl;
+}
+
