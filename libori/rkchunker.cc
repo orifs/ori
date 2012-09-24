@@ -28,9 +28,7 @@
 #include <string>
 #include <iostream>
 
-#include "chunker.h"
-
-#ifdef RK_TEST
+#include "rkchunker.h"
 
 class TestCB : public ChunkerCB
 {
@@ -53,22 +51,22 @@ public:
 	sranddev();
 #endif /* __FreeBSD__ */
 
-	for (int i = 0; i < len; i++)
+	for (uint64_t i = 0; i < len; i++)
 	{
 	    buf[i] = rand() % 256;
 	}
     }
     virtual void match(const uint8_t *b, uint32_t l)
     {
-        SHA256_CTX state;
-        unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX state;
+	unsigned char hash[SHA256_DIGEST_LENGTH];
 
-        chunks++;
-        chunkLen += l;
+	chunks++;
+	chunkLen += l;
 
-        SHA256_Init(&state);
-        SHA256_Update(&state, b, l);
-        SHA256_Final(hash, &state);
+	SHA256_Init(&state);
+	SHA256_Update(&state, b, l);
+	SHA256_Final(hash, &state);
     }
     virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
     {
@@ -93,7 +91,7 @@ public:
 int main(int argc, char *argv[])
 {
     TestCB cb = TestCB(TEST_LEN);
-    Chunker<4096, 2048, 8192> c = Chunker<4096, 2048, 8192>();
+    RKChunker<4096, 2048, 8192> c = RKChunker<4096, 2048, 8192>();
 
     cb.fill();
 
@@ -105,9 +103,7 @@ int main(int argc, char *argv[])
     float tDiff = end.tv_sec - start.tv_sec;
     tDiff += (float)(end.tv_usec - start.tv_usec) / 10000000.0;
 
-    printf("Chunks %ld, Avg Chunk %ld\n", cb.chunks, cb.chunkLen / cb.chunks);
+    printf("Chunks %llu, Avg Chunk %llu\n", cb.chunks, cb.chunkLen / cb.chunks);
     printf("Time %3.3f, Speed %3.2fMB/s\n", tDiff, 1024.0 / tDiff);
 }
-
-#endif /* RK_TEST */
 

@@ -3,7 +3,6 @@ import os
 Import('env')
 
 src = [
-    "chunker.cc",
     "commit.cc",
     "dag.cc",
     "debug.cc",
@@ -48,4 +47,8 @@ if env["WITH_LIBS3"] == "1":
     src.append("backup_s3.cc")
 
 env.StaticLibrary("ori", src)
+
+# Test Binaries
+env.Program("rkchunker", "rkchunker.cc")
+env.Program("fchunker", "fchunker.cc")
 

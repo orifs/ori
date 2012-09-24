@@ -40,7 +40,7 @@
 #include "debug.h"
 #include "oriutil.h"
 #include "largeblob.h"
-#include "chunker.h"
+#include "rkchunker.h"
 
 using namespace std;
 
@@ -189,7 +189,7 @@ LargeBlob::chunkFile(const string &path)
 {
     int status;
     FileChunkerCB cb = FileChunkerCB(this);
-    Chunker<4096, 2048, 8192> c = Chunker<4096, 2048, 8192>();
+    RKChunker<4096, 2048, 8192> c = RKChunker<4096, 2048, 8192>();
 
     status = cb.open(path);
     if (status < 0) {
