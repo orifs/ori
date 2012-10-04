@@ -39,8 +39,9 @@
 #error "SHA256 not supported!"
 #endif
 
+#include "tuneables.h"
+
 #include <ori/debug.h>
-#include <ori/tuneables.h>
 #include <ori/object.h>
 
 using namespace std;

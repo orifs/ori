@@ -10,11 +10,12 @@
 #include <algorithm>
 #include <tr1/unordered_set>
 
+#include "tuneables.h"
+
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/scan.h>
 #include <ori/packfile.h>
-#include <ori/tuneables.h>
 #include <ori/index.h>
 #include <ori/posixexception.h>
 

@@ -23,7 +23,8 @@
 #include <queue>
 #include <iostream>
 
-#include <ori/tuneables.h>
+#include "tuneables.h"
+
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/object.h>

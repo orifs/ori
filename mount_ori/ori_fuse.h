@@ -4,7 +4,8 @@
 #include <string>
 #include <tr1/memory>
 
-#include <ori/tuneables.h>
+#include "fuse_tuneables.h"
+
 #include <ori/localrepo.h>
 #include <ori/commit.h>
 #include <ori/tree.h>
