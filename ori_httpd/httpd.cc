@@ -40,7 +40,7 @@
 
 #include "debug.h"
 #include "localrepo.h"
-#include "util.h"
+#include "oriutil.h"
 #include "zeroconf.h"
 #include "evbufstream.h"
 
@@ -394,7 +394,7 @@ Httpd_logCB(int severity, const char *msg)
     const char *sev[] = {
         "Debug", "Msg", "Warning", "Error",
     };
-    LOG("%s: %s", sev[severity]);
+    LOG("%s: %s", sev[severity], msg);
 }
 
 void
