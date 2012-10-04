@@ -25,7 +25,8 @@
 #include <string>
 
 #include <ori/oriutil.h>
-#include <ori/fuse_cmd.h>
+
+#include "fuse_cmd.h"
 
 std::string OF_ControlPath()
 {
@@ -77,3 +78,4 @@ bool OF_RunCommand(const char *cmd)
 
     return true;
 }
+

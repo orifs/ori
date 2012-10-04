@@ -59,8 +59,7 @@ ori_priv::getTree(const ObjectHash &hash, RWKey::sp repoKey)
     Tree t;
     if (treeCache.get(hash, t)) {
         return t;
-    }
-    else {
+    } else {
         if (!repoKey.get())
             repoKey = lock_repo.readLock();
         t.fromBlob(repo->getPayload(hash));
@@ -75,8 +74,7 @@ ori_priv::getLargeBlob(const ObjectHash &hash)
     std::tr1::shared_ptr<LargeBlob> lb;
     if (lbCache.get(hash, lb)) {
         return *lb.get();
-    }
-    else {
+    } else {
         RWKey::sp repoKey = lock_repo.readLock();
         lb.reset(new LargeBlob(repo));
         lb->fromBlob(repo->getPayload(hash));

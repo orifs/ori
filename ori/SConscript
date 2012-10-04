@@ -38,6 +38,7 @@ src = [
     "cmd_tip.cc",
     "cmd_treediff.cc",
     "cmd_verify.cc",
+    "fuse_cmd.cc",
     "main.cc",
     "server.cc",
 ]

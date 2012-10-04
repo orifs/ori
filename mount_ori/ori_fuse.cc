@@ -39,8 +39,6 @@ using namespace std;
 #include <ori/oriutil.h>
 #include <ori/remoterepo.h>
 
-#include <ori/fuse_cmd.h>
-
 mount_ori_config config;
 RemoteRepo remoteRepo;
 
@@ -288,7 +286,7 @@ static int
 ori_read_helper(ori_priv *p, const TreeEntry &te, char *buf, size_t size, off_t offset)
 {
     if (te.type == TreeEntry::Blob) {
-        // Read the payload to memory
+        // Read the payload to memory rather than decompress and memcpy
         // TODO: too inefficient
         std::string payload;
         payload = p->repo->getPayload(te.hash);
@@ -299,8 +297,7 @@ ori_read_helper(ori_priv *p, const TreeEntry &te, char *buf, size_t size, off_t 
         memcpy(buf, payload.data()+offset, real_read);
 
         return real_read;
-    }
-    else if (te.type == TreeEntry::LargeBlob) {
+    } else if (te.type == TreeEntry::LargeBlob) {
         const LargeBlob &lb = p->getLargeBlob(te.hash);
 
         size_t total = 0;

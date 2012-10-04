@@ -23,7 +23,8 @@
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/localrepo.h>
-#include <ori/fuse_cmd.h>
+
+#include "fuse_cmd.h"
 
 using namespace std;
 

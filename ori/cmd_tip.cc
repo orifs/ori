@@ -23,6 +23,8 @@
 
 #include <ori/localrepo.h>
 
+#include "fuse_cmd.h"
+
 using namespace std;
 
 extern LocalRepo repository;
@@ -30,6 +32,9 @@ extern LocalRepo repository;
 int
 cmd_tip(int argc, const char *argv[])
 {
+    if (OF_RunCommand("tip"))
+        return 0;
+
     string rootPath = LocalRepo::findRootPath();
 
     if (rootPath == "") {

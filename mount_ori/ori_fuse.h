@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2012 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 
@@ -15,6 +31,7 @@
 #include <ori/rwlock.h>
 
 #define NULL_FH 0
+#define ORI_CONTROL_FILENAME ".ori_control"
 #define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME
 #define ORI_SNAPSHOT_DIRNAME ".snapshot"
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
@@ -113,8 +130,6 @@ struct ori_priv
     // Initialize temporary written data
     RWKey::sp startWrite(RWKey::sp repoKey=RWKey::sp());
     bool mergeAndCommit(const TreeDiffEntry &tde, RWKey::sp repoKey);
-    // Commit temp data to a FUSE commit
-    RWKey::sp fuseCommit(RWKey::sp repoKey=RWKey::sp());
     // Make the last FUSE commit permanent
     RWKey::sp commitPerm();
 
@@ -125,6 +140,8 @@ struct ori_priv
     size_t readOutput(char *buf, size_t n);
 
 private:
+    // Commit temp data to a FUSE commit
+    RWKey::sp fuseCommit(RWKey::sp repoKey=RWKey::sp());
     bool getTreeEntry(const char *cpath, TreeEntry &te, RWKey::sp repoKey);
 };
 
