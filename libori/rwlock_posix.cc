@@ -24,10 +24,10 @@
 #include <unistd.h>
 #include <sys/types.h>
 
-#include "rwlock.h"
-#include "debug.h"
-#include "oriutil.h"
-#include "thread.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/rwlock.h>
+#include <ori/thread.h>
 
 #define LOG_LOCKING 0
 

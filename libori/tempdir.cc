@@ -22,10 +22,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "tempdir.h"
-#include "localobject.h"
-#include "oriutil.h"
-#include "scan.h"
+#include <ori/tempdir.h>
+#include <ori/localobject.h>
+#include <ori/oriutil.h>
+#include <ori/scan.h>
 
 //#ifndef DEBUG
 #define REMOVE_TEMPDIRS

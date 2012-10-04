@@ -10,13 +10,13 @@
 #include <algorithm>
 #include <tr1/unordered_set>
 
-#include "debug.h"
-#include "packfile.h"
-#include "tuneables.h"
-#include "index.h"
-#include "oriutil.h"
-#include "scan.h"
-#include "posixexception.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/scan.h>
+#include <ori/packfile.h>
+#include <ori/tuneables.h>
+#include <ori/index.h>
+#include <ori/posixexception.h>
 
 
 PfTransaction::PfTransaction(Packfile *pf, Index *idx)

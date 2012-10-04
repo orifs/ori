@@ -3,8 +3,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
-#include "localrepo.h"
-#include "backup.h"
+#include <ori/localrepo.h>
+#include <ori/backup.h>
 
 extern LocalRepo repository;
 

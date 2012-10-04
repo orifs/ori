@@ -8,7 +8,7 @@
 #include <vector>
 #include <string>
 
-#include "zeroconf.h"
+#include <ori/zeroconf.h>
 
 #define ORI_SERVICE_TYPE "_ori._tcp"
 

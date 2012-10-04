@@ -21,7 +21,7 @@
 #include <map>
 #include <vector>
 
-#include "dag.h"
+#include <ori/dag.h>
 
 using namespace std;
 

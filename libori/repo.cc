@@ -23,17 +23,15 @@
 #include <queue>
 #include <iostream>
 
-#include "tuneables.h"
-#include "debug.h"
-#include "oriutil.h"
-#include "object.h"
-#include "largeblob.h"
-
-#include "debug.h"
-#include "dag.h"
-#include "repo.h"
-#include "localrepo.h"
-#include "sshrepo.h"
+#include <ori/tuneables.h>
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/object.h>
+#include <ori/largeblob.h>
+#include <ori/dag.h>
+#include <ori/repo.h>
+#include <ori/localrepo.h>
+#include <ori/sshrepo.h>
 
 using namespace std;
 

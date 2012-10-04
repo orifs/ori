@@ -31,11 +31,11 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "packfile.h"
-#include "sshclient.h"
-#include "sshrepo.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/packfile.h>
+#include <ori/sshclient.h>
+#include <ori/sshrepo.h>
 
 /*
  * SshRepo
@@ -55,7 +55,7 @@ SshRepo::~SshRepo()
 
 std::string SshRepo::getUUID()
 {
-    // XXX: Implement me!
+    NOT_IMPLEMENTED(false);
     return "";
 }
 

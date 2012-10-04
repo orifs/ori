@@ -7,11 +7,11 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "stream.h"
-#include "metadatalog.h"
-#include "posixexception.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/stream.h>
+#include <ori/metadatalog.h>
+#include <ori/posixexception.h>
 
 MdTransaction::MdTransaction(MetadataLog *log)
     : log(log)

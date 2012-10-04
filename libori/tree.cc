@@ -28,12 +28,12 @@
 #include <iostream>
 #include <algorithm>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "scan.h"
-#include "repo.h"
-#include "largeblob.h"
-#include "tree.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/scan.h>
+#include <ori/repo.h>
+#include <ori/largeblob.h>
+#include <ori/tree.h>
 
 using namespace std;
 

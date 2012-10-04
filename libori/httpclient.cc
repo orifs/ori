@@ -34,10 +34,10 @@
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "httpclient.h"
-#include "httprepo.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/httpclient.h>
+#include <ori/httprepo.h>
 
 #define D_READ 0
 #define D_WRITE 1

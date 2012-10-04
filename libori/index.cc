@@ -29,10 +29,10 @@
 #include <set>
 #include <iostream>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "object.h"
-#include "index.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/object.h>
+#include <ori/index.h>
 
 using namespace std;
 using namespace std::tr1;

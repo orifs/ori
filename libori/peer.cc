@@ -22,15 +22,15 @@
 #include <iostream>
 #include <tr1/memory>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "repo.h"
-#include "localrepo.h"
-#include "httpclient.h"
-#include "httprepo.h"
-#include "sshclient.h"
-#include "sshrepo.h"
-#include "peer.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/repo.h>
+#include <ori/localrepo.h>
+#include <ori/httpclient.h>
+#include <ori/httprepo.h>
+#include <ori/sshclient.h>
+#include <ori/sshrepo.h>
+#include <ori/peer.h>
 
 using namespace std;
 

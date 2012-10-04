@@ -31,7 +31,7 @@
 
 #include <string>
 
-#include "thread.h"
+#include <ori/thread.h>
 
 using namespace std;
 

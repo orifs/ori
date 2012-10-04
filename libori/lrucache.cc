@@ -18,8 +18,8 @@
 
 #include <iostream>
 
-#include "debug.h"
-#include "lrucache.h"
+#include <ori/debug.h>
+#include <ori/lrucache.h>
 
 using namespace std;
 

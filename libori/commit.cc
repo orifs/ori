@@ -21,9 +21,9 @@
 #include <iostream>
 #include <string>
 
-#include "commit.h"
-#include "oriutil.h"
-#include "stream.h"
+#include <ori/commit.h>
+#include <ori/oriutil.h>
+#include <ori/stream.h>
 
 using namespace std;
 

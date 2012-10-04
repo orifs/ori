@@ -41,14 +41,14 @@
 
 using namespace std;
 
-#include "localrepo.h"
-#include "remoterepo.h"
-#include "sshrepo.h"
-#include "largeblob.h"
-#include "oriutil.h"
-#include "scan.h"
-#include "debug.h"
-#include "zeroconf.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/localrepo.h>
+#include <ori/remoterepo.h>
+#include <ori/sshrepo.h>
+#include <ori/largeblob.h>
+#include <ori/scan.h>
+#include <ori/zeroconf.h>
 
 int
 LocalRepo_Init(const std::string &rootPath)

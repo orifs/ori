@@ -21,14 +21,14 @@
 #include <string>
 #include <tr1/memory>
 
-#include "repo.h"
-#include "localrepo.h"
-#include "sshrepo.h"
-#include "sshclient.h"
-#include "httprepo.h"
-#include "httpclient.h"
-#include "remoterepo.h"
-#include "oriutil.h"
+#include <ori/oriutil.h>
+#include <ori/repo.h>
+#include <ori/localrepo.h>
+#include <ori/sshrepo.h>
+#include <ori/sshclient.h>
+#include <ori/httprepo.h>
+#include <ori/httpclient.h>
+#include <ori/remoterepo.h>
 
 using namespace std;
 

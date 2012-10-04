@@ -2,8 +2,8 @@
 #include <cassert>
 #include <stdio.h>
 
-#include "rwlock.h"
-#include "thread.h"
+#include <ori/rwlock.h>
+#include <ori/thread.h>
 
 RWKey::RWKey(RWLock *l)
     : lock(l)

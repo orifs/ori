@@ -21,7 +21,7 @@
 #include <string>
 #include <iostream>
 
-#include "localrepo.h"
+#include <ori/localrepo.h>
 
 using namespace std;
 

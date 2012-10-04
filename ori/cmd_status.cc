@@ -21,10 +21,10 @@
 #include <iostream>
 #include <iomanip>
 
-#include "fuse_cmd.h"
-#include "debug.h"
-#include "oriutil.h"
-#include "localrepo.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/localrepo.h>
+#include <ori/fuse_cmd.h>
 
 using namespace std;
 

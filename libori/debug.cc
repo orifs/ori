@@ -15,9 +15,9 @@
 #include <mach/clock.h>
 #endif
 
-#include "debug.h"
-#include "localrepo.h"
-#include "mutex.h"
+#include <ori/debug.h>
+#include <ori/localrepo.h>
+#include <ori/mutex.h>
 
 /********************************************************************
  *

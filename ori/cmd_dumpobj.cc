@@ -21,9 +21,9 @@
 #include <string>
 #include <iostream>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "localrepo.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/localrepo.h>
 
 using namespace std;
 

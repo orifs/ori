@@ -4,14 +4,14 @@
 #include <string>
 #include <tr1/memory>
 
-#include "tuneables.h"
-#include "localrepo.h"
-#include "commit.h"
-#include "tree.h"
-#include "treediff.h"
-#include "largeblob.h"
-#include "lrucache.h"
-#include "rwlock.h"
+#include <ori/tuneables.h>
+#include <ori/localrepo.h>
+#include <ori/commit.h>
+#include <ori/tree.h>
+#include <ori/treediff.h>
+#include <ori/largeblob.h>
+#include <ori/lrucache.h>
+#include <ori/rwlock.h>
 
 #define NULL_FH 0
 #define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME

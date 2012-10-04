@@ -29,9 +29,9 @@
 #include <map>
 #include <set>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "snapshotindex.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/snapshotindex.h>
 
 using namespace std;
 

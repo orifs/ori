@@ -37,16 +37,16 @@
 #error "SHA256 not supported!"
 #endif
 
-#include "debug.h"
-#include "oriutil.h"
-#include "largeblob.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/largeblob.h>
 
 #ifdef ORI_USE_RK
-#include "rkchunker.h"
+#include <ori/rkchunker.h>
 #endif /* ORI_USE_RK */
 
 #ifdef ORI_USE_FIXED
-#include "fchunker.h"
+#include <ori/fchunker.h>
 #endif /* ORI_USE_FIXED */
 
 using namespace std;

@@ -10,9 +10,9 @@
 
 #include "fastlz.h"
 
-#include "debug.h"
-#include "tuneables.h"
-#include "stream.h"
+#include <ori/debug.h>
+#include <ori/tuneables.h>
+#include <ori/stream.h>
 
 #define USE_EXCEPTIONS 1
 

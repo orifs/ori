@@ -21,10 +21,10 @@
 #include <string>
 #include <iostream>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "key.h"
-#include "localrepo.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/key.h>
+#include <ori/localrepo.h>
 
 using namespace std;
 

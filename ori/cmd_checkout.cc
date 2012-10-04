@@ -25,10 +25,10 @@
 #include <iostream>
 #include <iomanip>
 
-#include "debug.h"
-#include "scan.h"
-#include "oriutil.h"
-#include "localrepo.h"
+#include <ori/debug.h>
+#include <ori/scan.h>
+#include <ori/oriutil.h>
+#include <ori/localrepo.h>
 
 using namespace std;
 

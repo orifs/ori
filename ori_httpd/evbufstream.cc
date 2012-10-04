@@ -16,7 +16,7 @@
 
 #include <stdexcept>
 
-#include "debug.h"
+#include <ori/debug.h>
 #include "evbufstream.h"
 
 evbufstream::evbufstream(struct evbuffer *inbuf)

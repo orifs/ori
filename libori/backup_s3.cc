@@ -7,7 +7,7 @@
 
 #include "libs3.h"
 
-#include "backup.h"
+#include <ori/backup.h>
 
 void _setStatusCB(S3Status status,
         const S3ErrorDetails *details,

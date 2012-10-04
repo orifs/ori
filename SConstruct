@@ -163,7 +163,7 @@ SConscript('libori/SConscript', variant_dir='build/libori')
 
 # Set compile options for binaries
 env.Append(LIBS = ["ori", "skein", "fastlz", "snappy"],
-           CPPPATH = ['#libori'],
+           CPPPATH = ['#public'],
            LIBPATH = ['#build/libori',
                       '#build/libskein',
                       '#build/libfastlz',

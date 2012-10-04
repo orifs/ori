@@ -35,10 +35,11 @@
 
 using namespace std;
 
-#include "debug.h"
-#include "oriutil.h"
-#include "remoterepo.h"
-#include "fuse_cmd.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/remoterepo.h>
+
+#include <ori/fuse_cmd.h>
 
 mount_ori_config config;
 RemoteRepo remoteRepo;

@@ -27,7 +27,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
-#include "repo.h"
+#include <ori/repo.h>
 
 /*
  * Scan a directory.

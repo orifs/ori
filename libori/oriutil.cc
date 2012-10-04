@@ -59,11 +59,10 @@
 
 #include "skein.h"
 
-#include "tuneables.h"
-#include "debug.h"
-#include "oriutil.h"
-#include "stream.h"
-#include "debug.h"
+#include <ori/tuneables.h>
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/stream.h>
 
 using namespace std;
 

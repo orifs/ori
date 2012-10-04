@@ -22,9 +22,9 @@
 #include <iomanip>
 #include <algorithm>
 
-#include "debug.h"
-#include "oriutil.h"
-#include "objecthash.h"
+#include <ori/debug.h>
+#include <ori/oriutil.h>
+#include <ori/objecthash.h>
 
 ObjectHash::ObjectHash()
 {

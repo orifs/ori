@@ -40,10 +40,10 @@
 #error "SHA256 not supported!"
 #endif
 
-#include "debug.h"
-#include "tuneables.h"
-#include "object.h"
-#include "localobject.h"
+#include <ori/debug.h>
+#include <ori/tuneables.h>
+#include <ori/object.h>
+#include <ori/localobject.h>
 
 using namespace std;
 

@@ -19,7 +19,7 @@
 
 #include <event2/buffer.h>
 
-#include "stream.h"
+#include <ori/stream.h>
 
 class evbufstream : public bytestream
 {

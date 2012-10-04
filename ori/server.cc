@@ -1,6 +1,4 @@
 
-#define _WITH_DPRINTF
-
 #include <cstring>
 #include <stdbool.h>
 #include <stdint.h>
@@ -11,10 +9,10 @@
 
 #include <map>
 
-#include "debug.h"
-#include "server.h"
-#include "oriutil.h"
-#include "localrepo.h"
+#include <ori/debug.h>
+#include <ori/server.h>
+#include <ori/oriutil.h>
+#include <ori/localrepo.h>
 
 extern LocalRepo repository;
 

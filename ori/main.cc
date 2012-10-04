@@ -32,11 +32,11 @@
 
 using namespace std;
 
-#include "debug.h"
-#include "repo.h"
-#include "localrepo.h"
-#include "server.h"
-#include "fuse_cmd.h"
+#include <ori/debug.h>
+#include <ori/repo.h>
+#include <ori/localrepo.h>
+#include <ori/server.h>
+#include <ori/fuse_cmd.h>
 
 LocalRepo repository;
 
