@@ -28,7 +28,7 @@
 #include <string>
 #include <iostream>
 
-#include <ori/rkchunker.h>
+#include "rkchunker.h"
 
 class TestCB : public ChunkerCB
 {

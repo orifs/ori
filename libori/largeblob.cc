@@ -42,11 +42,11 @@
 #include <ori/largeblob.h>
 
 #ifdef ORI_USE_RK
-#include <ori/rkchunker.h>
+#include "rkchunker.h"
 #endif /* ORI_USE_RK */
 
 #ifdef ORI_USE_FIXED
-#include <ori/fchunker.h>
+#include "fchunker.h"
 #endif /* ORI_USE_FIXED */
 
 using namespace std;
