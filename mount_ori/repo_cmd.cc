@@ -40,7 +40,7 @@ void cmd_status(ori_priv *p)
 
 void cmd_tip(ori_priv *p)
 {
-    printf("%s\n", p->head->hash().hex().c_str());
+    p->printf("%s\n", p->head->hash().hex().c_str());
 }
 
 RepoCmd _commands[] = {

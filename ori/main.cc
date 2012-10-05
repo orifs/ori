@@ -462,8 +462,9 @@ main(int argc, char *argv[])
         has_repo = true;
     }
 
-    if (strcmp(argv[1], "status") == 0 ||
-        strcmp(argv[1], "commit") == 0) {
+    if (strcmp(argv[1], "commit") == 0 ||
+        strcmp(argv[1], "status") == 0 ||
+        strcmp(argv[1], "tip") == 0) {
         if (OF_ControlPath().size() > 0)
             has_repo = true;
     }
