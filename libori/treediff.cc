@@ -384,6 +384,11 @@ bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
               to_merge.type == TreeDiffEntry::DeletedDir))
     {
         e->type = TreeDiffEntry::Noop;
+        // Delete temporary file
+        if (e->newFilename != "") {
+            Util_DeleteFile(e->newFilename);
+            e->newFilename = "";
+        }
         _resetLatestEntry(e->filepath);
         return false;
     }
@@ -391,6 +396,11 @@ bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
              to_merge.type == TreeDiffEntry::DeletedFile)
     {
         e->type = TreeDiffEntry::DeletedFile;
+        // Delete temporary file
+        if (e->newFilename != "") {
+            Util_DeleteFile(e->newFilename);
+            e->newFilename = "";
+        }
         return false;
     }
     else if (e->type == TreeDiffEntry::Modified &&
