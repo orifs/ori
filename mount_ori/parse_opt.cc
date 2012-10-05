@@ -2,6 +2,8 @@
 #include <cstddef>
 #include <cstring>
 
+#include "logging.h"
+#include "openedfilemgr.h"
 #include "ori_fuse.h"
 
 #define MOUNT_ORI_OPT(t, p, v) {t, offsetof(mount_ori_config, p), v}

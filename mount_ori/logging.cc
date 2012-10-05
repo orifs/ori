@@ -1,7 +1,14 @@
-#include <unistd.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
-#include "ori_fuse.h"
+#include <unistd.h>
+#include <fcntl.h>
+
+#include "logging.h"
 
 static int logfd = 0;
 

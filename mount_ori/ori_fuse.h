@@ -14,13 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef __ORI_FUSE_H__
+#define __ORI_FUSE_H__
+
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 
 #include <string>
 #include <tr1/memory>
-
-#include "fuse_tuneables.h"
 
 #include <ori/localrepo.h>
 #include <ori/commit.h>
@@ -30,20 +31,13 @@
 #include <ori/lrucache.h>
 #include <ori/rwlock.h>
 
+#include "fuse_tuneables.h"
+
 #define NULL_FH 0
 #define ORI_CONTROL_FILENAME ".ori_control"
 #define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME
 #define ORI_SNAPSHOT_DIRNAME ".snapshot"
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
-
-// logging.cc
-#ifdef DEBUG
-#define FUSE_LOG(fmt, ...) ori_fuse_log(fmt "\n", ##__VA_ARGS__)
-#else
-#define FUSE_LOG(fmt, ...)
-#endif
-
-void ori_fuse_log(const char *what, ...);
 
 // parse_opt.cc
 struct mount_ori_config {
@@ -52,31 +46,6 @@ struct mount_ori_config {
 };
 
 void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf);
-
-// ori_openedfiles.cc
-class OpenedFileMgr
-{
-public:
-    OpenedFileMgr();
-
-    void openedFile(const std::string &tempFileName, int fd);
-    void closedFile(int fd);
-    void closedFile(const std::string &tempFileName);
-
-    void removeUnused();
-    bool isOpen(const std::string &tempFileName) const;
-    bool anyFilesOpen() const;
-
-    /// Clients responsible for their own locking
-    RWLock lock_tempfiles;
-
-private:
-    uint64_t numOpenHandles;
-    // map from temp filename to number of open handles
-    std::map<std::string, uint32_t> openedFiles;
-    std::map<int, std::string> fdToFilename;
-};
-
 
 // ori_priv.cc
 struct ExtendedTreeEntry
@@ -155,3 +124,6 @@ struct RepoCmd {
 };
 
 extern RepoCmd _commands[];
+
+#endif /* __ORI_FUSE_H__ */
+

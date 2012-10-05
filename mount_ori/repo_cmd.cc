@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "logging.h"
+#include "openedfilemgr.h"
 #include "ori_fuse.h"
 
 void cmd_commit(ori_priv *p)
