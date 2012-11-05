@@ -11,6 +11,8 @@ libs = [
         "crypto",
         "stdc++",
         "lzma",
+	"event_core",
+	"event_extra",
         "ori",
        ]
 

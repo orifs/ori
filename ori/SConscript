@@ -47,8 +47,10 @@ if env["WITH_LIBS3"] == "1":
     src.append("cmd_backup.cc")
 
 libs = [
-        "crypto",
-        "stdc++",
+	"crypto",
+	"stdc++",
+	"event_core",
+	"event_extra",
        ]
 
 if sys.platform != "darwin":

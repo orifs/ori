@@ -92,7 +92,7 @@ ori_log(int level, const char *fmt, ...)
 #ifdef DEBUG
     if (level <= LEVEL_MSG)
 	fprintf(stderr, "%s", buf);
-#elif /* RELEASE or PERF */
+#else /* RELEASE or PERF */
     if (level <= LEVEL_ERR)
 	fprintf(stderr, "%s", buf);
 #endif
