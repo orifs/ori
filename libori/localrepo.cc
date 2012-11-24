@@ -928,10 +928,12 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
     MultiPullOp mpo(*this);
 
     struct event_base *evbase = event_base_new();
+#ifndef WITHOUT_MDNS 
     struct event *mdns_event = MDNS_Browse(evbase);
     event_add(mdns_event, NULL);
     MDNS_RegisterBrowseCallback(boost::bind(&MultiPullOp::addCandidate,
                 &mpo, _1));
+#endif
 
     mpo.remotes.push_back(defaultRemote);
     mpo.distances.push_back(defaultRemote->get()->distance());
