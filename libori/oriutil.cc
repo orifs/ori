@@ -770,7 +770,7 @@ util_selftest(void)
 
 
     // Tests for stream classes
-    int test_fd = open("test.a", O_RDWR | O_CREAT);
+    int test_fd = open("test.a", O_RDWR | O_CREAT, 0644);
     write(test_fd, "hello, world!", 13);
     fsync(test_fd);
     bytestream::ap bs(new fdstream(test_fd, 1, 3));
