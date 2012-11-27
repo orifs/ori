@@ -20,7 +20,6 @@ src = [
     "peer.cc",
     "repo.cc",
     "remoterepo.cc",
-    "scan.cc",
     "snapshotindex.cc",
     "sshclient.cc",
     "sshrepo.cc",

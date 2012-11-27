@@ -35,19 +35,18 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-StatusDirectoryCB(void *arg, const char *path)
+StatusDirectoryCB(map<string, ObjectHash> *dirState, const string &path)
 {
     string repoRoot = LocalRepo::findRootPath();
     string objPath = path;
     ObjectHash objHash;
-    map<string, ObjectHash> *dirState = (map<string, ObjectHash> *)arg;
 
     if (!Util_IsDirectory(objPath)) {
-	objHash = Util_HashFile(objPath);
+        objHash = Util_HashFile(objPath);
         ASSERT(!objHash.isEmpty());
         objPath = objPath.substr(repoRoot.size());
     } else {
-	objPath = objPath.substr(repoRoot.size());
+        objPath = objPath.substr(repoRoot.size());
     }
 
     // TODO: empty hash means dir
@@ -58,8 +57,8 @@ StatusDirectoryCB(void *arg, const char *path)
 
 /*int
 StatusTreeIter(map<string, pair<string, string> > *tipState,
-	       const string &path,
-	       const string &treeId)
+               const string &path,
+               const string &treeId)
 {
     Tree tree;
     map<string, TreeEntry>::iterator it;
@@ -68,21 +67,21 @@ StatusTreeIter(map<string, pair<string, string> > *tipState,
     tree = repository.getTree(treeId);
 
     for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
-	if ((*it).second.type == TreeEntry::Tree) {
-	    tipState->insert(make_pair(path + "/" + (*it).first,
-				       make_pair("DIR", (*it).second.hash)));
-	    StatusTreeIter(tipState,
-			   path + "/" + (*it).first,
-			   (*it).second.hash);
-	} else {
+        if ((*it).second.type == TreeEntry::Tree) {
+            tipState->insert(make_pair(path + "/" + (*it).first,
+                                       make_pair("DIR", (*it).second.hash)));
+            StatusTreeIter(tipState,
+                           path + "/" + (*it).first,
+                           (*it).second.hash);
+        } else {
             string filePath = path + "/" + (*it).first;
             string fileHash = (*it).second.largeHash == "" ?
                           (*it).second.hash : (*it).second.largeHash;
             string objHash = (*it).second.hash;
 
-	    tipState->insert(make_pair(filePath,
+            tipState->insert(make_pair(filePath,
                                        make_pair(fileHash, objHash)));
-	}
+        }
     }
 
     return 0;
@@ -96,10 +95,10 @@ cmd_checkout(int argc, const char *argv[])
     Tree::Flat tipTree;
 
     if (argc == 2) {
-	tip = ObjectHash::fromHex(argv[1]);
+        tip = ObjectHash::fromHex(argv[1]);
 
-	// Set the head if the user specified a revision
-	repository.setHead(tip);
+        // Set the head if the user specified a revision
+        repository.setHead(tip);
     }
 
     if (tip != EMPTY_COMMIT) {
@@ -108,50 +107,50 @@ cmd_checkout(int argc, const char *argv[])
     }
 
     map<string, ObjectHash> dirState;
-    Scan_RTraverse(LocalRepo::findRootPath().c_str(),
-		   (void *)&dirState,
-	           StatusDirectoryCB);
+    DirTraverse(LocalRepo::findRootPath().c_str(),
+                &dirState,
+                StatusDirectoryCB);
 
     map<string, ObjectHash>::iterator it;
     for (it = dirState.begin(); it != dirState.end(); it++) {
         Tree::Flat::iterator tipIt = tipTree.find((*it).first);
 
-	if (tipIt == tipTree.end()) {
-	    printf("A	%s\n", (*it).first.c_str());
-	} else {
+        if (tipIt == tipTree.end()) {
+            printf("A   %s\n", (*it).first.c_str());
+        } else {
             const TreeEntry &te = (*tipIt).second;
             ObjectHash totalHash = (te.type == TreeEntry::LargeBlob) ?
                     te.largeHash : te.hash;
 
             // TODO: dirs
             if (totalHash != (*it).second && !(*it).second.isEmpty()) {
-                printf("M	%s\n", (*it).first.c_str());
+                printf("M       %s\n", (*it).first.c_str());
                 // XXX: Handle replace a file <-> directory with same name
                 repository.copyObject(te.hash,
                                     LocalRepo::findRootPath()+(*tipIt).first);
             }
-	}
+        }
     }
 
     for (Tree::Flat::iterator tipIt = tipTree.begin();
             tipIt != tipTree.end();
             tipIt++) {
-	it = dirState.find((*tipIt).first);
-	if (it == dirState.end()) {
-	    string path = LocalRepo::findRootPath() + (*tipIt).first;
+        it = dirState.find((*tipIt).first);
+        if (it == dirState.end()) {
+            string path = LocalRepo::findRootPath() + (*tipIt).first;
             const TreeEntry &te = (*tipIt).second;
-	    if (te.type == TreeEntry::Tree) {
-		printf("N	%s\n", (*tipIt).first.c_str());
-		mkdir(path.c_str(), 0755);
-	    } else {
-		printf("U	%s\n", (*tipIt).first.c_str());
-		if (repository.getObjectType(te.hash)
+            if (te.type == TreeEntry::Tree) {
+                printf("N       %s\n", (*tipIt).first.c_str());
+                mkdir(path.c_str(), 0755);
+            } else {
+                printf("U       %s\n", (*tipIt).first.c_str());
+                if (repository.getObjectType(te.hash)
                         != ObjectInfo::Purged)
-		    repository.copyObject(te.hash, path);
-		else
-		    cout << "Object has been purged." << endl;
-	    }
-	}
+                    repository.copyObject(te.hash, path);
+                else
+                    cout << "Object has been purged." << endl;
+            }
+        }
     }
 
     return 0;

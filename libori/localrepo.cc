@@ -199,9 +199,8 @@ LocalRepo::~LocalRepo()
 }
 
 int
-LocalRepo_PeerHelper(void *arg, const char *path)
+LocalRepo_PeerHelper(LocalRepo *l, const string &path)
 {
-    LocalRepo *l = (LocalRepo *)arg;
     Peer p = Peer(path);
 
     string name = path;
@@ -243,7 +242,7 @@ LocalRepo::open(const string &root)
 
     // Scan for peers
     string peer_path = rootPath + ORI_PATH_REMOTES;
-    Scan_Traverse(peer_path.c_str(), this, LocalRepo_PeerHelper);
+    DirIterate(peer_path.c_str(), this, LocalRepo_PeerHelper);
 
     map<string, Peer>::iterator it;
     for (it = peers.begin(); it != peers.end(); it++) {
@@ -1919,12 +1918,9 @@ LocalRepo::graftSubtree(LocalRepo *r,
  */
 
 int
-listBranchesHelper(void *arg, const char *path)
+listBranchesHelper(set<string> *rval, const string &path)
 {
-    string name = path;
-    set<string> *rval = (set<string> *)arg;
-
-    name = name.substr(name.find_last_of("/") + 1);
+    string name = path.substr(path.find_last_of("/") + 1);
     rval->insert(name);
 
     return 0;
@@ -1936,7 +1932,7 @@ LocalRepo::listBranches()
     string path = rootPath + ORI_PATH_HEADS;
     set<string> rval;
 
-    Scan_Traverse(path.c_str(), &rval, listBranchesHelper);
+    DirIterate(path.c_str(), &rval, listBranchesHelper);
 
     return rval;
 }
@@ -2233,9 +2229,8 @@ LocalRepo::getPrivateKey()
 }
 
 int
-publicKeyCB(void *arg, const char *path)
+publicKeyCB(map<string, PublicKey> *keys, const string &path)
 {
-    map<string, PublicKey> *keys = (map<string, PublicKey> *)arg;
     PublicKey key = PublicKey();
 
     key.open(path);
@@ -2251,7 +2246,7 @@ LocalRepo::getPublicKeys()
     string keyDir = rootPath + ORI_PATH_TRUSTED;
     map<string, PublicKey> keys;
 
-    Scan_Traverse(keyDir.c_str(), (void *)&keys, publicKeyCB);
+    DirIterate(keyDir.c_str(), &keys, publicKeyCB);
 
     return keys;
 }

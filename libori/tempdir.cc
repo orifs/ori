@@ -22,6 +22,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <string>
+
 #include <ori/tempdir.h>
 #include <ori/localobject.h>
 #include <ori/oriutil.h>
@@ -44,23 +46,23 @@ TempDir::TempDir(const std::string &dirpath)
     }
 }
 
-static int _rmtreeCb(void *arg, const char *path)
+static int _rmtreeCb(int unused, const std::string &path)
 {
     struct stat sb;
-    if (lstat(path, &sb) < 0) {
+    if (lstat(path.c_str(), &sb) < 0) {
         perror("~TempDir lstat");
         return 0;
     }
 
     if (S_ISDIR(sb.st_mode)) {
-        Scan_Traverse(path, NULL, _rmtreeCb);
-        if (rmdir(path) < 0) {
+        DirIterate(path, /* unused */0, _rmtreeCb);
+        if (rmdir(path.c_str()) < 0) {
             perror("~TempDir rmdir");
             return 0;
         }
     }
     else {
-        if (unlink(path) < 0) {
+        if (unlink(path.c_str()) < 0) {
             perror("~TempDir unlink");
             return 0;
         }
@@ -79,7 +81,7 @@ TempDir::~TempDir()
 
     // Remove the temp dir
 #ifdef REMOVE_TEMPDIRS
-    _rmtreeCb(NULL, dirpath.c_str());
+    _rmtreeCb(/* unused */0, dirpath.c_str());
 #endif
 }
 

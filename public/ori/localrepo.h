@@ -230,7 +230,7 @@ private:
     // Caches
     LRUCache<ObjectHash, ObjectInfo, 128> _objectInfoCache;
     // Friends
-    friend int LocalRepo_PeerHelper(void *arg, const char *path);
+    friend int LocalRepo_PeerHelper(LocalRepo *l, const std::string &path);
 };
 
 #endif

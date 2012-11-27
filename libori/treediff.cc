@@ -171,10 +171,9 @@ struct _scanHelperData {
     Repo *repo;
 };
 
-static int _diffToDirHelper(void *arg, const char *path)
+static int _diffToDirHelper(_scanHelperData *sd, const string &path)
 {
     string fullPath = path;
-    _scanHelperData *sd = (_scanHelperData *)arg;
 
     string relPath = fullPath.substr(sd->cwdLen);
     sd->wd_paths->insert(relPath);
@@ -284,7 +283,7 @@ TreeDiff::diffToDir(Commit from, const std::string &dir, Repo *r)
         r};
 
     // Find additions and modifications
-    Scan_RTraverse(dir.c_str(), &sd, _diffToDirHelper);
+    DirTraverse(dir.c_str(), &sd, _diffToDirHelper);
 
     // Find deletions
     for (map<string, TreeEntry>::iterator it = flattened_tree.begin();

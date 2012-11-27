@@ -493,9 +493,8 @@ PackfileManager::newPackfile()
 }
 
 
-static int _freeListCB(void *ctx, const char *cpath)
+static int _freeListCB(std::vector<packid_t> *existing, const std::string &cpath)
 {
-    std::vector<packid_t> *existing = (std::vector<packid_t>*)ctx;
     std::string path = StrUtil_Basename(cpath);
     packid_t id = 0;
     if (sscanf(path.c_str(), "pack%u.pak", &id) != 1) {
@@ -509,7 +508,7 @@ void
 PackfileManager::_recomputeFreeList()
 {
     std::vector<packid_t> existing;
-    Scan_Traverse(rootPath.c_str(), &existing, _freeListCB);
+    DirIterate(rootPath.c_str(), &existing, _freeListCB);
     std::sort(existing.begin(), existing.end());
 
     freeList.clear();
