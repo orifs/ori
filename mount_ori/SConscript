@@ -14,20 +14,12 @@ src = [
 
 libs = [
         "crypto",
-        "lzma",
-        "ori",
-	"skein",
-	"fastlz",
         ]
 
 env.ParseConfig('pkg-config --libs --cflags fuse')
 if sys.platform != "darwin":
     libs += ['rt', 'pthread']
 
-env.Append(
-        LIBS = libs,
-        LIBPATH = [ "#build/libori", "#build/libskein", "#build/libfastlz", "$LIBPATH" ],
-        CPPPATH = [ "#libori", "#libskein", "#libfastlz", "$CPPPATH", "#include", "#" ]
-        )
+env.Append(LIBS = libs, CPPPATH = [ "$CPPPATH", "#include", "#" ])
 
 env.Program("mount_ori", src)

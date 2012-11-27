@@ -126,9 +126,13 @@ if sys.platform == "freebsd9" or sys.platform == "freebsd8":
 # Configuration
 conf = env.Configure()
 
-if not conf.CheckLibWithHeader('lzma','lzma.h','C','lzma_version_string();'):
-    print 'Please install liblzma'
-    Exit(1)
+if env["COMPRESSION_ALGO"] == "LZMA":
+    if not conf.CheckLibWithHeader('lzma',
+                                   'lzma.h',
+                                   'C',
+                                   'lzma_version_string();'):
+        print 'Please install liblzma'
+        Exit(1)
 
 # Library is libevent.so or libevent-2.0.so depending on the system
 has_event2 = conf.CheckLibWithHeader('event-2.0', 'event2/event.h', 'C', 
@@ -154,31 +158,33 @@ conf.Finish()
 Export('env')
 
 # libori
-env.Append(CPPPATH = ['#libskein',
-                      '#libfastlz'])
 if env["WITH_LIBS3"] == "1":
     env.Append(CPPPATH = '#libs3-2.0/inc')
 
 SConscript('libori/SConscript', variant_dir='build/libori')
 
 # Set compile options for binaries
-env.Append(LIBS = ["ori", "skein", "fastlz", "snappy"],
+env.Append(LIBS = ["ori"],
            CPPPATH = ['#public'],
-           LIBPATH = ['#build/libori',
-                      '#build/libskein',
-                      '#build/libfastlz',
-                      '#build/snappy-1.0.5'])
+           LIBPATH = ['#build/libori'])
 
 if env["WITH_LIBS3"] == "1":
     SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
+    env.Append(CPPPATH = ['#libs3-2.0'])
     env.Append(LIBPATH = '#build/libs3-2.0')
     env.Append(LIBS = ['libs3', 'libxml2', 'curl'])
 
 if env["COMPRESSION_ALGO"] == "SNAPPY":
+    env.Append(CPPPATH = ['#snappy-1.0.5'])
+    env.Append(LIBS = ["snappy"], LIBPATH = ['#build/snappy-1.0.5'])
     SConscript('snappy-1.0.5/SConscript', variant_dir='build/snappy-1.0.5')
 if env["COMPRESSION_ALGO"] == "FASTLZ":
+    env.Append(CPPPATH = ['#libfastlz'])
+    env.Append(LIBS = ["fastlz"], LIBPATH = ['#build/libfastlz'])
     SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
 if env["HASH_ALGO"] == "SKEIN":
+    env.Append(CPPPATH = ['#libskein'])
+    env.Append(LIBS = ["skein"], LIBPATH = ['#build/libskein'])
     SConscript('libskein/SConscript', variant_dir='build/libskein')
 
 # Ori Utilities

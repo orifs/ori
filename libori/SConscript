@@ -36,6 +36,8 @@ src = [
 
 if os.name == 'posix':
     src += ['mutex_posix.cc', 'rwlock_posix.cc', 'thread_posix.cc']
+else:
+    print "Error unsupported operating system!"
 
 if env["WITH_MDNS"] == "1":
     src.append("zeroconf.cc")

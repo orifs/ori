@@ -8,7 +8,9 @@
 #include <memory>
 #include <stdexcept>
 
+#ifdef ORI_USE_LZMA
 #include <lzma.h>
+#endif /* ORI_USE_LZMA */
 
 #include "oriutil.h"
 #include "objecthash.h"

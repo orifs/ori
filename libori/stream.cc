@@ -8,7 +8,9 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#ifdef ORI_USE_FASTLZ
 #include "fastlz.h"
+#endif /* ORI_USE_FASTLZ */
 
 #include "tuneables.h"
 

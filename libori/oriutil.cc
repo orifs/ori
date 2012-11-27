@@ -14,22 +14,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#define __STDC_LIMIT_MACROS
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-
-#include <pwd.h>
+#include <stdarg.h>
+#include <limits.h>
 
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <dirent.h>
+#include <errno.h>
+#include <pwd.h>
+
 #include <execinfo.h>
 
 #include <arpa/inet.h>
@@ -51,13 +54,17 @@
 #include <uuid/uuid.h>
 #endif
 
+#ifdef ORI_USE_SHA256
 #include <openssl/sha.h>
 
 #ifdef OPENSSL_NO_SHA256
 #error "SHA256 not supported!"
 #endif
+#endif /* ORI_USE_SHA256 */
 
+#ifdef ORI_USE_SKEIN
 #include "skein.h"
+#endif /* ORI_USE_SKEIN */
 
 #include "tuneables.h"
 
@@ -472,7 +479,7 @@ Util_RawHashToHex(const ObjectHash &hash)
     stringstream rval;
 
     // Convert into string.
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    for (size_t i = 0; i < ObjectHash::SIZE; i++)
     {
 	rval << hex << setw(2) << setfill('0') << (int)hash.hash[i];
     }

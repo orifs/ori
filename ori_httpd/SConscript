@@ -10,10 +10,8 @@ src = [
 libs = [
         "crypto",
         "stdc++",
-        "lzma",
-	"event_core",
-	"event_extra",
-        "ori",
+        "event_core",
+        "event_extra",
        ]
 
 if sys.platform == "darwin":
