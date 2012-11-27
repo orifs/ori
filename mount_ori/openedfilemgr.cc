@@ -16,6 +16,8 @@
 
 #include <assert.h>
 
+#include <unistd.h>
+
 #include "openedfilemgr.h"
 
 OpenedFileMgr::OpenedFileMgr()

@@ -141,7 +141,7 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *r)
     int status;
     RequestCB *cb = (RequestCB *)r;
     HttpClient *client = cb->client;
-    struct evkeyvalq *headers;
+    //struct evkeyvalq *headers;
     struct evbuffer *bufIn;
 
     if (!req) {
@@ -157,7 +157,7 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *r)
         return;
     }
 
-    headers = evhttp_request_get_input_headers(req);
+    //headers = evhttp_request_get_input_headers(req);
     bufIn = evhttp_request_get_input_buffer(req);
 
     /*

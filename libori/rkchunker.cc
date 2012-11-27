@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     float tDiff = end.tv_sec - start.tv_sec;
     tDiff += (float)(end.tv_usec - start.tv_usec) / 10000000.0;
 
-    printf("Chunks %llu, Avg Chunk %llu\n", cb.chunks, cb.chunkLen / cb.chunks);
+    printf("Chunks %lu, Avg Chunk %lu\n", cb.chunks, cb.chunkLen / cb.chunks);
     printf("Time %3.3f, Speed %3.2fMB/s\n", tDiff, 1024.0 / tDiff);
 }
 

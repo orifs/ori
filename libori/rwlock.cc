@@ -20,7 +20,7 @@ Mutex RWLock::gOrderMutex;
 uint32_t RWLock::gLockNum = 0;
 std::map<uint32_t, size_t> RWLock::gLockNumToOrdering;
 std::vector<RWLock::LockOrderVector> RWLock::gLockOrderings;
-std::map<uint32_t, uint64_t> RWLock::gLockedBy;
+std::map<uint32_t, threadid_t> RWLock::gLockedBy;
 
 #define PERMIT_REENTRANT_LOCK 0
 

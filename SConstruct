@@ -13,9 +13,9 @@ opts.AddVariables(
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto).", "0"),
     ("WITH_FUSE", "Include FUSE file system (0 or 1).", "1"),
     ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "1"),
-    ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "1"),
+    ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "0"),
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
-    ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "1"),
+    ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "0"),
     ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
         "0"),
     ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
@@ -176,7 +176,8 @@ if env["WITH_LIBS3"] == "1":
 
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
-SConscript('snappy-1.0.5/SConscript', variant_dir='build/snappy-1.0.5')
+if env["COMPRESSION_ALGO"] == "SNAPPY":
+    SConscript('snappy-1.0.5/SConscript', variant_dir='build/snappy-1.0.5')
 SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
 SConscript('libskein/SConscript', variant_dir='build/libskein')
 SConscript('ori/SConscript', variant_dir='build/ori')

@@ -320,7 +320,8 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
     // TODO: deal with diffs
-    FUSE_LOG("FUSE ori_read(path=\"%s\", size=%d, offset=%d)", path, size, offset);
+    FUSE_LOG("FUSE ori_read(path=\"%s\", size=%lu, offset=%lu)",
+             path, size, offset);
 
     ori_priv *p = ori_getpriv();
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
@@ -532,7 +533,8 @@ static int
 ori_write(const char *path, const char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
-    FUSE_LOG("FUSE ori_write(path=\"%s\", size=%d, offset=%d)", path, size, offset);
+    FUSE_LOG("FUSE ori_write(path=\"%s\", size=%lu, offset=%lu)",
+             path, size, offset);
 
     ori_priv *p = ori_getpriv();
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {

@@ -36,6 +36,7 @@
 #include <map>
 #include <tr1/memory>
 
+#include "thread.h"
 #include "mutex.h"
 
 class RWLock;
@@ -69,7 +70,7 @@ private:
     static uint32_t gLockNum;
     static std::map<uint32_t, size_t> gLockNumToOrdering;
     static std::vector<LockOrderVector> gLockOrderings;
-    static std::map<uint32_t, uint64_t> gLockedBy;
+    static std::map<uint32_t, threadid_t> gLockedBy;
 
     void _checkLockOrdering();
     void _updateLocked();
