@@ -174,16 +174,21 @@ if env["WITH_LIBS3"] == "1":
     env.Append(LIBPATH = '#build/libs3-2.0')
     env.Append(LIBS = ['libs3', 'libxml2', 'curl'])
 
-if env["WITH_FUSE"] == "1":
-    SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
 if env["COMPRESSION_ALGO"] == "SNAPPY":
     SConscript('snappy-1.0.5/SConscript', variant_dir='build/snappy-1.0.5')
-SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
-SConscript('libskein/SConscript', variant_dir='build/libskein')
+if env["COMPRESSION_ALGO"] == "FASTLZ":
+    SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
+if env["HASH_ALGO"] == "SKEIN":
+    SConscript('libskein/SConscript', variant_dir='build/libskein')
+
+# Ori Utilities
 SConscript('ori/SConscript', variant_dir='build/ori')
+if env["WITH_FUSE"] == "1":
+    SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
 if env["WITH_HTTPD"] == "1":
     SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
 
+# Installation Targets
 if env["WITH_FUSE"] == "1":
     env.Install('$PREFIX','build/mount_ori/mount_ori')
 env.Install('$PREFIX','build/ori/ori')
