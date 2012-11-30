@@ -9,7 +9,7 @@ Installation
 ============
 
 Platforms:
- - Linux 3.0+ Arch Linux and Ubuntu
+ - Linux 3.0+ (Tested on Arch and Ubuntu)
  - MacOS X 10.7+
  - FreeBSD 8/9
 
@@ -18,12 +18,12 @@ Build Dependencies:
  - pkg-config
 
 Dependences:
- - openssl (tested with 1.0.1+)
- - boost headers (tested with 1.48+)
- - liblzma (XZ Utils)
- - libevent 2.0
- - mDNSResponder
+ - openssl (tested with 1.0.1+) (Required)
+ - boost headers (tested with 1.48+) (Required)
+ - libevent 2.0 (Required)
  - FUSE (API Version 26+)
+ - liblzma (for LZMA compression)
+ - mDNSResponder (for Multipull Support)
  - libexecinfo (FreeBSD only)
  - libxml2 (S3 Backup)
 
