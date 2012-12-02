@@ -1,5 +1,6 @@
 import sys
 import os
+import multiprocessing
 
 opts = Variables('Local.sc')
 
@@ -38,12 +39,6 @@ Help(opts.GenerateHelpText(env))
 #env.Append(CXXFLAGS = [ "-Wno-non-template-friend", "-Woverloaded-virtual",
 #                        "-Wcast-qual", "-Wcast-align", "-Wconversion",
 #                        "-Weffc++", "-std=c++0x", "-Werror" ])
-if sys.platform != "darwin":
-    env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
-    env.Append(LIBPATH = [ "/usr/local/lib/event2" ])
-
-env.Append(CPPPATH = [ "/usr/local/include" ])
-env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
 if env["HASH_ALGO"] == "SHA256":
     env.Append(CPPFLAGS = [ "-DORI_USE_SHA256" ])
@@ -108,20 +103,30 @@ if env["VERBOSE"] == "0":
 def GetNumCPUs(env):
     if env["NUMCPUS"] != "0":
         return int(env["NUMCPUS"])
-    if os.sysconf_names.has_key("SC_NPROCESSORS_ONLN"):
-        cpus = os.sysconf("SC_NPROCESSORS_ONLN")
-        if isinstance(cpus, int) and cpus > 0:
-            return 2*cpus
-        else:
-            return 2
-    return 2*int(os.popen2("sysctl -n hw.ncpu")[1].read())
+    return 2*multiprocessing.cpu_count()
 
 env.SetOption('num_jobs', GetNumCPUs(env))
 
+# Modify CPPPATH and LIBPATH
+if sys.platform != "darwin" and sys.platform != "win32":
+    env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
+    env.Append(LIBPATH = [ "/usr/local/lib/event2" ])
+
+if sys.platform != "win32":
+    env.Append(CPPPATH = [ "/usr/local/include" ])
+    env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
+
 # Add pkg-config options (TODO)
-env.ParseConfig('pkg-config --libs --cflags libevent')
+if sys.platform != "win32":
+    env.ParseConfig('pkg-config --libs --cflags libevent')
+
 if sys.platform == "freebsd9" or sys.platform == "freebsd8":
     env.Append(LIBS = ['execinfo'])
+
+if sys.platform == "darwin":
+    # OpenSSL needs to be overridden on OS X
+    env.Append(LIBPATH=['/usr/local/Cellar/openssl/1.0.1c/lib'],
+               CPPPATH=['/usr/local/Cellar/openssl/1.0.1c/include'])
 
 # Configuration
 conf = env.Configure()
@@ -142,11 +147,6 @@ has_event = conf.CheckLibWithHeader('event', 'event2/event.h', 'C',
 if not (has_event or has_event2):
     print 'Please install libevent 2.0+'
     Exit(1)
-
-# OpenSSL needs to be overridden on OS X
-if sys.platform == "darwin":
-    env.Append(LIBPATH=['/usr/local/Cellar/openssl/1.0.1c/lib'],
-               CPPPATH=['/usr/local/Cellar/openssl/1.0.1c/include'])
 
 if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
     if not conf.CheckLibWithHeader('dns_sd','dns_sd.h','C'):
