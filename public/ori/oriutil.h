@@ -17,7 +17,6 @@
 #ifndef __ORIUTIL_H__
 #define __ORIUTIL_H__
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <string>

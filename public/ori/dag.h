@@ -18,7 +18,6 @@
 #define __DAG_H__
 
 #include <assert.h>
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <iostream>

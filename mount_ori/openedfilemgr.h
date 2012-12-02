@@ -17,7 +17,6 @@
 #ifndef __OPENEDFILEMGR_H__
 #define __OPENEDFILEMGR_H__
 
-#include <stdbool.h>
 #include <stdint.h>
 
 #include <string>
