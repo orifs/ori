@@ -391,10 +391,12 @@ Httpd_pushObj(struct evhttp_request *req, void *arg)
 void
 Httpd_logCB(int severity, const char *msg)
 {
+#ifdef DEBUG
     const char *sev[] = {
         "Debug", "Msg", "Warning", "Error",
     };
     LOG("%s: %s", sev[severity], msg);
+#endif
 }
 
 void
