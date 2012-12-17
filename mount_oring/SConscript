@@ -1,0 +1,21 @@
+import sys
+
+Import('env')
+
+src = [
+    "logging.cc",
+    "orifuse.cc",
+    "oripriv.cc",
+]
+
+libs = [
+        "crypto",
+        ]
+
+env.ParseConfig('pkg-config --libs --cflags fuse')
+if sys.platform != "darwin":
+    libs += ['rt', 'pthread']
+
+env.Append(LIBS = libs, CPPPATH = [ "$CPPPATH", "#include", "#" ])
+
+env.Program("mount_ori", src)

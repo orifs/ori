@@ -191,6 +191,8 @@ if env["HASH_ALGO"] == "SKEIN":
 SConscript('ori/SConscript', variant_dir='build/ori')
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
+if env["WITH_FUSE"] == "NG":
+    SConscript('mount_oring/SConscript', variant_dir='build/mount_ori')
 if env["WITH_HTTPD"] == "1":
     SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
 
