@@ -17,12 +17,81 @@
 #ifndef __ORIPRIV_H__
 #define __ORIPRIV_H__
 
+class OriFile
+{
+    OriFile() { }
+    ~OriFile() { }
+};
+
+typedef enum OriFileType
+{
+    FILETYPE_NULL,
+    FILETYPE_COMMITTED,
+    FILETYPE_TEMPORARY,
+    FILETYPE_REMOTE,
+} OriFileType;
+
+#define ORIPRIVID_INVALID 0
+typedef uint64_t OriPrivId;
+
+class OriFileInfo
+{
+public:
+    OriFileInfo() {
+        memset(&statInfo, 0, sizeof(statInfo));
+        type = FILETYPE_NULL;
+        id = 0;
+        isDir = false;
+    }
+    ~OriFileInfo() { }
+    struct stat statInfo;
+    ObjectHash hash;
+    OriFileType type;
+    OriPrivId id;
+    bool isDir;
+};
+
+class OriDir
+{
+public:
+    typedef std::map<std::string, OriPrivId>::iterator iterator;
+    OriDir() { }
+    ~OriDir() { }
+    void add(const std::string &name, OriPrivId id)
+    {
+        entries[name] = id;
+        setDirty();
+    }
+    void remove(const std::string &name)
+    {
+        entries.erase(name);
+        setDirty();
+    }
+    bool isEmpty() { return entries.size() == 0; }
+    void setDirty() { dirty = true; }
+    void clrDirty() { dirty = true; }
+    bool isDirty() { return dirty; }
+    iterator begin() { return entries.begin(); }
+    iterator end() { return entries.end(); }
+private:
+    bool dirty;
+    std::map<std::string, OriPrivId> entries;
+};
+
 class OriPriv
 {
 public:
     OriPriv();
     ~OriPriv();
+    OriPrivId generateId();
+    OriFileInfo* getFileInfo(const std::string &path);
+    OriFileInfo* addDir(const std::string &path);
+    void rmDir(const std::string &path);
+    OriDir& getDir(const std::string &path);
 private:
+    OriPrivId nextId;
+    std::map<OriPrivId, OriDir*> dirs;
+    std::map<std::string, OriFileInfo*> paths;
 };
 
 OriPriv *GetOriPriv();

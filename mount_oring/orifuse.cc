@@ -32,9 +32,15 @@
 
 #include <ori/debug.h>
 #include <ori/oriutil.h>
+#include <ori/posixexception.h>
+
+#include <string>
+#include <map>
 
 #include "logging.h"
 #include "oripriv.h"
+
+using namespace std;
 
 // Mount/Unmount
 
@@ -127,21 +133,115 @@ ori_release(const char *path, struct fuse_file_info *fi)
 static int
 ori_mkdir(const char *path, mode_t mode)
 {
+    OriPriv *priv = GetOriPriv();
+    OriDir *parentDir;
+    string parentPath;
+
+    FUSE_LOG("FUSE ori_mkdir(path=\"%s\")", path);
+
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    try {
+        parentDir = &priv->getDir(parentPath);
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    OriFileInfo *info = priv->addDir(path);
+    info->statInfo.st_mode |= mode;
+
+    parentDir->add(StrUtil_Basename(path), info->id);
+
+    return 0;
 }
 
 static int
 ori_rmdir(const char *path)
 {
+    OriPriv *priv = GetOriPriv();
+    string parentPath;
+
+    FUSE_LOG("FUSE ori_rmdir(path=\"%s\")", path);
+
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    try {
+        OriDir *parentDir = &priv->getDir(parentPath);
+        OriDir *dir = &priv->getDir(path);
+
+        if (!dir->isEmpty())
+            return -ENOTEMPTY;
+
+        parentDir->remove(StrUtil_Basename(path));
+        priv->rmDir(path);
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    return 0;
 }
 
 static int
 ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                         off_t offset, struct fuse_file_info *fi)
 {
+    OriPriv *priv = GetOriPriv();
+    OriDir dir;
+    OriDir::iterator it;
+    string dirPath = path;
+
+    if (dirPath != "/")
+        dirPath += "/";
+
+    FUSE_LOG("FUSE ori_readdir(path=\"%s\", offset=%ld)", path, offset);
+
+    try {
+        dir = priv->getDir(path);
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    filler(buf, ".", NULL, 0);
+    filler(buf, "..", NULL, 0);
+
+    try {
+        for (it = dir.begin(); it != dir.end(); it++) {
+            OriFileInfo *info = priv->getFileInfo(dirPath + (*it).first);
+
+            filler(buf, (*it).first.c_str(), &info->statInfo, 0);
+        }
+    } catch (PosixException e) {
+        FUSE_LOG("Unexpected %s", e.what());
+    }
+
+    return 0;
 }
 
 
 // File Attributes
+
+static int
+ori_getattr(const char *path, struct stat *stbuf)
+{
+    OriPriv *priv = GetOriPriv();
+
+    FUSE_LOG("FUSE ori_getattr(path=\"%s\")", path);
+
+    memset(stbuf, 0, sizeof(struct stat));
+
+    try {
+        OriFileInfo *info = priv->getFileInfo(path);
+        *stbuf = info->statInfo;
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    return 0;
+}
 
 static int
 ori_chmod(const char *path, mode_t mode)
@@ -184,8 +284,11 @@ ori_setup_ori_oper()
     ori_oper.mkdir = ori_mkdir;
     ori_oper.rmdir = ori_rmdir;
     ori_oper.readdir = ori_readdir;
-    
-    // getattr, chmod, chown
+
+    ori_oper.getattr = ori_getattr;
+    ori_oper.chmod = ori_chmod;
+    ori_oper.chown = ori_chown;
+    ori_oper.utimens = ori_utimens;
 }
 
 int
