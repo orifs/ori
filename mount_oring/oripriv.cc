@@ -61,7 +61,7 @@ OriPriv::getFileInfo(const string &path)
     // Check pending directories
     it = paths.find(path);
     if (it != paths.end()) {
-        if (!(*it).second->isDir)
+        if (!(*it).second->isDir())
             throw PosixException(ENOTDIR);
         if ((*it).second->type == FILETYPE_NULL)
             throw PosixException(ENOENT);
@@ -89,7 +89,6 @@ OriPriv::addDir(const string &path)
     info->statInfo.st_ctime = 0;
     info->type = FILETYPE_TEMPORARY;
     info->id = generateId();
-    info->isDir = true;
 
     dirs[info->id] = new OriDir();
     paths[path] = info;
@@ -118,7 +117,7 @@ OriPriv::getDir(const string &path)
 
     it = paths.find(path);
     if (it != paths.end()) {
-        if (!(*it).second->isDir)
+        if (!(*it).second->isDir())
             throw PosixException(ENOTDIR);
         if ((*it).second->type == FILETYPE_NULL)
             throw PosixException(ENOENT);
@@ -142,7 +141,6 @@ OriPriv::getDir(const string &path)
         info->statInfo.st_ctime = 0;
         info->type = FILETYPE_TEMPORARY;
         info->id = generateId();
-        info->isDir = true;
 
         dirs[info->id] = new OriDir();
         paths["/"] = info;

@@ -41,14 +41,13 @@ public:
         memset(&statInfo, 0, sizeof(statInfo));
         type = FILETYPE_NULL;
         id = 0;
-        isDir = false;
     }
     ~OriFileInfo() { }
+    bool isDir() { return (statInfo.st_mode & S_IFDIR) == S_IFDIR; }
     struct stat statInfo;
     ObjectHash hash;
     OriFileType type;
     OriPrivId id;
-    bool isDir;
 };
 
 class OriDir

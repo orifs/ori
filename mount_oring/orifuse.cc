@@ -246,11 +246,53 @@ ori_getattr(const char *path, struct stat *stbuf)
 static int
 ori_chmod(const char *path, mode_t mode)
 {
+    OriPriv *priv = GetOriPriv();
+    string dirPath = StrUtil_Dirname(path);
+
+    if (dirPath != "/")
+        dirPath += "/";
+
+    FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
+
+    try {
+        OriFileInfo *info = priv->getFileInfo(path);
+
+        info->statInfo.st_mode = mode;
+
+        OriDir *dir = &priv->getDir(dirPath);
+        dir->setDirty();
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    return 0;
 }
 
 static int
 ori_chown(const char *path, uid_t uid, gid_t gid)
 {
+    OriPriv *priv = GetOriPriv();
+    OriFileInfo *info;
+    string dirPath = path;
+
+    if (dirPath != "/")
+        dirPath += "/";
+
+    FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
+
+    try {
+        OriFileInfo *info = priv->getFileInfo(path);
+
+        info->statInfo.st_uid = uid;
+        info->statInfo.st_gid = gid;
+
+        OriDir *dir = &priv->getDir(dirPath);
+        dir->setDirty();
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    return 0;
 }
 
 static int
