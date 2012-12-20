@@ -94,15 +94,24 @@ OriPriv::addSymlink(const string &path)
 }
 
 void
-OriPriv::rmSymlink(const string &path)
+OriPriv::unlink(const string &path)
 {
     OriFileInfo *info = getFileInfo(path);
 
-    assert(info->isSymlink());
+    assert(info->isSymlink() | info->isReg());
 
     paths.erase(path);
 
     delete info;
+}
+
+void
+OriPriv::rename(const string &fromPath, const string &toPath)
+{
+    OriFileInfo *info = getFileInfo(fromPath);
+
+    paths.erase(fromPath);
+    paths[toPath] = info;
 }
 
 OriFileInfo *

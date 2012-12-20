@@ -96,7 +96,7 @@ ori_unlink(const char *path)
 
         parentDir->remove(StrUtil_Basename(path));
         if (info->isSymlink()) {
-            priv->rmSymlink(path);
+            priv->unlink(path);
         } else {
             // XXX: Support files
             assert(false);
@@ -159,6 +159,44 @@ ori_readlink(const char *path, char *buf, size_t size)
 static int
 ori_rename(const char *from_path, const char *to_path)
 {
+    OriPriv *priv = GetOriPriv();
+    string fromParent, toParent;
+
+    FUSE_LOG("FUSE ori_rename(from_path=\"%s\", to_path=\"%s\")",
+             from_path, to_path);
+
+    fromParent = StrUtil_Dirname(from_path);
+    if (fromParent == "")
+        fromParent = "/";
+    toParent = StrUtil_Dirname(from_path);
+    if (toParent == "")
+        toParent = "/";
+
+    try {
+        OriDir *fromDir = &priv->getDir(fromParent);
+        OriDir *toDir = &priv->getDir(toParent);
+        OriFileInfo *info = priv->getFileInfo(from_path);
+        OriFileInfo *toFile = NULL;
+
+        try {
+            toFile = priv->getFileInfo(to_path);
+        } catch (PosixException e) {
+            // Fall through
+        }
+
+        priv->rename(from_path, to_path);
+
+        fromDir->remove(StrUtil_Basename(from_path));
+        toDir->add(StrUtil_Basename(to_path), info->id);
+
+        // Delete previously present file
+        if (toFile != NULL)
+            delete toFile;
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    return 0;
 }
 
 // File IO

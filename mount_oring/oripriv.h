@@ -89,7 +89,8 @@ public:
     OriPrivId generateId();
     OriFileInfo* getFileInfo(const std::string &path);
     OriFileInfo* addSymlink(const std::string &path);
-    void rmSymlink(const std::string &path);
+    void unlink(const std::string &path);
+    void rename(const std::string &fromPath, const std::string &toPath);
     OriFileInfo* addDir(const std::string &path);
     void rmDir(const std::string &path);
     OriDir& getDir(const std::string &path);
