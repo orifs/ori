@@ -61,8 +61,6 @@ OriPriv::getFileInfo(const string &path)
     // Check pending directories
     it = paths.find(path);
     if (it != paths.end()) {
-        if (!(*it).second->isDir())
-            throw PosixException(ENOTDIR);
         if ((*it).second->type == FILETYPE_NULL)
             throw PosixException(ENOENT);
 
@@ -72,6 +70,39 @@ OriPriv::getFileInfo(const string &path)
     // Check repository
 
     throw PosixException(ENOENT);
+}
+
+OriFileInfo *
+OriPriv::addSymlink(const string &path)
+{
+    OriFileInfo *info = new OriFileInfo();
+
+    info->statInfo.st_uid = geteuid();
+    info->statInfo.st_gid = getegid();
+    info->statInfo.st_mode = S_IFLNK;
+    // XXX: Adjust nlink and size properly
+    info->statInfo.st_nlink = 1;
+    info->statInfo.st_size = 1;
+    info->statInfo.st_mtime = 0; // XXX: NOW
+    info->statInfo.st_ctime = 0;
+    info->type = FILETYPE_TEMPORARY;
+    info->id = generateId();
+
+    paths[path] = info;
+
+    return info;
+}
+
+void
+OriPriv::rmSymlink(const string &path)
+{
+    OriFileInfo *info = getFileInfo(path);
+
+    assert(info->isSymlink());
+
+    paths.erase(path);
+
+    delete info;
 }
 
 OriFileInfo *

@@ -41,13 +41,17 @@ public:
         memset(&statInfo, 0, sizeof(statInfo));
         type = FILETYPE_NULL;
         id = 0;
+        link = "";
     }
     ~OriFileInfo() { }
     bool isDir() { return (statInfo.st_mode & S_IFDIR) == S_IFDIR; }
+    bool isSymlink() { return (statInfo.st_mode & S_IFLNK) == S_IFLNK; }
+    bool isReg() { return (statInfo.st_mode & S_IFREG) == S_IFREG; }
     struct stat statInfo;
     ObjectHash hash;
     OriFileType type;
     OriPrivId id;
+    std::string link;
 };
 
 class OriDir
@@ -84,6 +88,8 @@ public:
     ~OriPriv();
     OriPrivId generateId();
     OriFileInfo* getFileInfo(const std::string &path);
+    OriFileInfo* addSymlink(const std::string &path);
+    void rmSymlink(const std::string &path);
     OriFileInfo* addDir(const std::string &path);
     void rmDir(const std::string &path);
     OriDir& getDir(const std::string &path);

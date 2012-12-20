@@ -78,16 +78,82 @@ ori_mknod(const char *path, mode_t mode, dev_t dev)
 static int
 ori_unlink(const char *path)
 {
+    OriPriv *priv = GetOriPriv();
+    string parentPath;
+
+    FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
+
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    try {
+        OriDir *parentDir = &priv->getDir(parentPath);
+        OriFileInfo *info = priv->getFileInfo(path);
+
+        if (info->isDir())
+            return -EPERM;
+
+        parentDir->remove(StrUtil_Basename(path));
+        if (info->isSymlink()) {
+            priv->rmSymlink(path);
+        } else {
+            // XXX: Support files
+            assert(false);
+        }
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    return 0;
 }
 
 static int
 ori_symlink(const char *target_path, const char *link_path)
 {
+    OriPriv *priv = GetOriPriv();
+    OriDir *parentDir;
+    string parentPath;
+
+    FUSE_LOG("FUSE ori_symlink(path=\"%s\")", link_path);
+
+    parentPath = StrUtil_Dirname(link_path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    try {
+        parentDir = &priv->getDir(parentPath);
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    OriFileInfo *info = priv->addSymlink(link_path);
+    info->statInfo.st_mode |= 0755;
+    info->link = target_path;
+    info->statInfo.st_size = info->link.length();
+
+    parentDir->add(StrUtil_Basename(link_path), info->id);
+
+    return 0;
 }
 
 static int
-ori_readlink(const char *cpath, char *buf, size_t size)
+ori_readlink(const char *path, char *buf, size_t size)
 {
+    OriPriv *priv = GetOriPriv();
+    OriFileInfo *info;
+
+    FUSE_LOG("FUSE ori_readlink(path\"%s\", size=%ld)", path, size);
+
+    try {
+        info = priv->getFileInfo(path);
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    memcpy(buf, info->link.c_str(), MIN(info->link.length(), size));
+
+    return 0;
 }
 
 static int
