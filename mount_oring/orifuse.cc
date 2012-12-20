@@ -72,6 +72,7 @@ ori_destroy(void *userdata)
 static int
 ori_mknod(const char *path, mode_t mode, dev_t dev)
 {
+    return -EPERM;
 }
 
 static int
@@ -272,7 +273,6 @@ static int
 ori_chown(const char *path, uid_t uid, gid_t gid)
 {
     OriPriv *priv = GetOriPriv();
-    OriFileInfo *info;
     string dirPath = path;
 
     if (dirPath != "/")
@@ -298,6 +298,27 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
 static int
 ori_utimens(const char *path, const struct timespec tv[2])
 {
+    OriPriv *priv = GetOriPriv();
+    string dirPath = path;
+
+    if (dirPath != "/")
+        dirPath += "/";
+
+    FUSE_LOG("FUSE ori_utimens(path=\"%s\")", path);
+
+    try {
+        OriFileInfo *info = priv->getFileInfo(path);
+
+        // Ignore access times
+        info->statInfo.st_mtime = tv[1].tv_sec;
+
+        OriDir *dir = &priv->getDir(dirPath);
+        dir->setDirty();
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    return 0;
 }
 
 static struct fuse_operations ori_oper;
