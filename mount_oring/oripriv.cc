@@ -41,6 +41,7 @@ OriPriv::OriPriv(const std::string &repoPath)
 {
     repo = new LocalRepo(repoPath);
     nextId = ORIPRIVID_INVALID + 1;
+    nextFH = 1;
 
     RWLock::LockOrderVector order;
     order.push_back(ioLock.lockNum);
@@ -81,11 +82,21 @@ OriPriv::getTemp()
     mktemp(tmpPath);
     assert(tmpPath[0] != '\0');
 
-    fd = open(tmpPath, O_CREAT, 0700);
+    fd = open(tmpPath, O_CREAT|O_RDWR, 0700);
     if (fd < 0)
         throw PosixException(errno);
 
     return make_pair(tmpPath, fd);
+}
+
+uint64_t
+OriPriv::generateFH()
+{
+    uint64_t fh = nextFH;
+
+    nextFH++;
+
+    return fh;
 }
 
 OriPrivId
@@ -106,10 +117,12 @@ OriPriv::getFileInfo(const string &path)
     // Check pending directories
     it = paths.find(path);
     if (it != paths.end()) {
-        if ((*it).second->type == FILETYPE_NULL)
+        OriFileInfo *info = (*it).second;
+
+        if (info->type == FILETYPE_NULL)
             throw PosixException(ENOENT);
 
-        return (*it).second;
+        return info;
     }
 
     // Check repository
@@ -118,24 +131,91 @@ OriPriv::getFileInfo(const string &path)
 }
 
 OriFileInfo *
-OriPriv::addSymlink(const string &path)
+OriPriv::getFileInfo(uint64_t fh)
+{
+    map<uint64_t, OriFileInfo*>::iterator it;
+
+    it = handles.find(fh);
+    if (it != handles.end()) {
+        return (*it).second;
+    }
+
+    assert(false);
+
+    return NULL;
+}
+
+void
+OriPriv::closeFH(uint64_t fh)
+{
+    // Manage reference count
+
+    handles.erase(fh);
+}
+
+OriFileInfo *
+OriPriv::createInfo()
 {
     OriFileInfo *info = new OriFileInfo();
+    time_t now = time(NULL);
 
+    // XXX: Switch to using fuse_context
     info->statInfo.st_uid = geteuid();
     info->statInfo.st_gid = getegid();
-    info->statInfo.st_mode = S_IFLNK;
-    // XXX: Adjust nlink and size properly
+    info->statInfo.st_blksize = 4096;
     info->statInfo.st_nlink = 1;
-    info->statInfo.st_size = 1;
-    info->statInfo.st_mtime = 0; // XXX: NOW
-    info->statInfo.st_ctime = 0;
+    info->statInfo.st_atime = 0;
+    info->statInfo.st_mtime = now; // XXX: NOW
+    info->statInfo.st_ctime = now;
     info->type = FILETYPE_TEMPORARY;
     info->id = generateId();
+
+    return info;
+}
+
+OriFileInfo *
+OriPriv::addSymlink(const string &path)
+{
+    OriFileInfo *info = createInfo();
+
+    info->statInfo.st_mode = S_IFLNK;
+    // XXX: Adjust size properly
 
     paths[path] = info;
 
     return info;
+}
+
+pair<OriFileInfo *, uint64_t>
+OriPriv::addFile(const string &path)
+{
+    OriFileInfo *info = createInfo();
+    pair<string, int> file = getTemp();
+    uint64_t handle = generateFH();
+
+    info->statInfo.st_mode = S_IFREG;
+    // XXX: Adjust size properly
+    info->statInfo.st_size = 0;
+    info->link = file.first; // XXX: Change to relative
+    info->fd = file.second;
+
+    paths[path] = info;
+    handles[handle] = info;
+
+    return make_pair(info, handle);
+}
+
+pair<OriFileInfo *, uint64_t>
+OriPriv::openFile(const string &path)
+{
+    OriFileInfo *info = getFileInfo(path);
+    uint64_t handle = generateFH();
+
+    handles[handle] = info;
+
+    // Open temporary file if necessary
+
+    return make_pair(info, handle);
 }
 
 void
@@ -147,6 +227,7 @@ OriPriv::unlink(const string &path)
 
     paths.erase(path);
 
+    // XXX: Drop refcount only delete if zero (including temp file)
     delete info;
 }
 
@@ -163,6 +244,7 @@ OriFileInfo *
 OriPriv::addDir(const string &path)
 {
     OriFileInfo *info = new OriFileInfo();
+    time_t now = time(NULL);
 
     info->statInfo.st_uid = geteuid();
     info->statInfo.st_gid = getegid();
@@ -170,8 +252,9 @@ OriPriv::addDir(const string &path)
     // XXX: Adjust nlink and size properly
     info->statInfo.st_nlink = 1;
     info->statInfo.st_size = 1;
-    info->statInfo.st_mtime = 0; // XXX: NOW
-    info->statInfo.st_ctime = 0;
+    info->statInfo.st_atime = 0;
+    info->statInfo.st_mtime = now; // XXX: NOW
+    info->statInfo.st_ctime = now;
     info->type = FILETYPE_TEMPORARY;
     info->id = generateId();
 
@@ -221,6 +304,8 @@ OriPriv::getDir(const string &path)
         info->statInfo.st_mode = 0600 | S_IFDIR;
         // Adjust nlink and size properly
         info->statInfo.st_nlink = 1;
+        info->statInfo.st_blksize = 4096;
+        info->statInfo.st_blocks = 1;
         info->statInfo.st_size = 512;
         info->statInfo.st_mtime = 0; // Use latest commit time
         info->statInfo.st_ctime = 0;

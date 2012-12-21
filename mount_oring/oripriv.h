@@ -51,7 +51,8 @@ public:
     ObjectHash hash;
     OriFileType type;
     OriPrivId id;
-    std::string link;
+    std::string link; // link or temporary file
+    int fd;
 };
 
 class OriDir
@@ -90,9 +91,15 @@ public:
     void reset();
     std::pair<std::string, int> getTemp();
     // Current Change Operations
+    uint64_t generateFH();
     OriPrivId generateId();
     OriFileInfo* getFileInfo(const std::string &path);
+    OriFileInfo* getFileInfo(uint64_t fh);
+    void closeFH(uint64_t fh);
+    OriFileInfo* createInfo();
     OriFileInfo* addSymlink(const std::string &path);
+    std::pair<OriFileInfo*, uint64_t> addFile(const std::string &path);
+    std::pair<OriFileInfo*, uint64_t> openFile(const std::string &path);
     void unlink(const std::string &path);
     void rename(const std::string &fromPath, const std::string &toPath);
     OriFileInfo* addDir(const std::string &path);
@@ -100,8 +107,10 @@ public:
     OriDir& getDir(const std::string &path);
 private:
     OriPrivId nextId;
+    uint64_t nextFH;
     std::map<OriPrivId, OriDir*> dirs;
     std::map<std::string, OriFileInfo*> paths;
+    std::map<uint64_t, OriFileInfo*> handles;
 
     // Repository State
     LocalRepo *repo;

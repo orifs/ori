@@ -108,7 +108,7 @@ ori_unlink(const char *path)
             return -EPERM;
 
         parentDir->remove(StrUtil_Basename(path));
-        if (info->isSymlink()) {
+        if (info->isSymlink() || info->isReg()) {
             priv->unlink(path);
         } else {
             // XXX: Support files
@@ -217,33 +217,157 @@ ori_rename(const char *from_path, const char *to_path)
 static int
 ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
+    OriPriv *priv = GetOriPriv();
+    string parentPath;
+    OriDir *parentDir;
+
+    FUSE_LOG("FUSE ori_create(path=\"%s\")", path);
+
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    try {
+        parentDir = &priv->getDir(parentPath);
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    pair<OriFileInfo *, uint64_t> info = priv->addFile(path);
+    info.first->statInfo.st_mode |= mode;
+
+    parentDir->add(StrUtil_Basename(path), info.first->id);
+
+    // Set fh
+    fi->fh = info.second;
+
+    return 0;
 }
 
 static int
 ori_open(const char *path, struct fuse_file_info *fi)
 {
+    OriPriv *priv = GetOriPriv();
+    string parentPath;
+    OriDir *parentDir;
+    pair<OriFileInfo *, uint64_t> info;
+
+    FUSE_LOG("FUSE ori_create(path=\"%s\")", path);
+
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    try {
+        parentDir = &priv->getDir(parentPath);
+        info = priv->openFile(path);
+    } catch (PosixException e) {
+        return -e.getErrno();
+    }
+
+    if (fi->flags & O_WRONLY || fi->flags & O_RDWR)
+        parentDir->setDirty();
+
+    // Set fh
+    fi->fh = info.second;
+
+    return 0;
 }
 
 static int
 ori_read(const char *path, char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
+    OriPriv *priv = GetOriPriv();
+    OriFileInfo *info = priv->getFileInfo(fi->fh);
+    int status;
+
+    status = pread(info->fd, buf, size, offset);
+    if (status < 0)
+        return -errno;
+
+    return status;
 }
 
 static int
 ori_write(const char *path, const char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
+    OriPriv *priv = GetOriPriv();
+    OriFileInfo *info = priv->getFileInfo(fi->fh);
+    int status;
+
+    status = pwrite(info->fd, buf, size, offset);
+    if (status < 0)
+        return -errno;
+
+    // Update size
+    if (info->statInfo.st_size < size + offset) {
+        info->statInfo.st_size = size + offset;
+        info->statInfo.st_blocks = (size + offset + (512-1))/512;
+    }
+
+    return status;
 }
 
 static int
 ori_truncate(const char *path, off_t length)
 {
+    OriPriv *priv = GetOriPriv();
+    OriFileInfo *info = priv->getFileInfo(path);
+
+    if (info->type == FILETYPE_TEMPORARY) {
+        return truncate(info->link.c_str(), length);
+    } else {
+        // XXX: Not Implemented
+        assert(false);
+        return -EINVAL;
+    }
+}
+
+static int
+ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
+{
+    OriPriv *priv = GetOriPriv();
+    OriFileInfo *info = priv->getFileInfo(fi->fh);
+
+    if (info->type == FILETYPE_TEMPORARY) {
+        int status;
+
+        status = ftruncate(info->fd, length);
+        if (status < 0)
+            return -errno;
+
+        // Update size
+        info->statInfo.st_size = length;
+        info->statInfo.st_blocks = (length + (512-1))/512;
+
+        return status;
+    } else {
+        // XXX: Not Implemented
+        assert(false);
+        return -EINVAL;
+    }
 }
 
 static int
 ori_release(const char *path, struct fuse_file_info *fi)
 {
+    OriPriv *priv = GetOriPriv();
+    OriFileInfo *info;
+
+    try {
+        info = priv->getFileInfo(fi->fh);
+    } catch (PosixException e) {
+        FUSE_LOG("Unexpected in ori_release %s", e.what());
+        return -e.getErrno();
+    }
+
+    // Decrement reference count (deletes temporary file for unlink)
+    priv->closeFH(fi->fh);
+    fi->fh = -1;
+
+    return 0;
 }
 
 // Directory Operations
@@ -365,10 +489,11 @@ static int
 ori_chmod(const char *path, mode_t mode)
 {
     OriPriv *priv = GetOriPriv();
-    string dirPath = StrUtil_Dirname(path);
+    string parentPath;
 
-    if (dirPath != "/")
-        dirPath += "/";
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
 
     FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
 
@@ -377,7 +502,7 @@ ori_chmod(const char *path, mode_t mode)
 
         info->statInfo.st_mode = mode;
 
-        OriDir *dir = &priv->getDir(dirPath);
+        OriDir *dir = &priv->getDir(parentPath);
         dir->setDirty();
     } catch (PosixException e) {
         return -e.getErrno();
@@ -390,10 +515,11 @@ static int
 ori_chown(const char *path, uid_t uid, gid_t gid)
 {
     OriPriv *priv = GetOriPriv();
-    string dirPath = path;
+    string parentPath;
 
-    if (dirPath != "/")
-        dirPath += "/";
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
 
     FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
 
@@ -403,7 +529,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
         info->statInfo.st_uid = uid;
         info->statInfo.st_gid = gid;
 
-        OriDir *dir = &priv->getDir(dirPath);
+        OriDir *dir = &priv->getDir(parentPath);
         dir->setDirty();
     } catch (PosixException e) {
         return -e.getErrno();
@@ -416,10 +542,11 @@ static int
 ori_utimens(const char *path, const struct timespec tv[2])
 {
     OriPriv *priv = GetOriPriv();
-    string dirPath = path;
+    string parentPath;
 
-    if (dirPath != "/")
-        dirPath += "/";
+    parentPath = StrUtil_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
 
     FUSE_LOG("FUSE ori_utimens(path=\"%s\")", path);
 
@@ -429,7 +556,7 @@ ori_utimens(const char *path, const struct timespec tv[2])
         // Ignore access times
         info->statInfo.st_mtime = tv[1].tv_sec;
 
-        OriDir *dir = &priv->getDir(dirPath);
+        OriDir *dir = &priv->getDir(parentPath);
         dir->setDirty();
     } catch (PosixException e) {
         return -e.getErrno();
@@ -459,6 +586,7 @@ ori_setup_ori_oper()
     ori_oper.read = ori_read;
     ori_oper.write = ori_write;
     ori_oper.truncate = ori_truncate;
+    ori_oper.ftruncate = ori_ftruncate;
     ori_oper.release = ori_release;
 
     ori_oper.mkdir = ori_mkdir;
