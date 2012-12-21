@@ -33,21 +33,34 @@
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/posixexception.h>
+#include <ori/rwlock.h>
+#include <ori/commit.h>
+#include <ori/localrepo.h>
 
 #include <string>
 #include <map>
 
 #include "logging.h"
 #include "oripriv.h"
+#include "oriopt.h"
 
 using namespace std;
+
+mount_ori_config config;
 
 // Mount/Unmount
 
 static void *
 ori_init(struct fuse_conn_info *conn)
 {
-    OriPriv *priv = new OriPriv();
+    OriPriv *priv;
+    
+    try {
+        priv = new OriPriv(config.repo_path);
+    } catch (PosixException e) {
+        FUSE_LOG("Unexpected %s", e.what());
+        throw e;
+    }
 
     // Verify conifguration
 
@@ -458,11 +471,31 @@ ori_setup_ori_oper()
     ori_oper.utimens = ori_utimens;
 }
 
+void
+usage()
+{
+    printf("Usage:\n");
+    printf("mount_ori -o repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("mount_ori -o clone=[REMOTE PATH],repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+}
+
 int
 main(int argc, char *argv[])
 {
     ori_setup_ori_oper();
     umask(0);
-    return fuse_main(argc, argv, &ori_oper, NULL);
+
+    // Parse arguments
+    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+    mount_ori_parse_opt(&args, &config);
+
+    if (config.repo_path == NULL) {
+        usage();
+        exit(1);
+    }
+
+    printf("Opening repo at %s\n", config.repo_path);
+
+    return fuse_main(args.argc, args.argv, &ori_oper, NULL);
 }
 

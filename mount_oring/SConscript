@@ -6,6 +6,7 @@ src = [
     "logging.cc",
     "orifuse.cc",
     "oripriv.cc",
+    "oriopt.cc",
 ]
 
 libs = [

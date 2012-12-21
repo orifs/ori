@@ -84,8 +84,12 @@ private:
 class OriPriv
 {
 public:
-    OriPriv();
+    OriPriv(const std::string &repoPath);
     ~OriPriv();
+    // Repository Operations
+    void reset();
+    std::pair<std::string, int> getTemp();
+    // Current Change Operations
     OriPrivId generateId();
     OriFileInfo* getFileInfo(const std::string &path);
     OriFileInfo* addSymlink(const std::string &path);
@@ -98,6 +102,17 @@ private:
     OriPrivId nextId;
     std::map<OriPrivId, OriDir*> dirs;
     std::map<std::string, OriFileInfo*> paths;
+
+    // Repository State
+    LocalRepo *repo;
+    ObjectHash head;
+    Commit headCommit;
+    std::string tmpDir;
+
+    // Locks
+    RWLock ioLock; // File I/O lock to allow atomic commits
+    RWLock nsLock; // Namespace lock
+    RWLock cmdLock; // Control device lock
 };
 
 OriPriv *GetOriPriv();

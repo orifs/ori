@@ -24,7 +24,10 @@
 #include <fuse.h>
 
 #include <ori/posixexception.h>
+#include <ori/rwlock.h>
 #include <ori/objecthash.h>
+#include <ori/commit.h>
+#include <ori/localrepo.h>
 
 #include <string>
 #include <map>
@@ -34,13 +37,55 @@
 
 using namespace std;
 
-OriPriv::OriPriv()
+OriPriv::OriPriv(const std::string &repoPath)
 {
+    repo = new LocalRepo(repoPath);
     nextId = ORIPRIVID_INVALID + 1;
+
+    RWLock::LockOrderVector order;
+    order.push_back(ioLock.lockNum);
+    order.push_back(nsLock.lockNum);
+    order.push_back(cmdLock.lockNum);
+    RWLock::setLockOrder(order);
+
+    reset();
 }
 
 OriPriv::~OriPriv()
 {
+}
+
+void
+OriPriv::reset()
+{
+    head = repo->getHead();
+    if (!head.isEmpty()) {
+        headCommit = repo->getCommit(head);
+    }
+
+    // Create temporary directory
+    tmpDir = repo->getRootPath() + ORI_PATH_TMP + "fuse";
+    if (::mkdir(tmpDir.c_str(), 0700) < 0)
+        throw PosixException(errno);
+}
+
+pair<string, int>
+OriPriv::getTemp()
+{
+    string filePath = tmpDir + "/obj.XXXXXX";
+    char tmpPath[PATH_MAX];
+    int fd;
+
+    strncpy(tmpPath, filePath.c_str(), PATH_MAX);
+
+    mktemp(tmpPath);
+    assert(tmpPath[0] != '\0');
+
+    fd = open(tmpPath, O_CREAT, 0700);
+    if (fd < 0)
+        throw PosixException(errno);
+
+    return make_pair(tmpPath, fd);
 }
 
 OriPrivId
