@@ -240,8 +240,14 @@ OriPriv::rename(const string &fromPath, const string &toPath)
 {
     OriFileInfo *info = getFileInfo(fromPath);
 
+    // XXX: Need to rename all files under a directory
+    assert(!info->isDir());
+
     paths.erase(fromPath);
     paths[toPath] = info;
+
+    assert(paths.find(fromPath) == paths.end());
+    assert(paths.find(toPath) != paths.end());
 }
 
 OriFileInfo *
@@ -281,7 +287,7 @@ OriPriv::rmDir(const string &path)
     info->release();
 }
 
-OriDir&
+OriDir*
 OriPriv::getDir(const string &path)
 {
     // Check pending directories
@@ -294,7 +300,7 @@ OriPriv::getDir(const string &path)
         if ((*it).second->type == FILETYPE_NULL)
             throw PosixException(ENOENT);
 
-        return *dirs[(*it).second->id];
+        return dirs[(*it).second->id];
     }
 
     // Check repository
@@ -319,10 +325,104 @@ OriPriv::getDir(const string &path)
         dirs[info->id] = new OriDir();
         paths["/"] = info;
 
-        return *dirs[info->id];
+        return dirs[info->id];
     }
 
     throw PosixException(ENOENT);
+}
+
+void
+OriPrivCheckDir(OriPriv *priv, const string &path, OriDir *dir)
+{
+    OriDir::iterator it;
+
+    for (it = dir->begin(); it != dir->end(); it++) {
+        string objPath = path + "/" + it->first;
+        OriFileInfo *info = NULL;
+
+        try {
+            info = priv->getFileInfo(objPath);
+        } catch (PosixException e) {
+            FUSE_LOG("fsck: getFileInfo(%s) had %s",
+                     objPath.c_str(), e.what());
+        }
+
+        if (info && info->isDir()) {
+            OriDir *dir;
+
+            assert(!info->isSymlink() && !info->isReg());
+
+            try {
+                dir = priv->getDir(objPath);
+                OriPrivCheckDir(priv, objPath, dir);
+            } catch (PosixException e) {
+                FUSE_LOG("fsck: getDir(%s) encountered %s",
+                         objPath.c_str(), e.what());
+            }
+        }
+
+        if (info && info->isReg()) {
+            if (info->isDir()) {
+                FUSE_LOG("fsck: %s is marked as %s%s%s",
+                         objPath.c_str(),
+                         info->isSymlink() ? "Sym" : "",
+                         info->isReg() ? "Reg" : "",
+                         info->isDir() ? "Dir" : "");
+            }
+        }
+
+        if (info && info->isSymlink()) {
+            if (!info->isReg() || info->isDir()) {
+                FUSE_LOG("fsck: %s is marked as %s%s%s",
+                         objPath.c_str(),
+                         info->isSymlink() ? "Sym" : "",
+                         info->isReg() ? "Reg" : "",
+                         info->isDir() ? "Dir" : "");
+            }
+        }
+
+        if (info && info->id != it->second) {
+            FUSE_LOG("fsck: %s object Id mismatch!", objPath.c_str());
+        }
+    }
+}
+
+void
+OriPriv::fsck()
+{
+    map<string, OriFileInfo *>::iterator it;
+    OriDir *dir = getDir("/");
+
+    OriPrivCheckDir(this, "", dir);
+
+    for (it = paths.begin(); it != paths.end(); it++) {
+        string basename = StrUtil_Basename(it->first);
+        string parentPath = StrUtil_Dirname(it->first);
+        OriDir *dir = NULL;
+
+        if (it->first == "/")
+            continue;
+
+        if (parentPath == "")
+            parentPath = "/";
+
+        try {
+            dir = getDir(parentPath);
+        } catch (PosixException e) {
+            FUSE_LOG("fsck: %s path encountered an error %s",
+                     it->first.c_str(), e.what());
+        }
+
+        if (dir) {
+            OriDir::iterator dirIt = dir->find(basename);
+
+            if (dirIt == dir->end()) {
+                FUSE_LOG("%s not present in directory!", it->first.c_str());
+            } else if (dirIt->second != it->second->id) {
+                FUSE_LOG("fsck: %s object Id mismatch!", it->first.c_str());
+            }
+        }
+    }
 }
 
 OriPriv *

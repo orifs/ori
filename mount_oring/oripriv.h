@@ -83,6 +83,7 @@ public:
     }
     void remove(const std::string &name)
     {
+        assert(entries.find(name) != entries.end());
         entries.erase(name);
         setDirty();
     }
@@ -92,6 +93,7 @@ public:
     bool isDirty() { return dirty; }
     iterator begin() { return entries.begin(); }
     iterator end() { return entries.end(); }
+    iterator find(const std::string &name) { return entries.find(name); }
 private:
     bool dirty;
     std::map<std::string, OriPrivId> entries;
@@ -119,7 +121,9 @@ public:
     void rename(const std::string &fromPath, const std::string &toPath);
     OriFileInfo* addDir(const std::string &path);
     void rmDir(const std::string &path);
-    OriDir& getDir(const std::string &path);
+    OriDir* getDir(const std::string &path);
+    // Debugging
+    void fsck();
 private:
     OriPrivId nextId;
     uint64_t nextFH;

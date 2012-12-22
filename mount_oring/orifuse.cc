@@ -44,6 +44,8 @@
 #include "oripriv.h"
 #include "oriopt.h"
 
+#define FSCK_A_LOT
+
 using namespace std;
 
 mount_ori_config config;
@@ -94,6 +96,10 @@ ori_unlink(const char *path)
     OriPriv *priv = GetOriPriv();
     string parentPath;
 
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
+
     FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
 
     parentPath = StrUtil_Dirname(path);
@@ -101,7 +107,7 @@ ori_unlink(const char *path)
         parentPath = "/";
 
     try {
-        OriDir *parentDir = &priv->getDir(parentPath);
+        OriDir *parentDir = priv->getDir(parentPath);
         OriFileInfo *info = priv->getFileInfo(path);
 
         if (info->isDir())
@@ -128,6 +134,10 @@ ori_symlink(const char *target_path, const char *link_path)
     OriDir *parentDir;
     string parentPath;
 
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
+
     FUSE_LOG("FUSE ori_symlink(path=\"%s\")", link_path);
 
     parentPath = StrUtil_Dirname(link_path);
@@ -135,7 +145,7 @@ ori_symlink(const char *target_path, const char *link_path)
         parentPath = "/";
 
     try {
-        parentDir = &priv->getDir(parentPath);
+        parentDir = priv->getDir(parentPath);
     } catch (PosixException e) {
         return -e.getErrno();
     }
@@ -156,6 +166,10 @@ ori_readlink(const char *path, char *buf, size_t size)
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
 
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
+
     FUSE_LOG("FUSE ori_readlink(path\"%s\", size=%ld)", path, size);
 
     try {
@@ -175,6 +189,10 @@ ori_rename(const char *from_path, const char *to_path)
     OriPriv *priv = GetOriPriv();
     string fromParent, toParent;
 
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
+
     FUSE_LOG("FUSE ori_rename(from_path=\"%s\", to_path=\"%s\")",
              from_path, to_path);
 
@@ -186,10 +204,11 @@ ori_rename(const char *from_path, const char *to_path)
         toParent = "/";
 
     try {
-        OriDir *fromDir = &priv->getDir(fromParent);
-        OriDir *toDir = &priv->getDir(toParent);
+        OriDir *fromDir = priv->getDir(fromParent);
+        OriDir *toDir = priv->getDir(toParent);
         OriFileInfo *info = priv->getFileInfo(from_path);
         OriFileInfo *toFile = NULL;
+        OriDir *toFileDir = NULL;
 
         try {
             toFile = priv->getFileInfo(to_path);
@@ -197,14 +216,37 @@ ori_rename(const char *from_path, const char *to_path)
             // Fall through
         }
 
+        // Not sure if FUSE checks for these two error cases
+        if (toFile != NULL && toFile->isDir()) {
+            toFileDir = priv->getDir(to_path);
+
+            if (!toFileDir->isEmpty())
+                return -ENOTEMPTY;
+        }
+        if (toFile != NULL && info->isDir() && !toFile->isDir()) {
+            return -EISDIR;
+        }
+
+        // XXX: Need to support renaming directories
+        if (info->isDir()) {
+            FUSE_LOG("ori_rename: Directory rename attempted %s to %s",
+                     from_path, to_path);
+            return -EINVAL;
+        }
+
         priv->rename(from_path, to_path);
+
+        string to = StrUtil_Basename(from_path);
+        string from = StrUtil_Basename(to_path);
+        FUSE_LOG("%s %s", to.c_str(), from.c_str());
 
         fromDir->remove(StrUtil_Basename(from_path));
         toDir->add(StrUtil_Basename(to_path), info->id);
 
         // Delete previously present file
-        if (toFile != NULL)
+        if (toFile != NULL) {
             toFile->release();
+        }
     } catch (PosixException e) {
         return -e.getErrno();
     }
@@ -221,6 +263,10 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     string parentPath;
     OriDir *parentDir;
 
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
+
     FUSE_LOG("FUSE ori_create(path=\"%s\")", path);
 
     parentPath = StrUtil_Dirname(path);
@@ -228,7 +274,7 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         parentPath = "/";
 
     try {
-        parentDir = &priv->getDir(parentPath);
+        parentDir = priv->getDir(parentPath);
     } catch (PosixException e) {
         return -e.getErrno();
     }
@@ -259,7 +305,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
         parentPath = "/";
 
     try {
-        parentDir = &priv->getDir(parentPath);
+        parentDir = priv->getDir(parentPath);
         info = priv->openFile(path);
     } catch (PosixException e) {
         return -e.getErrno();
@@ -385,6 +431,10 @@ ori_mkdir(const char *path, mode_t mode)
     OriDir *parentDir;
     string parentPath;
 
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
+
     FUSE_LOG("FUSE ori_mkdir(path=\"%s\")", path);
 
     parentPath = StrUtil_Dirname(path);
@@ -392,7 +442,7 @@ ori_mkdir(const char *path, mode_t mode)
         parentPath = "/";
 
     try {
-        parentDir = &priv->getDir(parentPath);
+        parentDir = priv->getDir(parentPath);
     } catch (PosixException e) {
         return -e.getErrno();
     }
@@ -411,6 +461,10 @@ ori_rmdir(const char *path)
     OriPriv *priv = GetOriPriv();
     string parentPath;
 
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
+
     FUSE_LOG("FUSE ori_rmdir(path=\"%s\")", path);
 
     parentPath = StrUtil_Dirname(path);
@@ -418,11 +472,19 @@ ori_rmdir(const char *path)
         parentPath = "/";
 
     try {
-        OriDir *parentDir = &priv->getDir(parentPath);
-        OriDir *dir = &priv->getDir(path);
+        OriDir *parentDir = priv->getDir(parentPath);
+        OriDir *dir = priv->getDir(path);
 
-        if (!dir->isEmpty())
+        if (!dir->isEmpty()) {
+            OriDir::iterator it;
+
+            FUSE_LOG("Directory not empty!");
+            for (it = dir->begin(); it != dir->end(); it++) {
+                FUSE_LOG("DIR: %s\n", it->first.c_str());
+            }
+
             return -ENOTEMPTY;
+        }
 
         parentDir->remove(StrUtil_Basename(path));
         priv->rmDir(path);
@@ -438,12 +500,16 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
                         off_t offset, struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
-    OriDir dir;
+    OriDir *dir;
     OriDir::iterator it;
     string dirPath = path;
 
     if (dirPath != "/")
         dirPath += "/";
+
+#ifdef FSCK_A_LOT
+    priv->fsck();
+#endif /* FSCK_A_LOT */
 
     FUSE_LOG("FUSE ori_readdir(path=\"%s\", offset=%ld)", path, offset);
 
@@ -457,7 +523,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     filler(buf, "..", NULL, 0);
 
     try {
-        for (it = dir.begin(); it != dir.end(); it++) {
+        for (it = dir->begin(); it != dir->end(); it++) {
             OriFileInfo *info = priv->getFileInfo(dirPath + (*it).first);
 
             filler(buf, (*it).first.c_str(), &info->statInfo, 0);
@@ -508,7 +574,7 @@ ori_chmod(const char *path, mode_t mode)
 
         info->statInfo.st_mode = mode;
 
-        OriDir *dir = &priv->getDir(parentPath);
+        OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
     } catch (PosixException e) {
         return -e.getErrno();
@@ -535,7 +601,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
         info->statInfo.st_uid = uid;
         info->statInfo.st_gid = gid;
 
-        OriDir *dir = &priv->getDir(parentPath);
+        OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
     } catch (PosixException e) {
         return -e.getErrno();
@@ -562,7 +628,7 @@ ori_utimens(const char *path, const struct timespec tv[2])
         // Ignore access times
         info->statInfo.st_mtime = tv[1].tv_sec;
 
-        OriDir *dir = &priv->getDir(parentPath);
+        OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
     } catch (PosixException e) {
         return -e.getErrno();
