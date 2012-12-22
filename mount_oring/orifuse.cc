@@ -204,7 +204,7 @@ ori_rename(const char *from_path, const char *to_path)
 
         // Delete previously present file
         if (toFile != NULL)
-            delete toFile;
+            toFile->release();
     } catch (PosixException e) {
         return -e.getErrno();
     }
@@ -252,7 +252,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
     OriDir *parentDir;
     pair<OriFileInfo *, uint64_t> info;
 
-    FUSE_LOG("FUSE ori_create(path=\"%s\")", path);
+    FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
 
     parentPath = StrUtil_Dirname(path);
     if (parentPath == "")
@@ -316,6 +316,8 @@ ori_truncate(const char *path, off_t length)
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info = priv->getFileInfo(path);
 
+    FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%ld)", path, length);
+
     if (info->type == FILETYPE_TEMPORARY) {
         return truncate(info->link.c_str(), length);
     } else {
@@ -330,6 +332,8 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info = priv->getFileInfo(fi->fh);
+
+    FUSE_LOG("FUSE ori_ftruncate(path=\"%s\", length=%ld)", path, length);
 
     if (info->type == FILETYPE_TEMPORARY) {
         int status;
@@ -355,6 +359,8 @@ ori_release(const char *path, struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
+
+    FUSE_LOG("FUSE ori_release(path=\"%s\"): fh=%ld", path, fi->fh);
 
     try {
         info = priv->getFileInfo(fi->fh);

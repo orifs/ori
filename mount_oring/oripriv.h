@@ -42,8 +42,22 @@ public:
         type = FILETYPE_NULL;
         id = 0;
         link = "";
+        fd = -1;
+        refcount = 1;
     }
-    ~OriFileInfo() { }
+    ~OriFileInfo() {
+        assert(refcount == 0);
+    }
+    void retain() {
+        assert(refcount != 0);
+        refcount++;
+    }
+    void release() {
+        refcount--;
+        if (refcount == 0) {
+            delete this;
+        }
+    }
     bool isDir() { return (statInfo.st_mode & S_IFDIR) == S_IFDIR; }
     bool isSymlink() { return (statInfo.st_mode & S_IFLNK) == S_IFLNK; }
     bool isReg() { return (statInfo.st_mode & S_IFREG) == S_IFREG; }
@@ -53,6 +67,7 @@ public:
     OriPrivId id;
     std::string link; // link or temporary file
     int fd;
+    int refcount;
 };
 
 class OriDir

@@ -149,6 +149,7 @@ void
 OriPriv::closeFH(uint64_t fh)
 {
     // Manage reference count
+    handles[fh]->release();
 
     handles.erase(fh);
 }
@@ -202,6 +203,8 @@ OriPriv::addFile(const string &path)
     paths[path] = info;
     handles[handle] = info;
 
+    info->retain();
+
     return make_pair(info, handle);
 }
 
@@ -211,9 +214,10 @@ OriPriv::openFile(const string &path)
     OriFileInfo *info = getFileInfo(path);
     uint64_t handle = generateFH();
 
+    info->retain();
     handles[handle] = info;
 
-    // Open temporary file if necessary
+    // XXX: Open temporary file if necessary
 
     return make_pair(info, handle);
 }
@@ -227,8 +231,8 @@ OriPriv::unlink(const string &path)
 
     paths.erase(path);
 
-    // XXX: Drop refcount only delete if zero (including temp file)
-    delete info;
+    // Drop refcount only delete if zero (including temp file)
+    info->release();
 }
 
 void
@@ -274,7 +278,7 @@ OriPriv::rmDir(const string &path)
     dirs.erase(info->id);
     paths.erase(path);
 
-    delete info;
+    info->release();
 }
 
 OriDir&
