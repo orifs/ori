@@ -260,7 +260,7 @@ OriPriv::addDir(const string &path)
     info->statInfo.st_gid = getegid();
     info->statInfo.st_mode = S_IFDIR;
     // XXX: Adjust nlink and size properly
-    info->statInfo.st_nlink = 1;
+    info->statInfo.st_nlink = 2;
     info->statInfo.st_size = 1;
     info->statInfo.st_atime = 0;
     info->statInfo.st_mtime = now; // XXX: NOW
@@ -313,7 +313,7 @@ OriPriv::getDir(const string &path)
         info->statInfo.st_gid = getegid();
         info->statInfo.st_mode = 0600 | S_IFDIR;
         // Adjust nlink and size properly
-        info->statInfo.st_nlink = 1;
+        info->statInfo.st_nlink = 2;
         info->statInfo.st_blksize = 4096;
         info->statInfo.st_blocks = 1;
         info->statInfo.st_size = 512;
@@ -417,7 +417,8 @@ OriPriv::fsck()
             OriDir::iterator dirIt = dir->find(basename);
 
             if (dirIt == dir->end()) {
-                FUSE_LOG("%s not present in directory!", it->first.c_str());
+                FUSE_LOG("fsck: %s not present in directory!",
+                         it->first.c_str());
             } else if (dirIt->second != it->second->id) {
                 FUSE_LOG("fsck: %s object Id mismatch!", it->first.c_str());
             }

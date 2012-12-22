@@ -199,7 +199,7 @@ ori_rename(const char *from_path, const char *to_path)
     fromParent = StrUtil_Dirname(from_path);
     if (fromParent == "")
         fromParent = "/";
-    toParent = StrUtil_Dirname(from_path);
+    toParent = StrUtil_Dirname(to_path);
     if (toParent == "")
         toParent = "/";
 
@@ -227,7 +227,7 @@ ori_rename(const char *from_path, const char *to_path)
             return -EISDIR;
         }
 
-        // XXX: Need to support renaming directories
+        // XXX: Need to support renaming directories (nlink, OriPriv::Rename)
         if (info->isDir()) {
             FUSE_LOG("ori_rename: Directory rename attempted %s to %s",
                      from_path, to_path);
@@ -236,12 +236,12 @@ ori_rename(const char *from_path, const char *to_path)
 
         priv->rename(from_path, to_path);
 
-        string to = StrUtil_Basename(from_path);
-        string from = StrUtil_Basename(to_path);
-        FUSE_LOG("%s %s", to.c_str(), from.c_str());
+        string from = StrUtil_Basename(from_path);
+        string to = StrUtil_Basename(to_path);
+        FUSE_LOG("%s %s", from.c_str(), to.c_str());
 
-        fromDir->remove(StrUtil_Basename(from_path));
-        toDir->add(StrUtil_Basename(to_path), info->id);
+        fromDir->remove(from);
+        toDir->add(to, info->id);
 
         // Delete previously present file
         if (toFile != NULL) {
@@ -429,6 +429,7 @@ ori_mkdir(const char *path, mode_t mode)
 {
     OriPriv *priv = GetOriPriv();
     OriDir *parentDir;
+    OriFileInfo *parentInfo;
     string parentPath;
 
 #ifdef FSCK_A_LOT
@@ -443,6 +444,7 @@ ori_mkdir(const char *path, mode_t mode)
 
     try {
         parentDir = priv->getDir(parentPath);
+        parentInfo = priv->getFileInfo(parentPath);
     } catch (PosixException e) {
         return -e.getErrno();
     }
@@ -451,6 +453,7 @@ ori_mkdir(const char *path, mode_t mode)
     info->statInfo.st_mode |= mode;
 
     parentDir->add(StrUtil_Basename(path), info->id);
+    parentInfo->statInfo.st_nlink++;
 
     return 0;
 }
@@ -473,6 +476,7 @@ ori_rmdir(const char *path)
 
     try {
         OriDir *parentDir = priv->getDir(parentPath);
+        OriFileInfo *parentInfo = priv->getFileInfo(parentPath);
         OriDir *dir = priv->getDir(path);
 
         if (!dir->isEmpty()) {
@@ -487,7 +491,10 @@ ori_rmdir(const char *path)
         }
 
         parentDir->remove(StrUtil_Basename(path));
+        parentInfo->statInfo.st_nlink--;
         priv->rmDir(path);
+
+        assert(parentInfo->statInfo.st_nlink >= 2);
     } catch (PosixException e) {
         return -e.getErrno();
     }
@@ -522,14 +529,16 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     filler(buf, ".", NULL, 0);
     filler(buf, "..", NULL, 0);
 
-    try {
-        for (it = dir->begin(); it != dir->end(); it++) {
-            OriFileInfo *info = priv->getFileInfo(dirPath + (*it).first);
-
+    for (it = dir->begin(); it != dir->end(); it++) {
+        OriFileInfo *info;
+        
+        try {
+            info = priv->getFileInfo(dirPath + (*it).first);
             filler(buf, (*it).first.c_str(), &info->statInfo, 0);
+        } catch (PosixException e) {
+            FUSE_LOG("Unexpected %s", e.what());
+            filler(buf, (*it).first.c_str(), NULL, 0);
         }
-    } catch (PosixException e) {
-        FUSE_LOG("Unexpected %s", e.what());
     }
 
     return 0;
