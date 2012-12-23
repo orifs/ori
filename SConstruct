@@ -16,6 +16,8 @@ opts.AddVariables(
     ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "1"),
     ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "0"),
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
+    ("WITH_GOOGLEHEAP", "Link to Google Heap Cheker.", "0"),
+    ("WITH_GOOGLEPROF", "Link to Google CPU Profiler.", "0"),
     ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "0"),
     ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
         "0"),
@@ -84,8 +86,10 @@ if env["WITH_GPROF"] == "1":
 if env["BUILDTYPE"] == "DEBUG":
     env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
 	"-Wno-deprecated-declarations" ])
+    env.Append(LINKFLAGS = [ "-g" ])
 elif env["BUILDTYPE"] == "PERF":
     env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-Wall", "-O0"])
+    env.Append(LDFLAGS = [ "-g" ])
 elif env["BUILDTYPE"] == "RELEASE":
     env.Append(CPPFLAGS = ["-DNDEBUG", "-Wall", "-O2"])
 else:
@@ -187,6 +191,13 @@ if env["HASH_ALGO"] == "SKEIN":
     env.Append(LIBS = ["skein"], LIBPATH = ['#build/libskein'])
     SConscript('libskein/SConscript', variant_dir='build/libskein')
 
+if env["WITH_GOOGLEHEAP"] == "1":
+    env.Append(LIBS = ["tcmalloc"])
+if env["WITH_GOOGLEPROF"] == "1":
+    env.Append(LIBS = ["profiler"])
+
+# Installation Targets
+
 # Ori Utilities
 SConscript('ori/SConscript', variant_dir='build/ori')
 if env["WITH_FUSE"] == "1":
@@ -196,7 +207,6 @@ if env["WITH_FUSE"] == "NG":
 if env["WITH_HTTPD"] == "1":
     SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
 
-# Installation Targets
 if env["WITH_FUSE"] == "1":
     env.Install('$PREFIX','build/mount_ori/mount_ori')
 env.Install('$PREFIX','build/ori/ori')
