@@ -80,7 +80,7 @@ OriPriv::getTemp()
     strncpy(tmpPath, filePath.c_str(), PATH_MAX);
 
     mktemp(tmpPath);
-    assert(tmpPath[0] != '\0');
+    ASSERT(tmpPath[0] != '\0');
 
     fd = open(tmpPath, O_CREAT|O_RDWR, 0700);
     if (fd < 0)
@@ -140,7 +140,7 @@ OriPriv::getFileInfo(uint64_t fh)
         return (*it).second;
     }
 
-    assert(false);
+    ASSERT(false);
 
     return NULL;
 }
@@ -148,7 +148,7 @@ OriPriv::getFileInfo(uint64_t fh)
 void
 OriPriv::closeFH(uint64_t fh)
 {
-    assert(handles.find(fh) != handles.end());
+    ASSERT(handles.find(fh) != handles.end());
 
     // Manage reference count
     handles[fh]->release();
@@ -229,7 +229,7 @@ OriPriv::unlink(const string &path)
 {
     OriFileInfo *info = getFileInfo(path);
 
-    assert(info->isSymlink() | info->isReg());
+    ASSERT(info->isSymlink() | info->isReg());
 
     paths.erase(path);
 
@@ -243,13 +243,13 @@ OriPriv::rename(const string &fromPath, const string &toPath)
     OriFileInfo *info = getFileInfo(fromPath);
 
     // XXX: Need to rename all files under a directory
-    assert(!info->isDir());
+    ASSERT(!info->isDir());
 
     paths.erase(fromPath);
     paths[toPath] = info;
 
-    assert(paths.find(fromPath) == paths.end());
-    assert(paths.find(toPath) != paths.end());
+    ASSERT(paths.find(fromPath) == paths.end());
+    ASSERT(paths.find(toPath) != paths.end());
 }
 
 OriFileInfo *
@@ -281,7 +281,7 @@ OriPriv::rmDir(const string &path)
 {
     OriFileInfo *info = getFileInfo(path);
 
-    assert(dirs[info->id]->isEmpty());
+    ASSERT(dirs[info->id]->isEmpty());
 
     dirs.erase(info->id);
     paths.erase(path);
@@ -352,7 +352,7 @@ OriPrivCheckDir(OriPriv *priv, const string &path, OriDir *dir)
         if (info && info->isDir()) {
             OriDir *dir;
 
-            assert(!info->isSymlink() && !info->isReg());
+            ASSERT(!info->isSymlink() && !info->isReg());
 
             try {
                 dir = priv->getDir(objPath);

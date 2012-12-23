@@ -46,10 +46,10 @@ public:
         refcount = 1;
     }
     ~OriFileInfo() {
-        assert(refcount == 0);
+        ASSERT(refcount == 0);
     }
     void retain() {
-        assert(refcount != 0);
+        ASSERT(refcount != 0);
         refcount++;
     }
     void release() {
@@ -83,7 +83,7 @@ public:
     }
     void remove(const std::string &name)
     {
-        assert(entries.find(name) != entries.end());
+        ASSERT(entries.find(name) != entries.end());
         entries.erase(name);
         setDirty();
     }

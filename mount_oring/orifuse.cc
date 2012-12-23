@@ -44,7 +44,9 @@
 #include "oripriv.h"
 #include "oriopt.h"
 
+//#ifdef DEBUG
 #define FSCK_A_LOT
+//#endif
 
 using namespace std;
 
@@ -118,7 +120,7 @@ ori_unlink(const char *path)
             priv->unlink(path);
         } else {
             // XXX: Support files
-            assert(false);
+            ASSERT(false);
         }
     } catch (PosixException e) {
         return -e.getErrno();
@@ -178,7 +180,7 @@ ori_readlink(const char *path, char *buf, size_t size)
         return -e.getErrno();
     }
 
-    memcpy(buf, info->link.c_str(), MIN(info->link.length(), size));
+    memcpy(buf, info->link.c_str(), MIN(info->link.length() + 1, size));
 
     return 0;
 }
@@ -368,7 +370,7 @@ ori_truncate(const char *path, off_t length)
         return truncate(info->link.c_str(), length);
     } else {
         // XXX: Not Implemented
-        assert(false);
+        ASSERT(false);
         return -EINVAL;
     }
 }
@@ -395,7 +397,7 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
         return status;
     } else {
         // XXX: Not Implemented
-        assert(false);
+        ASSERT(false);
         return -EINVAL;
     }
 }
@@ -494,7 +496,7 @@ ori_rmdir(const char *path)
         parentInfo->statInfo.st_nlink--;
         priv->rmDir(path);
 
-        assert(parentInfo->statInfo.st_nlink >= 2);
+        ASSERT(parentInfo->statInfo.st_nlink >= 2);
     } catch (PosixException e) {
         return -e.getErrno();
     }

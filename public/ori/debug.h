@@ -42,7 +42,12 @@ int ori_open_log(LocalRepo *repo);
 #define LOG(fmt, ...)
 #endif
 
+#ifdef DEBUG
 #define ASSERT(_x) assert(_x)
+#else
+#define ASSERT(_x)
+#endif
+
 #define PANIC() { printf("PANIC: " \
                          "function %s, file %s, line %d\n", \
                          __func__, __FILE__, __LINE__); abort(); }
