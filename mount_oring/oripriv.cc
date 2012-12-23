@@ -148,6 +148,8 @@ OriPriv::getFileInfo(uint64_t fh)
 void
 OriPriv::closeFH(uint64_t fh)
 {
+    assert(handles.find(fh) != handles.end());
+
     // Manage reference count
     handles[fh]->release();
 

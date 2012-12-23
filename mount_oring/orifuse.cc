@@ -675,9 +675,12 @@ ori_setup_ori_oper()
     ori_oper.readdir = ori_readdir;
 
     ori_oper.getattr = ori_getattr;
+    // XXX: fgetattr
     ori_oper.chmod = ori_chmod;
     ori_oper.chown = ori_chown;
     ori_oper.utimens = ori_utimens;
+
+    // XXX: lock (for DLM)
 }
 
 void
