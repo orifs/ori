@@ -102,6 +102,7 @@ if env["VERBOSE"] == "0":
     env["SHCCCOMSTR"] = "Compiling $SOURCE"
     env["SHCXXCOMSTR"] = "Compiling $SOURCE"
     env["ARCOMSTR"] = "Creating library $TARGET"
+    env["RANLIBCOMSTR"] = "Indexing library $TARGET"
     env["LINKCOMSTR"] = "Linking $TARGET"
 
 def GetNumCPUs(env):
