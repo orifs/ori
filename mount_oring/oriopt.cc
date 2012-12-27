@@ -37,8 +37,8 @@ void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf)
     memset(conf, 0, sizeof(mount_ori_config));
     fuse_opt_parse(args, conf, mount_ori_opts, 0);
 
-/*#if defined(FUSE_SINGLE_THREADED) && FUSE_SINGLE_THREADED == 1
+#if defined(FUSE_SINGLE_THREADED) && FUSE_SINGLE_THREADED == 1
     printf("FUSE forcing single threaded\n");
     fuse_opt_add_arg(args, "-s"); // Force single-threaded
-#endif*/
+#endif
 }

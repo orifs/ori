@@ -41,7 +41,7 @@ public:
         memset(&statInfo, 0, sizeof(statInfo));
         type = FILETYPE_NULL;
         id = 0;
-        link = "";
+        path = "";
         fd = -1;
         refcount = 1;
     }
@@ -65,7 +65,7 @@ public:
     ObjectHash hash;
     OriFileType type;
     OriPrivId id;
-    std::string link; // link or temporary file
+    std::string path; // link target or temporary file
     int fd;
     int refcount;
 };
@@ -112,7 +112,7 @@ public:
     OriPrivId generateId();
     OriFileInfo* getFileInfo(const std::string &path);
     OriFileInfo* getFileInfo(uint64_t fh);
-    void closeFH(uint64_t fh);
+    int closeFH(uint64_t fh);
     OriFileInfo* createInfo();
     OriFileInfo* addSymlink(const std::string &path);
     std::pair<OriFileInfo*, uint64_t> addFile(const std::string &path);

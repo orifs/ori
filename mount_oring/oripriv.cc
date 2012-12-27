@@ -145,15 +145,23 @@ OriPriv::getFileInfo(uint64_t fh)
     return NULL;
 }
 
-void
+int
 OriPriv::closeFH(uint64_t fh)
 {
+    int status;
+
     ASSERT(handles.find(fh) != handles.end());
+    ASSERT(handles[fh]->fd != -1);
+
+    // Close file
+    status = close(handles[fh]->fd);
+    handles[fh]->fd = -1;
 
     // Manage reference count
     handles[fh]->release();
-
     handles.erase(fh);
+
+    return (status == 0) ? 0 : -errno;
 }
 
 OriFileInfo *
@@ -172,6 +180,7 @@ OriPriv::createInfo()
     info->statInfo.st_ctime = now;
     info->type = FILETYPE_TEMPORARY;
     info->id = generateId();
+    info->fd = -1;
 
     return info;
 }
@@ -199,8 +208,17 @@ OriPriv::addFile(const string &path)
     info->statInfo.st_mode = S_IFREG;
     // XXX: Adjust size properly
     info->statInfo.st_size = 0;
-    info->link = file.first; // XXX: Change to relative
+    info->path = file.first; // XXX: Change to relative
     info->fd = file.second;
+
+    // Delete any old temporary files
+    map<string, OriFileInfo*>::iterator it = paths.find(path);
+    if (it != paths.end()) {
+        ASSERT(!it->second->isDir());
+        if (it->second->type == FILETYPE_TEMPORARY)
+            unlink(it->second->path.c_str());
+        it->second->release();
+    }
 
     paths[path] = info;
     handles[handle] = info;
@@ -219,7 +237,17 @@ OriPriv::openFile(const string &path)
     info->retain();
     handles[handle] = info;
 
-    // XXX: Open temporary file if necessary
+    // Open temporary file if necessary
+    if (info->type == FILETYPE_TEMPORARY) {
+        int status = open(info->path.c_str(), O_RDWR);
+        if (status < 0)
+            throw PosixException(errno);
+        assert(info->fd == -1);
+        info->fd = status;
+    } else {
+        // XXX: Support repository files
+        ASSERT(false);
+    }
 
     return make_pair(info, handle);
 }
@@ -261,11 +289,10 @@ OriPriv::addDir(const string &path)
     info->statInfo.st_uid = geteuid();
     info->statInfo.st_gid = getegid();
     info->statInfo.st_mode = S_IFDIR;
-    // XXX: Adjust nlink and size properly
     info->statInfo.st_nlink = 2;
-    info->statInfo.st_size = 1;
+    info->statInfo.st_size = 512;
     info->statInfo.st_atime = 0;
-    info->statInfo.st_mtime = now; // XXX: NOW
+    info->statInfo.st_mtime = now;
     info->statInfo.st_ctime = now;
     info->type = FILETYPE_TEMPORARY;
     info->id = generateId();
@@ -309,18 +336,18 @@ OriPriv::getDir(const string &path)
 
     // Check root
     if (path == "/") {
+        time_t now = time(NULL);
         OriFileInfo *info = new OriFileInfo();
 
         info->statInfo.st_uid = geteuid();
         info->statInfo.st_gid = getegid();
         info->statInfo.st_mode = 0600 | S_IFDIR;
-        // Adjust nlink and size properly
         info->statInfo.st_nlink = 2;
         info->statInfo.st_blksize = 4096;
         info->statInfo.st_blocks = 1;
         info->statInfo.st_size = 512;
-        info->statInfo.st_mtime = 0; // Use latest commit time
-        info->statInfo.st_ctime = 0;
+        info->statInfo.st_mtime = now;
+        info->statInfo.st_ctime = now;
         info->type = FILETYPE_TEMPORARY;
         info->id = generateId();
 

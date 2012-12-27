@@ -44,9 +44,9 @@
 #include "oripriv.h"
 #include "oriopt.h"
 
-//#ifdef DEBUG
+#ifdef DEBUG
 #define FSCK_A_LOT
-//#endif
+#endif
 
 using namespace std;
 
@@ -117,6 +117,9 @@ ori_unlink(const char *path)
 
         parentDir->remove(StrUtil_Basename(path));
         if (info->isSymlink() || info->isReg()) {
+            if (info->type == FILETYPE_TEMPORARY)
+                unlink(info->path.c_str());
+
             priv->unlink(path);
         } else {
             // XXX: Support files
@@ -154,8 +157,8 @@ ori_symlink(const char *target_path, const char *link_path)
 
     OriFileInfo *info = priv->addSymlink(link_path);
     info->statInfo.st_mode |= 0755;
-    info->link = target_path;
-    info->statInfo.st_size = info->link.length();
+    info->path = target_path;
+    info->statInfo.st_size = info->path.length();
 
     parentDir->add(StrUtil_Basename(link_path), info->id);
 
@@ -180,7 +183,7 @@ ori_readlink(const char *path, char *buf, size_t size)
         return -e.getErrno();
     }
 
-    memcpy(buf, info->link.c_str(), MIN(info->link.length() + 1, size));
+    memcpy(buf, info->path.c_str(), MIN(info->path.length() + 1, size));
 
     return 0;
 }
@@ -367,7 +370,7 @@ ori_truncate(const char *path, off_t length)
     FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%ld)", path, length);
 
     if (info->type == FILETYPE_TEMPORARY) {
-        return truncate(info->link.c_str(), length);
+        return truncate(info->path.c_str(), length);
     } else {
         // XXX: Not Implemented
         ASSERT(false);
@@ -418,10 +421,7 @@ ori_release(const char *path, struct fuse_file_info *fi)
     }
 
     // Decrement reference count (deletes temporary file for unlink)
-    priv->closeFH(fi->fh);
-    fi->fh = -1;
-
-    return 0;
+    return priv->closeFH(fi->fh);
 }
 
 // Directory Operations
@@ -708,7 +708,26 @@ main(int argc, char *argv[])
         exit(1);
     }
 
+    if (config.clone_path == NULL)
+        config.repo_path = realpath(config.repo_path, NULL);
+
+    FUSE_LOG("Ori FUSE Driver");
+    FUSE_LOG("Opening repo at %s\n", config.repo_path);
+
     printf("Opening repo at %s\n", config.repo_path);
+
+    if (!Util_FileExists(config.repo_path)) {
+        int status = mkdir(config.repo_path, 0755);
+        if (status < 0) {
+            printf("Repository does not exist and failed to create directory.");
+            return 1;
+        }
+        FUSE_LOG("Creating new repository %s", config.repo_path);
+        if (LocalRepo_Init(config.repo_path) != 0) {
+            printf("Repository does not exist and failed to create one.");
+            return 1;
+        }
+    }
 
     return fuse_main(args.argc, args.argv, &ori_oper, NULL);
 }
