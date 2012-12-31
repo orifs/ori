@@ -123,6 +123,10 @@ public:
 
     void print() const;
 
+    typedef std::map<std::string, TreeEntry>::iterator iterator;
+    iterator begin() { return tree.begin(); }
+    iterator end() { return tree.end(); }
+    iterator find(const std::string &name) { return tree.find(name); }
     std::map<std::string, TreeEntry> tree;
 };
 

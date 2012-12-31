@@ -1670,6 +1670,9 @@ LocalRepo::lookup(const Commit &c, const string &path)
     vector<string> pv = Util_PathToVector(path);
     ObjectHash objId = c.getTree();
 
+    if (path == "/")
+        return objId;
+
     if (pv.size() == 0)
 	return ObjectHash();
 
