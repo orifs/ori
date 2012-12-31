@@ -50,6 +50,11 @@
 
 using namespace std;
 
+#define ORI_CONTROL_FILENAME ".ori_control"
+#define ORI_CONTROL_FILEPATH "/" ORI_CONTROL_FILENAME
+#define ORI_SNAPSHOT_DIRNAME ".snapshot"
+#define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
+
 mount_ori_config config;
 
 // Mount/Unmount
@@ -522,14 +527,57 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     FUSE_LOG("FUSE ori_readdir(path=\"%s\", offset=%ld)", path, offset);
 
+    filler(buf, ".", NULL, 0);
+    filler(buf, "..", NULL, 0);
+    if (strcmp(path, "/") == 0) {
+        filler(buf, ORI_CONTROL_FILENAME, NULL, 0);
+        filler(buf, ORI_SNAPSHOT_DIRNAME, NULL, 0);
+    } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
+        map<string, ObjectHash> snapshots = priv->listSnapshots();
+        map<string, ObjectHash>::iterator it;
+
+        for (it = snapshots.begin(); it != snapshots.end(); it++) {
+            filler(buf, (*it).first.c_str(), NULL, 0);
+        }
+
+        return 0;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        string snapshot = path;
+        string relPath;
+        size_t pos = 0;
+        Commit c;
+        Tree t;
+        
+        snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+        pos = snapshot.find('/', pos);
+
+        if (pos == snapshot.npos) {
+            relPath = "/";
+        } else {
+            relPath = snapshot.substr(pos);
+            snapshot = snapshot.substr(0, pos - 1);
+        }
+
+        // XXX: Enforce that this is a valid snapshot & directory path
+        c = priv->lookupSnapshot(snapshot);
+        t = priv->getTree(c, relPath);
+
+        for (map<string, TreeEntry>::iterator it = t.tree.begin();
+             it != t.tree.end();
+             it++) {
+            filler(buf, (*it).first.c_str(), NULL, 0);
+        }
+
+        return 0;
+    }
+
     try {
         dir = priv->getDir(path);
     } catch (PosixException e) {
         return -e.getErrno();
     }
-
-    filler(buf, ".", NULL, 0);
-    filler(buf, "..", NULL, 0);
 
     for (it = dir->begin(); it != dir->end(); it++) {
         OriFileInfo *info;
@@ -557,6 +605,30 @@ ori_getattr(const char *path, struct stat *stbuf)
     FUSE_LOG("FUSE ori_getattr(path=\"%s\")", path);
 
     memset(stbuf, 0, sizeof(struct stat));
+
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        stbuf->st_uid = geteuid();
+        stbuf->st_gid = getegid();
+        stbuf->st_mode = 0600 | S_IFREG;
+        stbuf->st_nlink = 1;
+        stbuf->st_size = 0; // XXX: output buffer size
+        stbuf->st_blksize = 4096;
+        stbuf->st_blocks = 0; // XXX: output buffer / 512
+        return 0;
+    } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
+        stbuf->st_uid = geteuid();
+        stbuf->st_gid = getegid();
+        stbuf->st_mode = 0600 | S_IFDIR;
+        stbuf->st_nlink = 2;
+        stbuf->st_size = 512;
+        stbuf->st_blksize = 4096;
+        stbuf->st_blocks = 1;
+        return 0;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return 0;
+    }
 
     try {
         OriFileInfo *info = priv->getFileInfo(path);

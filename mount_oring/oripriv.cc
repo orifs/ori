@@ -18,6 +18,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
 #include <errno.h>
 
 #define FUSE_USE_VERSION 26
@@ -42,6 +45,8 @@ OriPriv::OriPriv(const std::string &repoPath)
     repo = new LocalRepo(repoPath);
     nextId = ORIPRIVID_INVALID + 1;
     nextFH = 1;
+
+    repo->open();
 
     RWLock::LockOrderVector order;
     order.push_back(ioLock.lockNum);
@@ -88,6 +93,10 @@ OriPriv::getTemp()
 
     return make_pair(tmpPath, fd);
 }
+
+/*
+ * Current Change Operations
+ */
 
 uint64_t
 OriPriv::generateFH()
@@ -296,6 +305,7 @@ OriPriv::addDir(const string &path)
     info->statInfo.st_ctime = now;
     info->type = FILETYPE_TEMPORARY;
     info->id = generateId();
+    info->dirLoaded = true;
 
     dirs[info->id] = new OriDir();
     paths[path] = info;
@@ -324,18 +334,83 @@ OriPriv::getDir(const string &path)
 
     it = paths.find(path);
     if (it != paths.end()) {
+        map<OriPrivId, OriDir*>::iterator dit;
         if (!(*it).second->isDir())
             throw PosixException(ENOTDIR);
         if ((*it).second->type == FILETYPE_NULL)
             throw PosixException(ENOENT);
+        dit = dirs.find((*it).second->id);
+        if (dit == dirs.end())
+            goto loadDir;
 
-        return dirs[(*it).second->id];
+        return dit->second;
     }
 
+loadDir:
     // Check repository
+    ObjectHash hash = repo->lookup(headCommit, path);
+    if (!hash.isEmpty()) {
+        Tree t = repo->getTree(hash);
+        Tree::iterator it;
+        OriFileInfo *dirInfo;
+        OriDir *dir = new OriDir();
+
+        if (path == "/") {
+            dirInfo = new OriFileInfo();
+            dirInfo->statInfo.st_uid = geteuid();
+            dirInfo->statInfo.st_gid = getegid();
+            dirInfo->statInfo.st_mode = 0600 | S_IFDIR;
+            dirInfo->statInfo.st_nlink = 2;
+            dirInfo->statInfo.st_blksize = 4096;
+            dirInfo->statInfo.st_blocks = 1;
+            dirInfo->statInfo.st_size = 512;
+            dirInfo->statInfo.st_mtime = headCommit.getTime();
+            dirInfo->statInfo.st_ctime = headCommit.getTime();
+            dirInfo->type = FILETYPE_COMMITTED;
+            dirInfo->id = generateId();
+
+            paths["/"] = dirInfo;
+        } else {
+            dirInfo = getFileInfo(path);
+        }
+
+        for (it = t.begin(); it != t.end(); it++) {
+            OriFileInfo *info = new OriFileInfo();
+            AttrMap *attrs = &it->second.attrs;
+            struct passwd *pw = getpwnam(attrs->getAsStr(ATTR_USERNAME).c_str());
+
+            if (it->second.type == TreeEntry::Tree) {
+                info->statInfo.st_mode = S_IFDIR;
+                info->statInfo.st_nlink = 2; // XXX: Compute me
+                dirInfo->statInfo.st_nlink++;
+            } else {
+                info->statInfo.st_mode = S_IFREG;
+                info->statInfo.st_nlink = 1;
+            }
+            info->statInfo.st_mode |= attrs->getAs<mode_t>(ATTR_PERMS);
+            info->statInfo.st_uid = pw->pw_uid;
+            info->statInfo.st_gid = pw->pw_gid;
+            info->statInfo.st_size = attrs->getAs<size_t>(ATTR_FILESIZE);
+            info->statInfo.st_blocks = info->statInfo.st_size / 512;
+            info->statInfo.st_mtime = attrs->getAs<time_t>(ATTR_MTIME);
+            info->statInfo.st_ctime = attrs->getAs<time_t>(ATTR_CTIME);
+            info->type = FILETYPE_COMMITTED;
+            info->id = generateId();
+
+            dir->add(it->first, info->id);
+            if (path == "/")
+                paths["/" + it->first] = info;
+            else
+                paths[path + "/" + it->first] = info;
+        }
+
+        dirInfo->dirLoaded = true;
+        dirs[dirInfo->id] = dir;
+        return dir;
+    }
 
     // Check root
-    if (path == "/") {
+    if (path == "/" && head.isEmpty()) {
         time_t now = time(NULL);
         OriFileInfo *info = new OriFileInfo();
 
@@ -350,6 +425,7 @@ OriPriv::getDir(const string &path)
         info->statInfo.st_ctime = now;
         info->type = FILETYPE_TEMPORARY;
         info->id = generateId();
+        info->dirLoaded = true;
 
         dirs[info->id] = new OriDir();
         paths["/"] = info;
@@ -376,7 +452,7 @@ OriPrivCheckDir(OriPriv *priv, const string &path, OriDir *dir)
                      objPath.c_str(), e.what());
         }
 
-        if (info && info->isDir()) {
+        if (info && info->isDir() && info->dirLoaded) {
             OriDir *dir;
 
             ASSERT(!info->isSymlink() && !info->isReg());
@@ -415,6 +491,36 @@ OriPrivCheckDir(OriPriv *priv, const string &path, OriDir *dir)
         }
     }
 }
+
+/*
+ * Snapshot Operations
+ */
+
+map<string, ObjectHash>
+OriPriv::listSnapshots()
+{
+    return repo->listSnapshots();
+}
+
+Commit
+OriPriv::lookupSnapshot(const string &name)
+{
+    ObjectHash hash = repo->lookupSnapshot(name);
+
+    return repo->getCommit(hash);
+}
+
+Tree
+OriPriv::getTree(const Commit &c, const string &path)
+{
+    ObjectHash hash = repo->lookup(c, path);
+
+    return repo->getTree(hash);
+}
+
+/*
+ * Debugging
+ */
 
 void
 OriPriv::fsck()

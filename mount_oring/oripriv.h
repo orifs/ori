@@ -44,6 +44,7 @@ public:
         path = "";
         fd = -1;
         refcount = 1;
+        dirLoaded = false;
     }
     ~OriFileInfo() {
         ASSERT(refcount == 0);
@@ -68,6 +69,7 @@ public:
     std::string path; // link target or temporary file
     int fd;
     int refcount;
+    bool dirLoaded;
 };
 
 class OriDir
@@ -122,6 +124,10 @@ public:
     OriFileInfo* addDir(const std::string &path);
     void rmDir(const std::string &path);
     OriDir* getDir(const std::string &path);
+    // Snapshot Operations
+    std::map<std::string, ObjectHash> listSnapshots();
+    Commit lookupSnapshot(const std::string &name);
+    Tree getTree(const Commit &c, const std::string &path);
     // Debugging
     void fsck();
 private:
