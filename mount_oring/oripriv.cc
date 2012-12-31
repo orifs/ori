@@ -472,7 +472,7 @@ loadDir:
             info->statInfo.st_uid = pw->pw_uid;
             info->statInfo.st_gid = pw->pw_gid;
             info->statInfo.st_size = attrs->getAs<size_t>(ATTR_FILESIZE);
-            info->statInfo.st_blocks = info->statInfo.st_size / 512;
+            info->statInfo.st_blocks = (info->statInfo.st_size + 511) / 512;
             info->statInfo.st_mtime = attrs->getAs<time_t>(ATTR_MTIME);
             info->statInfo.st_ctime = attrs->getAs<time_t>(ATTR_CTIME);
             info->type = FILETYPE_COMMITTED;

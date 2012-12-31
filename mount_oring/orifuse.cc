@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <pwd.h>
 
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
@@ -581,7 +582,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
             relPath = "/";
         } else {
             relPath = snapshot.substr(pos);
-            snapshot = snapshot.substr(0, pos - 1);
+            snapshot = snapshot.substr(0, pos);
         }
 
         // XXX: Enforce that this is a valid snapshot & directory path
@@ -651,6 +652,66 @@ ori_getattr(const char *path, struct stat *stbuf)
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        string snapshot = path;
+        string parentPath, fileName;
+        size_t pos = 0;
+        Commit c;
+        Tree t;
+        
+        snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+        pos = snapshot.find('/', pos);
+
+        if (pos == snapshot.npos) {
+            c = priv->lookupSnapshot(snapshot);
+            stbuf->st_uid = geteuid();
+            stbuf->st_gid = getegid();
+            stbuf->st_mode = 0600 | S_IFDIR;
+            stbuf->st_nlink = 2;
+            stbuf->st_size = 512;
+            stbuf->st_blksize = 4096;
+            stbuf->st_blocks = 1;
+            stbuf->st_ctime = c.getTime();
+            stbuf->st_mtime = c.getTime();
+            return 0;
+        }
+
+        parentPath = snapshot.substr(pos);
+        snapshot = snapshot.substr(0, pos);
+        printf("%s, %s\n", parentPath.c_str(), snapshot.c_str());
+        fileName = StrUtil_Basename(parentPath);
+        parentPath = StrUtil_Dirname(parentPath);
+        if (parentPath == "")
+            parentPath = "/";
+
+        // XXX: Enforce that this is a valid snapshot & directory path
+        c = priv->lookupSnapshot(snapshot);
+        t = priv->getTree(c, parentPath);
+
+        // lookup tree
+        Tree::iterator it = t.find(fileName);
+        if (it == t.end())
+            return -ENOENT;
+
+        // Convert
+        AttrMap *attrs = &it->second.attrs;
+        struct passwd *pw = getpwnam(attrs->getAsStr(ATTR_USERNAME).c_str());
+
+        memset(stbuf, 0, sizeof(*stbuf));
+        if (it->second.type == TreeEntry::Tree) {
+            stbuf->st_mode = S_IFDIR;
+            stbuf->st_nlink = 2; // XXX: Correct this!
+        } else {
+            stbuf->st_mode = S_IFREG;
+            stbuf->st_nlink = 1;
+        }
+        stbuf->st_mode |= attrs->getAs<mode_t>(ATTR_PERMS);
+        stbuf->st_uid = pw->pw_uid;
+        stbuf->st_gid = pw->pw_gid;
+        stbuf->st_size = attrs->getAs<size_t>(ATTR_FILESIZE);
+        stbuf->st_blocks = (stbuf->st_size + 511) / 512;
+        stbuf->st_mtime = attrs->getAs<time_t>(ATTR_MTIME);
+        stbuf->st_ctime = attrs->getAs<time_t>(ATTR_CTIME);
+
         return 0;
     }
 
