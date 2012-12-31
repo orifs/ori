@@ -307,6 +307,13 @@ ori_open(const char *path, struct fuse_file_info *fi)
     string parentPath;
     OriDir *parentDir;
     pair<OriFileInfo *, uint64_t> info;
+    bool writing = false;
+    bool trunc = false;
+    
+    if (fi->flags & O_WRONLY || fi->flags & O_RDWR)
+        writing = true;
+    if (fi->flags & O_TRUNC)
+        trunc = true;
 
     FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
 
@@ -316,12 +323,12 @@ ori_open(const char *path, struct fuse_file_info *fi)
 
     try {
         parentDir = priv->getDir(parentPath);
-        info = priv->openFile(path);
+        info = priv->openFile(path, /*writing*/writing, /*trunc*/trunc);
     } catch (PosixException e) {
         return -e.getErrno();
     }
 
-    if (fi->flags & O_WRONLY || fi->flags & O_RDWR)
+    if (writing)
         parentDir->setDirty();
 
     // Set fh
@@ -335,12 +342,19 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
-    OriFileInfo *info = priv->getFileInfo(fi->fh);
+    OriFileInfo *info;
+    info = priv->getFileInfo(fi->fh);
     int status;
 
-    status = pread(info->fd, buf, size, offset);
-    if (status < 0)
-        return -errno;
+    if (info->fd != -1) {
+        // File in temporary directory
+        status = pread(info->fd, buf, size, offset);
+        if (status < 0)
+            return -errno;
+    } else {
+        // File in repository
+        return priv->readFile(info, buf, size, offset);
+    }
 
     return status;
 }
@@ -375,7 +389,17 @@ ori_truncate(const char *path, off_t length)
     FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%ld)", path, length);
 
     if (info->type == FILETYPE_TEMPORARY) {
-        return truncate(info->path.c_str(), length);
+        int status;
+
+        status = truncate(info->path.c_str(), length);
+        if (status < 0)
+            return -errno;
+
+        // Update size
+        info->statInfo.st_size = length;
+        info->statInfo.st_blocks = (length + (512-1))/512;
+
+        return status;
     } else {
         // XXX: Not Implemented
         ASSERT(false);

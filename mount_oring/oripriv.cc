@@ -34,6 +34,7 @@
 
 #include <string>
 #include <map>
+#include <algorithm>
 
 #include "logging.h"
 #include "oripriv.h"
@@ -238,10 +239,12 @@ OriPriv::addFile(const string &path)
 }
 
 pair<OriFileInfo *, uint64_t>
-OriPriv::openFile(const string &path)
+OriPriv::openFile(const string &path, bool writing, bool trunc)
 {
     OriFileInfo *info = getFileInfo(path);
     uint64_t handle = generateFH();
+
+    // XXX: Need to release and remove the hanlde during a failure!
 
     info->retain();
     handles[handle] = info;
@@ -249,16 +252,92 @@ OriPriv::openFile(const string &path)
     // Open temporary file if necessary
     if (info->type == FILETYPE_TEMPORARY) {
         int status = open(info->path.c_str(), O_RDWR);
-        if (status < 0)
+        if (status < 0) {
+            ASSERT(false); // XXX: Need to release the handle
             throw PosixException(errno);
+        }
         assert(info->fd == -1);
         info->fd = status;
+    } else if (info->type == FILETYPE_COMMITTED) {
+        ASSERT(!info->hash.isEmpty());
+        if (!writing) {
+            // Read-only
+            info->fd = -1;
+        } else if (writing && trunc) {
+            // Generate temporary file
+            pair<string, int> temp = getTemp();
+
+            info->statInfo.st_size = 0;
+            info->statInfo.st_blocks = 0;
+            info->type = FILETYPE_TEMPORARY;
+            info->path = temp.first;
+            info->fd = temp.second;
+        } else if (writing) {
+            // Copy file
+            int status;
+            pair<string, int> temp = getTemp();
+            close(temp.second);
+
+            if (!repo->copyObject(info->hash, temp.first)) {
+                ASSERT(false); // XXX: Need to release the handle
+                throw PosixException(EIO);
+            }
+
+            status = open(temp.first.c_str(), O_RDWR);
+            if (status < 0) {
+                ASSERT(false); // XXX: Need to release the handle
+                throw PosixException(errno);
+            }
+
+            info->type = FILETYPE_TEMPORARY;
+            info->path = temp.first;
+            info->fd = status;
+        } else {
+            ASSERT(false);
+        }
     } else {
-        // XXX: Support repository files
+        // XXX: Other types unsupported
         ASSERT(false);
     }
 
     return make_pair(info, handle);
+}
+
+size_t
+OriPriv::readFile(OriFileInfo *info, char *buf, size_t size, off_t offset)
+{
+    ASSERT(info->type == FILETYPE_COMMITTED && !info->hash.isEmpty());
+
+    ObjectType type = repo->getObjectType(info->hash);
+    if (type == ObjectInfo::Blob) {
+        string payload = repo->getPayload(info->hash);
+        // XXX: Cache
+
+        size_t left = payload.size() - offset;
+        size_t real_read = min(size, left);
+
+        memcpy(buf, payload.data() + offset, real_read);
+
+        return real_read;
+    } else if (type == ObjectInfo::LargeBlob) {
+        LargeBlob lb = LargeBlob(repo);
+        lb.fromBlob(repo->getPayload(info->hash));
+        // XXX: Cache
+
+        size_t total = 0;
+        while (total < size) {
+            size_t res = lb.read((uint8_t*)(buf + total),
+                                 size - total,
+                                 offset + total);
+            if (res <= 0)
+                return res;
+            total += res;
+        }
+
+        return total;
+    }
+
+    return -EIO;
 }
 
 void
@@ -381,7 +460,9 @@ loadDir:
 
             if (it->second.type == TreeEntry::Tree) {
                 info->statInfo.st_mode = S_IFDIR;
-                info->statInfo.st_nlink = 2; // XXX: Compute me
+                info->statInfo.st_nlink = 2;
+                // XXX: This is hacky but a directory gets the correct nlink 
+                // value once it is opened for the first time.
                 dirInfo->statInfo.st_nlink++;
             } else {
                 info->statInfo.st_mode = S_IFREG;
@@ -396,6 +477,7 @@ loadDir:
             info->statInfo.st_ctime = attrs->getAs<time_t>(ATTR_CTIME);
             info->type = FILETYPE_COMMITTED;
             info->id = generateId();
+            info->hash = it->second.hash;
 
             dir->add(it->first, info->id);
             if (path == "/")

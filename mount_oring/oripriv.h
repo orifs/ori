@@ -118,7 +118,9 @@ public:
     OriFileInfo* createInfo();
     OriFileInfo* addSymlink(const std::string &path);
     std::pair<OriFileInfo*, uint64_t> addFile(const std::string &path);
-    std::pair<OriFileInfo*, uint64_t> openFile(const std::string &path);
+    std::pair<OriFileInfo*, uint64_t> openFile(const std::string &path,
+                                               bool writing, bool trunc);
+    size_t readFile(OriFileInfo *info, char *buf, size_t size, off_t offset);
     void unlink(const std::string &path);
     void rename(const std::string &fromPath, const std::string &toPath);
     OriFileInfo* addDir(const std::string &path);
