@@ -37,11 +37,13 @@
 #include <algorithm>
 
 #include "logging.h"
+#include "oricmd.h"
 #include "oripriv.h"
 
 using namespace std;
 
 OriPriv::OriPriv(const std::string &repoPath)
+    : cmd(this)
 {
     repo = new LocalRepo(repoPath);
     nextId = ORIPRIVID_INVALID + 1;

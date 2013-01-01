@@ -42,6 +42,7 @@
 #include <map>
 
 #include "logging.h"
+#include "oricmd.h"
 #include "oripriv.h"
 #include "oriopt.h"
 

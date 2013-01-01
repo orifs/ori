@@ -4,6 +4,7 @@ Import('env')
 
 src = [
     "logging.cc",
+    "oricmd.cc",
     "orifuse.cc",
     "oripriv.cc",
     "oriopt.cc",

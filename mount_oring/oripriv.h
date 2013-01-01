@@ -130,6 +130,8 @@ public:
     std::map<std::string, ObjectHash> listSnapshots();
     Commit lookupSnapshot(const std::string &name);
     Tree getTree(const Commit &c, const std::string &path);
+    // Command Operations
+    OriCommand cmd;
     // Debugging
     void fsck();
 private:
