@@ -49,11 +49,16 @@ LocalRepo repository;
  *
  ********************************************************************/
 
+#define CMD_NEED_REPO           1
+#define CMD_FUSE_ENABLED        2
+#define CMD_FUSE_ONLY           4
+
 typedef struct Cmd {
     const char *name;
     const char *desc;
     int (*cmd)(int argc, const char *argv[]);
     void (*usage)(void);
+    int flags;
 } Cmd;
 
 // General Operations
@@ -113,14 +118,16 @@ static Cmd commands[] = {
         "addkey",
         "Add a trusted public key to the repository",
         cmd_addkey,
-        NULL
+        NULL,
+        CMD_NEED_REPO,
     },
 #ifdef WITH_LIBS3
     {
         "backup",
         "Backup or restore the repository",
         cmd_backup,
-        NULL
+        NULL,
+        CMD_NEED_REPO,
     },
 #endif /* WITH_LIBS3 */
     {
@@ -128,126 +135,147 @@ static Cmd commands[] = {
         "Set or print current branch",
         cmd_branch,
         NULL,
+        CMD_NEED_REPO,
     },
     {
         "branches",
         "List all available branches",
         cmd_branches,
         NULL,
+        CMD_NEED_REPO,
     },
     {
 	"checkout",
 	"Checkout a revision of the repository",
 	cmd_checkout,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"clone",
 	"Clone a repository into the local directory",
 	cmd_clone,
 	NULL,
+        0,
     },
     {
 	"commit",
 	"Commit changes into the repository",
 	cmd_commit,
 	usage_commit,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
 	"filelog",
 	"Display a log of commits to the repository for the specified file",
 	cmd_filelog,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
         "findheads",
         "Find lost heads",
         cmd_findheads,
         NULL,
+        CMD_NEED_REPO,
     },
     {
 	"gc",
 	"Reclaim unused space",
 	cmd_gc,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"graft",
 	"Graft a subtree from a repository into the local repository",
 	cmd_graft,
 	usage_graft,
+        CMD_NEED_REPO,
     },
     {
         "help",
         "Show help for a given topic",
         cmd_help,
-        NULL
+        NULL,
+        0,
     },
     {
         "init",
         "Initialize the repository",
         cmd_init,
         NULL,
+        0,
     },
     {
 	"listkeys",
 	"Display a list of trusted public keys",
 	cmd_listkeys,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"log",
 	"Display a log of commits to the repository",
 	cmd_log,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"merge",
 	"Merge two heads",
 	cmd_merge,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"pull",
 	"Pull changes from a repository",
 	cmd_pull,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"purgecommit",
 	"Purge commit",
 	cmd_purgecommit,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
         "rebuildindex",
         "Rebuild index",
         cmd_rebuildindex,
         NULL,
+        CMD_NEED_REPO,
     },
     {
         "rebuildrefs",
         "Rebuild references",
         cmd_rebuildrefs,
         NULL,
+        CMD_NEED_REPO,
     },
     {
 	"remote",
 	"Remote connection management",
 	cmd_remote,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"removekey",
 	"Remove a public key from the repository",
 	cmd_removekey,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
         "setkey",
         "Set the repository private key for signing commits",
         cmd_setkey,
-        NULL
+        NULL,
+        CMD_NEED_REPO,
     },
     {
         "show",
@@ -260,43 +288,50 @@ static Cmd commands[] = {
 	"Create a repository snapshot",
 	cmd_snapshot,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"snapshots",
 	"List all snapshots available in the repository",
 	cmd_snapshots,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
         "status",
         "Scan for changes since last commit",
         cmd_status,
         NULL,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
         "tip",
         "Print the latest commit on this branch",
         cmd_tip,
         NULL,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
         "treediff",
         "Compare two commits",
         cmd_treediff,
         NULL,
+        CMD_NEED_REPO,
     },
     {
 	"verify",
 	"Verify the repository",
 	cmd_verify,
 	NULL,
+        CMD_NEED_REPO,
     },
     /* Internal (always hidden) */
     {
         "sshserver",
 	NULL, // "Run a simple stdin/out server, intended for SSH access",
         cmd_sshserver,
-        NULL
+        NULL,
+        0,
     },
     /* Debugging */
     {
@@ -304,68 +339,86 @@ static Cmd commands[] = {
 	"Print an object from the repository (DEBUG)",
 	cmd_catobj,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"dumpobj",
 	"Print the structured representation of a repository object (DEBUG)",
 	cmd_dumpobj,
 	NULL,
+        CMD_NEED_REPO,
+    },
+    {
+        "fsck",
+        "Check internal state of FUSE file system (DEBUG).",
+        NULL,
+        NULL,
+        CMD_FUSE_ONLY,
     },
     {
 	"listobj",
 	"List objects (DEBUG)",
 	cmd_listobj,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"refcount",
 	"Print the reference count for all objects (DEBUG)",
 	cmd_refcount,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"stats",
 	"Print repository statistics (DEBUG)",
 	cmd_stats,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
 	"purgeobj",
 	"Purge object (DEBUG)",
 	cmd_purgeobj,
 	NULL,
+        CMD_NEED_REPO,
     },
     {
         "stripmetadata",
         "Strip all object metadata including backreferences (DEBUG)",
         cmd_stripmetadata,
         NULL,
+        CMD_NEED_REPO,
     },
     {
         "httpclient",
         "Connect to a server via HTTP (DEBUG)",
         cmd_httpclient,
-        NULL
+        NULL,
+        0,
     },
     {
         "sshclient",
         "Connect to a server via SSH (DEBUG)",
         cmd_sshclient,
-        NULL
+        NULL,
+        0,
     },
 #if !defined(WITHOUT_MDNS)
     {
         "mdnsserver",
         "Run the mDNS server (DEBUG)",
         cmd_mdnsserver,
-        NULL
+        NULL,
+        0,
     },
 #endif
     {
         "selftest",
         "Built-in unit tests (DEBUG)",
         cmd_selftest,
-        NULL
+        NULL,
+        0,
     },
     { NULL, NULL, NULL, NULL }
 };
@@ -436,19 +489,22 @@ cmd_help(int argc, const char *argv[])
 int
 main(int argc, char *argv[])
 {
+    bool has_repo = false;
     int idx;
 
     if (argc == 1) {
         return cmd_help(0, NULL);
     }
 
+    idx = lookupcmd(argv[1]);
+    if (idx == -1) {
+        printf("Unknown command '%s'\n", argv[1]);
+        cmd_help(0, NULL);
+        return 1;
+    }
+
     // Open the repository for all command except the following
-    bool has_repo = false;
-    if (strcmp(argv[1], "clone") != 0 &&
-        strcmp(argv[1], "help") != 0 &&
-        strcmp(argv[1], "init") != 0 &&
-        strcmp(argv[1], "selftest") != 0 &&
-        strcmp(argv[1], "sshserver") != 0)
+    if (commands[idx].flags & CMD_NEED_REPO)
     {
         if (repository.open()) {
             has_repo = true;
@@ -458,22 +514,19 @@ main(int argc, char *argv[])
             }
         }
     }
-    else {
-        has_repo = true;
-    }
 
-    if (strcmp(argv[1], "commit") == 0 ||
-        strcmp(argv[1], "status") == 0 ||
-        strcmp(argv[1], "tip") == 0) {
-        if (OF_ControlPath().size() > 0)
+    if (commands[idx].flags & CMD_FUSE_ONLY) {
+        if (!OF_HasFuse()) {
+            printf("FUSE required for this command!\n");
+            exit(1);
+        }
+    }
+    if (commands[idx].flags & CMD_FUSE_ENABLED) {
+        if (OF_HasFuse())
             has_repo = true;
     }
 
-    if (strcmp(argv[1], "clone") != 0 &&
-        strcmp(argv[1], "help") != 0 &&
-        strcmp(argv[1], "init") != 0 &&
-        strcmp(argv[1], "selftest") != 0 &&
-        strcmp(argv[1], "sshserver") != 0)
+    if (commands[idx].flags & CMD_NEED_REPO)
     {
 	if (!has_repo) {
 	    printf("No repository found!\n");
@@ -481,12 +534,6 @@ main(int argc, char *argv[])
 	}
     }
 
-    idx = lookupcmd(argv[1]);
-    if (idx == -1) {
-        printf("Unknown command '%s'\n", argv[1]);
-        cmd_help(0, NULL);
-        return 1;
-    }
 
     LOG("Executing '%s'", argv[1]);
     return commands[idx].cmd(argc-1, (const char **)argv+1);

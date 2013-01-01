@@ -28,6 +28,11 @@
 
 #include "fuse_cmd.h"
 
+bool OF_HasFuse()
+{
+    return OF_ControlPath() != "";
+}
+
 std::string OF_ControlPath()
 {
     char *cwdbuf = getcwd(NULL, 0);

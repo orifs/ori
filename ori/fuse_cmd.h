@@ -19,6 +19,7 @@
 
 #define ORI_CONTROL_FILENAME ".ori_control"
 
+bool OF_HasFuse();
 std::string OF_ControlPath();
 bool OF_RunCommand(const char *cmd);
 
