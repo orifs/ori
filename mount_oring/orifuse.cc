@@ -114,6 +114,14 @@ ori_unlink(const char *path)
     if (parentPath == "")
         parentPath = "/";
 
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        return -EACCES;
+    } else if (strncmp(path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
+
     try {
         OriDir *parentDir = priv->getDir(parentPath);
         OriFileInfo *info = priv->getFileInfo(path);
@@ -154,6 +162,14 @@ ori_symlink(const char *target_path, const char *link_path)
     parentPath = StrUtil_Dirname(link_path);
     if (parentPath == "")
         parentPath = "/";
+
+    if (strcmp(link_path, ORI_CONTROL_FILEPATH) == 0) {
+        return -EACCES;
+    } else if (strncmp(link_path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
 
     try {
         parentDir = priv->getDir(parentPath);
@@ -213,6 +229,17 @@ ori_rename(const char *from_path, const char *to_path)
     toParent = StrUtil_Dirname(to_path);
     if (toParent == "")
         toParent = "/";
+
+    if (strncmp(to_path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
+    if (strncmp(from_path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
 
     try {
         OriDir *fromDir = priv->getDir(fromParent);
@@ -284,6 +311,12 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     if (parentPath == "")
         parentPath = "/";
 
+    if (strncmp(path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
+
     try {
         parentDir = priv->getDir(parentPath);
     } catch (PosixException e) {
@@ -318,6 +351,14 @@ ori_open(const char *path, struct fuse_file_info *fi)
 
     FUSE_LOG("FUSE ori_open(path=\"%s\")", path);
 
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        return 0;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return writing ? -EPERM : 0;
+    }
+
     parentPath = StrUtil_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
@@ -344,9 +385,51 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
 {
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
-    info = priv->getFileInfo(fi->fh);
     int status;
 
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        // XXX: Not implemented
+        return -EIO;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        string snapshot = path;
+        string parentPath, fileName;
+        size_t pos = 0;
+        Commit c;
+        Tree t;
+        
+        snapshot = snapshot.substr(strlen(ORI_SNAPSHOT_DIRPATH) + 1);
+        pos = snapshot.find('/', pos);
+
+        ASSERT(pos != snapshot.npos);
+
+        parentPath = snapshot.substr(pos);
+        snapshot = snapshot.substr(0, pos);
+        fileName = StrUtil_Basename(parentPath);
+        parentPath = StrUtil_Dirname(parentPath);
+        if (parentPath == "")
+            parentPath = "/";
+
+        // XXX: Enforce that this is a valid snapshot & directory path
+        c = priv->lookupSnapshot(snapshot);
+        t = priv->getTree(c, parentPath);
+
+        // lookup tree
+        Tree::iterator it = t.find(fileName);
+        if (it == t.end())
+            return -ENOENT;
+
+        // Read
+        OriFileInfo *tempInfo = new OriFileInfo();
+        tempInfo->type = FILETYPE_COMMITTED;
+        tempInfo->hash = it->second.hash;
+        status = priv->readFile(tempInfo, buf, size, offset);
+        tempInfo->release();
+        return status;
+    }
+
+    info = priv->getFileInfo(fi->fh);
     if (info->fd != -1) {
         // File in temporary directory
         status = pread(info->fd, buf, size, offset);
@@ -368,6 +451,16 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
     OriFileInfo *info = priv->getFileInfo(fi->fh);
     int status;
 
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        // XXX: Not implemented
+        return -EIO;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        ASSERT(false);
+        return -EIO;
+    }
+
     status = pwrite(info->fd, buf, size, offset);
     if (status < 0)
         return -errno;
@@ -385,10 +478,20 @@ static int
 ori_truncate(const char *path, off_t length)
 {
     OriPriv *priv = GetOriPriv();
-    OriFileInfo *info = priv->getFileInfo(path);
+    OriFileInfo *info;
 
     FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%ld)", path, length);
 
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        // XXX: Not implemented
+        return -EIO;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
+
+    info = priv->getFileInfo(path);
     if (info->type == FILETYPE_TEMPORARY) {
         int status;
 
@@ -412,10 +515,21 @@ static int
 ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
-    OriFileInfo *info = priv->getFileInfo(fi->fh);
+    OriFileInfo *info;
 
     FUSE_LOG("FUSE ori_ftruncate(path=\"%s\", length=%ld)", path, length);
 
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        // XXX: Not implemented
+        return -EIO;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        ASSERT(false);
+        return -EIO;
+    }
+
+    info = priv->getFileInfo(fi->fh);
     if (info->type == FILETYPE_TEMPORARY) {
         int status;
 
@@ -442,6 +556,14 @@ ori_release(const char *path, struct fuse_file_info *fi)
     OriFileInfo *info;
 
     FUSE_LOG("FUSE ori_release(path=\"%s\"): fh=%ld", path, fi->fh);
+
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        return 0;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return 0;
+    }
 
     try {
         info = priv->getFileInfo(fi->fh);
@@ -474,6 +596,12 @@ ori_mkdir(const char *path, mode_t mode)
     if (parentPath == "")
         parentPath = "/";
 
+    if (strncmp(path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
+
     try {
         parentDir = priv->getDir(parentPath);
         parentInfo = priv->getFileInfo(parentPath);
@@ -505,6 +633,12 @@ ori_rmdir(const char *path)
     parentPath = StrUtil_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
+
+    if (strncmp(path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
 
     try {
         OriDir *parentDir = priv->getDir(parentPath);
@@ -677,7 +811,6 @@ ori_getattr(const char *path, struct stat *stbuf)
 
         parentPath = snapshot.substr(pos);
         snapshot = snapshot.substr(0, pos);
-        printf("%s, %s\n", parentPath.c_str(), snapshot.c_str());
         fileName = StrUtil_Basename(parentPath);
         parentPath = StrUtil_Dirname(parentPath);
         if (parentPath == "")
@@ -737,6 +870,14 @@ ori_chmod(const char *path, mode_t mode)
 
     FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
 
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        return -EACCES;
+    } else if (strncmp(path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
+
     try {
         OriFileInfo *info = priv->getFileInfo(path);
 
@@ -762,6 +903,14 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
         parentPath = "/";
 
     FUSE_LOG("FUSE ori_chmod(path=\"%s\")", path);
+
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        return -EACCES;
+    } else if (strncmp(path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
 
     try {
         OriFileInfo *info = priv->getFileInfo(path);
@@ -789,6 +938,14 @@ ori_utimens(const char *path, const struct timespec tv[2])
         parentPath = "/";
 
     FUSE_LOG("FUSE ori_utimens(path=\"%s\")", path);
+
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        return -EACCES;
+    } else if (strncmp(path,
+                ORI_SNAPSHOT_DIRPATH,
+                strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EACCES;
+    }
 
     try {
         OriFileInfo *info = priv->getFileInfo(path);
