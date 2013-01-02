@@ -86,8 +86,6 @@ OriCommand::write(const char *buf, size_t size, size_t offset)
 
     cmd.assign(buf, size);
 
-    printf("%s\n", buf);
-
     if (strncmp(buf, "fsck", size) == 0)
         return cmd_fsck(argc, (const char **)&argv);
     if (strncmp(buf, "tip", size) == 0)

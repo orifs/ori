@@ -98,6 +98,7 @@ int cmd_verify(int argc, const char *argv[]);
 // Debug Operations
 int cmd_catobj(int argc, const char *argv[]); // Debug
 int cmd_dumpobj(int argc, const char *argv[]); // Debug
+int cmd_fsck(int argc, const char *argv[]);
 int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_refcount(int argc, const char *argv[]); // Debug
 int cmd_stats(int argc, const char *argv[]); // Debug
@@ -351,7 +352,7 @@ static Cmd commands[] = {
     {
         "fsck",
         "Check internal state of FUSE file system (DEBUG).",
-        NULL,
+        cmd_fsck,
         NULL,
         CMD_FUSE_ONLY,
     },

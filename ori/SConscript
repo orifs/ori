@@ -13,6 +13,7 @@ src = [
     "cmd_dumpobj.cc",
     "cmd_filelog.cc",
     "cmd_findheads.cc",
+    "cmd_fsck.cc",
     "cmd_gc.cc",
     "cmd_graft.cc",
     "cmd_init.cc",
