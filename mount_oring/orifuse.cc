@@ -466,7 +466,7 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
         return -errno;
 
     // Update size
-    if (info->statInfo.st_size < size + offset) {
+    if (info->statInfo.st_size < (off_t)size + offset) {
         info->statInfo.st_size = size + offset;
         info->statInfo.st_blocks = (size + offset + (512-1))/512;
     }
@@ -553,7 +553,6 @@ static int
 ori_release(const char *path, struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
-    OriFileInfo *info;
 
     FUSE_LOG("FUSE ori_release(path=\"%s\"): fh=%ld", path, fi->fh);
 
@@ -563,13 +562,6 @@ ori_release(const char *path, struct fuse_file_info *fi)
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
         return 0;
-    }
-
-    try {
-        info = priv->getFileInfo(fi->fh);
-    } catch (PosixException e) {
-        FUSE_LOG("Unexpected in ori_release %s", e.what());
-        return -e.getErrno();
     }
 
     // Decrement reference count (deletes temporary file for unlink)
