@@ -52,7 +52,9 @@ std::string OF_ControlPath()
 
 bool OF_RunCommand(const char *cmd)
 {
+    size_t status;
     std::string controlPath = OF_ControlPath();
+
     if (controlPath.size() == 0)
         return false;
 
@@ -62,7 +64,11 @@ bool OF_RunCommand(const char *cmd)
         return false;
     }
 
-    write(fd, cmd, strlen(cmd));
+    status = write(fd, cmd, strlen(cmd));
+    if (status < 0) {
+        perror("Failed to write control node");
+        return false;
+    }
     fsync(fd);
     lseek(fd, 0, SEEK_SET);
 
@@ -76,9 +82,13 @@ bool OF_RunCommand(const char *cmd)
             to_read = 1024;
 
         char buf[1024];
-        read(fd, buf, to_read);
-        fwrite(buf, to_read, 1, stdout);
-        left -= to_read;
+        int bytes_read = read(fd, buf, to_read);
+        if (bytes_read == -1) {
+            perror("Failed to read control node");
+            return false;
+        }
+        fwrite(buf, bytes_read, 1, stdout);
+        left -= bytes_read;
     }
 
     return true;
