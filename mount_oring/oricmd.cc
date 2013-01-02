@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include <errno.h>
 
@@ -37,6 +38,10 @@
 #include "oricmd.h"
 #include "oripriv.h"
 
+using namespace std;
+
+#define OUTPUT_MAX      1024
+
 OriCommand::OriCommand(OriPriv *priv)
 {
     this->priv = priv;
@@ -47,14 +52,78 @@ OriCommand::~OriCommand()
 }
 
 int
-OriCommand::read(const char *buf, size_t size, size_t offset)
+OriCommand::readSize()
 {
-    return -EIO;
+    return resultBuffer.size();
+}
+
+int
+OriCommand::read(char *buf, size_t size, size_t offset)
+{
+    size_t newSize;
+
+    ASSERT(offset == 0);
+
+    if (resultBuffer.size() == 0)
+        return 0;
+    if (size > resultBuffer.size())
+        size = resultBuffer.size();
+
+    memcpy(buf, resultBuffer.data(), size);
+    newSize = resultBuffer.size() - size;
+    memmove(&resultBuffer[0], &resultBuffer[size], newSize);
+    resultBuffer.resize(newSize);
+
+    return size;
 }
 
 int
 OriCommand::write(const char *buf, size_t size, size_t offset)
 {
+    int argc = 0;
+    char argv[10];
+    string cmd;
+
+    cmd.assign(buf, size);
+
+    printf("%s\n", buf);
+
+    if (strncmp(buf, "fsck", size) == 0)
+        return cmd_fsck(argc, (const char **)&argv);
+    if (strncmp(buf, "tip", size) == 0)
+        return cmd_tip(argc, (const char **)&argv);
+
     return -EIO;
+}
+
+void
+OriCommand::printf(const char *fmt, ...)
+{
+    char buffer[OUTPUT_MAX];
+    va_list args;
+
+    va_start(args, fmt);
+
+    vsnprintf(buffer, OUTPUT_MAX, fmt, args);
+
+    resultBuffer += buffer;
+
+    va_end(args);
+}
+
+int
+OriCommand::cmd_fsck(int argc, const char *argv[])
+{
+    priv->fsck(true);
+
+    return 0;
+}
+
+int
+OriCommand::cmd_tip(int argc, const char *argv[])
+{
+    resultBuffer = priv->getTip().hex() + "\n";
+
+    return 0;
 }
 

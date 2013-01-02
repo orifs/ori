@@ -132,8 +132,9 @@ public:
     Tree getTree(const Commit &c, const std::string &path);
     // Command Operations
     OriCommand cmd;
+    ObjectHash getTip();
     // Debugging
-    void fsck();
+    void fsck(bool fromCmd = false);
 private:
     OriPrivId nextId;
     uint64_t nextFH;

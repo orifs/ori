@@ -389,8 +389,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     int status;
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        // XXX: Not implemented
-        return -EIO;
+        return priv->cmd.read(buf, size, offset);
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
@@ -449,12 +448,11 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
          struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
-    OriFileInfo *info = priv->getFileInfo(fi->fh);
+    OriFileInfo *info;
     int status;
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        // XXX: Not implemented
-        return -EIO;
+        return priv->cmd.write(buf, size, offset);
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
@@ -462,6 +460,7 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
         return -EIO;
     }
 
+    info = priv->getFileInfo(fi->fh);
     status = pwrite(info->fd, buf, size, offset);
     if (status < 0)
         return -errno;
@@ -485,7 +484,7 @@ ori_truncate(const char *path, off_t length)
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         // XXX: Not implemented
-        return -EIO;
+        return 0;
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
@@ -771,9 +770,9 @@ ori_getattr(const char *path, struct stat *stbuf)
         stbuf->st_gid = getegid();
         stbuf->st_mode = 0600 | S_IFREG;
         stbuf->st_nlink = 1;
-        stbuf->st_size = 0; // XXX: output buffer size
+        stbuf->st_size = priv->cmd.readSize();
         stbuf->st_blksize = 4096;
-        stbuf->st_blocks = 0; // XXX: output buffer / 512
+        stbuf->st_blocks = (stbuf->st_size + 511) / 512;
         return 0;
     } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
         stbuf->st_uid = geteuid();

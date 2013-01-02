@@ -24,11 +24,14 @@ class OriCommand
 public:
     OriCommand(OriPriv *priv);
     ~OriCommand();
-    int read(const char *buf, size_t size, size_t offset);
+    int readSize();
+    int read(char *buf, size_t size, size_t offset);
     int write(const char *buf, size_t size, size_t offset);
+    void printf(const char *fmt, ...);
+    int cmd_fsck(int argc, const char *argv[]);
+    int cmd_tip(int argc, const char *argv[]);
 private:
     OriPriv *priv;
-    std::string cmdBuffer;
     std::string resultBuffer;
 };
 
