@@ -24,6 +24,8 @@
 #include <ori/oriutil.h>
 #include <ori/localrepo.h>
 
+#include "fuse_cmd.h"
+
 using namespace std;
 
 extern LocalRepo repository;
@@ -31,6 +33,9 @@ extern LocalRepo repository;
 int
 cmd_log(int argc, const char *argv[])
 {
+    if (OF_RunCommand("log"))
+        return 0;
+
     ObjectHash commit;
     if (argc >= 2) {
         commit = ObjectHash::fromHex(argv[1]);
@@ -40,31 +45,31 @@ cmd_log(int argc, const char *argv[])
     }
 
     while (commit != EMPTY_COMMIT) {
-	Commit c = repository.getCommit(commit);
-	pair<ObjectHash, ObjectHash> p = c.getParents();
-	time_t timeVal = c.getTime();
-	char timeStr[26];
+        Commit c = repository.getCommit(commit);
+        pair<ObjectHash, ObjectHash> p = c.getParents();
+        time_t timeVal = c.getTime();
+        char timeStr[26];
 
-	ctime_r(&timeVal, timeStr);
+        ctime_r(&timeVal, timeStr);
 
-	cout << "Commit:  " << commit.hex() << endl;
-	cout << "Parents: " << (p.first.isEmpty() ? "" : p.first.hex())
-			    << " "
-			    << (p.second.isEmpty() ? "" : p.second.hex()) << endl;
-	cout << "Tree:    " << c.getTree().hex() << endl;
-	cout << "Author:  " << c.getUser() << endl;
-	cout << "Date:    " << timeStr;
+        cout << "Commit:  " << commit.hex() << endl;
+        cout << "Parents: " << (p.first.isEmpty() ? "" : p.first.hex())
+                            << " "
+                            << (p.second.isEmpty() ? "" : p.second.hex()) << endl;
+        cout << "Tree:    " << c.getTree().hex() << endl;
+        cout << "Author:  " << c.getUser() << endl;
+        cout << "Date:    " << timeStr;
         cout << "Status:  " << repository.getMetadata().getMeta(commit,
                 "status") << endl;
-	if (!c.getGraftCommit().isEmpty()) {
-	    cout << "Graft:   from " << c.getGraftRepo().first << ":"
-				     << c.getGraftRepo().second << endl;
-	    cout << "         Commit " << c.getGraftCommit().hex() << endl;
-	}
-	cout << endl << c.getMessage() << endl << endl;
+        if (!c.getGraftCommit().isEmpty()) {
+            cout << "Graft:   from " << c.getGraftRepo().first << ":"
+                                     << c.getGraftRepo().second << endl;
+            cout << "         Commit " << c.getGraftCommit().hex() << endl;
+        }
+        cout << endl << c.getMessage() << endl << endl;
 
-	commit = c.getParents().first;
-	// XXX: Handle merge cases
+        commit = c.getParents().first;
+        // XXX: Handle merge cases
     }
 
     return 0;

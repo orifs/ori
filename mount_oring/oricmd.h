@@ -28,9 +28,12 @@ public:
     int read(char *buf, size_t size, size_t offset);
     int write(const char *buf, size_t size, size_t offset);
     void printf(const char *fmt, ...);
-    int cmd_fsck(int argc, const char *argv[]);
-    int cmd_tip(int argc, const char *argv[]);
 private:
+    int cmd_fsck(int argc, const char *argv[]);
+    int cmd_log(int argc, const char *argv[]);
+    int cmd_show(int argc, const char *argv[]);
+    int cmd_status(int argc, const char *argv[]);
+    int cmd_tip(int argc, const char *argv[]);
     OriPriv *priv;
     std::string resultBuffer;
 };

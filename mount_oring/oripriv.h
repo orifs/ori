@@ -152,6 +152,8 @@ private:
     RWLock ioLock; // File I/O lock to allow atomic commits
     RWLock nsLock; // Namespace lock
     RWLock cmdLock; // Control device lock
+
+    friend class OriCommand;
 };
 
 OriPriv *GetOriPriv();

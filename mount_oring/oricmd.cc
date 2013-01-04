@@ -84,10 +84,17 @@ OriCommand::write(const char *buf, size_t size, size_t offset)
     char argv[10];
     string cmd;
 
+    // XXX: Support arguments
     cmd.assign(buf, size);
 
     if (strncmp(buf, "fsck", size) == 0)
         return cmd_fsck(argc, (const char **)&argv);
+    if (strncmp(buf, "log", size) == 0)
+        return cmd_log(argc, (const char **)&argv);
+    if (strncmp(buf, "show", size) == 0)
+        return cmd_show(argc, (const char **)&argv);
+    if (strncmp(buf, "status", size) == 0)
+        return cmd_status(argc, (const char **)&argv);
     if (strncmp(buf, "tip", size) == 0)
         return cmd_tip(argc, (const char **)&argv);
 
@@ -114,6 +121,53 @@ OriCommand::cmd_fsck(int argc, const char *argv[])
 {
     priv->fsck(true);
 
+    return 0;
+}
+
+int
+OriCommand::cmd_log(int argc, const char *argv[])
+{
+    ObjectHash commit = priv->getTip();
+
+    while (!commit.isEmpty()) {
+        Commit c = priv->repo->getCommit(commit);
+        pair<ObjectHash, ObjectHash> p = c.getParents();
+        time_t timeVal = c.getTime();
+        char timeStr[26];
+
+        ctime_r(&timeVal, timeStr);
+
+        printf("Commit:  %s\n", commit.hex().c_str());
+        printf("Parents: %s %s\n",
+               p.first.isEmpty() ? "" : p.first.hex().c_str(),
+               p.second.isEmpty() ? "" : p.second.hex().c_str());
+        printf("Tree:    %s\n", c.getTree().hex().c_str());
+        printf("Author:  %s\n", c.getUser().c_str());
+        printf("Date:    %s\n", timeStr);
+        printf("%s\n\n", c.getMessage().c_str());
+
+        commit = c.getParents().first;
+        // XXX: Handle merge cases
+    }
+   
+    return 0;
+}
+
+int
+OriCommand::cmd_show(int argc, const char *argv[])
+{
+    printf("--- Repository ---\n");
+    printf("Root: %s\n", priv->repo->getRootPath().c_str());
+    printf("UUID: %s\n", priv->repo->getUUID().c_str());
+    printf("Version: %s\n", priv->repo->getVersion().c_str());
+    printf("HEAD: %s\n", priv->getTip().hex().c_str());
+
+    return 0;
+}
+
+int
+OriCommand::cmd_status(int argc, const char *argv[])
+{
     return 0;
 }
 

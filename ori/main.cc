@@ -220,7 +220,7 @@ static Cmd commands[] = {
 	"Display a log of commits to the repository",
 	cmd_log,
 	NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
 	"merge",
@@ -283,6 +283,7 @@ static Cmd commands[] = {
         "Show repository information",
         cmd_show,
         NULL,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
 	"snapshot",
