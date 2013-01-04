@@ -556,6 +556,66 @@ OriPriv::getTip()
     return head;
 }
 
+void
+OriPriv::getDiffHelper(const string &path,
+                       map<string, OriFileState::StateType> *diff)
+{
+    OriDir *dir = getDir(path == "" ? "/" : path);
+    Tree t;
+
+    // Load repo directory
+    try {
+        ObjectHash treeHash = repo->lookup(headCommit,
+                                           path == "" ? "/" : path);
+        if (treeHash.isEmpty())
+            return;
+
+        t = repo->getTree(treeHash);
+    } catch (runtime_error &e) {
+        // Directory does not exist
+        return;
+    }
+
+    // Check this directory
+    for (OriDir::iterator it = dir->begin(); it != dir->end(); it++) {
+        string objPath = path + "/" + it->first;
+        OriFileInfo *info = getFileInfo(objPath);
+
+        if (info->type == FILETYPE_TEMPORARY) {
+            if (t.find(it->first) == t.end())
+                diff->insert(make_pair(objPath, OriFileState::Created));
+            else
+                diff->insert(make_pair(objPath, OriFileState::Modified));
+        }
+    }
+    for (Tree::iterator it = t.begin(); it != t.end(); it++) {
+        string objPath = path + "/" + it->first;
+
+        if (dir->find(it->first) == dir->end())
+            diff->insert(make_pair(objPath, OriFileState::Deleted));
+    }
+
+    // Check subdirectories
+    for (OriDir::iterator it = dir->begin(); it != dir->end(); it++) {
+        string objPath = path + "/" + it->first;
+        OriFileInfo *info = getFileInfo(objPath);
+
+        if (info->isDir() && info->dirLoaded) {
+            getDiffHelper(objPath, diff);
+        }
+    }
+}
+
+map<string, OriFileState::StateType>
+OriPriv::getDiff()
+{
+    map<string, OriFileState::StateType> diff;
+
+    getDiffHelper("", &diff);
+
+    return diff;
+}
+
 /*
  * Debugging
  */

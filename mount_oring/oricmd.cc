@@ -168,6 +168,24 @@ OriCommand::cmd_show(int argc, const char *argv[])
 int
 OriCommand::cmd_status(int argc, const char *argv[])
 {
+    map<string, OriFileState::StateType> diff = priv->getDiff();
+    map<string, OriFileState::StateType>::iterator it;
+
+    for (it = diff.begin(); it != diff.end(); it++) {
+        char type = '!';
+
+        if (it->second == OriFileState::Created)
+            type = 'A';
+        else if (it->second == OriFileState::Modified)
+            type = 'N';
+        else if (it->second == OriFileState::Deleted)
+            type = 'D';
+        else
+            ASSERT(false);
+
+        printf("%c   %s\n", type, it->first.c_str());
+    }
+
     return 0;
 }
 

@@ -101,6 +101,17 @@ private:
     std::map<std::string, OriPrivId> entries;
 };
 
+class OriFileState
+{
+public:
+    enum StateType {
+        Invalid,
+        Created,
+        Deleted,
+        Modified,
+    };
+};
+
 class OriPriv
 {
 public:
@@ -133,6 +144,11 @@ public:
     // Command Operations
     OriCommand cmd;
     ObjectHash getTip();
+private:
+    void getDiffHelper(const std::string &path,
+                       std::map<std::string, OriFileState::StateType> *diff);
+public:
+    std::map<std::string, OriFileState::StateType> getDiff();
     // Debugging
     void fsck(bool fromCmd = false);
 private:
