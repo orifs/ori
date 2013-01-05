@@ -177,7 +177,7 @@ OriCommand::cmd_status(int argc, const char *argv[])
         if (it->second == OriFileState::Created)
             type = 'A';
         else if (it->second == OriFileState::Modified)
-            type = 'N';
+            type = 'M';
         else if (it->second == OriFileState::Deleted)
             type = 'D';
         else
