@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2012 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #ifndef __BACKUP_H__
 #define __BACKUP_H__
 
@@ -78,30 +94,5 @@ protected:
     HasKeyCache hasKeyCache;
 };
 
-struct S3BucketContext;
-class S3BackupService : public BackupService {
-public:
-    S3BackupService(const std::string &accessKeyID,
-            const std::string &secretAccessKey,
-            const std::string &bucketName);
-    ~S3BackupService();
+#endif /* __BACKUP_H__ */
 
-#ifdef USE_FAKES3
-    void setHostname(const std::string &hostname);
-#endif
-
-    bool realHasKey(const std::string &key);
-    bool getData(const std::string &key, std::string &out);
-    bool putFile(const std::string &key, const std::string &filename);
-    bool putData(const std::string &key, const std::string &data);
-
-private:
-    std::string accessKeyID;
-    std::string secretAccessKey;
-    std::string bucketName;
-    std::string _hostname;
-
-    std::tr1::shared_ptr<S3BucketContext> ctx;
-};
-
-#endif

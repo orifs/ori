@@ -5,9 +5,10 @@
 #include <sys/param.h>
 #include <fcntl.h>
 
-#include "libs3.h"
-
 #include <ori/backup.h>
+
+#include "libs3.h"
+#include "s3backup.h"
 
 void _setStatusCB(S3Status status,
         const S3ErrorDetails *details,
