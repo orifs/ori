@@ -5,8 +5,9 @@
 
 #include <ori/localrepo.h>
 #include <ori/backup.h>
+#include "s3backup.h"
 
-extern LocalRepo repository;
+LocalRepo repository;
 
 #define ORI_BACKUP "ori_backup"
 
@@ -16,11 +17,21 @@ hashKey(const ObjectHash &hash) {
 }
 
 int
-cmd_backup(int argc, const char *argv[])
+main(int argc, char *argv[])
 {
     if (argc >= 4) {
-        printf("Usage: ori backup [configfile.ini] [fakes3-host]\n");
+        printf("Usage: oris3 [configfile.ini] [fakes3-host]\n");
         return 1;
+    }
+
+    if (!repository.open()) {
+        printf("Failed to open repository!\n");
+        exit(1);
+    }
+
+    if (ori_open_log(&repository) < 0) {
+        printf("Could not open repository log!\n");
+        exit(1);
     }
 
     std::string configFileName;
