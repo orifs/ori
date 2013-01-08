@@ -175,9 +175,6 @@ env.Append(LIBS = ["ori"],
 
 if env["WITH_LIBS3"] == "1":
     SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
-    env.Append(CPPPATH = ['#libs3-2.0'])
-    env.Append(LIBPATH = '#build/libs3-2.0')
-    env.Append(LIBS = ['libs3', 'libxml2', 'curl'])
 
 if env["COMPRESSION_ALGO"] == "SNAPPY":
     env.Append(CPPPATH = ['#snappy-1.0.5'])
@@ -192,6 +189,7 @@ if env["HASH_ALGO"] == "SKEIN":
     env.Append(LIBS = ["skein"], LIBPATH = ['#build/libskein'])
     SConscript('libskein/SConscript', variant_dir='build/libskein')
 
+# Debugging Tools
 if env["WITH_GOOGLEHEAP"] == "1":
     env.Append(LIBS = ["tcmalloc"])
 if env["WITH_GOOGLEPROF"] == "1":
@@ -201,6 +199,8 @@ if env["WITH_GOOGLEPROF"] == "1":
 
 # Ori Utilities
 SConscript('ori/SConscript', variant_dir='build/ori')
+if env["WITH_LIBS3"] == "1":
+    SConscript('oris3/SConscript', variant_dir='build/oris3')
 if env["WITH_FUSE"] == "1":
     SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
     SConscript('mount_oring/SConscript', variant_dir='build/mount_oring')
@@ -210,6 +210,8 @@ if env["WITH_HTTPD"] == "1":
 if env["WITH_FUSE"] == "1":
     env.Install('$PREFIX','build/mount_ori/mount_ori')
 env.Install('$PREFIX','build/ori/ori')
+if env["WITH_LIBS3"] == "1":
+    env.Install('$PREFIX','build/ori/oris3')
 if env["WITH_HTTPD"] == "1":
     env.Install('$PREFIX','build/ori_httpd/ori_httpd')
 env.Alias('install','$PREFIX')
