@@ -202,7 +202,6 @@ SConscript('ori/SConscript', variant_dir='build/ori')
 if env["WITH_LIBS3"] == "1":
     SConscript('oris3/SConscript', variant_dir='build/oris3')
 if env["WITH_FUSE"] == "1":
-    SConscript('mount_ori/SConscript', variant_dir='build/mount_ori')
     SConscript('mount_oring/SConscript', variant_dir='build/mount_oring')
 if env["WITH_HTTPD"] == "1":
     SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
