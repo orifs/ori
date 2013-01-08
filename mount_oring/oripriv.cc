@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
+#include <grp.h>
 #include <errno.h>
 
 #define FUSE_USE_VERSION 26
@@ -480,6 +481,7 @@ loadDir:
             info->type = FILETYPE_COMMITTED;
             info->id = generateId();
             info->hash = it->second.hash;
+            info->largeHash = it->second.largeHash;
 
             dir->add(it->first, info->id);
             if (path == "/")
@@ -554,6 +556,134 @@ ObjectHash
 OriPriv::getTip()
 {
     return head;
+}
+
+ObjectHash
+OriPriv::commitTreeHelper(const string &path)
+{
+    ObjectHash hash = ObjectHash();
+    OriDir *dir = getDir(path == "" ? "/" : path);
+    Tree oldTree;
+    Tree newTree;
+    bool dirty = false;
+
+    // Load repo directory
+    try {
+        ObjectHash treeHash = repo->lookup(headCommit,
+                                           path == "" ? "/" : path);
+        if (treeHash.isEmpty())
+            return hash;
+
+        oldTree = repo->getTree(treeHash);
+    } catch (runtime_error &e) {
+        // Directory does not exist
+        dirty = true;
+    }
+
+    // Check this directory
+    for (OriDir::iterator it = dir->begin(); it != dir->end(); it++) {
+        string objPath = path + "/" + it->first;
+        OriFileInfo *info = getFileInfo(objPath);
+
+        if (info->type == FILETYPE_TEMPORARY) {
+            dirty = true;
+        
+            // Created or modified
+            pair<ObjectHash, ObjectHash> hashes;
+            TreeEntry e;
+            
+            if (info->path != "") {
+                hashes = repo->addFile(info->path);
+                e = TreeEntry(hashes.first, hashes.second);
+            } else {
+                e = TreeEntry(info->hash, info->largeHash);
+            }
+
+            struct passwd *pw = getpwuid(info->statInfo.st_uid);
+            struct group *grp = getgrgid(info->statInfo.st_gid);
+
+            if (pw != NULL)
+                e.attrs.setAsStr(ATTR_USERNAME, pw->pw_name);
+            else
+                e.attrs.setAsStr(ATTR_USERNAME, "nobody");
+            if (grp != NULL)
+                e.attrs.setAsStr(ATTR_GROUPNAME, grp->gr_name);
+            else
+                e.attrs.setAsStr(ATTR_GROUPNAME, "nogroup");
+            if (info->isSymlink())
+                e.attrs.setAs<bool>(ATTR_SYMLINK, true);
+            e.attrs.setAs<mode_t>(ATTR_PERMS, info->statInfo.st_mode & 0777);
+            e.attrs.setAs<size_t>(ATTR_FILESIZE, info->statInfo.st_size);
+            e.attrs.setAs<time_t>(ATTR_MTIME, info->statInfo.st_mtime);
+            e.attrs.setAs<time_t>(ATTR_CTIME, info->statInfo.st_ctime);
+
+            ASSERT(e.hasBasicAttrs());
+
+            newTree.tree[it->first] = e;
+        } else {
+            Tree::iterator oldEntry = oldTree.find(it->first);
+
+            ASSERT(oldEntry != oldTree.end());
+            ASSERT(oldEntry->second.hasBasicAttrs());
+
+            // Copy old entry
+            newTree.tree[it->first] = oldEntry->second;
+        }
+    }
+    for (Tree::iterator it = oldTree.begin(); it != oldTree.end(); it++) {
+        string objPath = path + "/" + it->first;
+
+        if (dir->find(it->first) == dir->end()) {
+            dirty = true;
+            // Deleted
+        }
+    }
+
+    // Check subdirectories
+    for (OriDir::iterator it = dir->begin(); it != dir->end(); it++) {
+        string objPath = path + "/" + it->first;
+        OriFileInfo *info = getFileInfo(objPath);
+
+        if (info->isDir() && info->dirLoaded) {
+            ObjectHash subdir = commitTreeHelper(objPath);
+
+            if (!subdir.isEmpty()) {
+                dirty = true;
+
+                // Save new hash
+                newTree.tree[it->first].hash = subdir;
+            }
+        }
+    }
+
+    if (dirty) {
+        hash = repo->addTree(newTree);
+    } else {
+        ASSERT(hash.isEmpty());
+    }
+
+    return hash;
+}
+
+std::string
+OriPriv::commit()
+{
+    Commit c;
+    ObjectHash root = commitTreeHelper("");
+    ObjectHash commitHash = ObjectHash();
+
+    if (root.isEmpty() || root == headCommit.getTree())
+        return "No changes.";
+
+    c.setMessage("FUSE commit");
+    commitHash = repo->commitFromTree(root, c);
+
+    head = repo->getHead();
+    headCommit = repo->getCommit(head);
+
+    repo->sync();
+
+    return "Commit Hash: " + commitHash.hex();
 }
 
 void

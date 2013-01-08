@@ -58,6 +58,10 @@ public:
         memcpy(&attrs[attrName][0], &value, sizeof(T));
     }
 
+    void setAsStr(const std::string &attrName, const std::string &value) {
+        attrs[attrName] = value;
+    }
+
     bool has(const std::string &attrName) const;
 
     void setFromFile(const std::string &filename);

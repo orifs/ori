@@ -64,6 +64,7 @@ public:
     bool isReg() { return (statInfo.st_mode & S_IFREG) == S_IFREG; }
     struct stat statInfo;
     ObjectHash hash;
+    ObjectHash largeHash;
     OriFileType type;
     OriPrivId id;
     std::string path; // link target or temporary file
@@ -145,9 +146,11 @@ public:
     OriCommand cmd;
     ObjectHash getTip();
 private:
+    ObjectHash commitTreeHelper(const std::string &path);
     void getDiffHelper(const std::string &path,
                        std::map<std::string, OriFileState::StateType> *diff);
 public:
+    std::string commit();
     std::map<std::string, OriFileState::StateType> getDiff();
     // Debugging
     void fsck(bool fromCmd = false);

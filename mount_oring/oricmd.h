@@ -29,6 +29,7 @@ public:
     int write(const char *buf, size_t size, size_t offset);
     void printf(const char *fmt, ...);
 private:
+    int cmd_commit(int argc, const char *argv[]);
     int cmd_fsck(int argc, const char *argv[]);
     int cmd_log(int argc, const char *argv[]);
     int cmd_show(int argc, const char *argv[]);

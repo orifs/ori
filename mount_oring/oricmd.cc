@@ -87,6 +87,8 @@ OriCommand::write(const char *buf, size_t size, size_t offset)
     // XXX: Support arguments
     cmd.assign(buf, size);
 
+    if (strncmp(buf, "commit", size) == 0)
+        return cmd_commit(argc, (const char **)&argv);
     if (strncmp(buf, "fsck", size) == 0)
         return cmd_fsck(argc, (const char **)&argv);
     if (strncmp(buf, "log", size) == 0)
@@ -119,7 +121,21 @@ OriCommand::printf(const char *fmt, ...)
 int
 OriCommand::cmd_fsck(int argc, const char *argv[])
 {
+    FUSE_LOG("Command: fsck");
+
     priv->fsck(true);
+
+    return 0;
+}
+
+int
+OriCommand::cmd_commit(int argc, const char *argv[])
+{
+    FUSE_LOG("Command: commit");
+
+    string msg = priv->commit();
+
+    printf("%s\n", msg.c_str());
 
     return 0;
 }
@@ -127,6 +143,8 @@ OriCommand::cmd_fsck(int argc, const char *argv[])
 int
 OriCommand::cmd_log(int argc, const char *argv[])
 {
+    FUSE_LOG("Command: log");
+
     ObjectHash commit = priv->getTip();
 
     while (!commit.isEmpty()) {
@@ -156,6 +174,8 @@ OriCommand::cmd_log(int argc, const char *argv[])
 int
 OriCommand::cmd_show(int argc, const char *argv[])
 {
+    FUSE_LOG("Command: show");
+
     printf("--- Repository ---\n");
     printf("Root: %s\n", priv->repo->getRootPath().c_str());
     printf("UUID: %s\n", priv->repo->getUUID().c_str());
@@ -165,9 +185,13 @@ OriCommand::cmd_show(int argc, const char *argv[])
     return 0;
 }
 
+
+
 int
 OriCommand::cmd_status(int argc, const char *argv[])
 {
+    FUSE_LOG("Command: status");
+
     map<string, OriFileState::StateType> diff = priv->getDiff();
     map<string, OriFileState::StateType>::iterator it;
 
@@ -192,6 +216,8 @@ OriCommand::cmd_status(int argc, const char *argv[])
 int
 OriCommand::cmd_tip(int argc, const char *argv[])
 {
+    FUSE_LOG("Command: tip");
+
     resultBuffer = priv->getTip().hex() + "\n";
 
     return 0;
