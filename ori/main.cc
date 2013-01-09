@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define _POSIX_C_SOURCE 200809
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
