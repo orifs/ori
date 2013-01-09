@@ -10,7 +10,7 @@ Installation
 
 Platforms:
  - Linux 3.0+ (Tested on Arch and Ubuntu)
- - MacOS X 10.7+
+ - MacOS X 10.6+
  - FreeBSD 8/9
 
 Build Dependencies:
