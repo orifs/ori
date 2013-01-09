@@ -38,6 +38,7 @@
 #include <string>
 
 #if defined(__APPLE__)
+#include "mach/mach_types.h"
 typedef mach_port_t threadid_t;
 #elif defined(__linux__)
 typedef pid_t threadid_t;
