@@ -995,8 +995,8 @@ void
 usage()
 {
     printf("Usage:\n");
-    printf("mount_ori -o repo=[REPOSITORY PATH] [MOUNT POINT]\n");
-    printf("mount_ori -o clone=[REMOTE PATH],repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("orifs -o repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("orifs -o clone=[REMOTE PATH],repo=[REPOSITORY PATH] [MOUNT POINT]\n");
 }
 
 int
