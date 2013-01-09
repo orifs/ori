@@ -1,0 +1,27 @@
+.TH ORIFS "1" "January 2013" "Ori Project" "Ori Distributed File System"
+.SH NAME
+orifs \- manual page for orifs
+.SH SYNOPSIS
+.B orifs
+[\fIOPTIONS\fR...] \fIMOUNTPOINT\fR
+.SH DESCRIPTION
+orifs is the FUSE driver for the Ori distributed file system.  This method of 
+accessing a repository enables much more functionality and speed for certain 
+use cases over the command line interface.
+
+One of the most useful features of orifs is InstaClone, a mechanism that allows 
+users to instantly access and clone a remote repository.
+.SH OPTIONS
+.TP
+\fB\-o repo=[\fIPATH\fR]\fR
+Specify the path to the underlying repository.
+.TP
+\fB\-o repo=[\fIPATH\fR],clone=[\fIREMOTEPATH\fR]\fR
+Create a new InstaCloned repository from the specified repository.
+.TP
+\fB\-d\fR
+Enable debugging mode with verbose output.  The file system will run much 
+slower, but is useful for reporting crashes.
+.SH "SEE ALSO"
+.BR ori (1),
+.BR ori_httpd (1)
