@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -28,6 +29,7 @@
 #include <map>
 
 #include <ori/debug.h>
+#include <ori/stopwatch.h>
 #include <ori/oriutil.h>
 #include <ori/posixexception.h>
 #include <ori/rwlock.h>
@@ -81,24 +83,24 @@ int
 OriCommand::write(const char *buf, size_t size, size_t offset)
 {
     int argc = 0;
-    char argv[10];
+    char *argv[10];
     string cmd;
 
     // XXX: Support arguments
     cmd.assign(buf, size);
 
     if (strncmp(buf, "commit", size) == 0)
-        return cmd_commit(argc, (const char **)&argv);
+        return cmd_commit(argc, (const char **)argv);
     if (strncmp(buf, "fsck", size) == 0)
-        return cmd_fsck(argc, (const char **)&argv);
+        return cmd_fsck(argc, (const char **)argv);
     if (strncmp(buf, "log", size) == 0)
-        return cmd_log(argc, (const char **)&argv);
+        return cmd_log(argc, (const char **)argv);
     if (strncmp(buf, "show", size) == 0)
-        return cmd_show(argc, (const char **)&argv);
+        return cmd_show(argc, (const char **)argv);
     if (strncmp(buf, "status", size) == 0)
-        return cmd_status(argc, (const char **)&argv);
+        return cmd_status(argc, (const char **)argv);
     if (strncmp(buf, "tip", size) == 0)
-        return cmd_tip(argc, (const char **)&argv);
+        return cmd_tip(argc, (const char **)argv);
 
     return -EIO;
 }
@@ -131,11 +133,21 @@ OriCommand::cmd_fsck(int argc, const char *argv[])
 int
 OriCommand::cmd_commit(int argc, const char *argv[])
 {
+#ifdef DEBUG
+    Stopwatch sw = Stopwatch();
+    sw.start();
+#endif /* DEBUG */
+
     FUSE_LOG("Command: commit");
 
     string msg = priv->commit();
 
     printf("%s\n", msg.c_str());
+
+#ifdef DEBUG
+    sw.stop();
+    FUSE_LOG("commit elapsed %ldms", sw.getElapsedTime());
+#endif /* DEBUG */
 
     return 0;
 }
@@ -143,6 +155,11 @@ OriCommand::cmd_commit(int argc, const char *argv[])
 int
 OriCommand::cmd_log(int argc, const char *argv[])
 {
+#ifdef DEBUG
+    Stopwatch sw = Stopwatch();
+    sw.start();
+#endif /* DEBUG */
+
     FUSE_LOG("Command: log");
 
     ObjectHash commit = priv->getTip();
@@ -168,6 +185,11 @@ OriCommand::cmd_log(int argc, const char *argv[])
         // XXX: Handle merge cases
     }
    
+#ifdef DEBUG
+    sw.stop();
+    FUSE_LOG("log elapsed %ldms", sw.getElapsedTime());
+#endif /* DEBUG */
+
     return 0;
 }
 
@@ -190,6 +212,11 @@ OriCommand::cmd_show(int argc, const char *argv[])
 int
 OriCommand::cmd_status(int argc, const char *argv[])
 {
+#ifdef DEBUG
+    Stopwatch sw = Stopwatch();
+    sw.start();
+#endif /* DEBUG */
+
     FUSE_LOG("Command: status");
 
     map<string, OriFileState::StateType> diff = priv->getDiff();
@@ -209,6 +236,11 @@ OriCommand::cmd_status(int argc, const char *argv[])
 
         printf("%c   %s\n", type, it->first.c_str());
     }
+
+#ifdef DEBUG
+    sw.stop();
+    FUSE_LOG("status elapsed %ldms", sw.getElapsedTime());
+#endif /* DEBUG */
 
     return 0;
 }
