@@ -41,6 +41,6 @@ ori_fuse_log(const char *what, ...)
     va_start(vl, what);
     vfprintf(logfd, what, vl);
 
-    fsync(fileno(logfd));
+    fflush(logfd);
 }
 
