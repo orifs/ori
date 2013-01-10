@@ -23,6 +23,7 @@ src = [
     "snapshotindex.cc",
     "sshclient.cc",
     "sshrepo.cc",
+    "stopwatch.cc",
     "stream.cc",
     "tempdir.cc",
     "tree.cc",
