@@ -50,6 +50,7 @@ LocalRepo repository;
 #define CMD_NEED_REPO           1
 #define CMD_FUSE_ENABLED        2
 #define CMD_FUSE_ONLY           4
+#define CMD_DEBUG               8
 
 typedef struct Cmd {
     const char *name;
@@ -327,70 +328,70 @@ static Cmd commands[] = {
 	"Print an object from the repository (DEBUG)",
 	cmd_catobj,
 	NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
 	"dumpobj",
 	"Print the structured representation of a repository object (DEBUG)",
 	cmd_dumpobj,
 	NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
         "fsck",
         "Check internal state of FUSE file system (DEBUG).",
         cmd_fsck,
         NULL,
-        CMD_FUSE_ONLY,
+        CMD_FUSE_ONLY | CMD_DEBUG,
     },
     {
 	"listobj",
 	"List objects (DEBUG)",
 	cmd_listobj,
 	NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
 	"refcount",
 	"Print the reference count for all objects (DEBUG)",
 	cmd_refcount,
 	NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
 	"stats",
 	"Print repository statistics (DEBUG)",
 	cmd_stats,
 	NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
 	"purgeobj",
 	"Purge object (DEBUG)",
 	cmd_purgeobj,
 	NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
         "stripmetadata",
         "Strip all object metadata including backreferences (DEBUG)",
         cmd_stripmetadata,
         NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
         "httpclient",
         "Connect to a server via HTTP (DEBUG)",
         cmd_httpclient,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "sshclient",
         "Connect to a server via SSH (DEBUG)",
         cmd_sshclient,
         NULL,
-        0,
+        CMD_DEBUG,
     },
 #if !defined(WITHOUT_MDNS)
     {
@@ -398,7 +399,7 @@ static Cmd commands[] = {
         "Run the mDNS server (DEBUG)",
         cmd_mdnsserver,
         NULL,
-        0,
+        CMD_DEBUG,
     },
 #endif
     {
@@ -406,7 +407,7 @@ static Cmd commands[] = {
         "Built-in unit tests (DEBUG)",
         cmd_selftest,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     { NULL, NULL, NULL, NULL }
 };
@@ -466,6 +467,10 @@ cmd_help(int argc, const char *argv[])
 
     for (i = 0; commands[i].name != NULL; i++)
     {
+#ifndef DEBUG
+        if (commands[i].flags & CMD_DEBUG)
+            continue;
+#endif /* DEBUG */
         if (commands[i].desc != NULL)
             printf("%-20s %s\n", commands[i].name, commands[i].desc);
     }
