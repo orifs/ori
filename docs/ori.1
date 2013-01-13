@@ -1,0 +1,61 @@
+.TH ORI "1" "January 2013" "Ori Project" "Ori Distributed File System"
+.SH NAME
+ori \- manual page for ori
+.SH SYNOPSIS
+.B ori
+\fICOMMAND\fR [\fIARGUMENTS\fR...]
+.SH DESCRIPTION
+ori is the command line interface to Ori distributed file system.  Provides 
+useful tools for accessing, manipulating, and repairing ori repositories 
+without the use of FUSE.  It can be used alone without FUSE to checkout a 
+snapshot of a tree and commit changes to one.  This tool is also the main 
+daemon used by the SSH push/pull interface.
+.SH COMMANDS
+.TP
+\fBaddkey\fR \fIKEYFILE\fR
+Add a signing key to the repository.
+.TP
+\fBbranch\fR [\fIBRANCHNAME\fR]
+Get or set the current branch.  If no other arguments are specified the command 
+will print the current branch, otherwise the branch will be created or updated.
+.TP
+\fBbranches\fR
+List available branches.
+.TP
+\fBcheckout\fR
+Checkout a revision of the repository.
+.TP
+\fBclone\fR
+Clone a remote or local repository into a new directory.
+.TP
+\fBcommit\fR
+Commit the latest changes to the repository.
+.TP
+\fBfilelog\fR
+Displays a log of relevant commits made to the specified file.
+.TP
+\fBfindheads\fR
+Searches for detached heads that are not referenced by a branch.
+.TP
+\fBgc\fR
+Garbage collect any deleted objects that have not been reclaimed.  This will 
+repack the pack files that contain deleted objects.
+.TP
+\fBgraft\fR
+Experimental command to graft changes from one repository into another.
+.TP
+\fBhelp\fR
+Display a list of commands and their purpose.
+.TP
+\fBinit\fR [\fIPATH\fR]
+Create a repository in the current directory unless one is specified. If the 
+directory does not exist it will be created.
+.TP
+\fBlistkeys\fR
+List the signing keys available in this repository.
+.TP
+\fBlog\fR
+Display a log of changes made to the repository.
+.SH "SEE ALSO"
+.BR orifs (1),
+.BR ori_httpd (1)
