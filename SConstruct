@@ -136,6 +136,18 @@ if sys.platform == "darwin":
 # Configuration
 conf = env.Configure()
 
+if not conf.CheckCXX():
+    print 'Your C++ compiler and/or environment is incorrectly configured.'
+    Exit(1)
+
+if conf.CheckCXXHeader('unordered_map'):
+    env.Append(CPPFLAGS = "-DHAVE_CXX11")
+elif conf.CheckCXXHeader('tr1/unordered_map'):
+    env.Append(CPPFLAGS = "-DHAVE_CXXTR1")
+else:
+    print 'Either C++11, C++0x, or C++ TR1 must be present!'
+    Exit(1)
+
 if env["COMPRESSION_ALGO"] == "LZMA":
     if not conf.CheckLibWithHeader('lzma',
                                    'lzma.h',

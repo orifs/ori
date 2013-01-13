@@ -37,6 +37,11 @@
 #include <ori/sshclient.h>
 #include <ori/sshrepo.h>
 
+using namespace std;
+#ifdef HAVE_CXXTR1
+using namespace std::tr1;
+#endif /* HAVE_CXXTR1 */
+
 /*
  * SshRepo
  */
@@ -158,7 +163,7 @@ SshRepo::getObjectInfo(const ObjectHash &id)
 
 bool SshRepo::hasObject(const ObjectHash &id) {
     if (!containedObjs) {
-        containedObjs = new std::tr1::unordered_set<ObjectHash>();
+        containedObjs = new unordered_set<ObjectHash>();
         std::set<ObjectInfo> objs = listObjects();
         for (std::set<ObjectInfo>::iterator it = objs.begin();
                 it != objs.end();

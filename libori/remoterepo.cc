@@ -31,6 +31,9 @@
 #include <ori/remoterepo.h>
 
 using namespace std;
+#ifdef HAVE_CXXTR1
+using namespace std::tr1;
+#endif /* HAVE_CXXTR1 */
 
 RemoteRepo::RemoteRepo()
     : r(NULL)
@@ -57,8 +60,8 @@ RemoteRepo::connect(const string &url)
             return (sc->connect() == 0);
         }
     } else {
-	LocalRepo *lr = new LocalRepo(url);
-	r = lr;
+        LocalRepo *lr = new LocalRepo(url);
+        r = lr;
         return lr->open(url);
     }
 
@@ -69,11 +72,11 @@ void
 RemoteRepo::disconnect()
 {
     if (hc)
-	hc->disconnect();
+        hc->disconnect();
     if (sc)
-	sc->disconnect();
+        sc->disconnect();
     if (r)
-	delete r;
+        delete r;
 }
 
 Repo *

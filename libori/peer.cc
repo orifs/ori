@@ -33,6 +33,9 @@
 #include <ori/peer.h>
 
 using namespace std;
+#ifdef HAVE_CXXTR1
+using namespace std::tr1;
+#endif /* HAVE_CXXTR1 */
 
 /********************************************************************
  *
@@ -59,8 +62,8 @@ Peer::Peer(const std::string &path)
     peerFile = path;
 
     if (Util_FileExists(path)) {
-	string blob = Util_ReadFile(path);
-	fromBlob(blob);
+        string blob = Util_ReadFile(path);
+        fromBlob(blob);
     }
 }
 
@@ -116,29 +119,29 @@ Repo *
 Peer::getRepo()
 {
     if (cachedRepo) {
-	return cachedRepo.get();
+        return cachedRepo.get();
     }
 
     if (Util_IsPathRemote(url)) {
-	if (strncmp(url.c_str(), "http://", 7) == 0) {
-	    hc.reset(new HttpClient(url));
-	    cachedRepo.reset(new HttpRepo(hc.get()));
-	    hc->connect();
-	} else {
-	    sc.reset(new SshClient(url));
-	    cachedRepo.reset(new SshRepo(sc.get()));
-	    sc->connect();
-	}
+        if (strncmp(url.c_str(), "http://", 7) == 0) {
+            hc.reset(new HttpClient(url));
+            cachedRepo.reset(new HttpRepo(hc.get()));
+            hc->connect();
+        } else {
+            sc.reset(new SshClient(url));
+            cachedRepo.reset(new SshRepo(sc.get()));
+            sc->connect();
+        }
     } else {
-	char *path = realpath(url.c_str(), NULL);
-	LocalRepo *local = new LocalRepo(path);
-	local->open(path);
-	cachedRepo.reset(local);
-	free(path);
+        char *path = realpath(url.c_str(), NULL);
+        LocalRepo *local = new LocalRepo(path);
+        local->open(path);
+        cachedRepo.reset(local);
+        free(path);
     }
 
     if (repoId == "") {
-	setRepoId(cachedRepo->getUUID());
+        setRepoId(cachedRepo->getUUID());
     }
 
     return cachedRepo.get();
@@ -148,9 +151,9 @@ void
 Peer::save() const
 {
     if (peerFile != "") {
-	string blob = getBlob();
+        string blob = getBlob();
 
-	Util_WriteFile(blob.data(), blob.size(), peerFile);
+        Util_WriteFile(blob.data(), blob.size(), peerFile);
     }
 }
 
@@ -163,7 +166,7 @@ Peer::getBlob() const
     blob = "url " + url + "\n";
     blob += "repoId " + repoId + "\n";
     if (instaCloning)
-	blob += "instaCloning\n";
+        blob += "instaCloning\n";
 
     return blob;
 }
@@ -175,16 +178,16 @@ Peer::fromBlob(const string &blob)
     stringstream ss(blob);
 
     while (getline(ss, line, '\n')) {
-	if (line.substr(0, 4) == "url ") {
-	    url = line.substr(4);
-	} else if (line.substr(0, 7) == "repoId ") {
-	    repoId = line.substr(7);
-	} else if (line.substr(0, 12) == "instaCloning") {
-	    instaCloning = true;
-	} else{
-	    printf("Unsupported peer feature!\n");
-	    PANIC();
-	}
+        if (line.substr(0, 4) == "url ") {
+            url = line.substr(4);
+        } else if (line.substr(0, 7) == "repoId ") {
+            repoId = line.substr(7);
+        } else if (line.substr(0, 12) == "instaCloning") {
+            instaCloning = true;
+        } else{
+            printf("Unsupported peer feature!\n");
+            PANIC();
+        }
     }
 }
 
