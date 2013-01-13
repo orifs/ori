@@ -148,6 +148,25 @@ else:
     print 'Either C++11, C++0x, or C++ TR1 must be present!'
     Exit(1)
 
+# XXX: Add check FUSE
+
+if not conf.CheckCXXHeader('boost/uuid/uuid.hpp'):
+    print 'Boost UUID headers are missing!'
+    Exit(1)
+
+if not conf.CheckCXXHeader('boost/bind.hpp'):
+    print 'Boost bind headers are missing!'
+    Exit(1)
+
+if not conf.CheckCXXHeader('boost/date_time/posix_time/posix_time.hpp'):
+    print 'Boost posix_time headers are missing!'
+    Exit(1)
+
+if sys.platform == "freebsd9" or sys.platform == "freebsd8":
+    if not conf.CheckLib('execinfo'):
+        print 'FreeBSD requires libexecinfo to build.'
+        Exit(1)
+
 if env["COMPRESSION_ALGO"] == "LZMA":
     if not conf.CheckLibWithHeader('lzma',
                                    'lzma.h',
