@@ -136,9 +136,23 @@ if sys.platform == "darwin":
 # Configuration
 conf = env.Configure()
 
+if not conf.CheckCC():
+    print 'Your C compiler and/or environment is incorrectly configured.'
+    Exit(1)
+
 if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
     Exit(1)
+
+#
+#env.AppendUnique(CXXFLAGS = ['-std=c++11'])
+#if not conf.CheckCXX():
+#    env['CXXFLAGS'].remove('-std=c++11')
+#
+#env.AppendUnique(CXXFLAGS = ['-std=c++0x'])
+#if not conf.CheckCXX():
+#    env['CXXFLAGS'].remove('-std=c++0x')
+#
 
 if conf.CheckCXXHeader('unordered_map'):
     env.Append(CPPFLAGS = "-DHAVE_CXX11")
