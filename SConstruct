@@ -136,9 +136,23 @@ if sys.platform == "darwin":
 # Configuration
 conf = env.Configure()
 
+if not conf.CheckCC():
+    print 'Your C compiler and/or environment is incorrectly configured.'
+    Exit(1)
+
 if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
     Exit(1)
+
+#
+#env.AppendUnique(CXXFLAGS = ['-std=c++11'])
+#if not conf.CheckCXX():
+#    env['CXXFLAGS'].remove('-std=c++11')
+#
+#env.AppendUnique(CXXFLAGS = ['-std=c++0x'])
+#if not conf.CheckCXX():
+#    env['CXXFLAGS'].remove('-std=c++0x')
+#
 
 if conf.CheckCXXHeader('unordered_map'):
     env.Append(CPPFLAGS = "-DHAVE_CXX11")
@@ -241,12 +255,15 @@ if env["WITH_FUSE"] == "1":
 if env["WITH_HTTPD"] == "1":
     SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
 
+# Install Targets
 if env["WITH_FUSE"] == "1":
-    env.Install('$PREFIX','build/orifs/orifs')
-env.Install('$PREFIX','build/ori/ori')
+    env.Install('$PREFIX/bin','build/orifs/orifs')
+env.Install('$PREFIX/bin','build/ori/ori')
 if env["WITH_LIBS3"] == "1":
-    env.Install('$PREFIX','build/ori/oris3')
+    env.Install('$PREFIX/bin','build/ori/oris3')
 if env["WITH_HTTPD"] == "1":
-    env.Install('$PREFIX','build/ori_httpd/ori_httpd')
+    env.Install('$PREFIX/bin','build/ori_httpd/ori_httpd')
+env.Install('$PREFIX/share/man/man1','docs/ori.1')
+env.Install('$PREFIX/share/man/man1','docs/orifs.1')
 env.Alias('install','$PREFIX')
 
