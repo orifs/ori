@@ -68,6 +68,7 @@ int cmd_checkout(int argc, const char *argv[]);
 int cmd_clone(int argc, const char *argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, const char *argv[]);
+int cmd_diff(int argc, const char *argv[]);
 int cmd_filelog(int argc, const char *argv[]);
 int cmd_findheads(int argc, const char *argv[]);
 int cmd_gc(int argc, const char *argv[]);
@@ -152,6 +153,13 @@ static Cmd commands[] = {
 	cmd_commit,
 	usage_commit,
         CMD_NEED_REPO | CMD_FUSE_ENABLED,
+    },
+    {
+        "diff",
+        "Display a diff of the pending changes",
+        cmd_diff,
+        NULL,
+        CMD_NEED_REPO,
     },
     {
 	"filelog",

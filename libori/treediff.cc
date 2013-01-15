@@ -254,6 +254,7 @@ static int _diffToDirHelper(_scanHelperData *sd, const string &path)
     if (modified) {
         diffEntry.type = TreeDiffEntry::Modified;
         diffEntry.newFilename = fullPath;
+        diffEntry.hashes = make_pair(te.hash, te.largeHash);
 
         diffEntry._diffAttrs(te.attrs, newAttrs);
 

@@ -215,7 +215,7 @@ SConscript('libdiffmerge/SConscript', variant_dir='build/libdiffmerge')
 SConscript('libori/SConscript', variant_dir='build/libori')
 
 # Set compile options for binaries
-env.Append(LIBS = ["diffmerge"],
+env.Append(LIBS = ["diffmerge", "z"],
            LIBPATH = ['#build/libdiffmerge'])
 
 env.Append(LIBS = ["ori"],

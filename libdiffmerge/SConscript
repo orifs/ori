@@ -11,7 +11,5 @@ src = [
     "fossil_wrapper.c",
 ]
 
-env.Append(LIBS = ['z'])
-
 env.StaticLibrary("diffmerge", src)
 
