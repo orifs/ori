@@ -197,9 +197,13 @@ Export('env')
 if env["WITH_LIBS3"] == "1":
     env.Append(CPPPATH = '#libs3-2.0/inc')
 
+SConscript('libdiffmerge/SConscript', variant_dir='build/libdiffmerge')
 SConscript('libori/SConscript', variant_dir='build/libori')
 
 # Set compile options for binaries
+env.Append(LIBS = ["diffmerge"],
+           LIBPATH = ['#build/libdiffmerge'])
+
 env.Append(LIBS = ["ori"],
            CPPPATH = ['#public'],
            LIBPATH = ['#build/libori'])

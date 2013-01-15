@@ -1,0 +1,17 @@
+
+Import('env')
+
+src = [
+    "blob.c",
+    "diff.c",
+    "encode.c",
+    "file.c",
+    "merge3.c",
+    "printf.c",
+    "fossil_wrapper.c",
+]
+
+env.Append(LIBS = ['z'])
+
+env.StaticLibrary("diffmerge", src)
+
