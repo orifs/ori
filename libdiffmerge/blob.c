@@ -26,6 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if !defined(_WIN32)
+#include <unistd.h>
+#endif
+
 #include <zlib.h>
 #include "fossil_wrapper.h"
 #include "blob.h"
