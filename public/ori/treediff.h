@@ -35,9 +35,10 @@ struct TreeDiffEntry
         DeletedDir = 'd',
         Modified = 'm',
         Renamed = 'R',
-	// ModifiedDiff = 'M'
-	MergeConflict = 'C',
-	MergeResolved = 'c',
+        // ModifiedDiff = 'M'
+        MergeConflict = 'C',
+        FileDirConflict = 'x',
+        MergeResolved = 'c',
     } type;
 
     TreeDiffEntry();
@@ -47,6 +48,10 @@ struct TreeDiffEntry
     std::string newFilename; // filename of a file containing the new contents
     std::pair<ObjectHash, ObjectHash> hashes;
     AttrMap newAttrs;
+
+    // Merge Conflict Fields
+    std::string fileA, fileB, fileBase;
+    std::pair<ObjectHash, ObjectHash> hashA, hashB, hashBase;
 
     void _diffAttrs(const AttrMap &a_old, const AttrMap &a_new);
 };

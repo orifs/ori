@@ -159,7 +159,7 @@ static int output_one_side(
 ** conflicts, the merge proceeds as best as it can and the number 
 ** of conflicts is returns
 */
-static int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut){
+int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut){
   int *aC1;              /* Changes from pPivot to pV1 */
   int *aC2;              /* Changes from pPivot to pV2 */
   int i1, i2;            /* Index into aC1[] and aC2[] */

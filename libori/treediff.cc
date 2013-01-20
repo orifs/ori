@@ -37,7 +37,11 @@ TreeDiffEntry::TreeDiffEntry()
     : type(Noop),
       filepath(""),
       newFilename(""),
-      hashes(make_pair(ObjectHash(), ObjectHash()))
+      hashes(make_pair(ObjectHash(), ObjectHash())),
+      fileA(""), fileB(""), fileBase(""),
+      hashA(make_pair(ObjectHash(), ObjectHash())),
+      hashB(make_pair(ObjectHash(), ObjectHash())),
+      hashBase(make_pair(ObjectHash(), ObjectHash()))
 {
 }
 
@@ -45,7 +49,11 @@ TreeDiffEntry::TreeDiffEntry(const std::string &filepath, DiffType t)
     : type(t),
       filepath(filepath),
       newFilename(""),
-      hashes(make_pair(ObjectHash(), ObjectHash()))
+      hashes(make_pair(ObjectHash(), ObjectHash())),
+      fileA(""), fileB(""), fileBase(""),
+      hashA(make_pair(ObjectHash(), ObjectHash())),
+      hashB(make_pair(ObjectHash(), ObjectHash())),
+      hashBase(make_pair(ObjectHash(), ObjectHash()))
 {
 }
 
@@ -93,6 +101,8 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
                 diffEntry.type = TreeDiffEntry::NewFile;
                 diffEntry.newFilename = "";
                 diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
+                diffEntry.fileBase = "";
+                diffEntry.hashBase = make_pair(EMPTYFILE_HASH, ObjectHash());
             }
 
             append(diffEntry);
@@ -135,7 +145,9 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
                     diffEntry.filepath = path;
                     diffEntry.type = TreeDiffEntry::Modified;
                     diffEntry.newFilename = "";
-                    diffEntry.hashes = make_pair(entry2.hash, entry2.largeHash);
+                    diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
+                    diffEntry.fileBase = "";
+                    diffEntry.hashBase = make_pair(entry2.hash, entry2.largeHash);
 
                     append(diffEntry);
                 }
@@ -523,11 +535,25 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
                 if (e->hashes == e_second->hashes) {
                     append(*e);
                 } else {
-                    // XXX: Merge conflict
-                    NOT_IMPLEMENTED(false);
+                    TreeDiffEntry newEntry = TreeDiffEntry();
+
+                    newEntry.type = TreeDiffEntry::MergeConflict;
+                    newEntry.filepath = e->filepath;
+                    newEntry.newAttrs = e->newAttrs;
+
+                    newEntry.fileA = "";
+                    newEntry.fileB = "";
+                    newEntry.fileBase = "";
+                    newEntry.hashA = e->hashes;
+                    newEntry.hashB = e_second->hashes;
+                    newEntry.hashBase = e->hashBase;
+
+                    assert(e->hashBase == e_second->hashBase);
+
+                    append(newEntry);
                 }
             } else if (t2 == TreeDiffEntry::NewDir) {
-                // XXX: Merge conflict
+                // XXX: FileDirConflict
                 NOT_IMPLEMENTED(false);
             }
         } else if (t1 == TreeDiffEntry::NewDir) {
@@ -535,7 +561,7 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
                 (fdReplace && t2 == TreeDiffEntry::Modified)) {
                 append(*e);
             } else if (t2 == TreeDiffEntry::NewFile) {
-                // XXX: MergeConflict
+                // XXX: FileDirConflict
                 NOT_IMPLEMENTED(false);
             }
         } else if (t1 == TreeDiffEntry::DeletedFile) {
@@ -562,10 +588,29 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
                 // Append delete
                 append(*e_second);
             } else if (t2 == TreeDiffEntry::NewDir) {
+                // XXX: FileDirConflict
                 // Append delete
                 // Append newDir
+                NOT_IMPLEMENTED(false);
             } else if (t2 == TreeDiffEntry::Modified) {
-                // Append conflict
+                // Merge Conflict
+                TreeDiffEntry newEntry = TreeDiffEntry();
+
+                newEntry.type = TreeDiffEntry::MergeConflict;
+                newEntry.filepath = e->filepath;
+                newEntry.newAttrs = e->newAttrs;
+
+                // XXX: Implement this for workdir diffs
+                newEntry.fileA = "";
+                newEntry.fileB = "";
+                newEntry.fileBase = "";
+                newEntry.hashA = e->hashes;
+                newEntry.hashB = e_second->hashes;
+                newEntry.hashBase = e->hashBase;
+
+                assert(e->hashBase == e_second->hashBase);
+
+                append(newEntry);
             }
         } else {
             NOT_IMPLEMENTED(false);

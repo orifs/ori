@@ -33,6 +33,11 @@ using namespace std;
 
 extern LocalRepo repository;
 
+extern "C" {
+#include <libdiffmerge/blob.h>
+int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut);
+};
+
 int
 cmd_merge(int argc, const char *argv[])
 {
@@ -50,7 +55,9 @@ cmd_merge(int argc, const char *argv[])
     ObjectHash lca;
 
     lca = cDag.findLCA(p1, p2);
+#ifdef DEBUG
     cout << "LCA: " << lca.hex() << endl;
+#endif /* DEBUG */
 
     // Construct tree diffs to ancestor to find conflicts
     TreeDiff td1, td2;
@@ -71,6 +78,7 @@ cmd_merge(int argc, const char *argv[])
     td1.diffTwoTrees(t1.flattened(&repository), tc.flattened(&repository));
     td2.diffTwoTrees(t2.flattened(&repository), tc.flattened(&repository));
 
+#ifdef DEBUG
     printf("Tree 1:\n");
     for (size_t i = 0; i < td1.entries.size(); i++) {
         printf("%c   %s\n",
@@ -83,17 +91,20 @@ cmd_merge(int argc, const char *argv[])
                 td2.entries[i].type,
                 td2.entries[i].filepath.c_str());
     }
+#endif /* DEBUG */
 
     // Compute merge
     TreeDiff mdiff;
     mdiff.mergeTrees(td1, td2);
 
+#ifdef DEBUG
     printf("Merged Tree:\n");
     for (size_t i = 0; i < mdiff.entries.size(); i++) {
         printf("%c   %s\n",
                 mdiff.entries[i].type,
                 mdiff.entries[i].filepath.c_str());
     }
+#endif /* DEBUG */
 
     // Setup merge state
     MergeState state;
@@ -105,12 +116,14 @@ cmd_merge(int argc, const char *argv[])
     TreeDiff wdiff;
     wdiff.mergeChanges(td1, mdiff);
 
+#ifdef DEBUG
     printf("Merged Tree Diff:\n");
     for (size_t i = 0; i < wdiff.entries.size(); i++) {
         printf("%c   %s\n",
                 wdiff.entries[i].type,
                 wdiff.entries[i].filepath.c_str());
     }
+#endif /* DEBUG */
 
     printf("Updating working directory\n");
     // Update working directory as necessary
@@ -133,6 +146,38 @@ cmd_merge(int argc, const char *argv[])
 	} else if (mdiff.entries[i].type == TreeDiffEntry::Modified) {
 	    printf("U       %s\n", e.filepath.c_str());
 	    repository.copyObject(e.hashes.first, path);
+        } else if (mdiff.entries[i].type == TreeDiffEntry::MergeConflict) {
+            int status;
+            Blob pivot, a, b, out;
+            string path;
+            string pivotStr;
+            string aStr;
+            string bStr;
+            
+            path = repository.getRootPath() + mdiff.entries[i].filepath;
+           
+            if (mdiff.entries[i].hashBase.first == EMPTYFILE_HASH) {
+                pivotStr = "";
+            } else {
+                pivotStr = repository.getPayload(mdiff.entries[i].hashBase.first);
+            }
+            aStr = repository.getPayload(mdiff.entries[i].hashA.first);
+            bStr = repository.getPayload(mdiff.entries[i].hashB.first);
+
+            blob_init(&pivot, pivotStr.data(), pivotStr.size());
+            blob_init(&a, aStr.data(), aStr.size());
+            blob_init(&b, bStr.data(), bStr.size());
+            blob_zero(&out);
+            status = blob_merge(&pivot, &a, &b, &out);
+            if (status == 0) {
+                printf("U       %s (MERGED)\n", e.filepath.c_str());
+                blob_write_to_file(&out, path.c_str());
+            } else {
+                printf("X       %s (CONFLICT)\n", e.filepath.c_str());
+                // XXX: Callout to vimdiff with temporary files
+            }
+        } else if (mdiff.entries[i].type == TreeDiffEntry::FileDirConflict) {
+            NOT_IMPLEMENTED(false);
 	} else {
 	    printf("Unsupported TreeDiffEntry type %c\n", mdiff.entries[i].type);
 	    NOT_IMPLEMENTED(false);
