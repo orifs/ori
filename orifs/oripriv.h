@@ -151,7 +151,7 @@ private:
     void getDiffHelper(const std::string &path,
                        std::map<std::string, OriFileState::StateType> *diff);
 public:
-    std::string commit();
+    std::string commit(const std::string &msg, bool temporary = false);
     std::map<std::string, OriFileState::StateType> getDiff();
     // Debugging
     void fsck(bool fromCmd = false);

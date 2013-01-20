@@ -140,12 +140,13 @@ OriCommand::cmd_commit(int argc, const char *argv[])
 
     FUSE_LOG("Command: commit");
 
-    string msg = priv->commit();
+    string msg = priv->commit("FUSE commit from user");
 
     printf("%s\n", msg.c_str());
 
 #ifdef DEBUG
     sw.stop();
+    FUSE_LOG("commit result: %s", msg.c_str());
     FUSE_LOG("commit elapsed %ldms", sw.getElapsedTime());
 #endif /* DEBUG */
 

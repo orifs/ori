@@ -579,12 +579,18 @@ OriPriv::commitTreeHelper(const string &path)
 
     // Load repo directory
     try {
+        /*
+         * XXX: This is unclean but lookup returns an empty hash or
+         * throws a runtime_error depending on a few corner cases when the 
+         * directory does not exist.
+         */
         ObjectHash treeHash = repo->lookup(headCommit,
                                            path == "" ? "/" : path);
-        if (treeHash.isEmpty())
-            return hash;
-
-        oldTree = repo->getTree(treeHash);
+        if (!treeHash.isEmpty()) {
+            oldTree = repo->getTree(treeHash);
+        } else {
+            dirty = true;
+        }
     } catch (runtime_error &e) {
         // Directory does not exist
         dirty = true;
@@ -626,6 +632,15 @@ OriPriv::commitTreeHelper(const string &path)
             e.attrs.setAs<size_t>(ATTR_FILESIZE, info->statInfo.st_size);
             e.attrs.setAs<time_t>(ATTR_MTIME, info->statInfo.st_mtime);
             e.attrs.setAs<time_t>(ATTR_CTIME, info->statInfo.st_ctime);
+
+            if (info->isDir()) {
+                e.type = TreeEntry::Tree;
+            } else {
+                if (e.largeHash.isEmpty())
+                    e.type = TreeEntry::Blob;
+                else
+                    e.type = TreeEntry::LargeBlob;
+            }
 
             ASSERT(e.hasBasicAttrs());
 
@@ -676,7 +691,7 @@ OriPriv::commitTreeHelper(const string &path)
 }
 
 std::string
-OriPriv::commit()
+OriPriv::commit(const string &msg, bool temporary)
 {
     Commit c;
     ObjectHash root = commitTreeHelper("");
@@ -685,7 +700,7 @@ OriPriv::commit()
     if (root.isEmpty() || root == headCommit.getTree())
         return "No changes.";
 
-    c.setMessage("FUSE commit");
+    c.setMessage(msg);
     commitHash = repo->commitFromTree(root, c);
 
     head = repo->getHead();

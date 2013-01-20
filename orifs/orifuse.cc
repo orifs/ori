@@ -93,6 +93,7 @@ static void
 ori_destroy(void *userdata)
 {
     OriPriv *priv = GetOriPriv();
+    priv->commit("FUSE commit on unmount");
     delete priv;
 
     FUSE_LOG("File system unmounted");
