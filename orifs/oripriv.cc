@@ -79,6 +79,16 @@ OriPriv::reset()
         throw PosixException(errno);
 }
 
+void
+OriPriv::setInstaClone(const string &origin, Repo *remoteRepo)
+{
+    ASSERT(remoteRepo != NULL);
+
+    repo->addPeer("origin", origin);
+    repo->setInstaClone("origin", true);
+    repo->setRemote(remoteRepo);
+}
+
 pair<string, int>
 OriPriv::getTemp()
 {

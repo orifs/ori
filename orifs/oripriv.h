@@ -120,6 +120,7 @@ public:
     ~OriPriv();
     // Repository Operations
     void reset();
+    void setInstaClone(const std::string &origin, Repo *remoteRepo);
     std::pair<std::string, int> getTemp();
     // Current Change Operations
     uint64_t generateFH();

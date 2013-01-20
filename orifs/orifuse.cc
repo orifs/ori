@@ -37,6 +37,7 @@
 #include <ori/rwlock.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
+#include <ori/remoterepo.h>
 
 #include <string>
 #include <map>
@@ -58,6 +59,7 @@ using namespace std;
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
 mount_ori_config config;
+RemoteRepo remoteRepo;
 
 // Mount/Unmount
 
@@ -73,9 +75,14 @@ ori_init(struct fuse_conn_info *conn)
         throw e;
     }
 
-    // Verify conifguration
+    if (config.clone_path != NULL) {
+        string originPath = config.clone_path;
 
-    // Open repositories
+        if (!Util_IsPathRemote(originPath))
+            originPath = Util_RealPath(originPath);
+
+        priv->setInstaClone(config.clone_path, remoteRepo.get());
+    }
 
     FUSE_LOG("Ori Filesystem starting ...");
 
@@ -1018,21 +1025,39 @@ main(int argc, char *argv[])
         config.repo_path = realpath(config.repo_path, NULL);
 
     FUSE_LOG("Ori FUSE Driver");
-    FUSE_LOG("Opening repo at %s\n", config.repo_path);
 
+    if (config.clone_path != NULL) {
+        FUSE_LOG("InstaCloning from %s", config.clone_path);
+        printf("InstaCloning from %s\n", config.clone_path);
+    }
+    FUSE_LOG("Opening repo at %s", config.repo_path);
     printf("Opening repo at %s\n", config.repo_path);
 
     if (!Util_FileExists(config.repo_path)) {
         int status = mkdir(config.repo_path, 0755);
         if (status < 0) {
-            printf("Repository does not exist and failed to create directory.");
+            printf("Repository does not exist and failed to create directory.\n");
             return 1;
         }
+
         FUSE_LOG("Creating new repository %s", config.repo_path);
         if (LocalRepo_Init(config.repo_path) != 0) {
-            printf("Repository does not exist and failed to create one.");
+            printf("Repository does not exist and failed to create one.\n");
             return 1;
         }
+
+        if (config.clone_path != NULL) {
+            if (!remoteRepo.connect(config.clone_path)) {
+                printf("Failed to connect to remote repository: %s\n",
+                       config.clone_path);
+                return 1;
+            }
+
+            FUSE_LOG("InstaClone: Enabled!");
+        }
+    } else if (config.clone_path != NULL) {
+        printf("Cannot InstaClone into an existing repository.\n");
+        return 1;
     }
 
     return fuse_main(args.argc, args.argv, &ori_oper, NULL);
