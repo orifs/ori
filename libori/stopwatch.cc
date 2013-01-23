@@ -21,7 +21,8 @@
 
 #include <stdint.h>
 
-#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__NetBSD__)
 #include <sys/types.h>
 #include <sys/time.h>
 //#elif defined(__WINDOWS__)

@@ -24,7 +24,8 @@
 
 #include <stdint.h>
 
-#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__NetBSD__)
 #include <pthread.h>
 //#elif defined(__WINDOWS__)
 //#include <windows.h>
@@ -75,7 +76,8 @@ private:
     void _checkLockOrdering();
     void _updateLocked();
 
-#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__NetBSD__)
     pthread_rwlock_t lockHandle;
 //#elif defined(__WINDOWS__)
 //    CRITICAL_SECTION lockHandle;

@@ -125,8 +125,14 @@ if sys.platform != "win32":
 if sys.platform != "win32":
     env.ParseConfig('pkg-config --libs --cflags libevent')
 
+# FreeBSD requires libexecinfo
+# Linux and darwin have the header
+# NetBSD and Windows do not
 if sys.platform == "freebsd9" or sys.platform == "freebsd8":
     env.Append(LIBS = ['execinfo'])
+    env.Append(CPPFLAGS = "-DHAVE_EXECINFO")
+elif sys.platform == "linux2" or sys.platform == "darwin":
+    env.Append(CPPFLAGS = "-DHAVE_EXECINFO")
 
 if sys.platform == "darwin":
     # OpenSSL needs to be overridden on OS X

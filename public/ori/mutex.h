@@ -22,7 +22,8 @@
 #ifndef __MUTEX_H__
 #define __MUTEX_H__
 
-#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__NetBSD__)
 #include <pthread.h>
 //#elif defined(__WINDOWS__)
 //#include <windows.h>
@@ -40,7 +41,8 @@ public:
     bool tryLock();
     // bool Locked();
 private:
-#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__NetBSD__)
     pthread_mutex_t lockHandle;
 //#elif defined(__WINDOWS__)
 //    CRITICAL_SECTION lockHandle;

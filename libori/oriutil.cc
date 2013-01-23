@@ -32,7 +32,9 @@
 #include <errno.h>
 #include <pwd.h>
 
+#ifdef HAVE_EXECINFO
 #include <execinfo.h>
+#endif /* HAVE_EXECINFO */
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -597,12 +599,16 @@ Util_PrintBacktrace()
     const size_t MAX_FRAMES = 128;
     void *array[MAX_FRAMES];
 
+#ifdef HAVE_EXECINFO
     int num = backtrace(array, MAX_FRAMES);
     char **names = backtrace_symbols(array, num);
     for (int i = 0; i < num; i++) {
         fprintf(stderr, "%s\n", names[i]);
     }
     free(names);
+#else
+    fprintf(stderr, "backtrace not support not included in this build\n");
+#endif /* HAVE_EXECINFO */
 }
 
 void Util_LogBacktrace()
@@ -610,12 +616,16 @@ void Util_LogBacktrace()
     const size_t MAX_FRAMES = 128;
     void *array[MAX_FRAMES];
 
+#ifdef HAVE_EXECINFO
     int num = backtrace(array, MAX_FRAMES);
     char **names = backtrace_symbols(array, num);
     for (int i = 0; i < num; i++) {
         LOG("%s", names[i]);
     }
     free(names);
+#else
+    fprintf(stderr, "backtrace not support not included in this build\n");
+#endif /* HAVE_EXECINFO */
 }
 
 /*
