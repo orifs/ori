@@ -1,6 +1,6 @@
 .TH ORIFS "1" "January 2013" "Ori Project" "Ori Distributed File System"
 .SH NAME
-orifs \- manual page for orifs
+orifs \- Ori File System FUSE Driver
 .SH SYNOPSIS
 .B orifs
 [\fIOPTIONS\fR...] \fIMOUNTPOINT\fR
@@ -22,6 +22,14 @@ Create a new InstaCloned repository from the specified repository.
 \fB\-d\fR
 Enable debugging mode with verbose output.  The file system will run much 
 slower, but is useful for reporting crashes.
+.SH SUPPORTED COMMANDS
+The file system can be controlled by the command line interface. Running 
+commands from anywhere inside the mounted file system should allow the command 
+line to detect and communicate with the file system.  Currently only commit, 
+fsck, log, show, status, and tip are supported.  Additional commands will be 
+added in future releases.  For now users will have to operate on the backing 
+repository with the command line for operations including pulling updates and 
+merging.
 .SH "SEE ALSO"
 .BR ori (1),
 .BR ori_httpd (1)

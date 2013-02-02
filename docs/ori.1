@@ -1,15 +1,19 @@
 .TH ORI "1" "January 2013" "Ori Project" "Ori Distributed File System"
 .SH NAME
-ori \- manual page for ori
+ori \- Ori File System command line interface
 .SH SYNOPSIS
 .B ori
 \fICOMMAND\fR [\fIARGUMENTS\fR...]
 .SH DESCRIPTION
-ori is the command line interface to Ori distributed file system.  Provides 
-useful tools for accessing, manipulating, and repairing ori repositories 
-without the use of FUSE.  It can be used alone without FUSE to checkout a 
-snapshot of a tree and commit changes to one.  This tool is also the main 
-daemon used by the SSH push/pull interface.
+This tool provides the command line interface to the Ori distributed file 
+system.  Provides useful tools for accessing, manipulating, and repairing Ori 
+repositories without the use of FUSE.  It can be used alone without FUSE to 
+checkout a snapshot of a tree and commit changes to one.  This tool is also the 
+main daemon used by the SSH push/pull interface.
+
+This command line tool also controls the Ori FUSE driver if run inside a 
+mounted file system rather than a repository.  Only certain commands are 
+supported at the moment and the list is documented in the orifs man page.
 .SH COMMANDS
 .TP
 \fBaddkey\fR \fIKEYFILE\fR
