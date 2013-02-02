@@ -470,6 +470,7 @@ loadDir:
             OriFileInfo *info = new OriFileInfo();
             AttrMap *attrs = &it->second.attrs;
             struct passwd *pw = getpwnam(attrs->getAsStr(ATTR_USERNAME).c_str());
+            bool isSymlink = attrs->getAs<bool>(ATTR_SYMLINK);
 
             if (it->second.type == TreeEntry::Tree) {
                 info->statInfo.st_mode = S_IFDIR;
@@ -477,6 +478,9 @@ loadDir:
                 // XXX: This is hacky but a directory gets the correct nlink 
                 // value once it is opened for the first time.
                 dirInfo->statInfo.st_nlink++;
+            } else if (isSymlink) {
+                info->statInfo.st_mode = S_IFLNK;
+                info->statInfo.st_nlink = 1;
             } else {
                 info->statInfo.st_mode = S_IFREG;
                 info->statInfo.st_nlink = 1;
@@ -492,6 +496,10 @@ loadDir:
             info->id = generateId();
             info->hash = it->second.hash;
             info->largeHash = it->second.largeHash;
+            if (isSymlink) {
+                ASSERT(info->largeHash.isEmpty());
+                info->path = repo->getPayload(info->hash);
+            }
 
             dir->add(it->first, info->id);
             if (path == "/")
@@ -605,14 +613,20 @@ OriPriv::commitTreeHelper(const string &path)
             dirty = true;
         
             // Created or modified
-            pair<ObjectHash, ObjectHash> hashes;
             TreeEntry e;
-            
-            if (info->path != "") {
-                hashes = repo->addFile(info->path);
-                e = TreeEntry(hashes.first, hashes.second);
+
+            if (info->isSymlink()) {
+                ObjectHash hash;
+                hash = repo->addBlob(ObjectInfo::Blob, info->path);
+                e = TreeEntry(hash, ObjectHash());
             } else {
-                e = TreeEntry(info->hash, info->largeHash);
+                if (info->path != "") {
+                    pair<ObjectHash, ObjectHash> hashes;
+                    hashes = repo->addFile(info->path);
+                    e = TreeEntry(hashes.first, hashes.second);
+                } else {
+                    e = TreeEntry(info->hash, info->largeHash);
+                }
             }
 
             struct passwd *pw = getpwuid(info->statInfo.st_uid);
