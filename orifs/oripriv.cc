@@ -59,6 +59,32 @@ OriPriv::OriPriv(const std::string &repoPath)
     RWLock::setLockOrder(order);
 
     reset();
+
+    // Create root directory info
+    OriFileInfo *dirInfo = new OriFileInfo();
+    dirInfo->statInfo.st_uid = geteuid();
+    dirInfo->statInfo.st_gid = getegid();
+    dirInfo->statInfo.st_mode = 0600 | S_IFDIR;
+    dirInfo->statInfo.st_nlink = 2;
+    dirInfo->statInfo.st_blksize = 4096;
+    dirInfo->statInfo.st_blocks = 1;
+    dirInfo->statInfo.st_size = 512;
+    dirInfo->id = generateId();
+    if (head.isEmpty()) {
+        time_t now = time(NULL);
+        dirInfo->statInfo.st_mtime = now;
+        dirInfo->statInfo.st_ctime = now;
+        dirInfo->type = FILETYPE_TEMPORARY;
+        dirInfo->dirLoaded = true;
+        dirs[dirInfo->id] = new OriDir();
+    } else {
+        dirInfo->statInfo.st_mtime = headCommit.getTime();
+        dirInfo->statInfo.st_ctime = headCommit.getTime();
+        dirInfo->dirLoaded = false;
+        dirInfo->type = FILETYPE_COMMITTED;
+    }
+
+    paths["/"] = dirInfo;
 }
 
 OriPriv::~OriPriv()
@@ -174,11 +200,12 @@ OriPriv::closeFH(uint64_t fh)
     int status;
 
     ASSERT(handles.find(fh) != handles.end());
-    ASSERT(handles[fh]->fd != -1);
 
-    // Close file
-    status = close(handles[fh]->fd);
-    handles[fh]->fd = -1;
+    if (handles[fh]->fd != -1) {
+        // Close file
+        status = close(handles[fh]->fd);
+        handles[fh]->fd = -1;
+    }
 
     // Manage reference count
     handles[fh]->release();
@@ -447,30 +474,13 @@ loadDir:
         OriFileInfo *dirInfo;
         OriDir *dir = new OriDir();
 
-        if (path == "/") {
-            dirInfo = new OriFileInfo();
-            dirInfo->statInfo.st_uid = geteuid();
-            dirInfo->statInfo.st_gid = getegid();
-            dirInfo->statInfo.st_mode = 0600 | S_IFDIR;
-            dirInfo->statInfo.st_nlink = 2;
-            dirInfo->statInfo.st_blksize = 4096;
-            dirInfo->statInfo.st_blocks = 1;
-            dirInfo->statInfo.st_size = 512;
-            dirInfo->statInfo.st_mtime = headCommit.getTime();
-            dirInfo->statInfo.st_ctime = headCommit.getTime();
-            dirInfo->type = FILETYPE_COMMITTED;
-            dirInfo->id = generateId();
-
-            paths["/"] = dirInfo;
-        } else {
-            dirInfo = getFileInfo(path);
-        }
+        dirInfo = getFileInfo(path);
 
         for (it = t.begin(); it != t.end(); it++) {
             OriFileInfo *info = new OriFileInfo();
             AttrMap *attrs = &it->second.attrs;
             struct passwd *pw = getpwnam(attrs->getAsStr(ATTR_USERNAME).c_str());
-            bool isSymlink = attrs->getAs<bool>(ATTR_SYMLINK);
+            bool isSymlink = false;
 
             if (it->second.type == TreeEntry::Tree) {
                 info->statInfo.st_mode = S_IFDIR;
@@ -478,12 +488,15 @@ loadDir:
                 // XXX: This is hacky but a directory gets the correct nlink 
                 // value once it is opened for the first time.
                 dirInfo->statInfo.st_nlink++;
-            } else if (isSymlink) {
-                info->statInfo.st_mode = S_IFLNK;
-                info->statInfo.st_nlink = 1;
             } else {
-                info->statInfo.st_mode = S_IFREG;
-                info->statInfo.st_nlink = 1;
+                isSymlink = attrs->getAs<bool>(ATTR_SYMLINK);
+                if (isSymlink) {
+                    info->statInfo.st_mode = S_IFLNK;
+                    info->statInfo.st_nlink = 1;
+                } else {
+                    info->statInfo.st_mode = S_IFREG;
+                    info->statInfo.st_nlink = 1;
+                }
             }
             info->statInfo.st_mode |= attrs->getAs<mode_t>(ATTR_PERMS);
             info->statInfo.st_uid = pw->pw_uid;
@@ -511,30 +524,6 @@ loadDir:
         dirInfo->dirLoaded = true;
         dirs[dirInfo->id] = dir;
         return dir;
-    }
-
-    // Check root
-    if (path == "/" && head.isEmpty()) {
-        time_t now = time(NULL);
-        OriFileInfo *info = new OriFileInfo();
-
-        info->statInfo.st_uid = geteuid();
-        info->statInfo.st_gid = getegid();
-        info->statInfo.st_mode = 0600 | S_IFDIR;
-        info->statInfo.st_nlink = 2;
-        info->statInfo.st_blksize = 4096;
-        info->statInfo.st_blocks = 1;
-        info->statInfo.st_size = 512;
-        info->statInfo.st_mtime = now;
-        info->statInfo.st_ctime = now;
-        info->type = FILETYPE_TEMPORARY;
-        info->id = generateId();
-        info->dirLoaded = true;
-
-        dirs[info->id] = new OriDir();
-        paths["/"] = info;
-
-        return dirs[info->id];
     }
 
     throw PosixException(ENOENT);
@@ -636,12 +625,17 @@ OriPriv::commitTreeHelper(const string &path)
                 e.attrs.setAsStr(ATTR_USERNAME, pw->pw_name);
             else
                 e.attrs.setAsStr(ATTR_USERNAME, "nobody");
+
             if (grp != NULL)
                 e.attrs.setAsStr(ATTR_GROUPNAME, grp->gr_name);
             else
                 e.attrs.setAsStr(ATTR_GROUPNAME, "nogroup");
+
             if (info->isSymlink())
                 e.attrs.setAs<bool>(ATTR_SYMLINK, true);
+            else
+                e.attrs.setAs<bool>(ATTR_SYMLINK, false);
+
             e.attrs.setAs<mode_t>(ATTR_PERMS, info->statInfo.st_mode & 0777);
             e.attrs.setAs<size_t>(ATTR_FILESIZE, info->statInfo.st_size);
             e.attrs.setAs<time_t>(ATTR_MTIME, info->statInfo.st_mtime);
