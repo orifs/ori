@@ -15,8 +15,9 @@
  */
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -27,15 +28,16 @@
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 
+#include <string>
+#include <map>
+#include <algorithm>
+
+#include <ori/scan.h>
 #include <ori/posixexception.h>
 #include <ori/rwlock.h>
 #include <ori/objecthash.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
-
-#include <string>
-#include <map>
-#include <algorithm>
 
 #include "logging.h"
 #include "oricmd.h"
@@ -120,6 +122,25 @@ OriPriv::reset()
 
     if (::mkdir(tmpDir.c_str(), 0700) < 0)
         throw PosixException(errno);
+}
+
+int
+cleanupHelper(OriPriv *priv, const string &path)
+{
+    Util_DeleteFile(path);
+
+    return 0;
+}
+
+void
+OriPriv::cleanup()
+{
+    tmpDir = repo->getRootPath() + ORI_PATH_TMP + "fuse";
+
+    // XXX: Delete all files on exit, but need support to delete only closed 
+    // and committed files.  This would allow us to reclaim temporary space 
+    // after a commit.
+    DirIterate(tmpDir, this, cleanupHelper);
 }
 
 void

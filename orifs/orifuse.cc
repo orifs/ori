@@ -87,6 +87,7 @@ ori_destroy(void *userdata)
 {
     OriPriv *priv = GetOriPriv();
     priv->commit("FUSE commit on unmount");
+    priv->cleanup();
     delete priv;
 
     FUSE_LOG("File system unmounted");
