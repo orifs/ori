@@ -4,3 +4,6 @@ Local.sc
 .*.swp
 .sconf_temp
 config.log
+runtests_config.sh
+ori_test_results.txt
+tempdir
