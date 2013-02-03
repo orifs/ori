@@ -50,7 +50,10 @@ OriPriv::OriPriv(const std::string &repoPath)
     nextId = ORIPRIVID_INVALID + 1;
     nextFH = 1;
 
-    repo->open();
+    if (!repo->open()) {
+        printf("Failed to open ori repository please check the path!\n");
+        exit(1);
+    }
 
     RWLock::LockOrderVector order;
     order.push_back(ioLock.lockNum);
