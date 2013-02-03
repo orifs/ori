@@ -197,11 +197,13 @@ OriPriv::getFileInfo(uint64_t fh)
 int
 OriPriv::closeFH(uint64_t fh)
 {
-    int status;
+    int status = 0;
 
     ASSERT(handles.find(fh) != handles.end());
 
-    if (handles[fh]->fd != -1) {
+    // Manage open count
+    handles[fh]->releaseFd();
+    if (handles[fh]->openCount == 0 && handles[fh]->fd != -1) {
         // Close file
         status = close(handles[fh]->fd);
         handles[fh]->fd = -1;
@@ -274,6 +276,7 @@ OriPriv::addFile(const string &path)
     handles[handle] = info;
 
     info->retain();
+    info->retainFd();
 
     return make_pair(info, handle);
 }
@@ -287,16 +290,20 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
     // XXX: Need to release and remove the hanlde during a failure!
 
     info->retain();
+    info->retainFd();
     handles[handle] = info;
 
     // Open temporary file if necessary
     if (info->type == FILETYPE_TEMPORARY) {
+        if (info->fd != -1) {
+            // File is already open just return a new handle
+            return make_pair(info, handle);
+        }
         int status = open(info->path.c_str(), O_RDWR);
         if (status < 0) {
             ASSERT(false); // XXX: Need to release the handle
             throw PosixException(errno);
         }
-        assert(info->fd == -1);
         info->fd = status;
     } else if (info->type == FILETYPE_COMMITTED) {
         ASSERT(!info->hash.isEmpty());

@@ -43,21 +43,39 @@ public:
         id = 0;
         path = "";
         fd = -1;
-        refcount = 1;
+        refCount = 1;
+        openCount = 0;
         dirLoaded = false;
     }
     ~OriFileInfo() {
-        ASSERT(refcount == 0);
+        ASSERT(refCount == 0);
+        ASSERT(openCount == 0);
     }
+    /*
+     * Tracks the number of handles to a file if this drops to zero the file 
+     * should be deleted along with this object.  This helps to handle the case
+     * that unlink is called while a file is still open.
+     */
     void retain() {
-        ASSERT(refcount != 0);
-        refcount++;
+        ASSERT(refCount != 0);
+        refCount++;
     }
     void release() {
-        refcount--;
-        if (refcount == 0) {
+        refCount--;
+        if (refCount == 0) {
             delete this;
         }
+    }
+    /*
+     * Tracks the number of open handles to a file so that we can close the 
+     * temporary file when there are no file descriptors left.
+     */
+    void retainFd() {
+        openCount++;
+    }
+    void releaseFd() {
+        openCount--;
+        ASSERT(openCount >= 0);
     }
     bool isDir() { return (statInfo.st_mode & S_IFDIR) == S_IFDIR; }
     bool isSymlink() { return (statInfo.st_mode & S_IFLNK) == S_IFLNK; }
@@ -69,7 +87,8 @@ public:
     OriPrivId id;
     std::string path; // link target or temporary file
     int fd;
-    int refcount;
+    int refCount;
+    int openCount;
     bool dirLoaded;
 };
 
