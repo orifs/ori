@@ -64,7 +64,7 @@ OriPriv::OriPriv(const std::string &repoPath)
     OriFileInfo *dirInfo = new OriFileInfo();
     dirInfo->statInfo.st_uid = geteuid();
     dirInfo->statInfo.st_gid = getegid();
-    dirInfo->statInfo.st_mode = 0600 | S_IFDIR;
+    dirInfo->statInfo.st_mode = 0755 | S_IFDIR;
     dirInfo->statInfo.st_nlink = 2;
     dirInfo->statInfo.st_blksize = 4096;
     dirInfo->statInfo.st_blocks = 1;
