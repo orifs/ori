@@ -31,6 +31,7 @@
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 
+#include <ori/version.h>
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/posixexception.h>
@@ -1006,9 +1007,14 @@ ori_setup_ori_oper()
 void
 usage()
 {
+    printf("Ori Distributed Personal File System (%s) - FUSE Driver\n",
+            ORI_VERSION_STR);
     printf("Usage:\n");
     printf("orifs -o repo=[REPOSITORY PATH] [MOUNT POINT]\n");
     printf("orifs -o clone=[REMOTE PATH],repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+
+    printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
+    printf("Website: http://ori.scs.stanford.edu/\n");
 }
 
 int

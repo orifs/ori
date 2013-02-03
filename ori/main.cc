@@ -30,6 +30,7 @@
 
 using namespace std;
 
+#include <ori/version.h>
 #include <ori/debug.h>
 #include <ori/repo.h>
 #include <ori/localrepo.h>
@@ -134,24 +135,24 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
-	"checkout",
-	"Checkout a revision of the repository",
-	cmd_checkout,
-	NULL,
+        "checkout",
+        "Checkout a revision of the repository",
+        cmd_checkout,
+        NULL,
         CMD_NEED_REPO,
     },
     {
-	"clone",
-	"Clone a repository into the local directory",
-	cmd_clone,
-	NULL,
+        "clone",
+        "Clone a repository into the local directory",
+        cmd_clone,
+        NULL,
         0,
     },
     {
-	"commit",
-	"Commit changes into the repository",
-	cmd_commit,
-	usage_commit,
+        "commit",
+        "Commit changes into the repository",
+        cmd_commit,
+        usage_commit,
         CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
@@ -162,10 +163,10 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
-	"filelog",
-	"Display a log of commits to the repository for the specified file",
-	cmd_filelog,
-	NULL,
+        "filelog",
+        "Display a log of change to the specified file",
+        cmd_filelog,
+        NULL,
         CMD_NEED_REPO,
     },
     {
@@ -176,17 +177,17 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
-	"gc",
-	"Reclaim unused space",
-	cmd_gc,
-	NULL,
+        "gc",
+        "Reclaim unused space",
+        cmd_gc,
+        NULL,
         CMD_NEED_REPO,
     },
     {
-	"graft",
-	"Graft a subtree from a repository into the local repository",
-	cmd_graft,
-	usage_graft,
+        "graft",
+        "Graft a subtree from a repository into the local repository",
+        cmd_graft,
+        usage_graft,
         CMD_NEED_REPO,
     },
     {
@@ -204,38 +205,38 @@ static Cmd commands[] = {
         0,
     },
     {
-	"listkeys",
-	"Display a list of trusted public keys",
-	cmd_listkeys,
-	NULL,
+        "listkeys",
+        "Display a list of trusted public keys",
+        cmd_listkeys,
+        NULL,
         CMD_NEED_REPO,
     },
     {
-	"log",
-	"Display a log of commits to the repository",
-	cmd_log,
-	NULL,
+        "log",
+        "Display a log of commits to the repository",
+        cmd_log,
+        NULL,
         CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
-	"merge",
-	"Merge two heads",
-	cmd_merge,
-	NULL,
+        "merge",
+        "Merge two heads",
+        cmd_merge,
+        NULL,
         CMD_NEED_REPO,
     },
     {
-	"pull",
-	"Pull changes from a repository",
-	cmd_pull,
-	NULL,
+        "pull",
+        "Pull changes from a repository",
+        cmd_pull,
+        NULL,
         CMD_NEED_REPO,
     },
     {
-	"purgecommit",
-	"Purge commit",
-	cmd_purgecommit,
-	NULL,
+        "purgecommit",
+        "Purge commit",
+        cmd_purgecommit,
+        NULL,
         CMD_NEED_REPO,
     },
     {
@@ -253,17 +254,17 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
-	"remote",
-	"Remote connection management",
-	cmd_remote,
-	NULL,
+        "remote",
+        "Remote connection management",
+        cmd_remote,
+        NULL,
         CMD_NEED_REPO,
     },
     {
-	"removekey",
-	"Remove a public key from the repository",
-	cmd_removekey,
-	NULL,
+        "removekey",
+        "Remove a public key from the repository",
+        cmd_removekey,
+        NULL,
         CMD_NEED_REPO,
     },
     {
@@ -281,17 +282,17 @@ static Cmd commands[] = {
         CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
-	"snapshot",
-	"Create a repository snapshot",
-	cmd_snapshot,
-	NULL,
+        "snapshot",
+        "Create a repository snapshot",
+        cmd_snapshot,
+        NULL,
         CMD_NEED_REPO,
     },
     {
-	"snapshots",
-	"List all snapshots available in the repository",
-	cmd_snapshots,
-	NULL,
+        "snapshots",
+        "List all snapshots available in the repository",
+        cmd_snapshots,
+        NULL,
         CMD_NEED_REPO,
     },
     {
@@ -316,33 +317,33 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
-	"verify",
-	"Verify the repository",
-	cmd_verify,
-	NULL,
+        "verify",
+        "Verify the repository",
+        cmd_verify,
+        NULL,
         CMD_NEED_REPO,
     },
     /* Internal (always hidden) */
     {
         "sshserver",
-	NULL, // "Run a simple stdin/out server, intended for SSH access",
+        NULL, // "Run a simple stdin/out server, intended for SSH access",
         cmd_sshserver,
         NULL,
         0,
     },
     /* Debugging */
     {
-	"catobj",
-	"Print an object from the repository (DEBUG)",
-	cmd_catobj,
-	NULL,
+        "catobj",
+        "Print an object from the repository (DEBUG)",
+        cmd_catobj,
+        NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
     {
-	"dumpobj",
-	"Print the structured representation of a repository object (DEBUG)",
-	cmd_dumpobj,
-	NULL,
+        "dumpobj",
+        "Print the structured representation of an object (DEBUG)",
+        cmd_dumpobj,
+        NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
     {
@@ -353,31 +354,31 @@ static Cmd commands[] = {
         CMD_FUSE_ONLY | CMD_DEBUG,
     },
     {
-	"listobj",
-	"List objects (DEBUG)",
-	cmd_listobj,
-	NULL,
+        "listobj",
+        "List objects (DEBUG)",
+        cmd_listobj,
+        NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
     {
-	"refcount",
-	"Print the reference count for all objects (DEBUG)",
-	cmd_refcount,
-	NULL,
+        "refcount",
+        "Print the reference count for all objects (DEBUG)",
+        cmd_refcount,
+        NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
     {
-	"stats",
-	"Print repository statistics (DEBUG)",
-	cmd_stats,
-	NULL,
+        "stats",
+        "Print repository statistics (DEBUG)",
+        cmd_stats,
+        NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
     {
-	"purgeobj",
-	"Purge object (DEBUG)",
-	cmd_purgeobj,
-	NULL,
+        "purgeobj",
+        "Purge object (DEBUG)",
+        cmd_purgeobj,
+        NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
     {
@@ -468,11 +469,13 @@ cmd_help(int argc, const char *argv[])
             printf("Unknown command '%s'\n", argv[1]);
         } else {
             printf("No help for command '%s'\n", argv[1]);
-            return 0;
         }
+        return 0;
     }
 
-
+    printf("Ori Distributed Personal File System (%s) - Command Line Interface\n\n",
+            ORI_VERSION_STR);
+    printf("Available commands:\n");
     for (i = 0; commands[i].name != NULL; i++)
     {
 #ifndef DEBUG
@@ -480,8 +483,11 @@ cmd_help(int argc, const char *argv[])
             continue;
 #endif /* DEBUG */
         if (commands[i].desc != NULL)
-            printf("%-20s %s\n", commands[i].name, commands[i].desc);
+            printf("%-15s %s\n", commands[i].name, commands[i].desc);
     }
+
+    printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
+    printf("Website: http://ori.scs.stanford.edu/\n");
 
     return 0;
 }
@@ -529,10 +535,10 @@ main(int argc, char *argv[])
 
     if (commands[idx].flags & CMD_NEED_REPO)
     {
-	if (!has_repo) {
-	    printf("No repository found!\n");
-	    exit(1);
-	}
+        if (!has_repo) {
+            printf("No repository found!\n");
+            exit(1);
+        }
     }
 
 

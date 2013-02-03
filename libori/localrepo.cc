@@ -40,6 +40,7 @@
 
 using namespace std;
 
+#include <ori/version.h>
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/localrepo.h>
@@ -154,7 +155,7 @@ LocalRepo_Init(const std::string &rootPath)
         perror("Could not create version file");
         return 1;
     }
-    write(fd, "ORI1.0", 6);
+    write(fd, ORI_FS_VERSION_STR, strlen(ORI_FS_VERSION_STR));
     close(fd);
 
     return 0;
@@ -226,6 +227,11 @@ LocalRepo::open(const string &root)
 
         // Read Version
         version = Util_ReadFile(rootPath + ORI_PATH_VERSION);
+
+        if (version != ORI_FS_VERSION_STR) {
+            printf("Unsupported file system version\n");
+            return false;
+        }
     }
     catch (std::ios_base::failure &e)
     {

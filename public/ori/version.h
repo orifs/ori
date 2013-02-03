@@ -14,18 +14,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-class Stopwatch
-{
-public:
-    Stopwatch();
-    ~Stopwatch();
-    void start();
-    void stop();
-    void reset();
-    uint64_t getElapsedTime();
-private:
-    uint64_t startTime;
-    uint64_t elapsedTime;
-    bool running;
-};
+#ifndef __ORI_VERSION_H__
+#define __ORI_VERSION_H__
+
+#define STR_HELPER(x)  #x
+#define STR(x) STR_HELPER(x)
+
+#define ORI_MAJOR_VERSION       0
+#define ORI_MINOR_VERSION       7
+#define ORI_VERSION_STR \
+    "Version " STR(ORI_MAJOR_VERSION) "." STR(ORI_MINOR_VERSION)
+
+#define ORI_FS_MAJOR_VERSION    1
+#define ORI_FS_MINOR_VERSION    0
+
+#define ORI_FS_VERSION_STR \
+    "ORI" STR(ORI_FS_MAJOR_VERSION) "." STR(ORI_FS_MINOR_VERSION)
+
+#endif /* __ORI_VERSION_H__ */
 
