@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __ORIUTIL_H__
-#define __ORIUTIL_H__
+#ifndef __ORI_ORIUTIL_H__
+#define __ORI_ORIUTIL_H__
 
 #include <stdint.h>
 
@@ -30,6 +30,7 @@
 bool Util_FileExists(const std::string &path);
 bool Util_IsDirectory(const std::string &path);
 int Util_MkDir(const std::string &path);
+int Util_RmDir(const std::string &path);
 size_t Util_FileSize(const std::string &path);
 std::string Util_RealPath(const std::string &path);
 std::string Util_ReadFile(const std::string &path);
@@ -59,5 +60,5 @@ std::string Util_ResolveHost(const std::string &hostname);
 std::string StrUtil_Basename(const std::string &path);
 std::string StrUtil_Dirname(const std::string &path);
 
-#endif /* __ORIUTIL_H__ */
+#endif /* __ORI_ORIUTIL_H__ */
 

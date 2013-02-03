@@ -84,7 +84,7 @@ Util_FileExists(const string &path)
     struct stat sb;
 
     if (stat(path.c_str(), &sb) == 0)
-	return true;
+        return true;
 
     return false;
 }
@@ -93,8 +93,18 @@ int
 Util_MkDir(const string &path)
 {
     if (mkdir(path.c_str(), 0755) < 0) {
-	perror("mkdir failed");
-	return -errno;
+        perror("mkdir failed");
+        return -errno;
+    }
+
+    return 0;
+}
+
+int
+Util_RmDir(const string &path)
+{
+    if (rmdir(path.c_str()) < 0) {
+        return -errno;
     }
 
     return 0;
@@ -109,14 +119,14 @@ Util_IsDirectory(const string &path)
     struct stat sb;
 
     if (stat(path.c_str(), &sb) < 0) {
-	perror("stat file does not exist");
-	return false;
+        perror("stat file does not exist");
+        return false;
     }
 
     if (sb.st_mode & S_IFDIR)
-	return true;
+        return true;
     else
-	return false;
+        return false;
 }
 
 /*
@@ -127,8 +137,8 @@ size_t Util_FileSize(const std::string &path)
     struct stat sb;
 
     if (stat(path.c_str(), &sb) < 0) {
-	perror("stat file does not exist");
-	return -errno;
+        perror("stat file does not exist");
+        return -errno;
     }
 
     return sb.st_size;
@@ -169,7 +179,7 @@ Util_ReadFile(const string &path)
 
     f = fopen(path.c_str(), "rb");
     if (f == NULL) {
-	return NULL;
+        return NULL;
     }
 
     fseek(f, 0, SEEK_END);
@@ -185,7 +195,7 @@ Util_ReadFile(const string &path)
     buf[len] = '\0';
 
     if (flen != NULL)
-	*flen = len;
+        *flen = len;
 
     return buf;*/
 }
@@ -210,7 +220,7 @@ Util_WriteFile(const char *blob, size_t len, const string &path)
 
     f = fopen(path.c_str(), "w+");
     if (f == NULL) {
-	return false;
+        return false;
     }
 
     bytesWritten = fwrite(blob, len, 1, f);
@@ -233,43 +243,43 @@ Util_CopyFile(const string &origPath, const string &newPath)
 
     srcFd = open(origPath.c_str(), O_RDONLY);
     if (srcFd < 0)
-	return -errno;
+        return -errno;
 
     dstFd = open(newPath.c_str(), O_WRONLY | O_CREAT,
-	         S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (dstFd < 0) {
-	close(srcFd);
-	return -errno;
+        close(srcFd);
+        return -errno;
     }
 
     if (fstat(srcFd, &sb) < 0) {
-	close(srcFd);
-	unlink(newPath.c_str());
-	close(dstFd);
-	return -errno;
+        close(srcFd);
+        unlink(newPath.c_str());
+        close(dstFd);
+        return -errno;
     }
 
     bytesLeft = sb.st_size;
     while(bytesLeft > 0) {
-	bytesRead = read(srcFd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
-	if (bytesRead < 0) {
-	    if (errno == EINTR)
-		continue;
-	    goto error;
-	}
+        bytesRead = read(srcFd, buf, MIN(bytesLeft, COPYFILE_BUFSZ));
+        if (bytesRead < 0) {
+            if (errno == EINTR)
+                continue;
+            goto error;
+        }
 
 retryWrite:
-	bytesWritten = write(dstFd, buf, bytesRead);
-	if (bytesWritten < 0) {
-	    if (errno == EINTR)
-		goto retryWrite;
-	    goto error;
-	}
+        bytesWritten = write(dstFd, buf, bytesRead);
+        if (bytesWritten < 0) {
+            if (errno == EINTR)
+                goto retryWrite;
+            goto error;
+        }
 
-	// XXX: Need to handle this case!
-	ASSERT(bytesRead == bytesWritten);
+        // XXX: Need to handle this case!
+        ASSERT(bytesRead == bytesWritten);
 
-	bytesLeft -= bytesRead;
+        bytesLeft -= bytesRead;
     }
 
     close(srcFd);
@@ -292,18 +302,18 @@ Util_MoveFile(const string &origPath, const string &newPath)
     int status = 0;
 
     if (rename(origPath.c_str(), newPath.c_str()) < 0)
-	status = -errno;
+        status = -errno;
 
     // If the file is on seperate file systems copy it and delete the original.
     if (errno == EXDEV) {
-	status = Util_CopyFile(origPath, newPath);
-	if (status < 0)
-	    return status;
+        status = Util_CopyFile(origPath, newPath);
+        if (status < 0)
+            return status;
 
-	if (unlink(origPath.c_str()) < 0) {
-	    status = -errno;
-	    ASSERT(false);
-	}
+        if (unlink(origPath.c_str()) < 0) {
+            status = -errno;
+            ASSERT(false);
+        }
     }
 
     return status;
@@ -328,7 +338,7 @@ int
 Util_RenameFile(const std::string &from, const std::string &to)
 {
     if (rename(from.c_str(), to.c_str()) < 0)
-	return -errno;
+        return -errno;
 
     return 0;
 }
@@ -376,26 +386,26 @@ Util_HashFile(const string &path)
 
     fd = open(path.c_str(), O_RDONLY);
     if (fd < 0) {
-	return ObjectHash();
+        return ObjectHash();
     }
 
     if (fstat(fd, &sb) < 0) {
-	close(fd);
-	return ObjectHash();
+        close(fd);
+        return ObjectHash();
     }
 
     bytesLeft = sb.st_size;
     while(bytesLeft > 0) {
-	bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
-	if (bytesRead < 0) {
-	    if (errno == EINTR)
-		continue;
-	    close(fd);
-	    return ObjectHash();
-	}
+        bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
+        if (bytesRead < 0) {
+            if (errno == EINTR)
+                continue;
+            close(fd);
+            return ObjectHash();
+        }
 
-	SHA256_Update(&state, buf, bytesRead);
-	bytesLeft -= bytesRead;
+        SHA256_Update(&state, buf, bytesRead);
+        bytesLeft -= bytesRead;
     }
 
     SHA256_Final(hash.hash, &state);
@@ -443,26 +453,26 @@ Util_HashFile(const string &path)
 
     fd = open(path.c_str(), O_RDONLY);
     if (fd < 0) {
-	return ObjectHash();
+        return ObjectHash();
     }
 
     if (fstat(fd, &sb) < 0) {
-	close(fd);
-	return ObjectHash();
+        close(fd);
+        return ObjectHash();
     }
 
     bytesLeft = sb.st_size;
     while(bytesLeft > 0) {
-	bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
-	if (bytesRead < 0) {
-	    if (errno == EINTR)
-		continue;
-	    close(fd);
-	    return ObjectHash();
-	}
+        bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
+        if (bytesRead < 0) {
+            if (errno == EINTR)
+                continue;
+            close(fd);
+            return ObjectHash();
+        }
 
-	Skein_256_Update(&state, (u08b_t *)buf, bytesRead);
-	bytesLeft -= bytesRead;
+        Skein_256_Update(&state, (u08b_t *)buf, bytesRead);
+        bytesLeft -= bytesRead;
     }
 
     Skein_256_Final(&state, (u08b_t *)hash.hash);
@@ -482,7 +492,7 @@ Util_RawHashToHex(const ObjectHash &hash)
     // Convert into string.
     for (size_t i = 0; i < ObjectHash::SIZE; i++)
     {
-	rval << hex << setw(2) << setfill('0') << (int)hash.hash[i];
+        rval << hex << setw(2) << setfill('0') << (int)hash.hash[i];
     }
 
     return rval.str();
@@ -739,7 +749,7 @@ util_selftest(void)
     ObjectHash newHash;
 
     for (int i = 0; i < TESTFILE_SIZE; i++) {
-	buf[i] = '0' + (i % 10);
+        buf[i] = '0' + (i % 10);
     }
     buf[TESTFILE_SIZE] = '\0';
     origHash = Util_HashString(buf);
@@ -748,18 +758,18 @@ util_selftest(void)
 
     status = Util_CopyFile("test.orig", "test.a");
     if (status < 0) {
-	printf("Util_CopyFile: %s\n", strerror(-status));
-	ASSERT(false);
+        printf("Util_CopyFile: %s\n", strerror(-status));
+        ASSERT(false);
     }
     status = Util_CopyFile("test.orig", "test.b");
     if (status < 0) {
-	printf("Util_CopyFile: %s\n", strerror(-status));
-	ASSERT(false);
+        printf("Util_CopyFile: %s\n", strerror(-status));
+        ASSERT(false);
     }
     status = Util_MoveFile("test.b", "test.c");
     if (status < 0) {
-	printf("Util_CopyFile: %s\n", strerror(-status));
-	ASSERT(false);
+        printf("Util_CopyFile: %s\n", strerror(-status));
+        ASSERT(false);
     }
     std::string fbuf = Util_ReadFile("test.c");
     //ASSERT(fbuf);
@@ -767,15 +777,15 @@ util_selftest(void)
     // XXX: Check that 'test.b' does not exist
 
     if (newHash != origHash) {
-	printf("Hash mismatch!\n");
-	ASSERT(false);
+        printf("Hash mismatch!\n");
+        ASSERT(false);
     }
 
     newHash = Util_HashFile("test.a");
 
     if (newHash != origHash) {
-	printf("Hash mismatch!\n");
-	ASSERT(false);
+        printf("Hash mismatch!\n");
+        ASSERT(false);
     }
 
     vector<string> tv;

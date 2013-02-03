@@ -101,6 +101,20 @@ OriPriv::reset()
 
     // Create temporary directory
     tmpDir = repo->getRootPath() + ORI_PATH_TMP + "fuse";
+
+    // Attempt to delete the temporary directory if it exists
+    if (Util_FileExists(tmpDir) && Util_RmDir(tmpDir) != 0) {
+        printf("\nAn error has occurred!\n");
+        printf("\nProblem: orifs may have previously exited uncleanly\n\n");
+        printf("Solution:\n"
+"Check the .ori/tmp/fuse directory for any files that may not have been\n"
+"saved to the file systems store.  You can copy or move these files to\n"
+"another location. Then delete the .ori/tmp/fuse directory and all\n"
+"remaining files.\n\n");
+        printf("Notes: This is a known bug and will be fixed in the future.\n");
+        exit(1);
+    }
+
     if (::mkdir(tmpDir.c_str(), 0700) < 0)
         throw PosixException(errno);
 }

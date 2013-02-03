@@ -61,21 +61,13 @@ using namespace std;
 
 mount_ori_config config;
 RemoteRepo remoteRepo;
+OriPriv *priv;
 
 // Mount/Unmount
 
 static void *
 ori_init(struct fuse_conn_info *conn)
 {
-    OriPriv *priv;
-    
-    try {
-        priv = new OriPriv(config.repo_path);
-    } catch (PosixException e) {
-        FUSE_LOG("Unexpected %s", e.what());
-        throw e;
-    }
-
     if (config.clone_path != NULL) {
         string originPath = config.clone_path;
 
@@ -1069,6 +1061,13 @@ main(int argc, char *argv[])
     } else if (config.clone_path != NULL) {
         printf("Cannot InstaClone into an existing repository.\n");
         return 1;
+    }
+
+    try {
+        priv = new OriPriv(config.repo_path);
+    } catch (PosixException e) {
+        FUSE_LOG("Unexpected %s", e.what());
+        throw e;
     }
 
     return fuse_main(args.argc, args.argv, &ori_oper, NULL);
