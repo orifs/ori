@@ -30,8 +30,9 @@ static struct fuse_opt mount_ori_opts[] = {
     { NULL, 0, 0 }, // FUSE_OPT_END: Macro incompatible with C++
 };
 
+// XXX: FUSE driver isn't ready for multithreading yet!
 #undef FUSE_SINGLE_THREADED
-#define FUSE_SINGLE_THREADED 0
+#define FUSE_SINGLE_THREADED 1
 
 void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf)
 {
@@ -39,7 +40,7 @@ void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf)
     fuse_opt_parse(args, conf, mount_ori_opts, 0);
 
 #if defined(FUSE_SINGLE_THREADED) && FUSE_SINGLE_THREADED == 1
-    printf("FUSE forcing single threaded\n");
+    // printf("FUSE forcing single threaded\n");
     fuse_opt_add_arg(args, "-s"); // Force single-threaded
 #endif
 }
