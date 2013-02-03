@@ -445,7 +445,7 @@ cmd_selftest(int argc, const char *argv[])
     int result = 0;
     result += util_selftest();
     result += LRUCache_selfTest();
-    result += Key_selfTest();
+    //result += Key_selfTest();
 
     if (result != 0) {
         cout << -result << " errors occurred." << endl;

@@ -1,7 +1,7 @@
 cd $TEMP_DIR
 mkdir -p $MTPOINT
 
-$MOUNT_ORI_EXE -o repo=$SOURCE_REPO $MTPOINT
+$ORIFS_EXE -o repo=$SOURCE_REPO $MTPOINT
 sleep 1.5
 
 echo "hello" > $MTPOINT/hello
