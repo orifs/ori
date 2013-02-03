@@ -396,6 +396,8 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     OriFileInfo *info;
     int status;
 
+    // FUSE_LOG("FUSE ori_read(path=\"%s\", length=%ld)", path, size);
+
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return priv->cmd.read(buf, size, offset);
     } else if (strncmp(path,
@@ -458,6 +460,8 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
     int status;
+
+    // FUSE_LOG("FUSE ori_write(path=\"%s\", length=%ld)", path, size);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return priv->cmd.write(buf, size, offset);
@@ -529,7 +533,7 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         // XXX: Not implemented
-        return -EIO;
+        return 0;
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {

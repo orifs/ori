@@ -79,9 +79,13 @@ OriCommand::read(char *buf, size_t size, size_t offset)
     return size;
 }
 
+/*
+ * Main control entry point that dispatches to the various commands.
+ */
 int
 OriCommand::write(const char *buf, size_t size, size_t offset)
 {
+    int status = -EIO;
     int argc = 0;
     char *argv[10];
     string cmd;
@@ -90,19 +94,23 @@ OriCommand::write(const char *buf, size_t size, size_t offset)
     cmd.assign(buf, size);
 
     if (strncmp(buf, "commit", size) == 0)
-        return cmd_commit(argc, (const char **)argv);
+        status = cmd_commit(argc, (const char **)argv);
     if (strncmp(buf, "fsck", size) == 0)
-        return cmd_fsck(argc, (const char **)argv);
+        status = cmd_fsck(argc, (const char **)argv);
     if (strncmp(buf, "log", size) == 0)
-        return cmd_log(argc, (const char **)argv);
+        status = cmd_log(argc, (const char **)argv);
     if (strncmp(buf, "show", size) == 0)
-        return cmd_show(argc, (const char **)argv);
+        status = cmd_show(argc, (const char **)argv);
     if (strncmp(buf, "status", size) == 0)
-        return cmd_status(argc, (const char **)argv);
+        status = cmd_status(argc, (const char **)argv);
     if (strncmp(buf, "tip", size) == 0)
-        return cmd_tip(argc, (const char **)argv);
+        status = cmd_tip(argc, (const char **)argv);
 
-    return -EIO;
+    // Need to return bytes written on success
+    if (status == 0)
+        status = size;
+
+    return status;
 }
 
 void
