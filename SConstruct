@@ -2,6 +2,22 @@ import sys
 import os
 import multiprocessing
 
+## Helper Functions
+
+def CheckPkgConfig(context):
+    context.Message('Checking for pkg-config... ')
+    ret = context.TryAction('pkg-config --version')[0]
+    context.Result(ret)
+    return ret
+
+def CheckPkg(context, name):
+    context.Message('Checking for %s... ' % name)
+    ret = context.TryAction('pkg-config --exists \'%s\'' % name)[0]
+    context.Result(ret)
+    return ret
+
+## Configuration
+
 opts = Variables('Local.sc')
 
 opts.AddVariables(
@@ -121,10 +137,6 @@ if sys.platform != "win32":
     env.Append(CPPPATH = [ "/usr/local/include" ])
     env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
-# Add pkg-config options (TODO)
-if sys.platform != "win32":
-    env.ParseConfig('pkg-config --libs --cflags libevent')
-
 # FreeBSD requires libexecinfo
 # Linux and darwin have the header
 # NetBSD and Windows do not
@@ -140,7 +152,8 @@ if sys.platform == "darwin":
                CPPPATH=['/usr/local/Cellar/openssl/1.0.1c/include'])
 
 # Configuration
-conf = env.Configure()
+conf = env.Configure(custom_tests = { 'CheckPkgConfig' : CheckPkgConfig,
+                                      'CheckPkg' : CheckPkg })
 
 if not conf.CheckCC():
     print 'Your C compiler and/or environment is incorrectly configured.'
@@ -148,6 +161,10 @@ if not conf.CheckCC():
 
 if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
+    Exit(1)
+
+if not conf.CheckPkgConfig():
+    print 'pkg-config not found!'
     Exit(1)
 
 #
@@ -167,8 +184,6 @@ elif conf.CheckCXXHeader('tr1/unordered_map'):
 else:
     print 'Either C++11, C++0x, or C++ TR1 must be present!'
     Exit(1)
-
-# XXX: Add check FUSE
 
 if not conf.CheckCXXHeader('boost/uuid/uuid.hpp'):
     print 'Boost UUID headers are missing!'
@@ -195,6 +210,15 @@ if env["COMPRESSION_ALGO"] == "LZMA":
         print 'Please install liblzma'
         Exit(1)
 
+if not conf.CheckPkg('fuse'):
+    print 'FUSE is not registered in pkg-config'
+    Exit(1)
+
+if not conf.CheckPkg('libevent'):
+    print 'libevent is not registered in pkg-config'
+    Exit(1)
+env.ParseConfig('pkg-config --libs --cflags libevent')
+
 # Library is libevent.so or libevent-2.0.so depending on the system
 has_event2 = conf.CheckLibWithHeader('event-2.0', 'event2/event.h', 'C', 
 'event_init();')
@@ -208,6 +232,8 @@ if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
     if not conf.CheckLibWithHeader('dns_sd','dns_sd.h','C'):
 	print 'Please install libdns_sd'
 	Exit(1)
+
+# Test for recent OpenSSL
 
 conf.Finish()
 
