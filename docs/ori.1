@@ -14,10 +14,15 @@ main daemon used by the SSH push/pull interface.
 This command line tool also controls the Ori FUSE driver if run inside a 
 mounted file system rather than a repository.  Only certain commands are 
 supported at the moment and the list is documented in the orifs man page.
-.SH COMMANDS
-.TP
-\fBaddkey\fR \fIKEYFILE\fR
-Add a signing key to the repository.
+
+N.B. This project is still in flux and repository layouts may not be compatible 
+between releases.  You may be required to copy files from one repository to 
+another manually and the history may not be preserved.
+
+.SH REPOSITORY COMMANDS
+This list contains commands that will operate on your local instance of the 
+repository.  These may callout to remote repositories for data if this was an 
+InstaCloned repository.
 .TP
 \fBbranch\fR [\fIBRANCHNAME\fR]
 Get or set the current branch.  If no other arguments are specified the command 
@@ -29,11 +34,63 @@ List available branches.
 \fBcheckout\fR
 Checkout a revision of the repository.
 .TP
-\fBclone\fR
+\fBcommit\fR [\fICOMMIT-MESSAGE\fR]
+Commit the latest changes to the repository.
+.TP
+\fBinit\fR [\fIPATH\fR]
+Create a repository in the current directory unless one is specified. If the 
+directory does not exist it will be created.
+.TP
+\fBlog\fR
+Display a log of changes made to the repository.
+.TP
+\fBmerge\fR \fICOMMIT-HASH\fR
+Merges the specified change with the current HEAD.
+.TP
+\fBshow\fR
+Show repository information.
+.TP
+\fBsnapshot\fR \fISNAPSHOT-NAME\fR
+Take a named snapshot of the repository.
+.TP
+\fBsnapshots\fR
+List all snapshots in this repository.
+.TP
+\fBstatus\fR
+Show a list of currently modified files and directories in the repository.
+.TP
+\fBtip\fR
+Print the commit hash for the HEAD revision.
+
+.SH REMOTE MANAGEMENT COMMANDS
+This section lists commands used to clone repositories, pull changes, and 
+manage a list of remote repositories to interact with.  The special remote 
+repository named \fIorigin\fR is used as the default for certain operations 
+that take an optional remote name. At the moment an InstaCloned repository can 
+only be created with \fBorifs\fR.
+.TP
+\fBclone\fR \fISOURCE-PATH\fR
 Clone a remote or local repository into a new directory.
 .TP
-\fBcommit\fR
-Commit the latest changes to the repository.
+\fBpull\fR [\fIPATH|REMOTE-NAME\fR]
+Pulls changes from a repository. The user can specify a path to another 
+repository or the name of a previously registered repository. By default the 
+command pulls from the origin.
+.TP
+\fBremote\fR
+Display a list of the remote nodes.
+.TP
+\fBremote add\fR \fINAME\fR \fIPATH\fR
+Add a remote repository given a path
+.TP
+\fBremote remove\fR \fINAME\fR
+Remove a remote repository by name
+
+.SH ADVANCED COMMANDS
+This section lists a few commands that are for advanced users only.  They 
+either provide access to lower level functionality or are experimental.  The 
+verify command is useful to all users to check that the repository has not been 
+corrupted.
 .TP
 \fBfilelog\fR
 Displays a log of relevant commits made to the specified file.
@@ -48,18 +105,36 @@ repack the pack files that contain deleted objects.
 \fBgraft\fR
 Experimental command to graft changes from one repository into another.
 .TP
-\fBhelp\fR
-Display a list of commands and their purpose.
+\fBpurgecommit\fR \fICOMMIT-HASH\fR
+Deletes a commit. Use this command with caution as it's experimental as certain 
+commands may no longer work after.
 .TP
-\fBinit\fR [\fIPATH\fR]
-Create a repository in the current directory unless one is specified. If the 
-directory does not exist it will be created.
+\fBverify\fR
+Verify that the repository is consistent.
+
+.SH KEY MANAGEMENT COMMANDS
+This section provides a list of key management commands that help a repository 
+maintain a list of trusted keys and set the signing key for commits.  Will 
+these commands function the feature itself is not functional for this release.
+.TP
+\fBaddkey\fR \fIKEYFILE\fR
+Add a signing key to the repository.
 .TP
 \fBlistkeys\fR
 List the signing keys available in this repository.
 .TP
-\fBlog\fR
-Display a log of changes made to the repository.
+\fBremovekey\fR
+Remove a public key from the repository.
+.TP
+\fBsetkey\fR
+Set the repository private key used for signing commits.
+
+.SH OTHER COMMANDS
+.TP
+\fBhelp\fR
+Display a list of commands and their purpose.
+
+.TP
 .SH "SEE ALSO"
 .BR orifs (1),
 .BR ori_httpd (1)

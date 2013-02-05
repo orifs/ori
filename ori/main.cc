@@ -90,7 +90,6 @@ int cmd_snapshot(int argc, const char *argv[]);
 int cmd_snapshots(int argc, const char *argv[]);
 int cmd_status(int argc, const char *argv[]);
 int cmd_tip(int argc, const char *argv[]);
-int cmd_treediff(int argc, const char *argv[]);
 int cmd_verify(int argc, const char *argv[]);
 
 // Debug Operations
@@ -105,6 +104,7 @@ int cmd_purgecommit(int argc, const char *argv[]);
 int cmd_stripmetadata(int argc, const char *argv[]); // Debug
 int cmd_sshserver(int argc, const char *argv[]); // Internal
 int cmd_sshclient(int argc, const char *argv[]); // Debug
+int cmd_treediff(int argc, const char *argv[]);
 #if !defined(WITHOUT_MDNS)
 int cmd_mdnsserver(int argc, const char *argv[]); // Debug
 #endif
@@ -240,20 +240,6 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
-        "rebuildindex",
-        "Rebuild index",
-        cmd_rebuildindex,
-        NULL,
-        CMD_NEED_REPO,
-    },
-    {
-        "rebuildrefs",
-        "Rebuild references",
-        cmd_rebuildrefs,
-        NULL,
-        CMD_NEED_REPO,
-    },
-    {
         "remote",
         "Remote connection management",
         cmd_remote,
@@ -310,13 +296,6 @@ static Cmd commands[] = {
         CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
-        "treediff",
-        "Compare two commits",
-        cmd_treediff,
-        NULL,
-        CMD_NEED_REPO,
-    },
-    {
         "verify",
         "Verify the repository",
         cmd_verify,
@@ -361,6 +340,20 @@ static Cmd commands[] = {
         CMD_NEED_REPO | CMD_DEBUG,
     },
     {
+        "rebuildindex",
+        "Rebuild index (DEBUG)",
+        cmd_rebuildindex,
+        NULL,
+        CMD_NEED_REPO | CMD_DEBUG,
+    },
+    {
+        "rebuildrefs",
+        "Rebuild references (DEBUG)",
+        cmd_rebuildrefs,
+        NULL,
+        CMD_NEED_REPO | CMD_DEBUG,
+    },
+    {
         "refcount",
         "Print the reference count for all objects (DEBUG)",
         cmd_refcount,
@@ -385,6 +378,13 @@ static Cmd commands[] = {
         "stripmetadata",
         "Strip all object metadata including backreferences (DEBUG)",
         cmd_stripmetadata,
+        NULL,
+        CMD_NEED_REPO | CMD_DEBUG,
+    },
+    {
+        "treediff",
+        "Compare two commits (DEBUG)",
+        cmd_treediff,
         NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
