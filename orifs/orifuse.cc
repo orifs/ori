@@ -1025,8 +1025,11 @@ main(int argc, char *argv[])
         exit(1);
     }
 
-    if (config.clone_path == NULL)
-        config.repo_path = realpath(config.repo_path, NULL);
+    if (config.clone_path == NULL) {
+        char *path = realpath(config.repo_path, NULL);
+        if (path != NULL)
+            config.repo_path = path;
+    }
 
     FUSE_LOG("Ori FUSE Driver");
 
@@ -1044,7 +1047,10 @@ main(int argc, char *argv[])
             return 1;
         }
 
+        config.repo_path = realpath(config.repo_path, NULL);
+
         FUSE_LOG("Creating new repository %s", config.repo_path);
+        printf("Creating new repository %s\n", config.repo_path);
         if (LocalRepo_Init(config.repo_path) != 0) {
             printf("Repository does not exist and failed to create one.\n");
             return 1;
