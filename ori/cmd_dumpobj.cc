@@ -35,37 +35,52 @@ cmd_dumpobj(int argc, const char *argv[])
 
     ObjectType type = repository.getObjectType(id);
     if (ObjectInfo::Null == type) {
-	printf("Object does not exist.\n");
-	return 1;
+        printf("Object does not exist.\n");
+        return 1;
     }
 
     ObjectInfo info = repository.getObjectInfo(id);
     info.print();
 
     switch (type) {
-	case ObjectInfo::Null:
-	{
-	    NOT_IMPLEMENTED(false);
-	    return 1;
-	}
-	case ObjectInfo::Commit:
-	{
-	    printf("\nCommit Structure:\n");
-	    Commit c = repository.getCommit(id);
-	    c.print();
-	    break;
-	}
-	case ObjectInfo::Tree:
-	{
-	    printf("\nTree Structure:\n");
-	    Tree t = repository.getTree(id);
-	    t.print();
-	    break;
-	}
-	case ObjectInfo::Blob:
-	case ObjectInfo::LargeBlob:
-	case ObjectInfo::Purged:
-	    break;
+        case ObjectInfo::Null:
+        {
+            NOT_IMPLEMENTED(false);
+            return 1;
+        }
+        case ObjectInfo::Commit:
+        {
+            printf("\nCommit Structure:\n");
+            Commit c = repository.getCommit(id);
+            c.print();
+            break;
+        }
+        case ObjectInfo::Tree:
+        {
+            printf("\nTree Structure:\n");
+            Tree t = repository.getTree(id);
+            t.print();
+            break;
+        }
+        case ObjectInfo::Blob:
+            break;
+        case ObjectInfo::LargeBlob:
+        {
+            printf("\nChunk Table:\n");
+            string rawBlob = repository.getPayload(id);
+            LargeBlob lb = LargeBlob(&repository);
+            lb.fromBlob(rawBlob);
+
+            std::map<uint64_t, LBlobEntry>::iterator it;
+            for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
+                printf("%016lx    %s %d\n", (*it).first,
+                       (*it).second.hash.hex().c_str(), (*it).second.length);
+            }
+
+            break;
+        }
+        case ObjectInfo::Purged:
+            break;
     }
 
     return 0;
