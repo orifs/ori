@@ -11,6 +11,12 @@ use cases over the command line interface.
 
 One of the most useful features of orifs is InstaClone, a mechanism that allows 
 users to instantly access and clone a remote repository.
+
+Currently, orifs is crash consist up until a commit or snapshot. Users should 
+run \fBori commit\fR or \fBori snapshot\fR to guarantee data is saved 
+persistently.  When recovering from a crash the tool reports an error message 
+explaining where unsaved data is located and how it may be recovered.  In 
+future releases this bug will addressed.
 .SH OPTIONS
 .TP
 \fB\-o repo=[\fIPATH\fR]\fR
