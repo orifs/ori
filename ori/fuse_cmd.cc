@@ -52,7 +52,6 @@ std::string OF_ControlPath()
 
 bool OF_RunCommand(const char *cmd)
 {
-    size_t status;
     std::string controlPath = OF_ControlPath();
 
     if (controlPath.size() == 0)
@@ -64,7 +63,7 @@ bool OF_RunCommand(const char *cmd)
         return false;
     }
 
-    status = write(fd, cmd, strlen(cmd));
+    int status = write(fd, cmd, strlen(cmd));
     if (status < 0) {
         perror("Failed to write control node");
         return false;
