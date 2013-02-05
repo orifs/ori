@@ -414,7 +414,9 @@ OriPriv::readFile(OriFileInfo *info, char *buf, size_t size, off_t offset)
             size_t res = lb.read((uint8_t*)(buf + total),
                                  size - total,
                                  offset + total);
-            if (res <= 0)
+            if (res == 0)
+                return total;
+            else if (res < 0)
                 return res;
             total += res;
         }

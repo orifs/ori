@@ -258,9 +258,13 @@ LargeBlob::extractFile(const string &path)
 ssize_t
 LargeBlob::read(uint8_t *buf, size_t s, off_t off) const
 {
-    map<uint64_t, LBlobEntry>::const_iterator it =
-        parts.upper_bound(off);
-    it--;
+    map<uint64_t, LBlobEntry>::const_iterator it;
+    // XXX: Using upper/lower_bound should be faster
+
+    for (it = parts.begin(); it != parts.end(); it++) {
+        if ((*it).first <= off && ((*it).first + (*it).second.length) > off)
+            break;
+    }
 
     if (it == parts.end()) {
         LOG("offset %lu larger than large blob", off);
@@ -270,16 +274,19 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off) const
     off_t part_off = off - (*it).first;
     if (part_off >= (*it).second.length) {
         LOG("offset %lu larger than last blob in LB", off);
+        ASSERT(false);
         return 0;
     }
     if (part_off < 0) {
         LOG("part_off less than 0");
+        ASSERT(false);
         return -EIO;
     }
 
     int left = (*it).second.length - part_off;
     if (left <= 0) {
         LOG("incorrect computation of left! (%d)", left);
+        ASSERT(false);
         return -EIO;
     }
 
