@@ -534,7 +534,10 @@ loadDir:
                 // value once it is opened for the first time.
                 dirInfo->statInfo.st_nlink++;
             } else {
-                isSymlink = attrs->getAs<bool>(ATTR_SYMLINK);
+                if (attrs->has(ATTR_SYMLINK)) {
+                    isSymlink = attrs->getAs<bool>(ATTR_SYMLINK);
+                }
+
                 if (isSymlink) {
                     info->statInfo.st_mode = S_IFLNK;
                     info->statInfo.st_nlink = 1;
