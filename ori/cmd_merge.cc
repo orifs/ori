@@ -126,6 +126,7 @@ cmd_merge(int argc, const char *argv[])
 #endif /* DEBUG */
 
     printf("Updating working directory\n");
+    bool conflictExists = false;
     // Update working directory as necessary
     for (size_t i = 0; i < wdiff.entries.size(); i++) {
 	TreeDiffEntry e = wdiff.entries[i];
@@ -174,7 +175,14 @@ cmd_merge(int argc, const char *argv[])
                 blob_write_to_file(&out, path.c_str());
             } else {
                 printf("X       %s (CONFLICT)\n", e.filepath.c_str());
-                // XXX: Callout to vimdiff with temporary files
+                repository.copyObject(mdiff.entries[i].hashBase.first,
+                                      path + ".base");
+                repository.copyObject(mdiff.entries[i].hashA.first,
+                                      path + ".yours");
+                repository.copyObject(mdiff.entries[i].hashB.first,
+                                      path + ".theirs");
+                conflictExists = true;
+                // XXX: Allow optional call to external diff tool
             }
         } else if (mdiff.entries[i].type == TreeDiffEntry::FileDirConflict) {
             NOT_IMPLEMENTED(false);
@@ -184,7 +192,14 @@ cmd_merge(int argc, const char *argv[])
 	}
     }
 
-    // XXX: Automatically commit if everything is resolved
+    if (conflictExists) {
+        printf("One or more conflicts remain, you need to manually inspect\n");
+        printf("the conflicting files with the extentions .base, .yours,\n");
+        printf("and .theirs appended to the end.\n");
+    } else {
+        printf("Conflicts resolved automatically.\n");
+        // XXX: Automatically commit if everything is resolved
+    }
 
     return 0;
 }
