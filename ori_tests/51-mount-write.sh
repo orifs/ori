@@ -23,5 +23,5 @@ $ORI_EXE checkout
 
 $PYTHON $SCRIPTS/compare.py "$SOURCE_REPO" "$MTPOINT"
 
-umount $MTPOINT
+$UMOUNT $MTPOINT
 

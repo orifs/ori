@@ -36,7 +36,7 @@ make
 
 # Cleanup
 cd $TEMP_DIR
-umount $MTPOINT
+$UMOUNT $MTPOINT
 
 rm -rf $TEMP_REPO
 rm -rf $EXTRACT_DIR

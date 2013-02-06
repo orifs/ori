@@ -10,6 +10,9 @@ export ORI_HTTPD=$ORIG_DIR/build/ori_httpd/ori_httpd
 export ORIFS_EXE=$ORIG_DIR/build/orifs/orifs
 export ORI_TESTS=$ORIG_DIR/ori_tests
 
+# On OS X and other systems this is umount
+export UMOUNT="fusermount -u"
+
 export TEMP_DIR=$ORIG_DIR/tempdir
 export SOURCE_FILES=$TEMP_DIR/files
 export SOURCE_REPO=$TEMP_DIR/source_repo

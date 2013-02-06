@@ -7,5 +7,5 @@ sleep 1.5
 ls -lah $MTPOINT
 $PYTHON $SCRIPTS/compare.py "$SOURCE_REPO" "$MTPOINT"
 
-umount $MTPOINT
+$UMOUNT $MTPOINT
 
