@@ -36,6 +36,8 @@ std::string Util_RealPath(const std::string &path);
 std::string Util_ReadFile(const std::string &path);
 bool Util_WriteFile(const std::string &blob, const std::string &path);
 bool Util_WriteFile(const char *blob, size_t len, const std::string &path);
+bool Util_AppendFile(const std::string &blob, const std::string &path);
+bool Util_AppendFile(const char *blob, size_t len, const std::string &path);
 int Util_CopyFile(const std::string &origPath, const std::string &newPath);
 int Util_MoveFile(const std::string &origPath, const std::string &newPath);
 int Util_DeleteFile(const std::string &path);
@@ -59,6 +61,8 @@ std::string Util_ResolveHost(const std::string &hostname);
 
 std::string StrUtil_Basename(const std::string &path);
 std::string StrUtil_Dirname(const std::string &path);
+bool StrUtil_StartsWith(const std::string &str, const std::string &part);
+bool StrUtil_EndsWith(const std::string &str, const std::string &part);
 
 #endif /* __ORI_ORIUTIL_H__ */
 

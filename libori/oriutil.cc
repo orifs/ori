@@ -230,6 +230,35 @@ Util_WriteFile(const char *blob, size_t len, const string &path)
 }
 
 /*
+ * Append an in memory blob to a file.
+ */
+bool
+Util_AppendFile(const std::string &blob, const string &path)
+{
+    return Util_WriteFile(blob.data(), blob.length(), path);
+}
+
+/*
+ * Append an in memory blob to a file.
+ */
+bool
+Util_AppendFile(const char *blob, size_t len, const string &path)
+{
+    FILE *f;
+    size_t bytesWritten;
+
+    f = fopen(path.c_str(), "a+");
+    if (f == NULL) {
+        return false;
+    }
+
+    bytesWritten = fwrite(blob, len, 1, f);
+    fclose(f);
+
+    return (bytesWritten == 1);
+}
+
+/*
  * Copy a file.
  */
 int
@@ -735,6 +764,23 @@ StrUtil_Dirname(const std::string &path)
     return path.substr(0, ix);
 }
 
+bool
+StrUtil_StartsWith(const std::string &str, const std::string &part)
+{
+    if (str.length() < part.length())
+        return false;
+
+    return str.substr(0, part.length()) == part;
+}
+
+bool
+StrUtil_EndsWith(const std::string &str, const std::string &part)
+{
+    if (str.length() < part.length())
+        return false;
+
+    return str.substr(str.length() - part.length(), part.length()) == part;
+}
 
 // XXX: Debug Only
 
@@ -817,6 +863,10 @@ util_selftest(void)
     path = "/a/b/c/hello.txt";
     ASSERT(StrUtil_Basename(path) == "hello.txt");
     ASSERT(Util_PathToVector(path).size() == 4);
+
+    path = "hello.txt";
+    ASSERT(StrUtil_StartsWith(path, "hello"));
+    ASSERT(StrUtil_EndsWith(path, ".txt"));
 
     path = "/b/b.txt/file";
     std::vector<string> pv = Util_PathToVector(path);
