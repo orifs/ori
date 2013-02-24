@@ -1,0 +1,33 @@
+import sys
+
+Import('env')
+
+src = [
+    "orisyncconf.cc",
+    "cmd_init.cc",
+    "cmd_add.cc",
+    "cmd_remove.cc",
+    "cmd_list.cc",
+    "main.cc",
+    "server.cc",
+]
+
+libs = [
+        "crypto",
+        "stdc++",
+        "event_core",
+        "event_extra",
+       ]
+
+if sys.platform != "darwin":
+    libs += ['rt']
+    if env["WITH_MDNS"] == "1":
+        libs += ['dns_sd']
+
+if sys.platform == "linux2":
+    libs += ['uuid', 'resolv']
+
+env.Append(LIBS = libs)
+
+env.Program("orisync", src)
+
