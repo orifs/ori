@@ -50,6 +50,7 @@ std::string Util_RawHashToHex(const ObjectHash &hash);
 
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
+std::string Util_GetHome();
 int Util_SetBlocking(int fd, bool block);
 
 void Util_PrintHex(const std::string &data, off_t off = 0, size_t limit = 0);

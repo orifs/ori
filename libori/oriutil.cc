@@ -564,6 +564,18 @@ Util_GetFullname()
         return "";
 }
 
+string
+Util_GetHome()
+{
+    char *path;
+
+    path = getenv("HOME");
+    if (path == NULL)
+        return "";
+
+    return path;
+}
+
 int Util_SetBlocking(int fd, bool block) {
     int old_flags = fcntl(fd, F_GETFL);
     if (old_flags < 0) {
