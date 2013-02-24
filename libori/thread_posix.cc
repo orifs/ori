@@ -91,12 +91,12 @@ void Thread::exit(void *retval)
 
 void Thread::sleep(unsigned long secs)
 {
-    sleep(secs);
+    ::sleep(secs);
 }
 
 void Thread::usleep(useconds_t usecs)
 {
-    usleep(usecs);
+    ::usleep(usecs);
 }
 
 void Thread::start()
