@@ -29,8 +29,10 @@ public:
     ~OriSyncConf();
     void setCluster(const std::string &clusterName,
                     const std::string &clusterKey);
+    void setUUID(const std::string &uuid);
     std::string getCluster() const;
     std::string getKey() const;
+    std::string getUUID() const;
     void addRepo(const std::string &repoPath);
     void removeRepo(const std::string &repoPath);
     std::list<std::string> getRepos() const;
@@ -42,6 +44,7 @@ private:
     // Persistent state
     std::string name;
     std::string key;
+    std::string machineid;
     std::list<std::string> repos;
     // Volatile State
     std::string rcFile;

@@ -66,6 +66,14 @@ OriSyncConf::setCluster(const string &clusterName,
     save();
 }
 
+void
+OriSyncConf::setUUID(const string &uuid)
+{
+    machineid = uuid;
+
+    save();
+}
+
 string
 OriSyncConf::getCluster() const
 {
@@ -76,6 +84,12 @@ string
 OriSyncConf::getKey() const
 {
     return key;
+}
+
+string
+OriSyncConf::getUUID() const
+{
+    return machineid;
 }
 
 void
@@ -127,6 +141,7 @@ OriSyncConf::getBlob() const
     blob = "# Cluster Configuration\n";
     blob += "cluster-name " + name + "\n";
     blob += "cluster-key " + key + "\n";
+    blob += "machine-id " + machineid + "\n";
 
     blob += "\n# Repositories\n";
     for (list<string>::const_iterator it = repos.begin(); it != repos.end(); it++)
@@ -150,6 +165,8 @@ OriSyncConf::fromBlob(const string &blob)
             name = line.substr(13);
         } else if (line.substr(0, 12) == "cluster-key ") {
             key = line.substr(12);
+        } else if (line.substr(0, 11) == "machine-id ") {
+            machineid = line.substr(11);
         } else if (line.substr(0, 5) == "repo ") {
             repos.push_back(line.substr(5));
         } else {

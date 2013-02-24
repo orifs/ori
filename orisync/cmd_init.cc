@@ -70,6 +70,7 @@ cmd_init(int argc, const char *argv[])
     }
 
     rc.setCluster(clusterName, clusterKey);
+    rc.setUUID(Util_NewUUID());
 
     cout << endl;
     cout << "Use the following configuration for all other machines:" << endl;
