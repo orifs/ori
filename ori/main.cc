@@ -435,19 +435,23 @@ lookupcmd(const char *cmd)
     return -1;
 }
 
-int util_selftest(void);
+int OriUtil_selfTest(void);
 int LRUCache_selfTest(void);
+int KVSerializer_selfTest(void);
 int Key_selfTest(void);
 
 static int
 cmd_selftest(int argc, const char *argv[])
 {
     int result = 0;
-    result += util_selftest();
+    result += OriUtil_selfTest();
     result += LRUCache_selfTest();
+    result += KVSerializer_selfTest();
     //result += Key_selfTest();
 
-    if (result != 0) {
+    if (result == 0) {
+        cout << "All tests passed!" << endl;
+    } else {
         cout << -result << " errors occurred." << endl;
     }
 

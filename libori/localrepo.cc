@@ -205,7 +205,11 @@ LocalRepo_PeerHelper(LocalRepo *l, const string &path)
 
     string name = path;
     name = name.substr(name.find_last_of("/") + 1);
-    l->peers[name] = p;
+
+    // Skip journal files
+    if (!StrUtil_EndsWith(name, ".journal") && !StrUtil_EndsWith(name, ".tmp")) {
+        l->peers[name] = p;
+    }
 
     return 0;
 }
