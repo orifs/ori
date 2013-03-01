@@ -799,12 +799,14 @@ StrUtil_EndsWith(const std::string &str, const std::string &part)
 #define TESTFILE_SIZE (HASHFILE_BUFSZ * 3 / 2)
 
 int
-util_selftest(void)
+OriUtil_selfTest(void)
 {
     int status;
     char *buf = new char[TESTFILE_SIZE + 1];
     ObjectHash origHash;
     ObjectHash newHash;
+
+    cout << "Testing OriUtil ..." << endl;
 
     for (int i = 0; i < TESTFILE_SIZE; i++) {
         buf[i] = '0' + (i % 10);
@@ -914,7 +916,6 @@ util_selftest(void)
     ASSERT(in_stream.readInt<uint32_t>() == nums[4]);
     ASSERT(in_stream.readInt<int32_t>() == (int32_t)nums[5]);
 
-    printf("Test Succeeded!\n");
     return 0;
 }
 

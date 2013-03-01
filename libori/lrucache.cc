@@ -28,6 +28,8 @@ LRUCache_selfTest(void)
 {
     LRUCache<string, string, 4> cache = LRUCache<string, string, 4>();
 
+    cout << "Testing LRUCache ..." << endl;
+
     cache.put("A", "1");
     cache.put("B", "2");
     cache.put("C", "3");

@@ -104,7 +104,7 @@ LocalRepo_Init(const std::string &rootPath)
 
     // Create default branch
     tmpDir = rootPath + ORI_PATH_HEADS + "/default";
-    if (!Util_WriteFile(EMPTY_COMMIT.hex().data(), ObjectHash::SIZE * 2, tmpDir))
+    if (!Util_WriteFile(EMPTY_COMMIT.hex(), tmpDir))
     {
 	perror("Could not create default branch");
 	return 1;
@@ -205,7 +205,11 @@ LocalRepo_PeerHelper(LocalRepo *l, const string &path)
 
     string name = path;
     name = name.substr(name.find_last_of("/") + 1);
-    l->peers[name] = p;
+
+    // Skip journal files
+    if (!StrUtil_EndsWith(name, ".journal") && !StrUtil_EndsWith(name, ".tmp")) {
+        l->peers[name] = p;
+    }
 
     return 0;
 }
@@ -1969,7 +1973,7 @@ LocalRepo::setBranch(const std::string &name)
 	ObjectHash head = getHead();
 	printf("Creating branch '%s'\n", name.c_str());
 
-	Util_WriteFile(head.hex().c_str(), ObjectHash::SIZE * 2, branchFile);
+	Util_WriteFile(head.hex(), branchFile);
     }
 
     string ref = "@" + name;
@@ -2015,7 +2019,7 @@ LocalRepo::updateHead(const ObjectHash &commitId)
 
     if (branch[0] == '@') {
 	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
-	Util_WriteFile(commitId.hex().c_str(), ObjectHash::SIZE * 2, headPath);
+	Util_WriteFile(commitId.hex(), headPath);
     } else if (branch[0] == '#') {
 	string ref = "#" + commitId.hex();
 	Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);

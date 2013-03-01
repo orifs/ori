@@ -47,7 +47,7 @@ static uint8_t hexdigit(char c)
 
 ObjectHash ObjectHash::fromHex(std::string hex)
 {
-    ASSERT(hex.size() == SIZE*2);
+    ASSERT(hex.size() == STR_SIZE);
 
     std::transform(hex.begin(), hex.end(), hex.begin(), ::tolower);
 
