@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -438,6 +438,7 @@ lookupcmd(const char *cmd)
 int OriUtil_selfTest(void);
 int LRUCache_selfTest(void);
 int KVSerializer_selfTest(void);
+int OriCrypt_selfTest(void);
 int Key_selfTest(void);
 
 static int
@@ -447,6 +448,7 @@ cmd_selftest(int argc, const char *argv[])
     result += OriUtil_selfTest();
     result += LRUCache_selfTest();
     result += KVSerializer_selfTest();
+    result += OriCrypt_selfTest();
     //result += Key_selfTest();
 
     if (result == 0) {
