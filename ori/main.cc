@@ -94,6 +94,7 @@ int cmd_verify(int argc, const char *argv[]);
 
 // Debug Operations
 int cmd_catobj(int argc, const char *argv[]); // Debug
+int cmd_dumpindex(int argc, const char *argv[]); // Debug
 int cmd_dumpobj(int argc, const char *argv[]); // Debug
 int cmd_fsck(int argc, const char *argv[]);
 int cmd_listobj(int argc, const char *argv[]); // Debug
@@ -315,6 +316,13 @@ static Cmd commands[] = {
         "catobj",
         "Print an object from the repository (DEBUG)",
         cmd_catobj,
+        NULL,
+        CMD_NEED_REPO | CMD_DEBUG,
+    },
+    {
+        "dumpindex",
+        "Dump the repository index (DEBUG)",
+        cmd_dumpindex,
         NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },

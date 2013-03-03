@@ -11,6 +11,7 @@ src = [
     "cmd_clone.cc",
     "cmd_commit.cc",
     "cmd_diff.cc",
+    "cmd_dumpindex.cc",
     "cmd_dumpobj.cc",
     "cmd_filelog.cc",
     "cmd_findheads.cc",

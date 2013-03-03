@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -98,7 +98,10 @@ public:
             const std::string &payload);
 
     void sync(); /// sync all changes to disk
+
+    // Index
     bool rebuildIndex();
+    void dumpIndex();
 
     LocalObject::sp getLocalObject(const ObjectHash &objId);
     Packfile::sp loadPackfile(packid_t packfile);
