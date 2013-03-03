@@ -303,20 +303,25 @@ bool Packfile::purge(const std::set<ObjectHash> &hset, Index *idx)
 void
 Packfile::readEntries(ReadEntryCb cb)
 {
-    lseek(fd, 0, SEEK_SET);
+    offset_t groupOffset = 0;
     
-    fdstream readStream(fd, -1);
-    numobjs_t objs = readStream.readInt<numobjs_t>();
+    while (groupOffset < fileSize) {
+        fdstream readStream(fd, groupOffset);
+        numobjs_t objs = readStream.readInt<numobjs_t>();
 
-    for (size_t i = 0; i < objs; i++) {
-        ObjectInfo info;
-        uint32_t size;
-        offset_t off;
+        for (size_t i = 0; i < objs; i++) {
+            ObjectInfo info;
+            uint32_t size;
+            offset_t off;
 
-        readStream.readInfo(info);
-        size = readStream.readInt<uint32_t>();
-        off = readStream.readInt<offset_t>();
-        cb(info, off);
+            readStream.readInfo(info);
+            size = readStream.readInt<uint32_t>();
+            off = readStream.readInt<offset_t>();
+            cb(info, off);
+
+            ASSERT(groupOffset <= size + off);
+            groupOffset = size + off;
+        }
     }
 }
 
