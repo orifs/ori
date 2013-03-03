@@ -127,11 +127,8 @@ void ObjectInfo::print(int fd) const {
     len = snprintf(buf, OBJINFO_PRINTBUF,
 		   "Object info for %s\n", hash.hex().c_str());
     len += snprintf(buf + len, OBJINFO_PRINTBUF - len,
-		    "  type = %s\n", getStrForType(type));
-    len += snprintf(buf + len, OBJINFO_PRINTBUF - len,
-		    "  flags = %08X\n", flags);
-    len += snprintf(buf + len, OBJINFO_PRINTBUF - len,
-		    "  payload_size = %u\n", payload_size);
+		    "  type = %s  flags = %08X  payload_size = %u\n",
+                    getStrForType(type), flags, payload_size);
     write(fd, buf, len);
 }
 

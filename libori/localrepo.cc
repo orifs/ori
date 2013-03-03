@@ -740,8 +740,8 @@ LocalRepo::dumpIndex()
 void
 packfileDumper(const ObjectInfo &info, offset_t off)
 {
-    printf("Object Found @ 0x%x\n", off);
     info.print();
+    printf("  packfile: offset = 0x%x\n", off);
 }
 
 void
