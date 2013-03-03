@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2012-2013 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
 #include <stdint.h>
 #include <stdio.h>
 
@@ -7,11 +23,18 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <string>
+#include <iostream>
+#include <tr1/memory>
+#include <tr1/unordered_map>
+
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/stream.h>
 #include <ori/metadatalog.h>
 #include <ori/posixexception.h>
+
+using namespace std;
 
 MdTransaction::MdTransaction(MetadataLog *log)
     : log(log)
@@ -36,8 +59,8 @@ void MdTransaction::decRef(const ObjectHash &hash)
     ASSERT(log->refcounts[hash] + counts[hash] >= 0);
 }
 
-void MdTransaction::setMeta(const ObjectHash &hash, const std::string &key,
-        const std::string &value)
+void MdTransaction::setMeta(const ObjectHash &hash, const string &key,
+        const string &value)
 {
     metadata[hash][key] = value;
 }
@@ -61,7 +84,7 @@ MetadataLog::~MetadataLog()
 }
 
 bool
-MetadataLog::open(const std::string &filename)
+MetadataLog::open(const string &filename)
 {
     fd = ::open(filename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (fd < 0) {
@@ -95,7 +118,7 @@ MetadataLog::open(const std::string &filename)
             return false;
         }
 
-        std::string packet;
+        string packet;
         packet.resize(nbytes);
         if (read(fd, &packet[0], nbytes) < 0) {
             perror("MetadataLog::open read");
@@ -123,7 +146,7 @@ MetadataLog::open(const std::string &filename)
 
             uint32_t num_mde = ss.readInt<uint32_t>();
             for (size_t ix_mde = 0; ix_mde < num_mde; ix_mde++) {
-                std::string key, value;
+                string key, value;
                 ss.readPStr(key);
                 ss.readPStr(value);
                 metadata[hash][key] = value;
@@ -142,7 +165,7 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
     if (data == NULL)
         data = &metadata;
 
-    std::string tmpFilename = filename + ".tmp";
+    string tmpFilename = filename + ".tmp";
     int newFd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (newFd < 0) {
         perror("MetadataLog::rewrite open");
@@ -184,8 +207,8 @@ MetadataLog::getRefCount(const ObjectHash &hash) const
     return (*it).second;
 }
 
-std::string
-MetadataLog::getMeta(const ObjectHash &hash, const std::string &key) const
+string
+MetadataLog::getMeta(const ObjectHash &hash, const string &key) const
 {
     MetadataMap::const_iterator it = metadata.find(hash);
     if (it == metadata.end())
@@ -254,7 +277,7 @@ MetadataLog::commit(MdTransaction *tr)
     //ObjectHash commitHash = Util_HashString(ws.str());
     //ws.write(commitHash.data(), commitHash.size());
 
-    const std::string &str = ws.str();
+    const string &str = ws.str();
     uint32_t nbytes = str.size();
     write(fd, &nbytes, sizeof(uint32_t));
     write(fd, str.data(), str.size());
@@ -262,3 +285,35 @@ MetadataLog::commit(MdTransaction *tr)
     tr->counts.clear();
     tr->metadata.clear();
 }
+
+void
+MetadataLog::dumpRefs() const
+{
+    RefcountMap::const_iterator it;
+
+    cout << "Reference Counts:" << endl;
+    for (it = refcounts.begin(); it != refcounts.end(); it++)
+    {
+        cout << (*it).first.hex() << ": " << (*it).second << endl;
+    }
+}
+
+void
+MetadataLog::dumpMeta() const
+{
+    MetadataMap::const_iterator it;
+
+    cout << "Metadata:" << endl;
+    for (it = metadata.begin(); it != metadata.end(); it++)
+    {
+        ObjMetadata::const_iterator mit;
+
+        cout << (*it).first.hex() << ":" << endl;
+
+        for (mit = (*it).second.begin(); mit != (*it).second.end(); mit++)
+        {
+            cout << "  " << (*mit).first << " = " << (*mit).second << endl;
+        }
+    }
+}
+
