@@ -737,6 +737,26 @@ LocalRepo::dumpIndex()
     index.dump();
 }
 
+void
+packfileDumper(const ObjectInfo &info, offset_t off)
+{
+    printf("Object Found @ 0x%x\n", off);
+    info.print();
+}
+
+void
+LocalRepo::dumpPackfile(packid_t id)
+{
+    if (!packfiles->hasPackfile(id)) {
+        printf("Packfile %d does not exist!\n", id);
+        return;
+    }
+
+    printf("Dumping Packfile %d\n", id);
+    Packfile::sp packfile = packfiles->getPackfile(id);
+    packfile->readEntries(packfileDumper);
+}
+
 bool _timeCompare(const Commit &c1, const Commit &c2) {
     return c1.getTime() < c2.getTime();
 }

@@ -13,6 +13,7 @@ src = [
     "cmd_diff.cc",
     "cmd_dumpindex.cc",
     "cmd_dumpobj.cc",
+    "cmd_dumppackfile.cc",
     "cmd_filelog.cc",
     "cmd_findheads.cc",
     "cmd_fsck.cc",

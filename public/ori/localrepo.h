@@ -102,9 +102,9 @@ public:
     // Index
     bool rebuildIndex();
     void dumpIndex();
+    void dumpPackfile(packid_t packfileId);
 
     LocalObject::sp getLocalObject(const ObjectHash &objId);
-    Packfile::sp loadPackfile(packid_t packfile);
     
     std::vector<Commit> listCommits();
     std::map<std::string, ObjectHash> listSnapshots();

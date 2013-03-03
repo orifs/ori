@@ -96,6 +96,7 @@ int cmd_verify(int argc, const char *argv[]);
 int cmd_catobj(int argc, const char *argv[]); // Debug
 int cmd_dumpindex(int argc, const char *argv[]); // Debug
 int cmd_dumpobj(int argc, const char *argv[]); // Debug
+int cmd_dumppackfile(int argc, const char *argv[]); // Debug
 int cmd_fsck(int argc, const char *argv[]);
 int cmd_listobj(int argc, const char *argv[]); // Debug
 int cmd_refcount(int argc, const char *argv[]); // Debug
@@ -330,6 +331,13 @@ static Cmd commands[] = {
         "dumpobj",
         "Print the structured representation of an object (DEBUG)",
         cmd_dumpobj,
+        NULL,
+        CMD_NEED_REPO | CMD_DEBUG,
+    },
+    {
+        "dumppackfile",
+        "Dump the contents of a packfile (DEBUG)",
+        cmd_dumppackfile,
         NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
