@@ -88,8 +88,9 @@ public:
     /// @returns true when the packfile is empty
     bool purge(const std::set<ObjectHash> &hset, Index *idx);
 
-    typedef void (*ReadEntryCb)(const ObjectInfo &info, offset_t off);
-    void readEntries(ReadEntryCb cb);
+    typedef void (*ReadEntryCb)(const ObjectInfo &info, offset_t off,
+                                void *arg);
+    void readEntries(ReadEntryCb cb, void *arg);
 
     void transmit(bytewstream *bs, std::vector<IndexEntry> objects);
     /// @returns false if nothing to receive
@@ -117,6 +118,7 @@ public:
     Packfile::sp getPackfile(packid_t id);
     Packfile::sp newPackfile();
     bool hasPackfile(packid_t id);
+    std::vector<packid_t> getPackfileList();
 
 private:
     std::string rootPath;

@@ -21,6 +21,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <string>
+#include <set>
+#include <list>
+#include <vector>
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
@@ -35,6 +39,7 @@
 #include <ori/index.h>
 #include <ori/posixexception.h>
 
+using namespace std;
 
 PfTransaction::PfTransaction(Packfile *pf, Index *idx)
     : totalSize(0), committed(false), pf(pf), idx(idx)
@@ -54,16 +59,16 @@ bool PfTransaction::full() const
 }
 
 float
-PfTransaction::_checkCompressionRatio(const std::string &payload)
+PfTransaction::_checkCompressionRatio(const string &payload)
 {
     return 1.5f;
 }
 
 void
-PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
+PfTransaction::addPayload(ObjectInfo info, const string &payload)
 {
     if (committed) {
-        throw std::runtime_error("Adding payload to already-committed transaction!");
+        throw runtime_error("Adding payload to already-committed transaction!");
     }
 
 #if DEBUG
@@ -97,7 +102,7 @@ PfTransaction::addPayload(ObjectInfo info, const std::string &payload)
         // Okay to compress
         info.flags |= ORI_FLAG_COMPRESSED;
         // Reuse compression test data
-        strwstream ss(std::string((char*)buf, compSize));
+        strwstream ss(string((char*)buf, compSize));
         ss.copyFrom(&ls);
         
         payloads.push_back(ss.str());
@@ -123,7 +128,7 @@ void PfTransaction::commit()
 {
     pf->commit(this, idx);
     if (!committed) {
-        throw std::runtime_error("Unknown error committing PfTransaction");
+        throw runtime_error("Unknown error committing PfTransaction");
     }
 }
 
@@ -131,7 +136,7 @@ void PfTransaction::commit()
 // stored length + offset
 #define ENTRYSIZE (ObjectInfo::SIZE + 4 + 4)
 
-Packfile::Packfile(const std::string &filename, packid_t id)
+Packfile::Packfile(const string &filename, packid_t id)
     : fd(-1), filename(filename), packid(id), numObjects(0), fileSize(0)
 {
     fd = ::open(filename.c_str(), O_RDWR | O_CREAT, 0644);
@@ -173,11 +178,11 @@ void
 Packfile::commit(PfTransaction *t, Index *idx)
 {
     if (t->infos.size() != t->payloads.size()) {
-        throw std::runtime_error("PfTransaction infos.size() != payloads.size())");
+        throw runtime_error("PfTransaction infos.size() != payloads.size())");
     }
 
     lseek(fd, 0, SEEK_END);
-    std::vector<offset_t> offsets;
+    vector<offset_t> offsets;
     size_t headers_size = t->infos.size() * ENTRYSIZE;
     offset_t off = fileSize + sizeof(numobjs_t) + headers_size;
     
@@ -227,24 +232,24 @@ bytestream *Packfile::getPayload(const IndexEntry &entry)
 #endif
 }
 
-bool Packfile::purge(const std::set<ObjectHash> &hset, Index *idx)
+bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)
 {
     PfTransaction::sp tr = begin(idx);
     
     // Read the current contents
     lseek(fd, 0, SEEK_SET);
-    std::vector<uint32_t> storedSizes;
+    vector<uint32_t> storedSizes;
 
     fdstream fs(fd, 0);
     while (!fs.ended()) {
-        std::string payload;
-        std::set<size_t> skip;
+        string payload;
+        set<size_t> skip;
 
         numobjs_t num;
         try {
             num = fs.readInt<numobjs_t>();
         }
-        catch (std::ios_base::failure &e) {
+        catch (ios_base::failure &e) {
             break;
         }
 
@@ -282,7 +287,7 @@ bool Packfile::purge(const std::set<ObjectHash> &hset, Index *idx)
     }
 
     // Make a tempfile
-    std::string tmpFilename = filename + ".tmp";
+    string tmpFilename = filename + ".tmp";
     int oldFd = fd;
     fd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
@@ -301,7 +306,7 @@ bool Packfile::purge(const std::set<ObjectHash> &hset, Index *idx)
 }
 
 void
-Packfile::readEntries(ReadEntryCb cb)
+Packfile::readEntries(ReadEntryCb cb, void *arg)
 {
     offset_t groupOffset = 0;
     
@@ -317,7 +322,7 @@ Packfile::readEntries(ReadEntryCb cb)
             readStream.readInfo(info);
             size = readStream.readInt<uint32_t>();
             off = readStream.readInt<offset_t>();
-            cb(info, off);
+            cb(info, off, arg);
 
             ASSERT(groupOffset <= size + off);
             groupOffset = size + off;
@@ -332,11 +337,11 @@ _offsetCmp(const IndexEntry &ie1, const IndexEntry &ie2)
 }
 
 void
-Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
+Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
 {
     // Find contiguous blocks
-    std::sort(objects.begin(), objects.end(), _offsetCmp);
-    std::map<offset_t, offset_t> blocks;
+    sort(objects.begin(), objects.end(), _offsetCmp);
+    map<offset_t, offset_t> blocks;
     for (size_t i = 0; i < objects.size(); i++) {
         offset_t offset = objects[i].offset;
         offset_t off_end = offset + objects[i].packed_size;
@@ -353,7 +358,7 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
             blocks[offset] = off_end;
         }
         else {
-            std::map<offset_t, offset_t>::iterator it = blocks.upper_bound(offset);
+            map<offset_t, offset_t>::iterator it = blocks.upper_bound(offset);
             if (it == blocks.begin()) {
                 blocks[offset] = off_end;
             }
@@ -380,7 +385,7 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
 
     fprintf(stderr, "Num blocks in this packfile: %lu\n", blocks.size());
 
-    for (std::map<offset_t, offset_t>::iterator it = blocks.begin();
+    for (map<offset_t, offset_t>::iterator it = blocks.begin();
             it != blocks.end();
             it++) {
         fprintf(stderr, "%x %x %u\n", (*it).first, (*it).second, (*it).second -
@@ -388,7 +393,7 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
     }
 
     // Transmit object infos
-    std::tr1::unordered_set<ObjectHash> includedHashes;
+    tr1::unordered_set<ObjectHash> includedHashes;
     numobjs_t totalObjs = 0;
 
     strwstream infos_ss;
@@ -401,7 +406,7 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
         includedHashes.insert(objects[i].info.hash);
         totalObjs++;
 
-        std::string info_str = objects[i].info.toString();
+        string info_str = objects[i].info.toString();
         infos_ss.write(info_str.data(), info_str.size());
         infos_ss.writeInt<uint32_t>(objects[i].packed_size);
 
@@ -412,8 +417,8 @@ Packfile::transmit(bytewstream *bs, std::vector<IndexEntry> objects)
     bs->write(infos_ss.str().data(), infos_ss.str().size());
 
     // Transmit objects
-    std::vector<uint8_t> buf;
-    for (std::map<offset_t, offset_t>::iterator it = blocks.begin();
+    vector<uint8_t> buf;
+    for (map<offset_t, offset_t>::iterator it = blocks.begin();
             it != blocks.end();
             it++) {
         lseek(fd, (*it).first, SEEK_SET);
@@ -442,12 +447,12 @@ Packfile::receive(bytestream *bs, Index *idx)
     lseek(fd, 0, SEEK_END);
     size_t headers_size = num * ENTRYSIZE;
     offset_t off = fileSize + sizeof(numobjs_t) + headers_size;
-    std::vector<size_t> obj_sizes;
+    vector<size_t> obj_sizes;
     
     strwstream headers_ss;
     headers_ss.writeInt<numobjs_t>(num);
     for (size_t i = 0; i < num; i++) {
-        std::string info_str(ObjectInfo::SIZE, '\0');
+        string info_str(ObjectInfo::SIZE, '\0');
         bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
         ObjectInfo info;
         info.fromString(info_str);
@@ -469,7 +474,7 @@ Packfile::receive(bytestream *bs, Index *idx)
     write(fd, headers_ss.str().data(), headers_ss.str().size());
     fileSize += headers_ss.str().size();
 
-    std::vector<uint8_t> data;
+    vector<uint8_t> data;
     for (size_t i = 0; i < num; i++) {
         //fprintf(stderr, "Reading %lu packed size %lu\n", i, obj_sizes[i]);
         data.resize(obj_sizes[i]);
@@ -490,7 +495,7 @@ Packfile::receive(bytestream *bs, Index *idx)
  * PackfileManager
  */
 
-PackfileManager::PackfileManager(const std::string &rootPath)
+PackfileManager::PackfileManager(const string &rootPath)
     : rootPath(rootPath)
 {
     if (!_loadFreeList()) {
@@ -538,9 +543,9 @@ PackfileManager::hasPackfile(packid_t id)
     return Util_FileExists(_getPackfileName(id));
 }
 
-static int _freeListCB(std::vector<packid_t> *existing, const std::string &cpath)
+static int _freeListCB(vector<packid_t> *existing, const string &cpath)
 {
-    std::string path = StrUtil_Basename(cpath);
+    string path = StrUtil_Basename(cpath);
     packid_t id = 0;
     if (sscanf(path.c_str(), "pack%u.pak", &id) != 1) {
         return 0;
@@ -549,12 +554,22 @@ static int _freeListCB(std::vector<packid_t> *existing, const std::string &cpath
     return 0;
 }
 
+vector<packid_t>
+PackfileManager::getPackfileList()
+{
+    vector<packid_t> existing;
+
+    DirIterate(rootPath.c_str(), &existing, _freeListCB);
+
+    return existing;
+}
+
 void
 PackfileManager::_recomputeFreeList()
 {
-    std::vector<packid_t> existing;
+    vector<packid_t> existing;
     DirIterate(rootPath.c_str(), &existing, _freeListCB);
-    std::sort(existing.begin(), existing.end());
+    sort(existing.begin(), existing.end());
 
     freeList.clear();
 
@@ -579,7 +594,7 @@ PackfileManager::_recomputeFreeList()
 bool
 PackfileManager::_loadFreeList()
 {
-    std::string freeListPath = rootPath + PFMGR_FREELIST;
+    string freeListPath = rootPath + PFMGR_FREELIST;
     int fd = ::open(freeListPath.c_str(), O_RDONLY);
     if (fd < 0) {
         //perror("PackfileManager::_loadFreeList open");
@@ -612,21 +627,21 @@ PackfileManager::_writeFreeList()
         ss.writeInt(id);
     }
 
-    std::string freeListPath = rootPath + PFMGR_FREELIST;
+    string freeListPath = rootPath + PFMGR_FREELIST;
     int fd = ::open(freeListPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
         perror("PackfileManager::_loadFreeList open");
         throw PosixException(errno);
     }
-    const std::string &str = ss.str();
+    const string &str = ss.str();
     write(fd, str.data(), str.size());
     close(fd);
 }
 
-std::string
+string
 PackfileManager::_getPackfileName(packid_t id)
 {
-    std::stringstream ss;
+    stringstream ss;
     ss << rootPath;
     ss << "pack";
     ss << id;

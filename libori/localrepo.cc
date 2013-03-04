@@ -709,6 +709,26 @@ LocalRepo::sync()
     }
 }
 
+struct RebuildIndexStruct
+{
+    Index *idx;
+    packid_t id;
+};
+
+void
+rebuildIndexCb(const ObjectInfo &info, offset_t off, void *arg)
+{
+    RebuildIndexStruct *ris = (RebuildIndexStruct *)arg;
+    struct IndexEntry entry;
+
+    entry.info = info;
+    entry.offset = off;
+    entry.packed_size = info.payload_size;
+    entry.packfile = ris->id;
+
+    ris->idx->updateEntry(info.hash, entry);
+}
+
 bool
 LocalRepo::rebuildIndex()
 {
@@ -719,15 +739,19 @@ LocalRepo::rebuildIndex()
 
     index.open(indexPath);
 
-    /*
-    for (it = l.begin(); it != l.end(); it++)
-    {
-        index.updateInfo((*it).hash, (*it));
-    }
-    */
-    
-    NOT_IMPLEMENTED(false);
+    vector<packid_t> pfIds = packfiles->getPackfileList();
+    vector<packid_t>::iterator it;
 
+    for (it = pfIds.begin(); it != pfIds.end(); it++)
+    {
+        RebuildIndexStruct ris;
+        Packfile::sp pf = packfiles->getPackfile(*it);
+
+        ris.idx = &index;
+        ris.id = *it;
+        pf->readEntries(rebuildIndexCb, (void *)&ris);
+    }
+    
     return true;
 }
 
@@ -738,7 +762,7 @@ LocalRepo::dumpIndex()
 }
 
 void
-packfileDumper(const ObjectInfo &info, offset_t off)
+packfileDumper(const ObjectInfo &info, offset_t off, void *arg)
 {
     info.print();
     printf("  packfile: offset = 0x%x\n", off);
@@ -754,7 +778,7 @@ LocalRepo::dumpPackfile(packid_t id)
 
     printf("Dumping Packfile %d\n", id);
     Packfile::sp packfile = packfiles->getPackfile(id);
-    packfile->readEntries(packfileDumper);
+    packfile->readEntries(packfileDumper, NULL);
 }
 
 bool _timeCompare(const Commit &c1, const Commit &c2) {
