@@ -14,12 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __EVBUFWSTREAM_H__
-#define __EVBUFWSTREAM_H__
+#ifndef __EVBUFSTREAM_H__
+#define __EVBUFSTREAM_H__
 
 #include <event2/buffer.h>
 
-#include <ori/stream.h>
+#include <oriutil/stream.h>
 
 class evbufstream : public bytestream
 {
@@ -49,4 +49,5 @@ private:
     bool owner;
 };
 
-#endif
+#endif /* __EVBUFSTREAM_H__ */
+

@@ -41,7 +41,7 @@
 
 #include "tuneables.h"
 
-#include <ori/debug.h>
+#include <oriutil/debug.h>
 #include <ori/object.h>
 
 using namespace std;

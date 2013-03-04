@@ -21,9 +21,9 @@
 #include <string>
 #include <map>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/kvserializer.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/kvserializer.h>
 
 using namespace std;
 

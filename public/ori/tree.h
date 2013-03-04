@@ -25,7 +25,7 @@
 #include <map>
 #include <vector>
 
-#include "objecthash.h"
+#include <oriutil/objecthash.h>
 
 #define ATTR_FILESIZE "Ssize"
 #define ATTR_PERMS "Sperms"

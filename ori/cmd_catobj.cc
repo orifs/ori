@@ -20,7 +20,7 @@
 #include <string>
 #include <iostream>
 
-#include <ori/oriutil.h>
+#include <oriutil/oriutil.h>
 #include <ori/localrepo.h>
 
 using namespace std;

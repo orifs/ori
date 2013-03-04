@@ -34,11 +34,11 @@
 #include <string>
 #include <map>
 
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/posixexception.h>
+#include <oriutil/rwlock.h>
 #include <ori/version.h>
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/posixexception.h>
-#include <ori/rwlock.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
 #include <ori/remoterepo.h>

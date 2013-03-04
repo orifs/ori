@@ -21,7 +21,6 @@
 #include <iomanip>
 #include <iostream>
 
-#include <ori/debug.h>
 #include <ori/localrepo.h>
 
 using namespace std;

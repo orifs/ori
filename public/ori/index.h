@@ -23,7 +23,6 @@
 #include <tr1/unordered_map>
 #include <set>
 
-#include "debug.h"
 #include "object.h"
 #include "packfile.h"
 

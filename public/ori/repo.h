@@ -23,11 +23,11 @@
 #include <set>
 #include <deque>
 
-#include "dag.h"
+#include <oriutil/dag.h>
+#include <oriutil/objecthash.h>
 #include "tree.h"
 #include "commit.h"
 #include "object.h"
-#include "objecthash.h"
 
 extern ObjectHash EMPTY_COMMIT;
 extern ObjectHash EMPTYFILE_HASH;

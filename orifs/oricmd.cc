@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,11 +28,11 @@
 #include <string>
 #include <map>
 
-#include <ori/debug.h>
-#include <ori/stopwatch.h>
-#include <ori/oriutil.h>
-#include <ori/posixexception.h>
-#include <ori/rwlock.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/stopwatch.h>
+#include <oriutil/rwlock.h>
+#include <oriutil/posixexception.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
 

@@ -23,7 +23,7 @@
 #include <utility>
 #include <string>
 
-#include "objecthash.h"
+#include <oriutil/objecthash.h>
 
 class MergeState
 {

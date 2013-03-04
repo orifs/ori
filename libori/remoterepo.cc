@@ -21,7 +21,7 @@
 #include <string>
 #include <tr1/memory>
 
-#include <ori/oriutil.h>
+#include <oriutil/oriutil.h>
 #include <ori/repo.h>
 #include <ori/localrepo.h>
 #include <ori/sshrepo.h>

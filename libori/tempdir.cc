@@ -15,6 +15,7 @@
  */
 
 #include <string.h>
+#include <stdio.h>
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -24,10 +25,10 @@
 
 #include <string>
 
+#include <oriutil/oriutil.h>
+#include <oriutil/scan.h>
 #include <ori/tempdir.h>
 #include <ori/localobject.h>
-#include <ori/oriutil.h>
-#include <ori/scan.h>
 
 //#ifndef DEBUG
 #define REMOVE_TEMPDIRS

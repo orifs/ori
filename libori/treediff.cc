@@ -22,10 +22,12 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include <string>
+
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/scan.h>
 #include <ori/treediff.h>
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/scan.h>
 #include <ori/largeblob.h>
 
 using namespace std;

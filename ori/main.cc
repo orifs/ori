@@ -31,7 +31,7 @@
 using namespace std;
 
 #include <ori/version.h>
-#include <ori/debug.h>
+#include <oriutil/debug.h>
 #include <ori/repo.h>
 #include <ori/localrepo.h>
 #include <ori/server.h>

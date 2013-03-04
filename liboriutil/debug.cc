@@ -32,8 +32,8 @@
 
 #include <string>
 
-#include <ori/debug.h>
-#include <ori/mutex.h>
+#include <oriutil/debug.h>
+#include <oriutil/mutex.h>
 
 using namespace std;
 

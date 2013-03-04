@@ -41,14 +41,14 @@
 using namespace std;
 
 #include <ori/version.h>
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/scan.h>
+#include <oriutil/zeroconf.h>
 #include <ori/localrepo.h>
 #include <ori/remoterepo.h>
 #include <ori/sshrepo.h>
 #include <ori/largeblob.h>
-#include <ori/scan.h>
-#include <ori/zeroconf.h>
 
 int
 LocalRepo_Init(const std::string &rootPath)

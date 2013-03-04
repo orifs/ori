@@ -31,8 +31,8 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/packfile.h>
 #include <ori/sshclient.h>
 #include <ori/sshrepo.h>

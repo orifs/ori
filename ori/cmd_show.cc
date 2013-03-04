@@ -20,7 +20,6 @@
 #include <string>
 #include <iostream>
 
-#include <ori/debug.h>
 #include <ori/localrepo.h>
 
 #include "fuse_cmd.h"

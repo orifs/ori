@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,12 +24,12 @@
 #include <unistd.h>
 
 #include <string>
-#include <tr1/unordered_map>
 #include <set>
 #include <iostream>
+#include <tr1/unordered_map>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/object.h>
 #include <ori/index.h>
 

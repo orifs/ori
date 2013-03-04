@@ -25,7 +25,6 @@
 
 #include "repo.h"
 #include "commit.h"
-#include "debug.h"
 #include "index.h"
 
 /** Class for managing a temporary directory of objects.

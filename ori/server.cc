@@ -24,9 +24,9 @@
 #include <string>
 #include <map>
 
-#include <ori/debug.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/server.h>
-#include <ori/oriutil.h>
 #include <ori/localrepo.h>
 
 extern LocalRepo repository;

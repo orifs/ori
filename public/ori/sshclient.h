@@ -19,8 +19,8 @@
 
 #include <string>
 
+#include <oriutil/stream.h>
 #include "object.h"
-#include "stream.h"
 
 class SshClient
 {

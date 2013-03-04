@@ -16,12 +16,12 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <string>
 #include <iostream>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/oriutil.h>
 
 #include "orisyncconf.h"
 

@@ -38,11 +38,11 @@
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/zeroconf.h>
 #include <ori/localrepo.h>
-#include <ori/zeroconf.h>
-#include <evbufstream.h>
+#include "evbufstream.h"
 
 using namespace std;
 

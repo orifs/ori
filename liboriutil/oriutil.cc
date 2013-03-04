@@ -69,9 +69,9 @@
 
 #include "tuneables.h"
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/stream.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/stream.h>
 
 using namespace std;
 

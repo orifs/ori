@@ -24,7 +24,7 @@
 
 #include <string>
 
-#include <ori/oriutil.h>
+#include <oriutil/oriutil.h>
 
 #include "fuse_cmd.h"
 

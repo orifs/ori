@@ -20,9 +20,9 @@
 #include <iostream>
 #include <string>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/stream.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/stream.h>
 #include <ori/mergestate.h>
 
 using namespace std;

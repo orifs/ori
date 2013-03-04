@@ -22,10 +22,10 @@
 #include <set>
 #include <deque>
 
-#include "objecthash.h"
+#include <oriutil/objecthash.h>
+#include <oriutil/stream.h>
+#include <oriutil/lrucache.h>
 #include "object.h"
-#include "stream.h"
-#include "lrucache.h"
 
 typedef uint32_t offset_t;
 typedef uint32_t packid_t;

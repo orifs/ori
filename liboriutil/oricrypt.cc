@@ -26,9 +26,9 @@
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/oricrypt.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 
 #ifdef OPENSSL_NO_AES
 #error "OpenSSL AES support not present!"

@@ -24,7 +24,7 @@
 #include <map>
 #include <tr1/memory>
 
-#include "stream.h"
+#include <oriutil/stream.h>
 #include "objectinfo.h"
 
 

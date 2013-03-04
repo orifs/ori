@@ -17,7 +17,7 @@
 #ifndef __METADATALOG_H__
 #define __METADATALOG_H__
 
-#include "objecthash.h"
+#include <oriutil/objecthash.h>
 
 typedef int32_t refcount_t;
 typedef std::tr1::unordered_map<ObjectHash, refcount_t> RefcountMap;

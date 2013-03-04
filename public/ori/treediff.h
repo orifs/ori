@@ -21,7 +21,6 @@
 #include <vector>
 #include <tr1/unordered_map>
 
-#include "objecthash.h"
 #include "repo.h"
 #include "tree.h"
 

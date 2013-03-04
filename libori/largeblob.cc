@@ -26,10 +26,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <string>
+#include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <sstream>
-#include <string>
 
 #include <openssl/sha.h>
 
@@ -37,8 +37,8 @@
 #error "SHA256 not supported!"
 #endif
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/largeblob.h>
 
 #ifdef ORI_USE_RK

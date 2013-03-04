@@ -24,9 +24,9 @@
 #include <iostream>
 #include <iomanip>
 
-#include <ori/debug.h>
-#include <ori/scan.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/scan.h>
+#include <oriutil/oriutil.h>
 #include <ori/localrepo.h>
 
 using namespace std;

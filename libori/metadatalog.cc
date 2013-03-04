@@ -28,11 +28,11 @@
 #include <tr1/memory>
 #include <tr1/unordered_map>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/stream.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/stream.h>
+#include <oriutil/posixexception.h>
 #include <ori/metadatalog.h>
-#include <ori/posixexception.h>
 
 using namespace std;
 

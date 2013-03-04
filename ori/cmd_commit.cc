@@ -19,8 +19,8 @@
 #include <string>
 #include <iostream>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/localrepo.h>
 
 #include "fuse_cmd.h"

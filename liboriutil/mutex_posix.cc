@@ -19,7 +19,7 @@
  * All rights reserved.
  */
 
-#include <ori/mutex.h>
+#include <oriutil/mutex.h>
 
 Mutex::Mutex()
 {

@@ -22,8 +22,6 @@
 #include <string>
 #include <map>
 
-#include "debug.h"
-
 class SnapshotIndex
 {
 public:

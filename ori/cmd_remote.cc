@@ -29,9 +29,6 @@
 #include <iostream>
 #include <iomanip>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/scan.h>
 #include <ori/peer.h>
 #include <ori/localrepo.h>
 

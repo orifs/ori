@@ -20,8 +20,7 @@
 #include <string>
 #include <iostream>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
 #include <ori/localrepo.h>
 
 using namespace std;
@@ -36,29 +35,29 @@ cmd_listobj(int argc, const char *argv[])
 
     for (it = objects.begin(); it != objects.end(); it++)
     {
-	const char *type;
-	switch ((*it).type)
-	{
-	    case ObjectInfo::Commit:
-		type = "Commit";
-		break;
-	    case ObjectInfo::Tree:
-		type = "Tree";
-		break;
-	    case ObjectInfo::Blob:
-		type = "Blob";
-		break;
+        const char *type;
+        switch ((*it).type)
+        {
+            case ObjectInfo::Commit:
+                type = "Commit";
+                break;
+            case ObjectInfo::Tree:
+                type = "Tree";
+                break;
+            case ObjectInfo::Blob:
+                type = "Blob";
+                break;
             case ObjectInfo::LargeBlob:
                 type = "LargeBlob";
                 break;
-	    case ObjectInfo::Purged:
-		type = "Purged";
-		break;
-	    default:
-		cout << "Unknown object type (id " << (*it).hash.hex() << ")!" << endl;
-		PANIC();
-	}
-	cout << (*it).hash.hex() << " # " << type << endl;
+            case ObjectInfo::Purged:
+                type = "Purged";
+                break;
+            default:
+                cout << "Unknown object type (id " << (*it).hash.hex() << ")!" << endl;
+                PANIC();
+        }
+        cout << (*it).hash.hex() << " # " << type << endl;
     }
 
     return 0;

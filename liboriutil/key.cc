@@ -38,7 +38,7 @@
 #error "SHA256 not supported!"
 #endif
 
-#include <ori/key.h>
+#include <oriutil/key.h>
 
 using namespace std;
 

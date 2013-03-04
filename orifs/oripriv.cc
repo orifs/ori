@@ -32,10 +32,10 @@
 #include <map>
 #include <algorithm>
 
-#include <ori/scan.h>
-#include <ori/posixexception.h>
-#include <ori/rwlock.h>
-#include <ori/objecthash.h>
+#include <oriutil/scan.h>
+#include <oriutil/posixexception.h>
+#include <oriutil/rwlock.h>
+#include <oriutil/objecthash.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
 

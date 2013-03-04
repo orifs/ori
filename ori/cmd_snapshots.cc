@@ -23,8 +23,6 @@
 #include <string>
 #include <iostream>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
 #include <ori/localrepo.h>
 
 using namespace std;
@@ -39,7 +37,7 @@ cmd_snapshots(int argc, const char *argv[])
 
     for (it = snapshots.begin(); it != snapshots.end(); it++)
     {
-	cout << (*it).first << endl;
+        cout << (*it).first << endl;
     }
 
     return 0;

@@ -28,8 +28,6 @@
 #include <iostream>
 #include <tr1/memory>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
 #include <ori/localrepo.h>
 #include <ori/remoterepo.h>
 #include <ori/treediff.h>

@@ -22,8 +22,8 @@
 #include <iostream>
 #include <tr1/memory>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/repo.h>
 #include <ori/localrepo.h>
 #include <ori/httpclient.h>

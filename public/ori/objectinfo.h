@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include "objecthash.h"
+#include <oriutil/objecthash.h>
 
 struct ObjectInfo {
     enum Type { Null, Commit, Tree, Blob, LargeBlob, Purged };

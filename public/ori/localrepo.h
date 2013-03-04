@@ -19,12 +19,13 @@
 
 #include <tr1/memory>
 
+#include <oriutil/lrucache.h>
+#include <oriutil/key.h>
 #include "repo.h"
 #include "index.h"
 #include "snapshotindex.h"
 #include "peer.h"
 #include "metadatalog.h"
-#include "lrucache.h"
 #include "localobject.h"
 #include "treediff.h"
 #include "tempdir.h"
@@ -32,7 +33,6 @@
 #include "remoterepo.h"
 #include "packfile.h"
 #include "mergestate.h"
-#include "key.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/.ori/version"

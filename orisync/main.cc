@@ -24,8 +24,8 @@
 
 using namespace std;
 
+#include <oriutil/debug.h>
 #include <ori/version.h>
-#include <ori/debug.h>
 #include <ori/localrepo.h>
 
 /********************************************************************

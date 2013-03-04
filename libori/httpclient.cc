@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,8 +25,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include <iostream>
-
 #include <event2/event.h>
 #include <event2/dns.h>
 #include <event2/http.h>
@@ -34,8 +32,11 @@
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <string>
+#include <iostream>
+
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/httpclient.h>
 #include <ori/httprepo.h>
 

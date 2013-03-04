@@ -28,8 +28,8 @@
 
 #include <string>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/sshclient.h>
 #include <ori/sshrepo.h>
 

@@ -20,8 +20,6 @@
 #include <string>
 #include <iostream>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
 #include <ori/localrepo.h>
 
 #include "orisyncconf.h"

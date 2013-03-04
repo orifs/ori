@@ -20,9 +20,8 @@
 #include <string>
 #include <iostream>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/key.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/key.h>
 #include <ori/localrepo.h>
 
 using namespace std;

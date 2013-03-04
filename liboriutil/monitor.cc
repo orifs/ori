@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <ori/monitor.h>
+#include <oriutil/monitor.h>
 
 Monitor::Monitor(Mutex &l)
     : lock(l)

@@ -23,10 +23,10 @@
 
 #include <sys/stat.h>
 
-#include <ori/debug.h>
-#include <ori/oriutil.h>
-#include <ori/dag.h>
-#include <ori/objecthash.h>
+#include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
+#include <oriutil/dag.h>
+#include <oriutil/objecthash.h>
 #include <ori/localrepo.h>
 
 using namespace std;
