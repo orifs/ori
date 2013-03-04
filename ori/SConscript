@@ -64,7 +64,7 @@ if sys.platform != "darwin":
 if sys.platform == "linux2":
     libs += ['uuid', 'resolv']
 
-env.Append( LIBS = libs )
+env.Append(LIBS = libs)
 
 env.Program("ori", src)
 

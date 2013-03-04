@@ -26,6 +26,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include <string>
+
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/sshclient.h>

@@ -11,6 +11,9 @@ src = [
 ]
 
 libs = [
+        "ori",
+        "oriutil",
+        "fastlz",
         "crypto",
         ]
 

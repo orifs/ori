@@ -1,8 +1,23 @@
-// TODO: maybe rename this logging.cc?
+/*
+ * Copyright (c) 2012 Stanford University
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR(S) DISCLAIM ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL AUTHORS BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
 
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <time.h>
@@ -15,9 +30,12 @@
 #include <mach/clock.h>
 #endif
 
+#include <string>
+
 #include <ori/debug.h>
-#include <ori/localrepo.h>
 #include <ori/mutex.h>
+
+using namespace std;
 
 /********************************************************************
  *
@@ -46,7 +64,7 @@ get_timespec(struct timespec *ts)
 #endif
 }
 
-#define MAX_LOG		512
+#define MAX_LOG         512
 
 void
 ori_log(int level, const char *fmt, ...)
@@ -57,28 +75,28 @@ ori_log(int level, const char *fmt, ...)
 
 #if !defined(DEBUG)
     if (level > LEVEL_MSG)
-	return;
+        return;
 #endif /* DEBUG */
 
     get_timespec(&ts);
     strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
 
     switch (level) {
-	case LEVEL_ERR:
-	    strncat(buf, "ERROR: ", MAX_LOG);
-	    break;
-	case LEVEL_MSG:
-	    strncat(buf, "MESSAGE: ", MAX_LOG);
-	    break;
-	case LEVEL_LOG:
-	    strncat(buf, "LOG: ", MAX_LOG);
-	    break;
-	case LEVEL_DBG:
-	    strncat(buf, "DEBUG: ", MAX_LOG);
-	    break;
-	case LEVEL_VRB:
-	    strncat(buf, "VERBOSE: ", MAX_LOG);
-	    break;
+        case LEVEL_ERR:
+            strncat(buf, "ERROR: ", MAX_LOG);
+            break;
+        case LEVEL_MSG:
+            strncat(buf, "MESSAGE: ", MAX_LOG);
+            break;
+        case LEVEL_LOG:
+            strncat(buf, "LOG: ", MAX_LOG);
+            break;
+        case LEVEL_DBG:
+            strncat(buf, "DEBUG: ", MAX_LOG);
+            break;
+        case LEVEL_VRB:
+            strncat(buf, "VERBOSE: ", MAX_LOG);
+            break;
     }
 
     size_t off = strlen(buf);
@@ -91,14 +109,14 @@ ori_log(int level, const char *fmt, ...)
 
 #ifdef DEBUG
     if (level <= LEVEL_MSG)
-	fprintf(stderr, "%s", buf);
+        fprintf(stderr, "%s", buf);
 #else /* RELEASE or PERF */
     if (level <= LEVEL_ERR)
-	fprintf(stderr, "%s", buf);
+        fprintf(stderr, "%s", buf);
 #endif
 
     if (logfd != -1)
-	write(logfd, buf, strlen(buf));
+        write(logfd, buf, strlen(buf));
 
     // XXX: May cause performance issues disable on release builds
 #ifdef DEBUG
@@ -108,10 +126,9 @@ ori_log(int level, const char *fmt, ...)
     lock_log.unlock();
 }
 
-int ori_open_log(LocalRepo *repo) {
+int ori_open_log(const string &logPath) {
     logfd = -1;
 
-    std::string logPath = repo->getLogPath();
     if (logPath == "")
         return -1;
 

@@ -245,6 +245,7 @@ if env["WITH_LIBS3"] == "1":
 
 SConscript('libdiffmerge/SConscript', variant_dir='build/libdiffmerge')
 SConscript('libori/SConscript', variant_dir='build/libori')
+SConscript('liboriutil/SConscript', variant_dir='build/liboriutil')
 
 # Set compile options for binaries
 env.Append(LIBS = ["diffmerge", "z"],
@@ -253,6 +254,10 @@ env.Append(LIBS = ["diffmerge", "z"],
 env.Append(LIBS = ["ori"],
            CPPPATH = ['#public'],
            LIBPATH = ['#build/libori'])
+
+env.Append(LIBS = ["oriutil"],
+           CPPPATH = ['#public'],
+           LIBPATH = ['#build/liboriutil'])
 
 if env["WITH_LIBS3"] == "1":
     SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')

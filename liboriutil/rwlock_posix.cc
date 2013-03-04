@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#include <string>
+
 #include <ori/debug.h>
 #include <ori/oriutil.h>
 #include <ori/rwlock.h>

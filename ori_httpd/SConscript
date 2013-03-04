@@ -24,9 +24,9 @@ else:
 if sys.platform == "linux2":
     libs += ['uuid', 'resolv']
 
-env.Append(LIBPATH = [ "#build/libori", "$LIBPATH" ],
+env.Append(LIBPATH = [ "#build/libori", "#build/liboriutil", "$LIBPATH" ],
             LIBS = libs,
-            CPPPATH = [ "#libori", "$CPPPATH", "#include", "#" ])
+            CPPPATH = [ "$CPPPATH", "#include", "#" ])
 
 env.Program("ori_httpd", src)
 

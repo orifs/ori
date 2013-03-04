@@ -13,6 +13,9 @@ src = [
 ]
 
 libs = [
+        "oriutil",
+        "ori",
+        "fastlz",
         "crypto",
         "stdc++",
         "event_core",

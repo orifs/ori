@@ -481,7 +481,7 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    ori_open_log(&repository);
+    ori_open_log(repository.getLogPath());
     LOG("libevent %s", event_get_version());
 
     Httpd_main(port);

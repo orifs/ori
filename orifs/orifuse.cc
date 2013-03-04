@@ -31,6 +31,9 @@
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 
+#include <string>
+#include <map>
+
 #include <ori/version.h>
 #include <ori/debug.h>
 #include <ori/oriutil.h>
@@ -39,9 +42,6 @@
 #include <ori/commit.h>
 #include <ori/localrepo.h>
 #include <ori/remoterepo.h>
-
-#include <string>
-#include <map>
 
 #include "logging.h"
 #include "oricmd.h"

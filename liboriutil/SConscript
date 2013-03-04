@@ -1,0 +1,29 @@
+import os
+
+Import('env')
+
+src = [
+    "dag.cc",
+    "debug.cc",
+    "key.cc",
+    "kvserializer.cc",
+    "lrucache.cc",
+    "monitor.cc",
+    "objecthash.cc",
+    "oricrypt.cc",
+    "oriutil.cc",
+    "rwlock.cc",
+    "stopwatch.cc",
+    "stream.cc",
+]
+
+if os.name == 'posix':
+    src += ['mutex_posix.cc', 'rwlock_posix.cc', 'thread_posix.cc']
+else:
+    print "Error unsupported operating system!"
+
+if env["WITH_MDNS"] == "1":
+    src.append("zeroconf.cc")
+
+env.StaticLibrary("oriutil", src)
+

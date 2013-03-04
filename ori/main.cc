@@ -553,7 +553,7 @@ main(int argc, char *argv[])
     {
         if (repository.open()) {
             has_repo = true;
-            if (ori_open_log(&repository) < 0) {
+            if (ori_open_log(repository.getLogPath()) < 0) {
                 printf("Couldn't open log!\n");
                 exit(1);
             }

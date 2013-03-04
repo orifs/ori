@@ -24,7 +24,7 @@
 void ori_log(int level, const char *fmt, ...)
     __attribute__((format(printf, 2, 3)));
 class LocalRepo;
-int ori_open_log(LocalRepo *repo);
+int ori_open_log(const std::string &logPath);
 
 #define LEVEL_ERR	0 /* Error */
 #define LEVEL_MSG	1 /* Stdout */

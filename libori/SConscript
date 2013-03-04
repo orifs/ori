@@ -4,46 +4,26 @@ Import('env')
 
 src = [
     "commit.cc",
-    "dag.cc",
-    "debug.cc",
     "httpclient.cc",
     "httprepo.cc",
     "index.cc",
-    "key.cc",
-    "kvserializer.cc",
     "largeblob.cc",
     "localobject.cc",
     "localrepo.cc",
-    "lrucache.cc",
     "mergestate.cc",
-    "monitor.cc",
+    "metadatalog.cc",
     "object.cc",
+    "packfile.cc",
     "peer.cc",
     "repo.cc",
     "remoterepo.cc",
     "snapshotindex.cc",
     "sshclient.cc",
     "sshrepo.cc",
-    "stopwatch.cc",
-    "stream.cc",
     "tempdir.cc",
     "tree.cc",
     "treediff.cc",
-    "metadatalog.cc",
-    "oricrypt.cc",
-    "oriutil.cc",
-    "objecthash.cc",
-    "packfile.cc",
-    "rwlock.cc",
 ]
-
-if os.name == 'posix':
-    src += ['mutex_posix.cc', 'rwlock_posix.cc', 'thread_posix.cc']
-else:
-    print "Error unsupported operating system!"
-
-if env["WITH_MDNS"] == "1":
-    src.append("zeroconf.cc")
 
 env.StaticLibrary("ori", src)
 
