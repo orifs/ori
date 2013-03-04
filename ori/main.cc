@@ -114,7 +114,6 @@ int cmd_mdnsserver(int argc, const char *argv[]); // Debug
 #endif
 int cmd_httpclient(int argc, const char *argv[]); // Debug
 static int cmd_help(int argc, const char *argv[]);
-static int cmd_selftest(int argc, const char *argv[]);
 
 static Cmd commands[] = {
     {
@@ -443,13 +442,6 @@ static Cmd commands[] = {
         CMD_DEBUG,
     },
 #endif
-    {
-        "selftest",
-        "Built-in unit tests (DEBUG)",
-        cmd_selftest,
-        NULL,
-        CMD_DEBUG,
-    },
     { NULL, NULL, NULL, NULL }
 };
 
@@ -465,31 +457,6 @@ lookupcmd(const char *cmd)
     }
 
     return -1;
-}
-
-int OriUtil_selfTest(void);
-int LRUCache_selfTest(void);
-int KVSerializer_selfTest(void);
-int OriCrypt_selfTest(void);
-int Key_selfTest(void);
-
-static int
-cmd_selftest(int argc, const char *argv[])
-{
-    int result = 0;
-    result += OriUtil_selfTest();
-    result += LRUCache_selfTest();
-    result += KVSerializer_selfTest();
-    result += OriCrypt_selfTest();
-    //result += Key_selfTest();
-
-    if (result == 0) {
-        cout << "All tests passed!" << endl;
-    } else {
-        cout << -result << " errors occurred." << endl;
-    }
-
-    return 0;
 }
 
 static int
