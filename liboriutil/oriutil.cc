@@ -864,6 +864,13 @@ OriUtil_selfTest(void)
     bs->read(&b, 1);
     ASSERT(b == 'e');
 
+    ASSERT(Util_DeleteFile("test.a") == 0);
+    ASSERT(Util_FileExists("test.a") == false);
+    ASSERT(Util_DeleteFile("test.c") == 0);
+    ASSERT(Util_FileExists("test.c") == false);
+    ASSERT(Util_DeleteFile("test.orig") == 0);
+    ASSERT(Util_FileExists("test.orig") == false);
+
     // Tests for string utilities
     std::string path("hello.txt");
     ASSERT(StrUtil_Basename(path) == "hello.txt");
