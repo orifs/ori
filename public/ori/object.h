@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,18 +25,7 @@
 #include <tr1/memory>
 
 #include <oriutil/stream.h>
-#include "objectinfo.h"
-
-
-#define ORI_OBJECT_TYPESIZE	    4
-#define ORI_OBJECT_FLAGSSIZE	4
-#define ORI_OBJECT_SIZE		    8
-#define ORI_OBJECT_HDRSIZE	    24
-
-
-#define ORI_FLAG_COMPRESSED 0x0001
-
-#define ORI_FLAG_DEFAULT ORI_FLAG_COMPRESSED
+#include <oriutil/objectinfo.h>
 
 class Object {
 public:

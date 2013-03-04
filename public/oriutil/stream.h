@@ -30,8 +30,7 @@
 
 #include "oriutil.h"
 #include "objecthash.h"
-// XXX: Remove this dependency
-#include "../ori/objectinfo.h"
+#include "objectinfo.h"
 
 class basestream
 {

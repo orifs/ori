@@ -10,6 +10,7 @@ src = [
     "lrucache.cc",
     "monitor.cc",
     "objecthash.cc",
+    "objectinfo.cc",
     "oricrypt.cc",
     "oriutil.cc",
     "rwlock.cc",
