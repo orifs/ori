@@ -513,20 +513,6 @@ Util_HashFile(const string &path)
 
 #endif
 
-string
-Util_RawHashToHex(const ObjectHash &hash)
-{
-    stringstream rval;
-
-    // Convert into string.
-    for (size_t i = 0; i < ObjectHash::SIZE; i++)
-    {
-        rval << hex << setw(2) << setfill('0') << (int)hash.hash[i];
-    }
-
-    return rval.str();
-}
-
 vector<string>
 Util_PathToVector(const string &path)
 {

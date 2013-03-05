@@ -46,7 +46,6 @@ int Util_RenameFile(const std::string &from, const std::string &to);
 ObjectHash Util_HashString(const std::string &str);
 ObjectHash Util_HashBlob(const uint8_t *data, size_t len);
 ObjectHash Util_HashFile(const std::string &path);
-std::string Util_RawHashToHex(const ObjectHash &hash);
 
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
