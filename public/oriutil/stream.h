@@ -69,6 +69,8 @@ public:
 
     /// Read Pascal-style string (1 byte length)
     int readPStr(std::string &str);
+    /// Read Pascal-style string (2 byte length)
+    int readLPStr(std::string &str);
 
     /// Read ObjectHash
     void readHash(ObjectHash &out);
@@ -202,6 +204,7 @@ public:
     // High-level functions
     void copyFrom(bytestream *bs);
     int writePStr(const std::string &str);
+    int writeLPStr(const std::string &str);
     void writeHash(const ObjectHash &hash);
     int writeInfo(const ObjectInfo &info);
 

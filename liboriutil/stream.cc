@@ -165,6 +165,21 @@ int bytestream::readPStr(std::string &out)
     }
 }
 
+int bytestream::readLPStr(std::string &out)
+{
+    try {
+        uint16_t len = readInt<uint16_t>();
+        out.resize(len);
+        bool success = readExact((uint8_t*)&out[0], len);
+        if (!success) return 0;
+        return len;
+    }
+    catch (std::ios_base::failure &e)
+    {
+        return 0;
+    }
+}
+
 void bytestream::readHash(ObjectHash &out)
 {
     readExact((uint8_t*)out.hash, ObjectHash::SIZE);
@@ -510,6 +525,20 @@ int bytewstream::writePStr(const std::string &str)
     assert(str.size() <= 255);
     uint8_t size = str.size();
     if (writeInt(size) != sizeof(uint8_t)) {
+        return -1;
+    }
+    ssize_t status = write(str.data(), size);
+    if (status < 0) {
+        return -1;
+    }
+    return status + 1;
+}
+
+int bytewstream::writeLPStr(const std::string &str)
+{
+    assert(str.size() <= 65535);
+    uint16_t size = str.size();
+    if (writeInt(size) != sizeof(uint16_t)) {
         return -1;
     }
     ssize_t status = write(str.data(), size);
