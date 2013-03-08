@@ -114,8 +114,9 @@ Verify that the repository is consistent.
 
 .SH KEY MANAGEMENT COMMANDS
 This section provides a list of key management commands that help a repository 
-maintain a list of trusted keys and set the signing key for commits.  Will 
-these commands function the feature itself is not functional for this release.
+maintain a list of trusted keys and set the signing key for commits.  Commits 
+are automatically signed if a private key is set.  The \fBlog\fR command 
+displays whether a signature has been verified in Commit objects.
 .TP
 \fBaddkey\fR \fIKEYFILE\fR
 Add a signing key to the repository.
