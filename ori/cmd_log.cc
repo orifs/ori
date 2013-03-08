@@ -50,14 +50,28 @@ cmd_log(int argc, const char *argv[])
 
         ctime_r(&timeVal, timeStr);
 
-        cout << "Commit:  " << commit.hex() << endl;
-        cout << "Parents: " << (p.first.isEmpty() ? "" : p.first.hex())
-                            << " "
-                            << (p.second.isEmpty() ? "" : p.second.hex()) << endl;
-        cout << "Tree:    " << c.getTree().hex() << endl;
-        cout << "Author:  " << c.getUser() << endl;
-        cout << "Date:    " << timeStr;
-        cout << "Status:  " << repository.getMetadata().getMeta(commit,
+        cout << "Commit:    " << commit.hex() << endl;
+        cout << "Parents:   " << (p.first.isEmpty() ? "" : p.first.hex())
+                              << " "
+                              << (p.second.isEmpty() ? "" : p.second.hex())
+                              << endl;
+        cout << "Tree:      " << c.getTree().hex() << endl;
+        cout << "Author:    " << c.getUser() << endl;
+        cout << "Date:      " << timeStr;
+        if (c.hasSignature()) {
+            map<string, PublicKey> keys = repository.getPublicKeys();
+            map<string, PublicKey>::iterator it;
+
+            for (it = keys.begin(); it != keys.end(); it++) {
+                if (c.verify(it->second)) {
+                    cout << "Signature: Verified (" << it->first << ")" << endl;
+                    goto foundKey;
+                }
+            }
+            cout << "Signature: Unverified" << endl;
+        }
+foundKey:
+        cout << "Status:    " << repository.getMetadata().getMeta(commit,
                 "status") << endl;
         if (!c.getGraftCommit().isEmpty()) {
             cout << "Graft:   from " << c.getGraftRepo().first << ":"

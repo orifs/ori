@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -40,7 +40,7 @@ public:
     std::string getName();
     std::string getEmail();
     std::string computeDigest();
-    bool verify(const std::string &blob, const std::string &digest);
+    bool verify(const std::string &blob, const std::string &digest) const;
 private:
     X509 *x509;
     EVP_PKEY *key;
@@ -52,7 +52,7 @@ public:
     PrivateKey();
     ~PrivateKey();
     void open(const std::string &keyfile);
-    std::string sign(const std::string &blob);
+    std::string sign(const std::string &blob) const;
 private:
     EVP_PKEY *key;
 };
@@ -62,9 +62,9 @@ class KeyType
 public:
     enum KeyType_t
     {
-	Invalid,
-	Public,
-	Private,
+        Invalid,
+        Public,
+        Private,
     };
 };
 

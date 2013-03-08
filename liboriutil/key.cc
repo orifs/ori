@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -52,7 +52,7 @@ PublicKey::PublicKey()
 PublicKey::~PublicKey()
 {
     if (key)
-	EVP_PKEY_free(key);
+        EVP_PKEY_free(key);
 }
 
 void
@@ -60,21 +60,21 @@ PublicKey::open(const string &keyfile)
 {
     FILE *f = fopen(keyfile.c_str(), "r");
     if (f == NULL)
-	throw exception();
+        throw exception();
 
     x509 = PEM_read_X509(f, NULL, NULL, NULL);
     fclose(f);
     if (x509 == NULL)
     {
-	// Error while attempting to read public key!
-	throw exception();
+        // Error while attempting to read public key!
+        throw exception();
     }
 
     key = X509_get_pubkey(x509);
     if (key == NULL)
     {
-	// Cannot get public key from X509!
-	throw exception();
+        // Cannot get public key from X509!
+        throw exception();
     }
 
     return;
@@ -114,13 +114,13 @@ PublicKey::computeDigest()
 
     if (!X509_digest(x509, EVP_sha1(), md, &n))
     {
-	throw exception();
+        throw exception();
     }
 
     // Generate hex string
     for (unsigned int i = 0; i < n; i++)
     {
-	rval << hex << setw(2) << setfill('0') << (int)md[i];
+        rval << hex << setw(2) << setfill('0') << (int)md[i];
     }
 
     return rval.str();
@@ -128,7 +128,7 @@ PublicKey::computeDigest()
 
 bool
 PublicKey::verify(const string &blob,
-		  const string &digest)
+                  const string &digest) const
 {
     int err;
     EVP_MD_CTX ctx;
@@ -138,13 +138,12 @@ PublicKey::verify(const string &blob,
     EVP_VerifyInit(&ctx, EVP_sha256());
     EVP_VerifyUpdate(&ctx, blob.data(), blob.size());
     err = EVP_VerifyFinal(&ctx, (const unsigned char *)digest.data(),
-			  digest.length(), key);
-    EVP_PKEY_free(key);
+                          digest.length(), key);
     if (err != 1)
     {
-	ERR_print_errors_fp(stderr);
-	throw exception();
-	return false;
+        ERR_print_errors_fp(stderr);
+        throw exception();
+        return false;
     }
 
     // Prepend 8-byte public key digest
@@ -160,7 +159,7 @@ PrivateKey::PrivateKey()
 PrivateKey::~PrivateKey()
 {
     if (key)
-	EVP_PKEY_free(key);
+        EVP_PKEY_free(key);
 }
 
 void
@@ -168,20 +167,20 @@ PrivateKey::open(const string &keyfile)
 {
     FILE *f = fopen(keyfile.c_str(), "r");
     if (f == NULL)
-	throw exception();
+        throw exception();
     key = PEM_read_PrivateKey(f, NULL, NULL, NULL);
     fclose(f);
     if (key == NULL)
     {
-	ERR_print_errors_fp(stderr);
-	throw exception();
+        ERR_print_errors_fp(stderr);
+        throw exception();
     }
 
     return;
 }
 
 string
-PrivateKey::sign(const string &blob)
+PrivateKey::sign(const string &blob) const
 {
     int err;
     unsigned int sigLen = SIGBUF_LEN;
@@ -191,11 +190,10 @@ PrivateKey::sign(const string &blob)
     EVP_SignInit(&ctx, EVP_sha256());
     EVP_SignUpdate(&ctx, blob.data(), blob.size());
     err = EVP_SignFinal(&ctx, (unsigned char *)sigBuf, &sigLen, key);
-    EVP_PKEY_free(key);
     if (err != 1)
     {
-	ERR_print_errors_fp(stderr);
-	throw exception();
+        ERR_print_errors_fp(stderr);
+        throw exception();
     }
 
     // XXX: Prepend 8-byte public key digest
@@ -214,15 +212,15 @@ Key_GetType(const string &keyfile)
     FILE *f = fopen(keyfile.c_str(), "r");
     if (f == NULL)
     {
-	// File open failed
-	return KeyType::Invalid;
+        // File open failed
+        return KeyType::Invalid;
     }
 
     key = PEM_read_PrivateKey(f, NULL, NULL, NULL);
     if (key != NULL) {
-	fclose(f);
-	EVP_PKEY_free(key);
-	return KeyType::Private;
+        fclose(f);
+        EVP_PKEY_free(key);
+        return KeyType::Private;
     }
 
     rewind(f);
@@ -231,14 +229,14 @@ Key_GetType(const string &keyfile)
     fclose(f);
     if (x509 == NULL)
     {
-	// Error while attempting to read public key!
-	return KeyType::Invalid;
+        // Error while attempting to read public key!
+        return KeyType::Invalid;
     }
 
     key = X509_get_pubkey(x509);
     if (key != NULL)
     {
-	return KeyType::Public;
+        return KeyType::Public;
     }
 
     // Error while attempting to extract the public key!

@@ -1289,6 +1289,15 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
 	c.setParents(getHead());
     }
 
+    try {
+        // XXX: Support password for private keys
+        PrivateKey pkey = getPrivateKey();
+
+        c.sign(pkey);
+    } catch (exception &e) {
+        // No private key
+    }
+
     ObjectHash commitHash = addCommit(c);
 
     // Backrefs

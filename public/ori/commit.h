@@ -23,7 +23,12 @@
 #include <utility>
 #include <string>
 
+#include <oriutil/key.h>
 #include <oriutil/objecthash.h>
+
+#define COMMIT_VERSION                  0x00000001
+#define COMMIT_FLAG_IS_GRAFT            0x00000001
+#define COMMIT_FLAG_HAS_SIGNATURE       0x00000002
 
 class Commit
 {
@@ -42,23 +47,36 @@ public:
     std::string getSnapshot() const;
     void setTime(time_t t);
     time_t getTime() const;
+
+    // Digital Signatures
+    // XXX: Support retrieving key fingerprint
+    void sign(const PrivateKey &key);
+    bool verify(const PublicKey &key);
+    bool hasSignature();
+
+    // Grafting
     void setGraft(const std::string &repo,
-		  const std::string &path,
-		  const ObjectHash &commidId);
+                  const std::string &path,
+                  const ObjectHash &commidId);
     std::pair<std::string, std::string> getGraftRepo() const;
     ObjectHash getGraftCommit() const;
-    std::string getBlob() const;
+
+    // Serialization
+    std::string getBlob(bool withSignature = true) const;
     void fromBlob(const std::string &blob);
 
     ObjectHash hash() const; // TODO: cache this
     void print() const;
 private:
+    uint32_t version;
+    uint32_t flags;
     std::pair<ObjectHash, ObjectHash> parents;
     std::string message;
     ObjectHash treeObjId;
     std::string user;
     std::string snapshotName;
     time_t date;
+    std::string signature;
     std::string graftRepo;
     std::string graftPath;
     ObjectHash graftCommitId;
