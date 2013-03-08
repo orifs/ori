@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -41,7 +41,9 @@
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/zeroconf.h>
+#include <ori/version.h>
 #include <ori/localrepo.h>
+
 #include "evbufstream.h"
 
 using namespace std;
@@ -433,6 +435,8 @@ Httpd_main(uint16_t port)
 void
 usage()
 {
+    printf("Ori Distributed Personal File System (%s) - HTTP Server\n\n",
+            ORI_VERSION_STR);
     cout << "usage: ori_httpd [options] <repository path>" << endl << endl;
     cout << "Options:" << endl;
     cout << "-p port    Set the HTTP port number (default 8080)" << endl;
@@ -478,6 +482,7 @@ main(int argc, char *argv[])
     }
     if (!success) {
         cout << "Could not open the local repository!" << endl;
+        cout << "Run ori_httpd -h for help" << endl;
         return 1;
     }
 
