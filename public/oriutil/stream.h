@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -53,12 +53,19 @@ class bytestream : public basestream
 public:
     typedef std::auto_ptr<bytestream> ap;
 
-    bytestream() {}
+    bytestream() : typedStream(false) {}
     virtual ~bytestream() {};
 
     virtual bool ended() = 0;
     virtual size_t read(uint8_t *buf, size_t n) = 0;
     virtual size_t sizeHint() const = 0;
+
+    /// Enable typed stream
+    void enableTypes();
+    /// Disable typed stream
+    void disableTypes();
+    /// Is typed stream?
+    bool isTyped();
 
     bool readExact(uint8_t *buf, size_t n);
 
@@ -85,6 +92,8 @@ public:
     uint16_t readUInt16();
     uint32_t readUInt32();
     uint64_t readUInt64();
+protected:
+    bool typedStream;
 };
 
 class strstream : public bytestream
@@ -196,10 +205,17 @@ class bytewstream : public basestream
 public:
     typedef std::auto_ptr<bytewstream> ap;
 
-    bytewstream() {}
+    bytewstream() : typedStream(false) {}
     virtual ~bytewstream() {}
 
     virtual ssize_t write(const void *, size_t) = 0;
+
+    /// Enable typed stream
+    void enableTypes();
+    /// Disable typed stream
+    void disableTypes();
+    /// Is typed stream?
+    bool isTyped();
 
     // High-level functions
     void copyFrom(bytestream *bs);
@@ -217,6 +233,8 @@ public:
     int writeUInt16(uint16_t n);
     int writeUInt32(uint32_t n);
     int writeUInt64(uint64_t n);
+protected:
+    bool typedStream;
 };
 
 

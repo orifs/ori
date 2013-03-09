@@ -39,6 +39,7 @@
 #include "tuneables.h"
 
 #include <oriutil/debug.h>
+#include <oriutil/posixexception.h>
 #include <oriutil/stream.h>
 
 using namespace std;
@@ -90,6 +91,21 @@ bool basestream::inheritError(basestream *bs) {
 /*
  * bytestream
  */
+void bytestream::enableTypes()
+{
+    typedStream = true;
+}
+
+void bytestream::disableTypes()
+{
+    typedStream = false;
+}
+
+bool bytestream::isTyped()
+{
+    return typedStream;
+}
+
 bool bytestream::readExact(uint8_t *buf, size_t n)
 {
     size_t total = 0;
@@ -175,6 +191,15 @@ retryWrite:
 int bytestream::readPStr(std::string &out)
 {
     try {
+        if (typedStream) {
+            uint8_t type;
+            bool success = readExact(&type, 1);
+            if (!success) return 0;
+            if (type != STREAM_TYPE_PSTR) {
+                ASSERT(false);
+                throw exception();
+            }
+        }
         uint8_t len = readUInt8();
         out.resize(len);
         bool success = readExact((uint8_t*)&out[0], len);
@@ -190,6 +215,15 @@ int bytestream::readPStr(std::string &out)
 int bytestream::readLPStr(std::string &out)
 {
     try {
+        if (typedStream) {
+            uint8_t type;
+            bool success = readExact(&type, 1);
+            if (!success) return 0;
+            if (type != STREAM_TYPE_LPSTR) {
+                ASSERT(false);
+                throw exception();
+            }
+        }
         uint16_t len = readUInt16();
         out.resize(len);
         bool success = readExact((uint8_t*)&out[0], len);
@@ -204,12 +238,30 @@ int bytestream::readLPStr(std::string &out)
 
 void bytestream::readHash(ObjectHash &out)
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_OBJHASH) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     readExact((uint8_t*)out.hash, ObjectHash::SIZE);
     assert(!out.isEmpty());
 }
 
 void bytestream::readInfo(ObjectInfo &out)
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_OBJINFO) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     std::string info_str(ObjectInfo::SIZE, '\0');
     readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
     out.fromString(info_str);
@@ -218,6 +270,15 @@ void bytestream::readInfo(ObjectInfo &out)
 int8_t
 bytestream::readInt8()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_INT8) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     int8_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int8_t));
     ASSERT(success);
@@ -227,6 +288,15 @@ bytestream::readInt8()
 int16_t
 bytestream::readInt16()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_INT16) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     int16_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int16_t));
     ASSERT(success);
@@ -236,6 +306,15 @@ bytestream::readInt16()
 int32_t
 bytestream::readInt32()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_INT32) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     int32_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int32_t));
     ASSERT(success);
@@ -245,6 +324,15 @@ bytestream::readInt32()
 int64_t
 bytestream::readInt64()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_INT64) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     int64_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int64_t));
     ASSERT(success);
@@ -254,6 +342,15 @@ bytestream::readInt64()
 uint8_t
 bytestream::readUInt8()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_UINT8) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     uint8_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint8_t));
     ASSERT(success);
@@ -263,6 +360,15 @@ bytestream::readUInt8()
 uint16_t
 bytestream::readUInt16()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_UINT16) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     uint16_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint16_t));
     ASSERT(success);
@@ -272,6 +378,15 @@ bytestream::readUInt16()
 uint32_t
 bytestream::readUInt32()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_UINT32) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     uint32_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint32_t));
     ASSERT(success);
@@ -281,6 +396,15 @@ bytestream::readUInt32()
 uint64_t
 bytestream::readUInt64()
 {
+    if (typedStream) {
+        uint8_t type;
+        bool success = readExact(&type, 1);
+        if (!success) throw exception();
+        if (type != STREAM_TYPE_UINT64) {
+            ASSERT(false);
+            throw exception();
+        }
+    }
     uint64_t rval;
     bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint64_t));
     ASSERT(success);
@@ -596,6 +720,21 @@ size_t zipstream::inputConsumed() const {
 /*
  * bytewstream
  */
+void bytewstream::enableTypes()
+{
+    typedStream = true;
+}
+
+void bytewstream::disableTypes()
+{
+    typedStream = false;
+}
+
+bool bytewstream::isTyped()
+{
+    return typedStream;
+}
+
 void bytewstream::copyFrom(bytestream *bs)
 {
     size_t totalWritten = 0;
@@ -618,6 +757,11 @@ int bytewstream::writePStr(const std::string &str)
 {
     assert(str.size() <= 255);
     uint8_t size = str.size();
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_PSTR;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     if (writeUInt8(size) != sizeof(uint8_t)) {
         return -1;
     }
@@ -632,6 +776,11 @@ int bytewstream::writeLPStr(const std::string &str)
 {
     assert(str.size() <= 65535);
     uint16_t size = str.size();
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_LPSTR;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     if (writeUInt16(size) != sizeof(uint16_t)) {
         return -1;
     }
@@ -645,6 +794,11 @@ int bytewstream::writeLPStr(const std::string &str)
 void bytewstream::writeHash(const ObjectHash &hash)
 {
     assert(!hash.isEmpty());
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_OBJHASH;
+        if (write(&type, 1) != 1)
+            throw PosixException(errno);;
+    }
     write(hash.hash, ObjectHash::SIZE);
 }
 
@@ -652,12 +806,22 @@ int bytewstream::writeInfo(const ObjectInfo &info)
 {
     std::string info_str = info.toString();
     assert(info_str.size() == ObjectInfo::SIZE);
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_OBJINFO;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return write(&info_str[0], ObjectInfo::SIZE);
 }
 
 int
 bytewstream::writeInt8(int8_t n)
 {
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_INT8;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&n, sizeof(int8_t));
 }
 
@@ -665,6 +829,11 @@ int
 bytewstream::writeInt16(int16_t n)
 {
     int16_t val = htobe16(n);
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_INT16;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&val, sizeof(int16_t));
 }
 
@@ -672,6 +841,11 @@ int
 bytewstream::writeInt32(int32_t n)
 {
     int32_t val = htobe32(n);
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_INT32;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&val, sizeof(int32_t));
 }
 
@@ -679,12 +853,22 @@ int
 bytewstream::writeInt64(int64_t n)
 {
     int64_t val = htobe64(n);
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_INT64;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&val, sizeof(int64_t));
 }
 
 int
 bytewstream::writeUInt8(uint8_t n)
 {
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_UINT8;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&n, sizeof(uint8_t));
 }
 
@@ -692,6 +876,11 @@ int
 bytewstream::writeUInt16(uint16_t n)
 {
     uint16_t val = htobe16(n);
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_UINT16;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&val, sizeof(uint16_t));
 }
 
@@ -699,6 +888,11 @@ int
 bytewstream::writeUInt32(uint32_t n)
 {
     uint32_t val = htobe32(n);
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_UINT32;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&val, sizeof(uint32_t));
 }
 
@@ -706,6 +900,11 @@ int
 bytewstream::writeUInt64(uint64_t n)
 {
     uint64_t val = htobe64(n);
+    if (typedStream) {
+        uint8_t type = STREAM_TYPE_UINT64;
+        if (write(&type, 1) != 1)
+            return -1;
+    }
     return (int)write(&val, sizeof(uint64_t));
 }
 
