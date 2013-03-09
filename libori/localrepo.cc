@@ -1126,7 +1126,8 @@ LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
         pf->transmit(bs, (*it).second);
     }
 
-    bs->writeInt<numobjs_t>(0);
+    /* Write (numobjs_t)0 */
+    bs->writeUInt32(0);
 }
 
 void

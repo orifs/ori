@@ -307,14 +307,14 @@ LargeBlob::getBlob()
     ss.writeHash(totalHash);
 
     size_t num = parts.size();
-    ss.writeInt(num);
+    ss.writeUInt64(num);
 
     for (map<uint64_t, LBlobEntry>::iterator it = parts.begin();
             it != parts.end();
             it++)
     {
         ss.writeHash((*it).second.hash);
-        ss.writeInt((*it).second.length);
+        ss.writeUInt16((*it).second.length);
     }
 
     return ss.str();
@@ -326,13 +326,13 @@ LargeBlob::fromBlob(const string &blob)
     strstream ss(blob);
     ss.readHash(totalHash);
 
-    size_t num = ss.readInt<size_t>();
+    size_t num = ss.readUInt64();
 
     uint64_t off = 0;
     for (size_t i = 0; i < num; i++) {
         ObjectHash hash;
         ss.readHash(hash);
-        size_t length = ss.readInt<uint16_t>();
+        size_t length = ss.readUInt16();
 
         parts.insert(make_pair(off, LBlobEntry(hash, length)));
 

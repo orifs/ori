@@ -111,7 +111,7 @@ HttpRepo::getObject(const ObjectHash &id)
     objs.push_back(id);
     bytestream::ap bs(getObjects(objs));
     if (bs.get()) {
-        numobjs_t num = bs->readInt<numobjs_t>();
+        numobjs_t num = bs->readUInt32();
         ASSERT(num == 1);
 
         std::string info_str(ObjectInfo::SIZE, '\0');
@@ -119,11 +119,11 @@ HttpRepo::getObject(const ObjectHash &id)
         ObjectInfo info;
         info.fromString(info_str);
 
-        uint32_t objSize = bs->readInt<uint32_t>();
+        uint32_t objSize = bs->readUInt32();
         std::string payload(objSize, '\0');
         bs->readExact((uint8_t*)&payload[0], objSize);
 
-        num = bs->readInt<numobjs_t>();
+        num = bs->readUInt32();
         ASSERT(num == 0);
 
 #ifdef ENABLE_COMPRESSION
@@ -176,7 +176,7 @@ HttpRepo::hasObject(const ObjectHash &id) {
 bytestream *
 HttpRepo::getObjects(const ObjectHashVec &vec) {
     strwstream ss;
-    ss.writeInt<uint32_t>(vec.size());
+    ss.writeUInt32(vec.size());
     for (size_t i = 0; i < vec.size(); i++) {
         ss.writeHash(vec[i]);
     }
@@ -201,7 +201,7 @@ HttpRepo::listObjects()
     strstream ss(index);
 
     if (status == 0) {
-        uint64_t num = ss.readInt<uint64_t>();
+        uint64_t num = ss.readUInt64();
         for (size_t i = 0; i < num; i++) {
             ObjectInfo info;
             ss.readInfo(info);
@@ -233,7 +233,7 @@ HttpRepo::listCommits()
     strstream ss(index);
 
     if (status == 0) {
-        uint32_t num = ss.readInt<uint32_t>();
+        uint32_t num = ss.readUInt32();
         for (size_t i = 0; i < num; i++) {
             std::string commit_str;
             ss.readPStr(commit_str);

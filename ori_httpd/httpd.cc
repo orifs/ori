@@ -165,7 +165,7 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
     evbufwstream es;
 
     std::set<ObjectInfo> objects = repository.listObjects();
-    es.writeInt<uint64_t>(objects.size());
+    es.writeUInt64(objects.size());
     for (std::set<ObjectInfo>::iterator it = objects.begin();
             it != objects.end();
             it++) {
@@ -191,7 +191,7 @@ Httpd_getCommits(struct evhttp_request *req, void *arg)
     evbufwstream es;
 
     vector<Commit> commits = repository.listCommits();
-    es.writeInt<uint32_t>(commits.size());
+    es.writeUInt32(commits.size());
     for (size_t i = 0; i < commits.size(); i++) {
         std::string blob = commits[i].getBlob();
         if (es.writePStr(blob) < 0) {
@@ -321,7 +321,7 @@ Httpd_getObjs(struct evhttp_request *req, void *arg)
     evbuffer *buf = evhttp_request_get_input_buffer(req);
     evbufstream in(buf);
 
-    uint32_t numObjs = in.readInt<uint32_t>();
+    uint32_t numObjs = in.readUInt32();
     fprintf(stderr, "Transmitting %u objects\n", numObjs);
     std::vector<ObjectHash> objs;
     for (size_t i = 0; i < numObjs; i++) {

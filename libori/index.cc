@@ -75,7 +75,7 @@ Index::open(const string &indexFile)
     }
 
     if (sb.st_size % TOTAL_ENTRYSIZE != 0) {
-	// XXX: Attempt truncating last entries
+        // XXX: Attempt truncating last entries
         cout << "Index seems dirty please rebuild it!" << endl;
         ::close(fd);
         fd = -1;
@@ -96,9 +96,9 @@ Index::open(const string &indexFile)
         entry.info.fromString(info_str);
 
         strstream ss(entry_str, ObjectInfo::SIZE);
-        entry.offset = ss.readInt<offset_t>();
-        entry.packed_size = ss.readInt<uint32_t>();
-        entry.packfile = ss.readInt<uint32_t>();
+        entry.offset = ss.readUInt32();
+        entry.packed_size = ss.readUInt32();
+        entry.packfile = ss.readUInt32();
 
 
         std::vector<uint8_t> storedChecksum(16);
@@ -106,12 +106,12 @@ Index::open(const string &indexFile)
         ObjectHash computedChecksum =
             Util_HashString(entry_str.substr(0, IndexEntry::SIZE));
         if (memcmp(&storedChecksum[0], computedChecksum.hash, 16) != 0) {
-	    // XXX: Attempt truncating last entries
-	    cout << "Index has corrupt entries please rebuild it!" << endl;
-	    ::close(fd);
-	    fd = -1;
-	    exit(1);
-	    return;
+            // XXX: Attempt truncating last entries
+            cout << "Index has corrupt entries please rebuild it!" << endl;
+            ::close(fd);
+            fd = -1;
+            exit(1);
+            return;
         }
 
         index[entry.info.hash] = entry;
@@ -244,9 +244,9 @@ Index::_writeEntry(const IndexEntry &e)
     string info_str = e.info.toString();
     ss.write(info_str.data(), info_str.size());
 
-    ss.writeInt(e.offset);
-    ss.writeInt(e.packed_size);
-    ss.writeInt(e.packfile);
+    ss.writeUInt32(e.offset);
+    ss.writeUInt32(e.packed_size);
+    ss.writeUInt32(e.packfile);
 
     ObjectHash checksum = Util_HashString(ss.str());
     ss.write(checksum.hash, 16);
@@ -255,3 +255,4 @@ Index::_writeEntry(const IndexEntry &e)
     ASSERT(final.size() == TOTAL_ENTRYSIZE);
     write(fd, final.data(), final.size());
 }
+

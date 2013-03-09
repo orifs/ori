@@ -127,15 +127,15 @@ MetadataLog::open(const string &filename)
         readSoFar += nbytes;
 
         strstream ss(packet);
-        uint32_t num_rc = ss.readInt<uint32_t>();
-        uint32_t num_md = ss.readInt<uint32_t>();
+        uint32_t num_rc = ss.readUInt32();
+        uint32_t num_md = ss.readUInt32();
 
         //fprintf(stderr, "Reading %u refcount entries\n", num_rc);
         for (size_t i = 0; i < num_rc; i++) {
             ObjectHash hash;
             ss.readHash(hash);
 
-            refcount_t refcount = ss.readInt<refcount_t>();
+            refcount_t refcount = ss.readInt32();
             refcounts[hash] = refcount;
         }
 
@@ -144,7 +144,7 @@ MetadataLog::open(const string &filename)
             ObjectHash hash;
             ss.readHash(hash);
 
-            uint32_t num_mde = ss.readInt<uint32_t>();
+            uint32_t num_mde = ss.readUInt32();
             for (size_t ix_mde = 0; ix_mde < num_mde; ix_mde++) {
                 string key, value;
                 ss.readPStr(key);
@@ -237,8 +237,8 @@ MetadataLog::commit(MdTransaction *tr)
     //write(fd, &num, sizeof(uint32_t));
 
     strwstream ws(36*num_rc + 8);
-    ws.writeInt(num_rc);
-    ws.writeInt(num_md);
+    ws.writeUInt32(num_rc);
+    ws.writeUInt32(num_md);
 
     for (RefcountMap::iterator it = tr->counts.begin();
             it != tr->counts.end();
@@ -251,7 +251,7 @@ MetadataLog::commit(MdTransaction *tr)
         ASSERT(final_count >= 0);
 
         refcounts[hash] = final_count;
-        ws.writeInt(final_count);
+        ws.writeInt32(final_count);
     }
 
     for (MetadataMap::iterator it = tr->metadata.begin();
@@ -262,7 +262,7 @@ MetadataLog::commit(MdTransaction *tr)
 
         ws.writeHash(hash);
         uint32_t num_mde = (*it).second.size();
-        ws.writeInt(num_mde);
+        ws.writeUInt32(num_mde);
 
         for (ObjMetadata::iterator mit =
                 (*it).second.begin();

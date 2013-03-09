@@ -69,8 +69,8 @@ ObjectInfo::toString() const
     }
     ss.write(type_str, ORI_OBJECT_TYPESIZE);
     ss.writeHash(hash);
-    ss.writeInt<uint32_t>(flags);
-    ss.writeInt<uint32_t>(payload_size);
+    ss.writeUInt32(flags);
+    ss.writeUInt32(payload_size);
 
     ASSERT(ss.str().size() == SIZE);
 
@@ -89,8 +89,8 @@ ObjectInfo::fromString(const std::string &info)
     ASSERT(type != Null);
 
     ss.readHash(hash);
-    flags = ss.readInt<uint32_t>();
-    payload_size = ss.readInt<uint32_t>();
+    flags = ss.readUInt32();
+    payload_size = ss.readUInt32();
 }
 
 bool

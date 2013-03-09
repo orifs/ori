@@ -102,7 +102,8 @@ Object::sp SshRepo::getObject(const ObjectHash &id)
     objs.push_back(id);
     bytestream::ap bs(getObjects(objs));
     if (bs.get()) {
-        numobjs_t num = bs->readInt<numobjs_t>();
+        ASSERT(sizeof(numobjs_t) == sizeof(uint32_t));
+        numobjs_t num = bs->readUInt32();
         ASSERT(num == 1);
 
         std::string info_str(ObjectInfo::SIZE, '\0');
@@ -110,11 +111,12 @@ Object::sp SshRepo::getObject(const ObjectHash &id)
         ObjectInfo info;
         info.fromString(info_str);
 
-        uint32_t objSize = bs->readInt<uint32_t>();
+        uint32_t objSize = bs->readUInt32();
         std::string payload(objSize, '\0');
         bs->readExact((uint8_t*)&payload[0], objSize);
 
-        num = bs->readInt<numobjs_t>();
+        ASSERT(sizeof(numobjs_t) == sizeof(uint32_t));
+        num = bs->readUInt32();
         ASSERT(num == 0);
 
 #ifdef ENABLE_COMPRESSION
@@ -139,7 +141,7 @@ SshRepo::getObjects(const ObjectHashVec &objs)
     client->sendCommand("readobjs");
 
     strwstream ss;
-    ss.writeInt<uint32_t>(objs.size());
+    ss.writeUInt32(objs.size());
     for (size_t i = 0; i < objs.size(); i++) {
         ss.writeHash(objs[i]);
     }
@@ -183,7 +185,7 @@ std::set<ObjectInfo> SshRepo::listObjects()
     bool ok = client->respIsOK();
     bytestream::ap bs(client->getStream());
     if (ok) {
-        uint64_t num = bs->readInt<uint64_t>();
+        uint64_t num = bs->readUInt64();
         for (size_t i = 0; i < num; i++) {
             ObjectInfo info;
             bs->readInfo(info);
@@ -210,7 +212,7 @@ std::vector<Commit> SshRepo::listCommits()
     bool ok = client->respIsOK();
     bytestream::ap bs(client->getStream());
     if (ok) {
-        uint32_t num = bs->readInt<uint32_t>();
+        uint32_t num = bs->readUInt32();
         for (size_t i = 0; i < num; i++) {
             std::string commit_str;
             bs->readPStr(commit_str);

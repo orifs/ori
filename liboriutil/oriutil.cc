@@ -887,27 +887,30 @@ OriUtil_selfTest(void)
     uint64_t nums[] = {129, 76, 13892, 45, 16777217, 14877928, UINT32_MAX * 4,
         24879878};
     strwstream out_stream;
-    out_stream.writeInt<uint8_t>(nums[0]);
-    out_stream.writeInt<int8_t>(nums[1]);
+    out_stream.writeUInt8(nums[0]);
+    out_stream.writeInt8(nums[1]);
     out_stream.writePStr("hello, world!");
-    out_stream.writeInt<uint16_t>(nums[2]);
-    out_stream.writeInt<int16_t>(nums[3]);
-    out_stream.writeInt<uint64_t>(nums[6]);
-    out_stream.writeInt<int64_t>(nums[7]);
-    out_stream.writeInt<uint32_t>(nums[4]);
-    out_stream.writeInt<int32_t>(nums[5]);
+    out_stream.writeLPStr("hello, world!");
+    out_stream.writeUInt16(nums[2]);
+    out_stream.writeInt16(nums[3]);
+    out_stream.writeUInt32(nums[4]);
+    out_stream.writeInt32(nums[5]);
+    out_stream.writeUInt64(nums[6]);
+    out_stream.writeInt64(nums[7]);
 
     strstream in_stream(out_stream.str());
-    ASSERT(in_stream.readInt<uint8_t>() == nums[0]);
-    ASSERT(in_stream.readInt<int8_t>() == (int8_t)nums[1]);
+    ASSERT(in_stream.readUInt8() == nums[0]);
+    ASSERT(in_stream.readInt8() == (int8_t)nums[1]);
     in_stream.readPStr(testStr);
     ASSERT(testStr == "hello, world!");
-    ASSERT(in_stream.readInt<uint16_t>() == nums[2]);
-    ASSERT(in_stream.readInt<int16_t>() == (int16_t)nums[3]);
-    ASSERT(in_stream.readInt<uint64_t>() == nums[6]);
-    ASSERT(in_stream.readInt<int64_t>() == (int64_t)nums[7]);
-    ASSERT(in_stream.readInt<uint32_t>() == nums[4]);
-    ASSERT(in_stream.readInt<int32_t>() == (int32_t)nums[5]);
+    in_stream.readLPStr(testStr);
+    ASSERT(testStr == "hello, world!");
+    ASSERT(in_stream.readUInt16() == nums[2]);
+    ASSERT(in_stream.readInt16() == (int16_t)nums[3]);
+    ASSERT(in_stream.readUInt32() == nums[4]);
+    ASSERT(in_stream.readInt32() == (int32_t)nums[5]);
+    ASSERT(in_stream.readUInt64() == nums[6]);
+    ASSERT(in_stream.readInt64() == (int64_t)nums[7]);
 
     return 0;
 }

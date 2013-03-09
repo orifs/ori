@@ -187,11 +187,13 @@ Packfile::commit(PfTransaction *t, Index *idx)
     offset_t off = fileSize + sizeof(numobjs_t) + headers_size;
     
     strwstream headers_ss;
-    headers_ss.writeInt<numobjs_t>(t->infos.size());
+    ASSERT(sizeof(numobjs_t) == sizeof(uint32_t));
+    headers_ss.writeUInt32(t->infos.size());
     for (size_t i = 0; i < t->infos.size(); i++) {
         headers_ss.write(t->infos[i].toString().data(), ObjectInfo::SIZE);
-        headers_ss.writeInt<uint32_t>(t->payloads[i].size());
-        headers_ss.writeInt<offset_t>(off);
+        headers_ss.writeUInt32(t->payloads[i].size());
+        ASSERT(sizeof(uint32_t) == sizeof(offset_t));
+        headers_ss.writeUInt32(off);
 
         offsets.push_back(off);
         off += t->payloads[i].size();
@@ -247,7 +249,7 @@ bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)
 
         numobjs_t num;
         try {
-            num = fs.readInt<numobjs_t>();
+            num = fs.readUInt32();
         }
         catch (ios_base::failure &e) {
             break;
@@ -259,8 +261,8 @@ bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)
         for (size_t i = 0; i < num; i++) {
             ObjectInfo info;
             fs.readInfo(info);
-            uint32_t ssize = fs.readInt<uint32_t>();
-            offset_t off = fs.readInt<uint32_t>();
+            uint32_t ssize = fs.readUInt32();
+            offset_t off = fs.readUInt32();
             (void)off;
 
             storedSizes[i] = ssize;
@@ -312,16 +314,18 @@ Packfile::readEntries(ReadEntryCb cb, void *arg)
     
     while (groupOffset < fileSize) {
         fdstream readStream(fd, groupOffset);
-        numobjs_t objs = readStream.readInt<numobjs_t>();
+        numobjs_t objs = readStream.readUInt32();
 
         for (size_t i = 0; i < objs; i++) {
             ObjectInfo info;
             uint32_t size;
             offset_t off;
 
+            ASSERT(sizeof(offset_t) == sizeof(uint32_t));
+
             readStream.readInfo(info);
-            size = readStream.readInt<uint32_t>();
-            off = readStream.readInt<offset_t>();
+            size = readStream.readUInt32();
+            off = readStream.readUInt32();
             cb(info, off, arg);
 
             ASSERT(groupOffset <= size + off);
@@ -408,12 +412,13 @@ Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
 
         string info_str = objects[i].info.toString();
         infos_ss.write(info_str.data(), info_str.size());
-        infos_ss.writeInt<uint32_t>(objects[i].packed_size);
+        infos_ss.writeUInt32(objects[i].packed_size);
 
         //fprintf(stderr, "Obj %lu packed size %u\n", i, objects[i].packed_size);
     }
 
-    bs->writeInt<numobjs_t>(totalObjs);
+    ASSERT(sizeof(numobjs_t) == sizeof(uint32_t));
+    bs->writeUInt32(totalObjs);
     bs->write(infos_ss.str().data(), infos_ss.str().size());
 
     // Transmit objects
@@ -441,7 +446,8 @@ Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
 bool
 Packfile::receive(bytestream *bs, Index *idx)
 {
-    numobjs_t num = bs->readInt<numobjs_t>();
+    ASSERT(sizeof(uint32_t) == sizeof(numobjs_t));
+    numobjs_t num = bs->readUInt32();
     if (num == 0) return false;
 
     lseek(fd, 0, SEEK_END);
@@ -450,7 +456,8 @@ Packfile::receive(bytestream *bs, Index *idx)
     vector<size_t> obj_sizes;
     
     strwstream headers_ss;
-    headers_ss.writeInt<numobjs_t>(num);
+    ASSERT(sizeof(offset_t) == sizeof(numobjs_t));
+    headers_ss.writeUInt32(num);
     for (size_t i = 0; i < num; i++) {
         string info_str(ObjectInfo::SIZE, '\0');
         bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
@@ -458,12 +465,13 @@ Packfile::receive(bytestream *bs, Index *idx)
         info.fromString(info_str);
         //info.print();
 
-        uint32_t obj_size = bs->readInt<uint32_t>();
+        uint32_t obj_size = bs->readUInt32();
         obj_sizes.push_back(obj_size);
 
         headers_ss.write(info_str.data(), ObjectInfo::SIZE);
-        headers_ss.writeInt<uint32_t>(obj_size);
-        headers_ss.writeInt<offset_t>(off);
+        headers_ss.writeUInt32(obj_size);
+        ASSERT(sizeof(offset_t) == sizeof(uint32_t));
+        headers_ss.writeUInt32(off);
 
         IndexEntry ie = {info, off, obj_size, packid};
         idx->updateEntry(info.hash, ie);
@@ -604,10 +612,11 @@ PackfileManager::_loadFreeList()
     freeList.clear();
 
     fdstream fs(fd, 0);
-    uint32_t numEntries = fs.readInt<uint32_t>();
+    uint32_t numEntries = fs.readUInt32();
     if (fs.error()) return false;
     for (size_t i = 0; i < numEntries; i++) {
-        packid_t id = fs.readInt<packid_t>();
+        ASSERT(sizeof(packid_t) == sizeof(uint32_t));
+        packid_t id = fs.readUInt32();
         if (fs.error()) return false;
         freeList.push_back(id);
     }
@@ -621,10 +630,11 @@ void
 PackfileManager::_writeFreeList()
 {
     strwstream ss;
-    ss.writeInt<uint32_t>(freeList.size());
+    ss.writeUInt32(freeList.size());
     for (size_t i = 0; i < freeList.size(); i++) {
         packid_t id = freeList[i];
-        ss.writeInt(id);
+        ASSERT(sizeof(uint32_t) == sizeof(packid_t));
+        ss.writeUInt32(id);
     }
 
     string freeListPath = rootPath + PFMGR_FREELIST;

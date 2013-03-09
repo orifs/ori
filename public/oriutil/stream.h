@@ -77,14 +77,14 @@ public:
     void readInfo(ObjectInfo &out);
 
     /// Reads an integer with proper byte-swapping (TODO)
-    template <typename T>
-    T readInt() {
-        T rval;
-        bool success UNUSED = readExact((uint8_t*)&rval, sizeof(T));
-        assert(success);
-        //std::cerr << "Read int " << (ssize_t)rval << std::endl;
-        return rval;
-    }
+    int8_t readInt8();
+    int16_t readInt16();
+    int32_t readInt32();
+    int64_t readInt64();
+    uint8_t readUInt8();
+    uint16_t readUInt16();
+    uint32_t readUInt32();
+    uint64_t readUInt64();
 };
 
 class strstream : public bytestream
@@ -209,11 +209,14 @@ public:
     int writeInfo(const ObjectInfo &info);
 
     /// Writes an integer with proper byte-swapping (TODO)
-    template <typename T>
-    int writeInt(const T &n) {
-        //std::cerr << "Wrote int " << (ssize_t)n << std::endl;
-        return (int)write(&n, sizeof(T));
-    }
+    int writeInt8(int8_t n);
+    int writeInt16(int16_t n);
+    int writeInt32(int32_t n);
+    int writeInt64(int64_t n);
+    int writeUInt8(uint8_t n);
+    int writeUInt16(uint16_t n);
+    int writeUInt32(uint32_t n);
+    int writeUInt64(uint64_t n);
 };
 
 

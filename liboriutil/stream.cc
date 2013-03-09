@@ -24,6 +24,12 @@
 #include <errno.h>
 #include <fcntl.h>
 
+#if defined(__FreeBSD__) || defined(__APPLE__)
+#include <sys/endian.h>
+#elif defined(__linux__)
+#include <endian.h>
+#endif
+
 #ifdef ORI_USE_FASTLZ
 #include "fastlz.h"
 #endif /* ORI_USE_FASTLZ */
@@ -38,6 +44,22 @@
 using namespace std;
 
 #define USE_EXCEPTIONS 1
+
+/*
+ * Stream Types
+ */
+#define STREAM_TYPE_INT8        0xA0
+#define STREAM_TYPE_INT16       0xA1
+#define STREAM_TYPE_INT32       0xA2
+#define STREAM_TYPE_INT64       0xA3
+#define STREAM_TYPE_UINT8       0xA4
+#define STREAM_TYPE_UINT16      0xA5
+#define STREAM_TYPE_UINT32      0xA6
+#define STREAM_TYPE_UINT64      0xA7
+#define STREAM_TYPE_PSTR        0xA8
+#define STREAM_TYPE_LPSTR       0xA9
+#define STREAM_TYPE_OBJHASH     0xAA
+#define STREAM_TYPE_OBJINFO     0xAB
 
 /*
  * basestream
@@ -153,7 +175,7 @@ retryWrite:
 int bytestream::readPStr(std::string &out)
 {
     try {
-        uint8_t len = readInt<uint8_t>();
+        uint8_t len = readUInt8();
         out.resize(len);
         bool success = readExact((uint8_t*)&out[0], len);
         if (!success) return 0;
@@ -168,7 +190,7 @@ int bytestream::readPStr(std::string &out)
 int bytestream::readLPStr(std::string &out)
 {
     try {
-        uint16_t len = readInt<uint16_t>();
+        uint16_t len = readUInt16();
         out.resize(len);
         bool success = readExact((uint8_t*)&out[0], len);
         if (!success) return 0;
@@ -191,6 +213,78 @@ void bytestream::readInfo(ObjectInfo &out)
     std::string info_str(ObjectInfo::SIZE, '\0');
     readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
     out.fromString(info_str);
+}
+
+int8_t
+bytestream::readInt8()
+{
+    int8_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int8_t));
+    ASSERT(success);
+    return rval;
+}
+
+int16_t
+bytestream::readInt16()
+{
+    int16_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int16_t));
+    ASSERT(success);
+    return be16toh(rval);
+}
+
+int32_t
+bytestream::readInt32()
+{
+    int32_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int32_t));
+    ASSERT(success);
+    return be32toh(rval);
+}
+
+int64_t
+bytestream::readInt64()
+{
+    int64_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(int64_t));
+    ASSERT(success);
+    return be64toh(rval);
+}
+
+uint8_t
+bytestream::readUInt8()
+{
+    uint8_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint8_t));
+    ASSERT(success);
+    return rval;
+}
+
+uint16_t
+bytestream::readUInt16()
+{
+    uint16_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint16_t));
+    ASSERT(success);
+    return be16toh(rval);
+}
+
+uint32_t
+bytestream::readUInt32()
+{
+    uint32_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint32_t));
+    ASSERT(success);
+    return be32toh(rval);
+}
+
+uint64_t
+bytestream::readUInt64()
+{
+    uint64_t rval;
+    bool success UNUSED = readExact((uint8_t*)&rval, sizeof(uint64_t));
+    ASSERT(success);
+    return be64toh(rval);
 }
 
 
@@ -524,7 +618,7 @@ int bytewstream::writePStr(const std::string &str)
 {
     assert(str.size() <= 255);
     uint8_t size = str.size();
-    if (writeInt(size) != sizeof(uint8_t)) {
+    if (writeUInt8(size) != sizeof(uint8_t)) {
         return -1;
     }
     ssize_t status = write(str.data(), size);
@@ -538,7 +632,7 @@ int bytewstream::writeLPStr(const std::string &str)
 {
     assert(str.size() <= 65535);
     uint16_t size = str.size();
-    if (writeInt(size) != sizeof(uint16_t)) {
+    if (writeUInt16(size) != sizeof(uint16_t)) {
         return -1;
     }
     ssize_t status = write(str.data(), size);
@@ -561,6 +655,59 @@ int bytewstream::writeInfo(const ObjectInfo &info)
     return write(&info_str[0], ObjectInfo::SIZE);
 }
 
+int
+bytewstream::writeInt8(int8_t n)
+{
+    return (int)write(&n, sizeof(int8_t));
+}
+
+int
+bytewstream::writeInt16(int16_t n)
+{
+    int16_t val = htobe16(n);
+    return (int)write(&val, sizeof(int16_t));
+}
+
+int
+bytewstream::writeInt32(int32_t n)
+{
+    int32_t val = htobe32(n);
+    return (int)write(&val, sizeof(int32_t));
+}
+
+int
+bytewstream::writeInt64(int64_t n)
+{
+    int64_t val = htobe64(n);
+    return (int)write(&val, sizeof(int64_t));
+}
+
+int
+bytewstream::writeUInt8(uint8_t n)
+{
+    return (int)write(&n, sizeof(uint8_t));
+}
+
+int
+bytewstream::writeUInt16(uint16_t n)
+{
+    uint16_t val = htobe16(n);
+    return (int)write(&val, sizeof(uint16_t));
+}
+
+int
+bytewstream::writeUInt32(uint32_t n)
+{
+    uint32_t val = htobe32(n);
+    return (int)write(&val, sizeof(uint32_t));
+}
+
+int
+bytewstream::writeUInt64(uint64_t n)
+{
+    uint64_t val = htobe64(n);
+    return (int)write(&val, sizeof(uint64_t));
+}
 
 /*
  * strwstream

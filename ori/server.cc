@@ -41,7 +41,7 @@ SshServer::SshServer()
 void printError(const std::string &what)
 {
     fdwstream fs(STDOUT_FILENO);
-    fs.writeInt<uint8_t>(ERROR);
+    fs.writeUInt8(ERROR);
     fs.writePStr(what);
     fflush(stdout);
 }
@@ -96,17 +96,17 @@ void SshServer::serve() {
 void SshServer::cmd_hello()
 {
     fdwstream fs(STDOUT_FILENO);
-    fs.writeInt<uint8_t>(OK);
+    fs.writeUInt8(OK);
     fs.writePStr(ORI_PROTO_VERSION);
 }
 
 void SshServer::cmd_listObjs()
 {
     fdwstream fs(STDOUT_FILENO);
-    fs.writeInt<uint8_t>(OK);
+    fs.writeUInt8(OK);
 
     std::set<ObjectInfo> objects = repository.listObjects();
-    fs.writeInt<uint64_t>(objects.size());
+    fs.writeUInt64(objects.size());
     for (std::set<ObjectInfo>::iterator it = objects.begin();
             it != objects.end();
             it++) {
@@ -117,10 +117,10 @@ void SshServer::cmd_listObjs()
 void SshServer::cmd_listCommits()
 {
     fdwstream fs(STDOUT_FILENO);
-    fs.writeInt<uint8_t>(OK);
+    fs.writeUInt8(OK);
 
     const std::vector<Commit> &commits = repository.listCommits();
-    fs.writeInt<uint32_t>(commits.size());
+    fs.writeUInt32(commits.size());
     for (size_t i = 0; i < commits.size(); i++) {
         std::string blob = commits[i].getBlob();
         fs.writePStr(blob);
@@ -132,7 +132,7 @@ void SshServer::cmd_readObjs()
     // Read object ids
     fprintf(stderr, "Reading object IDs\n");
     fdstream in(STDIN_FILENO, -1);
-    uint32_t numObjs = in.readInt<uint32_t>();
+    uint32_t numObjs = in.readUInt32();
     fprintf(stderr, "Transmitting %u objects\n", numObjs);
     std::vector<ObjectHash> objs;
     for (size_t i = 0; i < numObjs; i++) {
@@ -142,14 +142,14 @@ void SshServer::cmd_readObjs()
     }
 
     fdwstream fs(STDOUT_FILENO);
-    fs.writeInt<uint8_t>(OK);
+    fs.writeUInt8(OK);
     repository.transmit(&fs, objs);
 }
 
 void SshServer::cmd_getHead()
 {
     fdwstream fs(STDOUT_FILENO);
-    fs.writeInt<uint8_t>(OK);
+    fs.writeUInt8(OK);
     fs.writeHash(repository.getHead());
 }
 

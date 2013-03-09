@@ -62,11 +62,11 @@ MergeState::getBlob() const
     strwstream ss;
 
     if (!parents.second.isEmpty()) {
-        ss.writeInt<uint8_t>(2);
+        ss.writeUInt8(2);
         ss.writeHash(parents.first);
         ss.writeHash(parents.second);
     } else {
-	PANIC(); // Both parents must be set
+        PANIC(); // Both parents must be set
     }
 
     return ss.str();
@@ -77,12 +77,12 @@ MergeState::fromBlob(const string &blob)
 {
     strstream ss(blob);
 
-    uint8_t numParents = ss.readInt<uint8_t>();
+    uint8_t numParents = ss.readUInt8();
     if (numParents == 2) {
         ss.readHash(parents.first);
         ss.readHash(parents.second);
     } else {
-	PANIC(); // Both parents must be set
+        PANIC(); // Both parents must be set
     }
 
     // Verify that everything is set!

@@ -179,27 +179,27 @@ Commit::getBlob(bool withSignature) const
 {
     strwstream ss;
 
-    ss.writeInt<uint32_t>(version);
+    ss.writeUInt32(version);
     if (withSignature) {
-        ss.writeInt<uint32_t>(flags);
+        ss.writeUInt32(flags);
     } else {
-        ss.writeInt<uint32_t>(flags & ~COMMIT_FLAG_HAS_SIGNATURE);
+        ss.writeUInt32(flags & ~COMMIT_FLAG_HAS_SIGNATURE);
     }
 
     ss.writeHash(treeObjId);
     if (!parents.second.isEmpty()) {
-        ss.writeInt<uint8_t>(2);
+        ss.writeUInt8(2);
         ss.writeHash(parents.first);
         ss.writeHash(parents.second);
     } else if (!parents.first.isEmpty()) {
-        ss.writeInt<uint8_t>(1);
+        ss.writeUInt8(1);
         ss.writeHash(parents.first);
     } else {
-        ss.writeInt<uint8_t>(0);
+        ss.writeUInt8(0);
     }
 
     ss.writePStr(user);
-    ss.writeInt<uint64_t>(date);
+    ss.writeUInt64(date);
     ss.writePStr(snapshotName);
 
     if (flags & COMMIT_FLAG_IS_GRAFT) {
@@ -228,8 +228,8 @@ Commit::fromBlob(const string &blob)
 {
     strstream ss(blob);
 
-    version = ss.readInt<uint32_t>();
-    flags = ss.readInt<uint32_t>();
+    version = ss.readUInt32();
+    flags = ss.readUInt32();
 
     if (version > COMMIT_VERSION) {
         cout << "Unsupported Commit object version: " << hex << setw(8)
@@ -238,7 +238,7 @@ Commit::fromBlob(const string &blob)
     }
 
     ss.readHash(treeObjId);
-    uint8_t numParents = ss.readInt<uint8_t>();
+    uint8_t numParents = ss.readUInt8();
     if (numParents == 2) {
         ss.readHash(parents.first);
         ss.readHash(parents.second);
@@ -247,7 +247,7 @@ Commit::fromBlob(const string &blob)
     }
 
     ss.readPStr(user);
-    date = ss.readInt<uint64_t>();
+    date = ss.readUInt64();
     ss.readPStr(snapshotName);
 
     if (flags & COMMIT_FLAG_IS_GRAFT) {

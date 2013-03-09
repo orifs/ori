@@ -182,7 +182,7 @@ Tree::getBlob() const
 {
     strwstream ss;
     size_t size = tree.size();
-    ss.writeInt<uint64_t>(size);
+    ss.writeUInt64(size);
 
     for (map<string, TreeEntry>::const_iterator it = tree.begin();
             it != tree.end();
@@ -205,7 +205,7 @@ Tree::getBlob() const
         ss.writePStr((*it).first);
         
         size_t asize = te.attrs.attrs.size();
-        ss.writeInt<uint32_t>(asize);
+        ss.writeUInt32(asize);
         for (AttrMap::const_iterator ait = te.attrs.attrs.begin();
                 ait != te.attrs.attrs.end();
                 ait++) {
@@ -221,7 +221,7 @@ void
 Tree::fromBlob(const string &blob)
 {
     strstream ss(blob);
-    size_t num_entries = ss.readInt<uint64_t>();
+    size_t num_entries = ss.readUInt64();
     
     for (size_t i = 0; i < num_entries; i++) {
         TreeEntry entry;
@@ -248,7 +248,7 @@ Tree::fromBlob(const string &blob)
         int status = ss.readPStr(path);
         ASSERT(status > 0);
 
-        size_t num_attrs = ss.readInt<uint32_t>();
+        size_t num_attrs = ss.readUInt32();
         for (size_t i_a = 0; i_a < num_attrs; i_a++) {
             string attrName, attrValue;
 
