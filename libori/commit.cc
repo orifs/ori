@@ -179,6 +179,8 @@ Commit::getBlob(bool withSignature) const
 {
     strwstream ss;
 
+    ss.enableTypes();
+
     ss.writeUInt32(version);
     if (withSignature) {
         ss.writeUInt32(flags);
@@ -227,6 +229,8 @@ void
 Commit::fromBlob(const string &blob)
 {
     strstream ss(blob);
+
+    ss.enableTypes();
 
     version = ss.readUInt32();
     flags = ss.readUInt32();
