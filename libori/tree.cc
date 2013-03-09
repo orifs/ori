@@ -181,6 +181,7 @@ const string
 Tree::getBlob() const
 {
     strwstream ss;
+    ss.enableTypes();
     size_t size = tree.size();
     ss.writeUInt64(size);
 
@@ -221,6 +222,7 @@ void
 Tree::fromBlob(const string &blob)
 {
     strstream ss(blob);
+    ss.enableTypes();
     size_t num_entries = ss.readUInt64();
     
     for (size_t i = 0; i < num_entries; i++) {
