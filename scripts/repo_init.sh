@@ -1,6 +1,6 @@
-# Run a selftest
 cd $TEMP_DIR
-$ORI_EXE selftest
+# XXX: selftest replaced with external binary
+#$ORI_EXE selftest
 
 # Initialize source repository
 $ORI_EXE init $SOURCE_REPO
