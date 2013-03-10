@@ -19,7 +19,7 @@
 #include <sys/types.h>
 
 #include <string>
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 #include <oriutil/oriutil.h>
 #include <ori/repo.h>

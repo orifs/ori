@@ -24,8 +24,8 @@
 #include <string>
 #include <map>
 #include <list>
-#include <tr1/unordered_set>
 #include <exception>
+#include <boost/tr1/unordered_set.hpp>
 
 #include "debug.h"
 

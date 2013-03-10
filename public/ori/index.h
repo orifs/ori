@@ -20,8 +20,8 @@
 #include <assert.h>
 
 #include <string>
-#include <tr1/unordered_map>
 #include <set>
+#include <boost/tr1/unordered_map.hpp>
 
 #include "object.h"
 #include "packfile.h"

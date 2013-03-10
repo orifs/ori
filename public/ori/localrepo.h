@@ -17,7 +17,7 @@
 #ifndef __LOCALREPO_H__
 #define __LOCALREPO_H__
 
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 #include <oriutil/lrucache.h>
 #include <oriutil/key.h>

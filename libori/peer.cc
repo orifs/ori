@@ -20,7 +20,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>

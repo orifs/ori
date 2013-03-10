@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -102,3 +102,8 @@ std::string ObjectHash::bin() const
 {
     return std::string((const char *)hash, SIZE);
 }
+
+std::size_t hash_value(ObjectHash const& key) {
+    return *((std::size_t*)key.hash);
+}
+

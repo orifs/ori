@@ -20,8 +20,8 @@
 #include <set>
 #include <vector>
 #include <string>
-#include <tr1/memory>
-#include <tr1/unordered_map>
+#include <boost/tr1/memory.hpp>
+#include <boost/tr1/unordered_map.hpp>
 
 #include "repo.h"
 #include "commit.h"

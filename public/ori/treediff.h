@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include <tr1/unordered_map>
+#include <boost/tr1/unordered_map.hpp>
 
 #include "repo.h"
 #include "tree.h"

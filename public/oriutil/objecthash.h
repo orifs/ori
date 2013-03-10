@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,8 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <tr1/unordered_map>
+#include <boost/tr1/functional.hpp>
+#include <boost/tr1/unordered_map.hpp>
 
 struct ObjectHash {
     static const size_t SIZE = 32;
@@ -53,13 +54,7 @@ private:
     ObjectHash(const char *source);
 };
 
-namespace std { namespace tr1 {
-    template<>
-    struct hash<ObjectHash> : public unary_function<ObjectHash, size_t> {
-        std::size_t operator()(const ObjectHash &key) const {
-            return *((std::size_t*)key.hash);
-        }
-    };
-} }
+std::size_t hash_value(ObjectHash const& key);
 
-#endif
+#endif /* __OBJECTHASH_H__ */
+

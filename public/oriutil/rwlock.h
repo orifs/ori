@@ -35,7 +35,7 @@
 
 #include <vector>
 #include <map>
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 #include "thread.h"
 #include "mutex.h"

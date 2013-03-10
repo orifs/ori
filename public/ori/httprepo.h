@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include <tr1/unordered_set>
+#include <boost/tr1/unordered_set.hpp>
 
 #include "repo.h"
 

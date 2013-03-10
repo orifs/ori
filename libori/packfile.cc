@@ -28,7 +28,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
-#include <tr1/unordered_set>
+#include <boost/tr1/unordered_set.hpp>
 
 #include "tuneables.h"
 

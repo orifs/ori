@@ -17,10 +17,10 @@
 #ifndef __PACKFILE_H__
 #define __PACKFILE_H__
 
-#include <tr1/memory>
-#include <tr1/unordered_map>
 #include <set>
 #include <deque>
+#include <boost/tr1/memory.hpp>
+#include <boost/tr1/unordered_map.hpp>
 
 #include <oriutil/objecthash.h>
 #include <oriutil/stream.h>

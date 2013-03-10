@@ -22,7 +22,7 @@
 #include <utility>
 #include <string>
 #include <map>
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 #include <oriutil/stream.h>
 #include <oriutil/objectinfo.h>

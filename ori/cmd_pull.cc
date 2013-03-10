@@ -26,7 +26,6 @@
 
 #include <string>
 #include <iostream>
-#include <tr1/memory>
 
 #include <ori/localrepo.h>
 #include <ori/remoterepo.h>
@@ -42,27 +41,27 @@ cmd_pull(int argc, const char *argv[])
     string srcRoot;
 
     if (argc > 2) {
-	printf("Specify a repository to pull.\n");
-	printf("usage: ori pull <repo>\n");
-	return 1;
+        printf("Specify a repository to pull.\n");
+        printf("usage: ori pull <repo>\n");
+        return 1;
     }
 
     if (argc == 2) {
-	srcRoot = argv[1];
+        srcRoot = argv[1];
     } else {
-	map<string, Peer> peers = repository.getPeers();
-	map<string, Peer>::iterator it = peers.find("origin");
+        map<string, Peer> peers = repository.getPeers();
+        map<string, Peer>::iterator it = peers.find("origin");
 
-	if (it == peers.end()) {
-	    printf("No default repository to pull from.\n");
-	    return 1;
-	}
-	srcRoot = (*it).second.getUrl();
+        if (it == peers.end()) {
+            printf("No default repository to pull from.\n");
+            return 1;
+        }
+        srcRoot = (*it).second.getUrl();
     }
 
     {
         RemoteRepo::sp srcRepo(new RemoteRepo());
-	if (!srcRepo->connect(srcRoot)) {
+        if (!srcRepo->connect(srcRoot)) {
             printf("Error connecting to %s\n", srcRoot.c_str());
             return 1;
         }

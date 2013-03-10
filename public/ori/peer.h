@@ -22,7 +22,7 @@
 
 #include <utility>
 #include <string>
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 class Repo;
 class HttpClient;

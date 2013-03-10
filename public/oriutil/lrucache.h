@@ -22,7 +22,7 @@
 #include <list>
 #include <utility>
 #include <stdexcept>
-#include <tr1/unordered_map>
+#include <boost/tr1/unordered_map.hpp>
 
 #include "debug.h"
 #include "rwlock.h"

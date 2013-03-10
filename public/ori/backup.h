@@ -18,7 +18,7 @@
 #define __BACKUP_H__
 
 #include <stdexcept>
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 #include "object.h"
 
