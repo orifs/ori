@@ -91,8 +91,8 @@ PfTransaction::addPayload(ObjectInfo info, const string &payload)
         compSize = ls.read(buf, COMPCHECK_BYTES);
         float ratio = (float)compSize / (float)ls.inputConsumed();
 
-        fprintf(stderr, "Object %s compression ratio: %f\n",
-                info.hash.hex().c_str(), ratio);
+        //fprintf(stderr, "Object %s compression ratio: %f\n",
+        //        info.hash.hex().c_str(), ratio);
         if (ratio <= COMPCHECK_RATIO) {
             compress = true;
         }
