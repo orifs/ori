@@ -21,9 +21,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(_WIN32)
+void ori_log(int level, const char *fmt, ...);
+#elif
 void ori_log(int level, const char *fmt, ...)
     __attribute__((format(printf, 2, 3)));
-class LocalRepo;
+#endif
 int ori_open_log(const std::string &logPath);
 
 #define LEVEL_ERR	0 /* Error */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -29,8 +29,8 @@
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
 #include <limits.h>
 #include <pthread.h>
-//#elif defined(__WINDOWS__)
-//#include <windows.h>
+#elif defined(__WINDOWS__)
+#include <windows.h>
 #else
 #error "UNSUPPORTED OS"
 #endif
@@ -90,8 +90,8 @@ private:
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
     pthread_t tid;
     pthread_attr_t *attr;
-//#elif defined(__WINDOWS__)
-//    HANDLE tid;
+#elif defined(_WIN32)
+    HANDLE tid;
 #else
 #error "UNSUPPORTED OS"
 #endif

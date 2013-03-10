@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,8 +25,8 @@
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
     || defined(__NetBSD__)
 #include <pthread.h>
-//#elif defined(__WINDOWS__)
-//#include <windows.h>
+#elif defined(_WIN32)
+#include <windows.h>
 #else
 #error "UNSUPPORTED OS"
 #endif
@@ -44,8 +44,8 @@ private:
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
     || defined(__NetBSD__)
     pthread_mutex_t lockHandle;
-//#elif defined(__WINDOWS__)
-//    CRITICAL_SECTION lockHandle;
+#elif defined(_WIN32)
+    CRITICAL_SECTION lockHandle;
 #else
 #error "UNSUPPORTED OS"
 #endif

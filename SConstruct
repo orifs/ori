@@ -49,6 +49,11 @@ env = Environment(options = opts,
                   ENV = os.environ)
 Help(opts.GenerateHelpText(env))
 
+# Windows Configuration Changes
+if sys.platform == "win32":
+    env["WITH_FUSE"] = "0"
+    env.Append(CPPFLAGS = ['-DWIN32'])
+
 #env.Append(CPPFLAGS = [ "-Wall", "-Wformat=2", "-Wextra", "-Wwrite-strings",
 #                        "-Wno-unused-parameter", "-Wmissing-format-attribute",
 #                        "-Werror" ])
@@ -151,6 +156,12 @@ if sys.platform == "darwin":
     env.Append(LIBPATH=['/usr/local/Cellar/openssl/1.0.1c/lib'],
                CPPPATH=['/usr/local/Cellar/openssl/1.0.1c/include'])
 
+if sys.platform == "win32":
+    env.Append(LIBPATH=['#../boost_1_53_0\stage\lib'],
+               CPPPATH=['#../boost_1_53_0'])
+    env.Append(LIBPATH=['#../libevent-2.0.21-stable'],
+               CPPPATH=['#../libevent-2.0.21-stable\include'])
+
 # Configuration
 conf = env.Configure(custom_tests = { 'CheckPkgConfig' : CheckPkgConfig,
                                       'CheckPkg' : CheckPkg })
@@ -163,7 +174,7 @@ if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
     Exit(1)
 
-if not conf.CheckPkgConfig():
+if (sys.platform != "win32") and not conf.CheckPkgConfig():
     print 'pkg-config not found!'
     Exit(1)
 
@@ -210,14 +221,15 @@ if env["COMPRESSION_ALGO"] == "LZMA":
         print 'Please install liblzma'
         Exit(1)
 
-if not conf.CheckPkg('fuse'):
+if sys.platform != "win32" and not conf.CheckPkg('fuse'):
     print 'FUSE is not registered in pkg-config'
     Exit(1)
 
-if not conf.CheckPkg('libevent'):
-    print 'libevent is not registered in pkg-config'
-    Exit(1)
-env.ParseConfig('pkg-config --libs --cflags libevent')
+if sys.platform != "win32":
+    if not conf.CheckPkg('libevent'):
+        print 'libevent is not registered in pkg-config'
+        Exit(1)
+    env.ParseConfig('pkg-config --libs --cflags libevent')
 
 # Library is libevent.so or libevent-2.0.so depending on the system
 has_event2 = conf.CheckLibWithHeader('event-2.0', 'event2/event.h', 'C', 

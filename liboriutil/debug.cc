@@ -19,11 +19,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <time.h>
 
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/time.h>
+#include <fcntl.h>
+#endif
 
 #ifdef __MACH__
 #include <mach/mach.h>
