@@ -1121,8 +1121,8 @@ LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
             it != packs.end();
             it++) {
         const Packfile::sp &pf = (*it).first;
-        fprintf(stderr, "Transmitting %lu objects from %p\n",
-                (*it).second.size(), pf.get());
+        //fprintf(stderr, "Transmitting %lu objects from %p\n",
+        //        (*it).second.size(), pf.get());
         pf->transmit(bs, (*it).second);
     }
 
