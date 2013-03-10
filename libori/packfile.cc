@@ -91,8 +91,6 @@ PfTransaction::addPayload(ObjectInfo info, const string &payload)
         compSize = ls.read(buf, COMPCHECK_BYTES);
         float ratio = (float)compSize / (float)ls.inputConsumed();
 
-        fprintf(stderr, "Object %s compression ratio: %f\n",
-                info.hash.hex().c_str(), ratio);
         if (ratio <= COMPCHECK_RATIO) {
             compress = true;
         }
@@ -354,10 +352,6 @@ Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
             continue;
         }
 
-        /*fprintf(stderr, "object %s %x %x\n",
-                objects[i].info.hash.hex().c_str(),
-                offset, off_end);*/
-
         if (blocks.size() == 0) {
             blocks[offset] = off_end;
         }
@@ -385,15 +379,6 @@ Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
                 blocks[offset] = off_end;
             }
         }
-    }
-
-    fprintf(stderr, "Num blocks in this packfile: %lu\n", blocks.size());
-
-    for (map<offset_t, offset_t>::iterator it = blocks.begin();
-            it != blocks.end();
-            it++) {
-        fprintf(stderr, "%x %x %u\n", (*it).first, (*it).second, (*it).second -
-                (*it).first);
     }
 
     // Transmit object infos
