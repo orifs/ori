@@ -52,7 +52,7 @@ struct ObjectInfo {
     static Type getTypeForStr(const char *str);
 
     // For debug use
-    void print(ostream outStream = std::cout) const;
+    void print(std::ostream &outStream = std::cout) const;
 
     Type type;
     ObjectHash hash;

@@ -111,7 +111,7 @@ bool ObjectInfo::operator <(const ObjectInfo &other) const {
 }
 
 #define OBJINFO_PRINTBUF	512
-void ObjectInfo::print(ostream outStream) const {
+void ObjectInfo::print(ostream &outStream) const {
     char buf[OBJINFO_PRINTBUF];
     size_t len;
 

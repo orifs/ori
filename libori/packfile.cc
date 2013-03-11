@@ -28,6 +28,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <iostream>
 #include <boost/tr1/unordered_set.hpp>
 
 #include "tuneables.h"
@@ -76,7 +77,7 @@ PfTransaction::addPayload(ObjectInfo info, const string &payload)
         if (infos[i].hash == info.hash) {
             fprintf(stderr, "WARNING: duplicate addPayload %s!\n",
                     info.hash.hex().c_str());
-            info.print(STDERR_FILENO);
+            info.print(cerr);
         }
     }
 #endif
