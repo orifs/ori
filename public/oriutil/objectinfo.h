@@ -19,8 +19,6 @@
 #ifndef __OBJECTINFO_H__
 #define __OBJECTINFO_H__
 
-#include <unistd.h>
-
 #include <string>
 
 #include "objecthash.h"
@@ -54,7 +52,7 @@ struct ObjectInfo {
     static Type getTypeForStr(const char *str);
 
     // For debug use
-    void print(int fd = STDOUT_FILENO) const;
+    void print(ostream outStream = std::cout) const;
 
     Type type;
     ObjectHash hash;

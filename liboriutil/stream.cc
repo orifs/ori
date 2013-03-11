@@ -17,12 +17,14 @@
 #include <cassert>
 #include <string.h>
 
+#ifndef _WIN32
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#endif
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/endian.h>

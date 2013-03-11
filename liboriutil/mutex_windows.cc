@@ -25,26 +25,26 @@
 
 Mutex::Mutex()
 {
-    InitializeCriticalSection(&lock);
+    InitializeCriticalSection(&lockHandle);
 }
 
 Mutex::~Mutex()
 {
-    DeleteCriticalSection(&lock);
+    DeleteCriticalSection(&lockHandle);
 }
 
 void Mutex::lock()
 {
-    EnterCriticalSection(&lock);
+    EnterCriticalSection(&lockHandle);
 }
 
 void Mutex::unlock()
 {
-    LeaveCriticalSection(&lock);
+    LeaveCriticalSection(&lockHandle);
 }
 
 bool Mutex::tryLock()
 {
-    return (TryEnterCriticalSection(&lock) != 0);
+    return (TryEnterCriticalSection(&lockHandle) != 0);
 }
 

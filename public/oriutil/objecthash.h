@@ -20,9 +20,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <boost/tr1/functional.hpp>
-#include <boost/tr1/unordered_map.hpp>
-
 struct ObjectHash {
     static const size_t SIZE = 32;
     static const size_t STR_SIZE = SIZE * 2;

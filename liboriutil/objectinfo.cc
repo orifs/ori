@@ -20,18 +20,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
-#include <fcntl.h>
 
-#include <unistd.h>
-#include <sys/param.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
+#include <string>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <string>
 
 #include <openssl/sha.h>
 
@@ -118,7 +111,7 @@ bool ObjectInfo::operator <(const ObjectInfo &other) const {
 }
 
 #define OBJINFO_PRINTBUF	512
-void ObjectInfo::print(int fd) const {
+void ObjectInfo::print(ostream outStream) const {
     char buf[OBJINFO_PRINTBUF];
     size_t len;
 
@@ -127,7 +120,7 @@ void ObjectInfo::print(int fd) const {
     len += snprintf(buf + len, OBJINFO_PRINTBUF - len,
 		    "  type = %s  flags = %08X  payload_size = %u\n",
                     getStrForType(type), flags, payload_size);
-    write(fd, buf, len);
+    outStream.write(buf, len);
 }
 
 const char *ObjectInfo::getStrForType(Type type) {

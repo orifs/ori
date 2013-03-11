@@ -33,6 +33,8 @@
 #endif
 
 #include <string>
+#include <iostream>
+#include <fstream>
 
 #include <oriutil/debug.h>
 #include <oriutil/mutex.h>
@@ -47,9 +49,10 @@ using namespace std;
  *
  ********************************************************************/
 
-static int logfd = -1;
+static fstream logStream;
 static Mutex lock_log;
 
+#ifndef _WIN32
 void
 get_timespec(struct timespec *ts)
 {
@@ -65,6 +68,7 @@ get_timespec(struct timespec *ts)
     clock_gettime(CLOCK_REALTIME, ts);
 #endif
 }
+#endif
 
 #define MAX_LOG         512
 
@@ -72,7 +76,6 @@ void
 ori_log(int level, const char *fmt, ...)
 {
     va_list ap;
-    struct timespec ts;
     char buf[MAX_LOG];
 
 #if !defined(DEBUG)
@@ -80,8 +83,15 @@ ori_log(int level, const char *fmt, ...)
         return;
 #endif /* DEBUG */
 
+#ifndef _WIN32
+    struct timespec ts;
     get_timespec(&ts);
     strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
+#else
+    time_t curTime;
+    time(&curTime);
+    strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&curTime));
+#endif
 
     switch (level) {
         case LEVEL_ERR:
@@ -111,33 +121,30 @@ ori_log(int level, const char *fmt, ...)
 
 #ifdef DEBUG
     if (level <= LEVEL_MSG)
-        fprintf(stderr, "%s", buf);
+        cerr << buf;
 #else /* RELEASE or PERF */
     if (level <= LEVEL_ERR)
-        fprintf(stderr, "%s", buf);
+        cerr << buf;
 #endif
 
-    if (logfd != -1)
-        write(logfd, buf, strlen(buf));
+    if (logStream.is_open())
+        logStream.write(buf, strlen(buf));
 
     // XXX: May cause performance issues disable on release builds
 #ifdef DEBUG
-    fsync(logfd);
+    logStream.flush();
 #endif
 
     lock_log.unlock();
 }
 
 int ori_open_log(const string &logPath) {
-    logfd = -1;
-
     if (logPath == "")
         return -1;
 
-    logfd = open(logPath.c_str(), O_CREAT | O_WRONLY | O_APPEND, 0660);
-    if (logfd == -1) {
-        perror("open");
-        printf("couldn't open logfile: %s\n", logPath.c_str());
+    logStream.open(logPath, fstream::in | fstream::out | fstream::app);
+    if (logStream.fail()) {
+        printf("Could not open logfile: %s\n", logPath.c_str());
         return -1;
     }
 
