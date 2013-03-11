@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -13,6 +13,9 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
+#ifndef __STOPWATCH_H__
+#define __STOPWATCH_H__
 
 class Stopwatch
 {
@@ -28,4 +31,6 @@ private:
     uint64_t elapsedTime;
     bool running;
 };
+
+#endif /* __STOPWATCH_H__ */
 

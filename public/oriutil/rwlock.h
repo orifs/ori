@@ -35,7 +35,6 @@
 
 #include <vector>
 #include <map>
-#include <boost/tr1/memory.hpp>
 
 #include "thread.h"
 #include "mutex.h"
@@ -80,7 +79,7 @@ private:
     || defined(__NetBSD__)
     pthread_rwlock_t lockHandle;
 #elif defined(_WIN32)
-    CRITICAL_SECTION lockHandle;
+    SRWLOCK lockHandle;
 #else
 #error "UNSUPPORTED OS"
 #endif
