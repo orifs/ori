@@ -41,7 +41,7 @@
 #include "tuneables.h"
 
 #include <oriutil/debug.h>
-#include <oriutil/posixexception.h>
+#include <oriutil/systemexception.h>
 #include <oriutil/stream.h>
 
 using namespace std;
@@ -799,7 +799,7 @@ void bytewstream::writeHash(const ObjectHash &hash)
     if (typedStream) {
         uint8_t type = STREAM_TYPE_OBJHASH;
         if (write(&type, 1) != 1)
-            throw PosixException(errno);;
+            throw SystemException();
     }
     write(hash.hash, ObjectHash::SIZE);
 }

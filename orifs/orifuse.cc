@@ -36,7 +36,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
-#include <oriutil/posixexception.h>
+#include <oriutil/systemexception.h>
 #include <oriutil/rwlock.h>
 #include <ori/version.h>
 #include <ori/commit.h>
@@ -142,7 +142,7 @@ ori_unlink(const char *path)
             // XXX: Support files
             ASSERT(false);
         }
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -176,7 +176,7 @@ ori_symlink(const char *target_path, const char *link_path)
 
     try {
         parentDir = priv->getDir(parentPath);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -204,7 +204,7 @@ ori_readlink(const char *path, char *buf, size_t size)
 
     try {
         info = priv->getFileInfo(path);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -253,7 +253,7 @@ ori_rename(const char *from_path, const char *to_path)
 
         try {
             toFile = priv->getFileInfo(to_path);
-        } catch (PosixException e) {
+        } catch (SystemException e) {
             // Fall through
         }
 
@@ -288,7 +288,7 @@ ori_rename(const char *from_path, const char *to_path)
         if (toFile != NULL) {
             toFile->release();
         }
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -322,7 +322,7 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     try {
         parentDir = priv->getDir(parentPath);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -369,7 +369,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
     try {
         parentDir = priv->getDir(parentPath);
         info = priv->openFile(path, /*writing*/writing, /*trunc*/trunc);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -603,7 +603,7 @@ ori_mkdir(const char *path, mode_t mode)
     try {
         parentDir = priv->getDir(parentPath);
         parentInfo = priv->getFileInfo(parentPath);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -659,7 +659,7 @@ ori_rmdir(const char *path)
         priv->rmDir(path);
 
         ASSERT(parentInfo->statInfo.st_nlink >= 2);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -732,7 +732,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     try {
         dir = priv->getDir(path);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -742,7 +742,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         try {
             info = priv->getFileInfo(dirPath + (*it).first);
             filler(buf, (*it).first.c_str(), &info->statInfo, 0);
-        } catch (PosixException e) {
+        } catch (SystemException e) {
             FUSE_LOG("Unexpected %s", e.what());
             filler(buf, (*it).first.c_str(), NULL, 0);
         }
@@ -849,7 +849,7 @@ ori_getattr(const char *path, struct stat *stbuf)
     try {
         OriFileInfo *info = priv->getFileInfo(path);
         *stbuf = info->statInfo;
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -883,7 +883,7 @@ ori_chmod(const char *path, mode_t mode)
 
         OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -918,7 +918,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
 
         OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -953,7 +953,7 @@ ori_utimens(const char *path, const struct timespec tv[2])
 
         OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         return -e.getErrno();
     }
 
@@ -1072,7 +1072,7 @@ main(int argc, char *argv[])
 
     try {
         priv = new OriPriv(config.repo_path);
-    } catch (PosixException e) {
+    } catch (SystemException e) {
         FUSE_LOG("Unexpected %s", e.what());
         throw e;
     }

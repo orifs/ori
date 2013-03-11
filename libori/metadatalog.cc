@@ -31,7 +31,7 @@
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/stream.h>
-#include <oriutil/posixexception.h>
+#include <oriutil/systemexception.h>
 #include <ori/metadatalog.h>
 
 using namespace std;
@@ -169,7 +169,7 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
     int newFd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (newFd < 0) {
         perror("MetadataLog::rewrite open");
-        throw PosixException(errno);
+        throw SystemException();
     }
 
     int oldFd = fd;

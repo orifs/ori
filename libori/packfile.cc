@@ -36,7 +36,7 @@
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/scan.h>
-#include <oriutil/posixexception.h>
+#include <oriutil/systemexception.h>
 #include <ori/packfile.h>
 #include <ori/index.h>
 
@@ -141,13 +141,13 @@ Packfile::Packfile(const string &filename, packid_t id)
     fd = ::open(filename.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
         perror("Packfile open");
-        throw PosixException(errno);
+        throw SystemException();
     }
 
     struct stat sb;
     if (fstat(fd, &sb) < 0) {
         perror("Packfile fstat");
-        throw PosixException(errno);
+        throw SystemException();
     }
 
     fileSize = sb.st_size;
@@ -293,7 +293,7 @@ bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)
     fd = ::open(tmpFilename.c_str(), O_RDWR | O_CREAT, 0644);
     if (fd < 0) {
         perror("Packfile::purge open");
-        throw PosixException(errno);
+        throw SystemException();
     }
 
     ::close(oldFd);
@@ -418,7 +418,7 @@ Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
         buf.resize(len);
         ssize_t n = read(fd, &buf[0], len);
         if (n < 0 || n != len) {
-            throw PosixException(errno);
+            throw SystemException();
         }
         ASSERT(n == len);
         //fprintf(stderr, "Wrote block size %ld\n", len);
@@ -627,7 +627,7 @@ PackfileManager::_writeFreeList()
     int fd = ::open(freeListPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
         perror("PackfileManager::_loadFreeList open");
-        throw PosixException(errno);
+        throw SystemException();
     }
     const string &str = ss.str();
     write(fd, str.data(), str.size());

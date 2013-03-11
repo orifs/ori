@@ -32,7 +32,7 @@
 #include <oriutil/oriutil.h>
 #include <oriutil/stopwatch.h>
 #include <oriutil/rwlock.h>
-#include <oriutil/posixexception.h>
+#include <oriutil/systemexception.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,21 +14,30 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __POSIXEXCEPTION_H__
-#define __POSIXEXCEPTION_H__
+#ifndef __SYSTEMEXCEPTION_H__
+#define __SYSTEMEXCEPTION_H__
+
+#ifndef _WIN32
+#include <errno.h>
+#endif
 
 #include <string>
 #include <exception>
 
-class PosixException : public std::exception
+class SystemException : public std::exception
 {
 public:
-    PosixException(int errorNumber) {
+    SystemException() {
+        errorString = "Exception: ";
+        errorString += strerror(errno);
+        errnum = errno;
+    }
+    SystemException(int errorNumber) {
         errorString = "Exception: ";
         errorString += strerror(errorNumber);
         errnum = errorNumber;
     }
-    virtual ~PosixException() throw()
+    virtual ~SystemException() throw()
     {
     }
     virtual int getErrno() const throw()
@@ -45,4 +54,4 @@ private:
     int errnum;
 };
 
-#endif /* __POSIXEXCEPTION_H__ */
+#endif /* __SYSTEMEXCEPTION_H__ */

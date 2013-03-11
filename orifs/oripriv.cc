@@ -33,7 +33,7 @@
 #include <algorithm>
 
 #include <oriutil/scan.h>
-#include <oriutil/posixexception.h>
+#include <oriutil/systemexception.h>
 #include <oriutil/rwlock.h>
 #include <oriutil/objecthash.h>
 #include <ori/commit.h>
@@ -121,7 +121,7 @@ OriPriv::reset()
     }
 
     if (::mkdir(tmpDir.c_str(), 0700) < 0)
-        throw PosixException(errno);
+        throw SystemException(errno);
 }
 
 int
@@ -167,7 +167,7 @@ OriPriv::getTemp()
 
     fd = open(tmpPath, O_CREAT|O_RDWR, 0700);
     if (fd < 0)
-        throw PosixException(errno);
+        throw SystemException(errno);
 
     return make_pair(tmpPath, fd);
 }
@@ -207,14 +207,14 @@ OriPriv::getFileInfo(const string &path)
         OriFileInfo *info = (*it).second;
 
         if (info->type == FILETYPE_NULL)
-            throw PosixException(ENOENT);
+            throw SystemException(ENOENT);
 
         return info;
     }
 
     // Check repository
 
-    throw PosixException(ENOENT);
+    throw SystemException(ENOENT);
 }
 
 OriFileInfo *
@@ -340,7 +340,7 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
         int status = open(info->path.c_str(), O_RDWR);
         if (status < 0) {
             ASSERT(false); // XXX: Need to release the handle
-            throw PosixException(errno);
+            throw SystemException(errno);
         }
         info->fd = status;
     } else if (info->type == FILETYPE_COMMITTED) {
@@ -365,13 +365,13 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
 
             if (!repo->copyObject(info->hash, temp.first)) {
                 ASSERT(false); // XXX: Need to release the handle
-                throw PosixException(EIO);
+                throw SystemException(EIO);
             }
 
             status = open(temp.first.c_str(), O_RDWR);
             if (status < 0) {
                 ASSERT(false); // XXX: Need to release the handle
-                throw PosixException(errno);
+                throw SystemException(errno);
             }
 
             info->type = FILETYPE_TEMPORARY;
@@ -502,9 +502,9 @@ OriPriv::getDir(const string &path)
     if (it != paths.end()) {
         map<OriPrivId, OriDir*>::iterator dit;
         if (!(*it).second->isDir())
-            throw PosixException(ENOTDIR);
+            throw SystemException(ENOTDIR);
         if ((*it).second->type == FILETYPE_NULL)
-            throw PosixException(ENOENT);
+            throw SystemException(ENOENT);
         dit = dirs.find((*it).second->id);
         if (dit == dirs.end())
             goto loadDir;
@@ -576,7 +576,7 @@ loadDir:
         return dir;
     }
 
-    throw PosixException(ENOENT);
+    throw SystemException(ENOENT);
 }
 
 /*
@@ -844,7 +844,7 @@ OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
 
         try {
             info = priv->getFileInfo(objPath);
-        } catch (PosixException e) {
+        } catch (SystemException e) {
             FUSE_LOG("fsck: getFileInfo(%s) had %s",
                      objPath.c_str(), e.what());
             if (fromCmd) {
@@ -861,7 +861,7 @@ OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
             try {
                 dir = priv->getDir(objPath);
                 OriPrivCheckDir(priv, fromCmd, objPath, dir);
-            } catch (PosixException e) {
+            } catch (SystemException e) {
                 FUSE_LOG("fsck: getDir(%s) encountered %s",
                          objPath.c_str(), e.what());
                 if (fromCmd) {
@@ -936,7 +936,7 @@ OriPriv::fsck(bool fromCmd)
 
         try {
             dir = getDir(parentPath);
-        } catch (PosixException e) {
+        } catch (SystemException e) {
             FUSE_LOG("fsck: %s path encountered an error %s",
                      it->first.c_str(), e.what());
             if (fromCmd) {
