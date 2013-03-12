@@ -82,7 +82,7 @@ public:
 protected:
     static void exit(void *retval);
     void sleep(unsigned long secs);
-    void usleep(useconds_t usecs);
+    void usleep(unsigned long usecs);
     void yield();
 private:
     ThreadState cstate;

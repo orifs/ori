@@ -22,12 +22,10 @@
 #include <list>
 #include <utility>
 #include <stdexcept>
-#include <boost/tr1/unordered_map.hpp>
+#include "oritr1.h"
 
 #include "debug.h"
 #include "rwlock.h"
-
-
 
 template <class K, class V, int MAX>
 class LRUCache
