@@ -76,16 +76,35 @@ RWKey::sp RWLock::readLock()
     _updateLocked();
 #endif
 
-    return RWKey::sp(new RWKey(this));
+    return RWKey::sp(new ReaderKey(this));
 }
 
 RWKey::sp RWLock::tryReadLock()
 {
     NOT_IMPLEMENTED(false);
     if (pthread_rwlock_tryrdlock(&lockHandle) == 0) {
-        return RWKey::sp(new RWKey(this));
+        return RWKey::sp(new ReaderKey(this));
     }
     return RWKey::sp();
+}
+
+void RWLock::readUnlock()
+{
+#if CHECK_LOCK_ORDER == 1
+    gOrderMutex.lock();
+#endif
+
+    pthread_rwlock_unlock(&lockHandle);
+    
+#if CHECK_LOCK_ORDER == 1
+    gLockedBy[lockNum] = Thread::TID_NOBODY;
+    gOrderMutex.unlock();
+#endif
+
+#if LOG_LOCKING == 1
+    threadid_t tid = Thread::getID();
+    LOG("%u readUnlock: %u", tid, lockNum);
+#endif
 }
 
 RWKey::sp RWLock::writeLock()
@@ -112,19 +131,19 @@ RWKey::sp RWLock::writeLock()
     _updateLocked();
 #endif
 
-    return RWKey::sp(new RWKey(this));
+    return RWKey::sp(new WriterKey(this));
 }
 
 RWKey::sp RWLock::tryWriteLock()
 {
     NOT_IMPLEMENTED(false);
     if (pthread_rwlock_trywrlock(&lockHandle) == 0) {
-        return RWKey::sp(new RWKey(this));
+        return RWKey::sp(new WriterKey(this));
     }
     return RWKey::sp();
 }
 
-void RWLock::unlock()
+void RWLock::writeUnlock()
 {
 #if CHECK_LOCK_ORDER == 1
     gOrderMutex.lock();
@@ -139,7 +158,7 @@ void RWLock::unlock()
 
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
-    LOG("%u unlock: %u", tid, lockNum);
+    LOG("%u writeUnlock: %u", tid, lockNum);
 #endif
 }
 

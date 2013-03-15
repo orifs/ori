@@ -76,14 +76,14 @@ RWKey::sp RWLock::readLock()
     _updateLocked();
 #endif
 
-    return RWKey::sp(new RWKey(this));
+    return RWKey::sp(new ReaderKey(this));
 }
 
 RWKey::sp RWLock::tryReadLock()
 {
     NOT_IMPLEMENTED(false);
     if (TryAcquireSRWLockShared(&lockHandle) != 0) {
-        return RWKey::sp(new RWKey(this));
+        return RWKey::sp(new ReaderKey(this));
     }
     return RWKey::sp();
 }
@@ -112,14 +112,14 @@ RWKey::sp RWLock::writeLock()
     _updateLocked();
 #endif
 
-    return RWKey::sp(new RWKey(this));
+    return RWKey::sp(new WriterKey(this));
 }
 
 RWKey::sp RWLock::tryWriteLock()
 {
     NOT_IMPLEMENTED(false);
     if (TryAcquireSRWLockExclusive(&lockHandle) != 0) {
-        return RWKey::sp(new RWKey(this));
+        return RWKey::sp(new WriterKey(this));
     }
     return RWKey::sp();
 }

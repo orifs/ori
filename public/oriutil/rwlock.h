@@ -43,9 +43,16 @@ class RWLock;
 struct RWKey {
     typedef std::tr1::shared_ptr<RWKey> sp;
     RWKey(RWLock *l = NULL);
-    ~RWKey();
-
+    virtual ~RWKey();
     RWLock *lock;
+};
+struct ReaderKey : public RWKey {
+    ReaderKey(RWLock *l = NULL);
+    virtual ~ReaderKey();
+};
+struct WriterKey : public RWKey {
+    WriterKey(RWLock *l = NULL);
+    virtual ~WriterKey();
 };
 
 class RWLock
@@ -55,9 +62,10 @@ public:
     ~RWLock();
     RWKey::sp readLock();
     RWKey::sp tryReadLock();
+    void readUnlock();
     RWKey::sp writeLock();
     RWKey::sp tryWriteLock();
-    void unlock();
+    void writeUnlock();
     // bool locked();
 
     typedef std::vector<uint32_t> LockOrderVector;
