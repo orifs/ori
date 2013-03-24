@@ -27,8 +27,10 @@
 #include <fcntl.h>
 #endif
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__)
 #include <sys/endian.h>
+#elif defined(__APPLE__)
+#include <libkern/OSByteOrder.h>
 #elif defined(__linux__)
 #include <endian.h>
 #endif
