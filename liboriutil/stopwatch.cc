@@ -25,8 +25,8 @@
     || defined(__NetBSD__)
 #include <sys/types.h>
 #include <sys/time.h>
-//#elif defined(__WINDOWS__)
-//#include <windows.h>
+#elif defined(_WIN32)
+#include <windows.h>
 #else
 #error "UNSUPPORTED OS"
 #endif

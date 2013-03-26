@@ -31,6 +31,7 @@
 #include <string>
 #include <map>
 #include <algorithm>
+#include <boost/tr1/memory.hpp>
 
 #include <oriutil/scan.h>
 #include <oriutil/systemexception.h>

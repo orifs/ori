@@ -94,7 +94,7 @@ void Thread::sleep(unsigned long secs)
     ::sleep(secs);
 }
 
-void Thread::usleep(useconds_t usecs)
+void Thread::usleep(unsigned long usecs)
 {
     ::usleep(usecs);
 }

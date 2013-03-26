@@ -21,10 +21,11 @@
 
 #include <stdint.h>
 
-#include <unistd.h>
-#include <sys/types.h>
+#include <windows.h>
 
 #include <string>
+#include <vector>
+#include <map>
 #include <boost/tr1/memory.hpp>
 
 #include <oriutil/debug.h>
@@ -43,13 +44,12 @@
 RWLock::RWLock()
     : lockHandle()
 {
-    pthread_rwlock_init(&lockHandle, NULL);
+    InitializeSRWLock(&lockHandle);
     lockNum = gLockNum++;
 }
 
 RWLock::~RWLock()
 {
-    pthread_rwlock_destroy(&lockHandle);
 }
 
 RWKey::sp RWLock::readLock()
@@ -66,7 +66,7 @@ RWKey::sp RWLock::readLock()
 
     ////////////////////////////
     // Do the actual locking
-    pthread_rwlock_rdlock(&lockHandle);
+    AcquireSRWLockShared(&lockHandle);
 
 #if LOG_LOCKING == 1
     LOG("%u success readLock: %u", tid, lockNum);
@@ -82,29 +82,10 @@ RWKey::sp RWLock::readLock()
 RWKey::sp RWLock::tryReadLock()
 {
     NOT_IMPLEMENTED(false);
-    if (pthread_rwlock_tryrdlock(&lockHandle) == 0) {
+    if (TryAcquireSRWLockShared(&lockHandle) != 0) {
         return RWKey::sp(new ReaderKey(this));
     }
     return RWKey::sp();
-}
-
-void RWLock::readUnlock()
-{
-#if CHECK_LOCK_ORDER == 1
-    gOrderMutex.lock();
-#endif
-
-    pthread_rwlock_unlock(&lockHandle);
-    
-#if CHECK_LOCK_ORDER == 1
-    gLockedBy[lockNum] = Thread::TID_NOBODY;
-    gOrderMutex.unlock();
-#endif
-
-#if LOG_LOCKING == 1
-    threadid_t tid = Thread::getID();
-    LOG("%u readUnlock: %u", tid, lockNum);
-#endif
 }
 
 RWKey::sp RWLock::writeLock()
@@ -121,7 +102,7 @@ RWKey::sp RWLock::writeLock()
 
     ////////////////////////////
     // Do the actual locking
-    pthread_rwlock_wrlock(&lockHandle);
+    AcquireSRWLockExclusive(&lockHandle);
 
 #if LOG_LOCKING == 1
     LOG("%u success writeLock: %u", tid, lockNum);
@@ -137,20 +118,20 @@ RWKey::sp RWLock::writeLock()
 RWKey::sp RWLock::tryWriteLock()
 {
     NOT_IMPLEMENTED(false);
-    if (pthread_rwlock_trywrlock(&lockHandle) == 0) {
+    if (TryAcquireSRWLockExclusive(&lockHandle) != 0) {
         return RWKey::sp(new WriterKey(this));
     }
     return RWKey::sp();
 }
 
-void RWLock::writeUnlock()
+void RWLock::unlock()
 {
 #if CHECK_LOCK_ORDER == 1
     gOrderMutex.lock();
 #endif
 
-    pthread_rwlock_unlock(&lockHandle);
-    
+    // ReleaseSRWLockShared or ReleaseSRWLockExclusive
+
 #if CHECK_LOCK_ORDER == 1
     gLockedBy[lockNum] = Thread::TID_NOBODY;
     gOrderMutex.unlock();
@@ -158,7 +139,7 @@ void RWLock::writeUnlock()
 
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
-    LOG("%u writeUnlock: %u", tid, lockNum);
+    LOG("%u unlock: %u", tid, lockNum);
 #endif
 }
 

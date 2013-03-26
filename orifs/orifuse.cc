@@ -33,6 +33,7 @@
 
 #include <string>
 #include <map>
+#include <boost/tr1/memory.hpp>
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>

@@ -25,7 +25,7 @@
 #include <map>
 #include <list>
 #include <exception>
-#include <boost/tr1/unordered_set.hpp>
+#include "oritr1.h"
 
 #include "debug.h"
 

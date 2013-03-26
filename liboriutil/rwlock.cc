@@ -17,6 +17,8 @@
 #include <cassert>
 #include <stdio.h>
 
+#include <boost/tr1/memory.hpp>
+
 #include <oriutil/rwlock.h>
 #include <oriutil/thread.h>
 
@@ -27,8 +29,28 @@ RWKey::RWKey(RWLock *l)
 
 RWKey::~RWKey()
 {
+}
+
+ReaderKey::ReaderKey(RWLock *l)
+    : RWKey(l)
+{
+}
+
+ReaderKey::~ReaderKey()
+{
     if (lock)
-        lock->unlock();
+        lock->readUnlock();
+}
+
+WriterKey::WriterKey(RWLock *l)
+    : RWKey(l)
+{
+}
+
+WriterKey::~WriterKey()
+{
+    if (lock)
+        lock->writeUnlock();
 }
 
 Mutex RWLock::gOrderMutex;

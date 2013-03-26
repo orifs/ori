@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Stanford University
+ * Copyright (c) 2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,23 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __STOPWATCH_H__
-#define __STOPWATCH_H__
+#ifndef __ORITR1_H__
+#define __ORITR1_H__
 
-class Stopwatch
-{
-public:
-    Stopwatch();
-    ~Stopwatch();
-    void start();
-    void stop();
-    void reset();
-    uint64_t getElapsedTime();
-private:
-    uint64_t startTime;
-    uint64_t elapsedTime;
-    bool running;
-};
+#include <boost/tr1/unordered_map.hpp>
+#include <boost/tr1/unordered_set.hpp>
 
-#endif /* __STOPWATCH_H__ */
+#endif /* __ORITR1_H__ */
 

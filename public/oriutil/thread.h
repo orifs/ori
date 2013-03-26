@@ -24,12 +24,11 @@
 
 #include <stdint.h>
 
-#include <unistd.h>
-
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#include <unistd.h>
 #include <limits.h>
 #include <pthread.h>
-#elif defined(__WINDOWS__)
+#elif defined(_WIN32)
 #include <windows.h>
 #else
 #error "UNSUPPORTED OS"
@@ -45,6 +44,8 @@ typedef pid_t threadid_t;
 #elif defined(__FreeBSD__)
 #include <sys/thr.h>
 typedef long threadid_t;
+#elif defined(_WIN32)
+typedef DWORD threadid_t;
 #else
 #error "Thread: platform not supported"
 #endif
@@ -81,7 +82,7 @@ public:
 protected:
     static void exit(void *retval);
     void sleep(unsigned long secs);
-    void usleep(useconds_t usecs);
+    void usleep(unsigned long usecs);
     void yield();
 private:
     ThreadState cstate;
