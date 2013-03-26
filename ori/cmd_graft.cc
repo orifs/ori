@@ -94,14 +94,19 @@ cmd_graft(int argc, const char *argv[])
     if (dstRoot[dstRoot.length() - 1] != '/')
 	dstRoot = dstRoot + "/";
 
-    if (srcRoot == "") {
-        cout << "Error: source path is not a repository." << endl;
-        return 1;
-    }
+    if (srcRoot == "/" || dstRoot == "/") {
+        cout << "Warning: source or destination is not a repository." << endl;
+        string dstFile = dstRelPath + "/" + dstName;
 
-    if (dstRoot == "") {
-        cout << "Error: destination path is not a repository." << endl;
-        return 1;
+        if (Util_IsDirectory(srcRelPath)) {
+            execl("/bin/cp", "cp", "-r", srcRelPath.c_str(), dstFile.c_str(),
+                  (char *)NULL);
+        } else {
+            execl("/bin/cp", "cp", srcRelPath.c_str(), dstFile.c_str(),
+                  (char *)NULL);
+        }
+
+        return 0;
     }
 
     srcRepo.open(srcRoot);

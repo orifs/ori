@@ -191,7 +191,7 @@ static Cmd commands[] = {
         "Graft a subtree from a repository into the local repository",
         cmd_graft,
         usage_graft,
-        CMD_NEED_REPO,
+        0, /* Avoid CMD_NEED_REPO to allow aliasing of 'cp' */
     },
     {
         "help",
