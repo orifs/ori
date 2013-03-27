@@ -180,7 +180,7 @@ private:
     uint64_t nextFH;
     std::map<OriPrivId, OriDir*> dirs;
     std::map<std::string, OriFileInfo*> paths;
-    std::map<uint64_t, OriFileInfo*> handles;
+    std::tr1::unordered_map<uint64_t, OriFileInfo*> handles;
 
     // Repository State
     LocalRepo *repo;

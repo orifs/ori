@@ -32,6 +32,7 @@
 #include <map>
 #include <algorithm>
 #include <boost/tr1/memory.hpp>
+#include <oriutil/oritr1.h>
 
 #include <oriutil/scan.h>
 #include <oriutil/systemexception.h>
@@ -45,6 +46,7 @@
 #include "oripriv.h"
 
 using namespace std;
+using namespace std::tr1;
 
 OriPriv::OriPriv(const std::string &repoPath)
     : cmd(this)
@@ -221,7 +223,7 @@ OriPriv::getFileInfo(const string &path)
 OriFileInfo *
 OriPriv::getFileInfo(uint64_t fh)
 {
-    map<uint64_t, OriFileInfo*>::iterator it;
+    unordered_map<uint64_t, OriFileInfo*>::iterator it;
 
     it = handles.find(fh);
     if (it != handles.end()) {
