@@ -34,6 +34,7 @@ opts.AddVariables(
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
     ("WITH_GOOGLEHEAP", "Link to Google Heap Cheker.", "0"),
     ("WITH_GOOGLEPROF", "Link to Google CPU Profiler.", "0"),
+    ("WITH_ASAN", "Enable Clang AddressSanitizer.", "0"),
     ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "0"),
     ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
         "0"),
@@ -48,6 +49,16 @@ env = Environment(options = opts,
                   tools = ['default'],
                   ENV = os.environ)
 Help(opts.GenerateHelpText(env))
+
+# Copy environment variables
+if os.getenv('CC') != None:
+    env["CC"] = os.getenv('CC')
+if os.getenv('CXX') != None:
+    env["CXX"] = os.getenv('CXX')
+if os.getenv('AS') != None:
+    env["AS"] = os.getenv('AS')
+if os.getenv('LD') != None:
+    env["LINK"] = os.getenv('LD')
 
 # Windows Configuration Changes
 if sys.platform == "win32":
@@ -292,6 +303,8 @@ if env["WITH_GOOGLEHEAP"] == "1":
     env.Append(LIBS = ["tcmalloc"])
 if env["WITH_GOOGLEPROF"] == "1":
     env.Append(LIBS = ["profiler"])
+if env["WITH_ASAN"] == "1":
+    env.Append(CPPFLAGS = ["-faddress-sanitizer"])
 
 # Installation Targets
 
