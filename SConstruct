@@ -34,13 +34,14 @@ opts.AddVariables(
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
     ("WITH_GOOGLEHEAP", "Link to Google Heap Cheker.", "0"),
     ("WITH_GOOGLEPROF", "Link to Google CPU Profiler.", "0"),
+    ("WITH_TSAN", "Enable Clang Race Detector.", "0"),
     ("WITH_ASAN", "Enable Clang AddressSanitizer.", "0"),
     ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "0"),
     ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
         "0"),
     ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
-    ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY; NONE).", 
-	"FASTLZ"),
+    ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY; NONE).",
+        "FASTLZ"),
     ("CHUNKING_ALGO", "Chunking algorithm (RK; FIXED).", "RK"),
     ("PREFIX", "Installation target directory.", "/usr/local/bin/")
 )
@@ -303,8 +304,15 @@ if env["WITH_GOOGLEHEAP"] == "1":
     env.Append(LIBS = ["tcmalloc"])
 if env["WITH_GOOGLEPROF"] == "1":
     env.Append(LIBS = ["profiler"])
+if env["WITH_TSAN"] == "1":
+    env.Append(CPPFLAGS = ["-fsanitize=thread"])
+    env.Append(LINKFLAGS = ["-fsanitize=thread"])
 if env["WITH_ASAN"] == "1":
-    env.Append(CPPFLAGS = ["-faddress-sanitizer"])
+    env.Append(CPPFLAGS = ["-fsanitize=address"])
+    env.Append(LINKFLAGS = ["-fsanitize=address"])
+if env["WITH_TSAN"] == "1" and env["WITH_ASAN"] == "1":
+    print "Cannot set both WITH_TSAN and WITH_ASAN!"
+    sys.exit(-1)
 
 # Installation Targets
 
