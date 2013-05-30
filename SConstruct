@@ -174,17 +174,23 @@ if sys.platform == "win32":
     env.Append(LIBPATH=['#../libevent-2.0.21-stable'],
                CPPPATH=['#../libevent-2.0.21-stable\include'])
 
+# XXX: Hack to support clang static analyzer
+def CheckFailed():
+    if os.getenv('CCC_ANALYZER_OUTPUT_FORMAT') != None:
+        return
+    Exit(1)
+
 # Configuration
 conf = env.Configure(custom_tests = { 'CheckPkgConfig' : CheckPkgConfig,
                                       'CheckPkg' : CheckPkg })
 
 if not conf.CheckCC():
     print 'Your C compiler and/or environment is incorrectly configured.'
-    Exit(1)
+    CheckFailed()
 
 if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
-    Exit(1)
+    CheckFailed()
 
 if (sys.platform != "win32") and not conf.CheckPkgConfig():
     print 'pkg-config not found!'
@@ -206,7 +212,7 @@ elif conf.CheckCXXHeader('tr1/unordered_map'):
     env.Append(CPPFLAGS = "-DHAVE_CXXTR1")
 else:
     print 'Either C++11, C++0x, or C++ TR1 must be present!'
-    Exit(1)
+    CheckFailed()
 
 if not conf.CheckCXXHeader('boost/uuid/uuid.hpp'):
     print 'Boost UUID headers are missing!'
