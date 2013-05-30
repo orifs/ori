@@ -84,9 +84,12 @@ void
 Httpd_stop(struct evhttp_request *req, void *arg)
 {
     struct evbuffer *buf;
+
     buf = evbuffer_new();
     if (buf == NULL) {
-        printf("Failed");
+        LOG("couldn't allocate evbuffer!");
+        evhttp_send_error(req, HTTP_INTERNAL, "Internal Error");
+        return;
     }
 
     if (Httpd_authenticate(req, buf) < 0)
@@ -109,7 +112,8 @@ Httpd_getId(struct evhttp_request *req, void *arg)
 
     buf = evbuffer_new();
     if (buf == NULL) {
-        LOG("httpd_gethead: evbuffer_new failed!");
+        LOG("couldn't allocate evbuffer!");
+        evhttp_send_error(req, HTTP_INTERNAL, "Internal Error");
         return;
     }
 
@@ -128,7 +132,8 @@ Httpd_getVersion(struct evhttp_request *req, void *arg)
 
     buf = evbuffer_new();
     if (buf == NULL) {
-        LOG("httpd_getversion: evbuffer_new failed!");
+        LOG("couldn't allocate evbuffer!");
+        evhttp_send_error(req, HTTP_INTERNAL, "Internal Error");
         return;
     }
 
@@ -148,7 +153,8 @@ Httpd_head(struct evhttp_request *req, void *arg)
 
     buf = evbuffer_new();
     if (buf == NULL) {
-        LOG("httpd_gethead: evbuffer_new failed!");
+        LOG("couldn't allocate evbuffer!");
+        evhttp_send_error(req, HTTP_INTERNAL, "Internal Error");
         return;
     }
 
@@ -172,8 +178,7 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
         int status = es.writeInfo(*it);
         if (status < 0) {
             LOG("couldn't write info to evbuffer!");
-            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR",
-                    evbuffer_new());
+            evhttp_send_error(req, HTTP_INTERNAL, "Internal Error");
             return;
         }
     }
@@ -196,8 +201,7 @@ Httpd_getCommits(struct evhttp_request *req, void *arg)
         std::string blob = commits[i].getBlob();
         if (es.writePStr(blob) < 0) {
             LOG("couldn't write pstr to evbuffer");
-            evhttp_send_reply(req, HTTP_INTERNAL, "INTERNAL ERROR",
-                    evbuffer_new());
+            evhttp_send_error(req, HTTP_INTERNAL, "Internal Error");
             return;
         }
     }
@@ -286,12 +290,12 @@ Httpd_getObjInfo(struct evhttp_request *req, void *arg)
 	sObjId = url.substr(9);
     }
     else {
-	evhttp_send_reply(req, HTTP_NOTFOUND, "File Not Found", evbuffer_new());
+	evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");
 	return;
     }
     
     if (sObjId.size() != 64) {
-        evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", evbuffer_new());
+        evhttp_send_error(req, HTTP_BADREQUEST, "Bad Request");
         return;
     }
     
@@ -340,56 +344,58 @@ Httpd_getObjs(struct evhttp_request *req, void *arg)
     evhttp_send_reply(req, HTTP_OK, "OK", out.buf());
 }
 
-void
-Httpd_pushObj(struct evhttp_request *req, void *arg)
-{
-    const char *cl = evhttp_find_header(req->input_headers, "Content-Length");
-    uint32_t length;
-    struct evbuffer *body = evhttp_request_get_input_buffer(req);
-    struct evbuffer *outbuf;
-    unsigned char objId[20];
-    void *buf;
-
-    outbuf = evbuffer_new();
-    if (outbuf == NULL) {
-        printf("Failed");
-    }
-
-    // Make sure it makes sense
-    if (cl == NULL) {
-        evhttp_send_error(req, HTTP_BADREQUEST, "Bad Request");
-        return;
-    }
-
-    /*
-    Dump Headers
-
-    struct evkeyvalq *kv = evhttp_request_get_input_headers(req);
-    struct evkeyval *iter;
-    TAILQ_FOREACH(iter, kv, next) {
-        printf("%s: %s\n", iter->key, iter->value);
-    }
-    */
-
-    length = atoi(cl);
-    printf("Push: %d bytes, got %zd bytes\n", length, evbuffer_get_length(body));
-
-    buf = malloc(length);
-    evbuffer_remove(body, buf, length);
-    // XXX: Add object
-    free(buf);
-
-    evbuffer_add_printf(outbuf, "%02x%02x%02x%02x"
-                        "%02x%02x%02x%02x%02x%02x%02x%02x"
-                        "%02x%02x%02x%02x%02x%02x%02x%02x\n",
-                        objId[0], objId[1], objId[2], objId[3],
-                        objId[4], objId[5], objId[6], objId[7],
-                        objId[8], objId[9], objId[10], objId[11],
-                        objId[12], objId[13], objId[14], objId[15],
-                        objId[16], objId[17], objId[18], objId[19]);
-    evhttp_send_reply(req, HTTP_OK, "OK", outbuf);
-}
-
+// void
+// Httpd_pushObj(struct evhttp_request *req, void *arg)
+// {
+//     const char *cl = evhttp_find_header(req->input_headers, "Content-Length");
+//     uint32_t length;
+//     struct evbuffer *body = evhttp_request_get_input_buffer(req);
+//     struct evbuffer *outbuf;
+//     unsigned char objId[20];
+//     void *buf;
+// 
+//     outbuf = evbuffer_new();
+//     if (outbuf == NULL) {
+//         LOG("couldn't allocate evbuffer!");
+//         evhttp_send_error(req, HTTP_INTERNAL, "Internal Error");
+//         return;
+//     }
+// 
+//     // Make sure it makes sense
+//     if (cl == NULL) {
+//         evhttp_send_error(req, HTTP_BADREQUEST, "Bad Request");
+//         return;
+//     }
+// 
+//     /*
+//     Dump Headers
+// 
+//     struct evkeyvalq *kv = evhttp_request_get_input_headers(req);
+//     struct evkeyval *iter;
+//     TAILQ_FOREACH(iter, kv, next) {
+//         printf("%s: %s\n", iter->key, iter->value);
+//     }
+//     */
+// 
+//     length = atoi(cl);
+//     printf("Push: %d bytes, got %zd bytes\n", length, evbuffer_get_length(body));
+// 
+//     buf = malloc(length);
+//     evbuffer_remove(body, buf, length);
+//     // XXX: Add object
+//     free(buf);
+// 
+//     evbuffer_add_printf(outbuf, "%02x%02x%02x%02x"
+//                         "%02x%02x%02x%02x%02x%02x%02x%02x"
+//                         "%02x%02x%02x%02x%02x%02x%02x%02x\n",
+//                         objId[0], objId[1], objId[2], objId[3],
+//                         objId[4], objId[5], objId[6], objId[7],
+//                         objId[8], objId[9], objId[10], objId[11],
+//                         objId[12], objId[13], objId[14], objId[15],
+//                         objId[16], objId[17], objId[18], objId[19]);
+//     evhttp_send_reply(req, HTTP_OK, "OK", outbuf);
+// }
+ 
 void
 Httpd_logCB(int severity, const char *msg)
 {
@@ -416,7 +422,9 @@ Httpd_main(uint16_t port)
     evhttp_set_cb(httpd, "/index", Httpd_getIndex, NULL);
     evhttp_set_cb(httpd, "/commits", Httpd_getCommits, NULL);
     //evhttp_set_cb(httpd, "/objs", Httpd_pushobj, NULL);
+#ifdef DEBUG
     evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
+#endif
     evhttp_set_cb(httpd, "/getobjs", Httpd_getObjs, NULL);
     // Generic handler provides:
     // getObject: /objs/*

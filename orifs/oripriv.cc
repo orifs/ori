@@ -165,10 +165,7 @@ OriPriv::getTemp()
 
     strncpy(tmpPath, filePath.c_str(), PATH_MAX);
 
-    mktemp(tmpPath);
-    ASSERT(tmpPath[0] != '\0');
-
-    fd = open(tmpPath, O_CREAT|O_RDWR, 0700);
+    fd = mkstemp(tmpPath);
     if (fd < 0)
         throw SystemException(errno);
 

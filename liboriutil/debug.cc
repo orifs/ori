@@ -77,6 +77,7 @@ ori_log(int level, const char *fmt, ...)
 {
     va_list ap;
     char buf[MAX_LOG];
+    size_t off;
 
 #if !defined(DEBUG)
     if (level > LEVEL_MSG)
@@ -86,32 +87,32 @@ ori_log(int level, const char *fmt, ...)
 #ifndef _WIN32
     struct timespec ts;
     get_timespec(&ts);
-    strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
+    off = strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&ts.tv_sec));
 #else
     time_t curTime;
     time(&curTime);
-    strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&curTime));
+    off = strftime(buf, 32, "%Y-%m-%d %H:%M:%S ", localtime(&curTime));
 #endif
 
     switch (level) {
         case LEVEL_ERR:
-            strncat(buf, "ERROR: ", MAX_LOG);
+            strncat(buf, "ERROR: ", MAX_LOG - off);
             break;
         case LEVEL_MSG:
-            strncat(buf, "MESSAGE: ", MAX_LOG);
+            strncat(buf, "MESSAGE: ", MAX_LOG - off);
             break;
         case LEVEL_LOG:
-            strncat(buf, "LOG: ", MAX_LOG);
+            strncat(buf, "LOG: ", MAX_LOG - off);
             break;
         case LEVEL_DBG:
-            strncat(buf, "DEBUG: ", MAX_LOG);
+            strncat(buf, "DEBUG: ", MAX_LOG - off);
             break;
         case LEVEL_VRB:
-            strncat(buf, "VERBOSE: ", MAX_LOG);
+            strncat(buf, "VERBOSE: ", MAX_LOG - off);
             break;
     }
 
-    size_t off = strlen(buf);
+    off = strlen(buf);
 
     va_start(ap, fmt);
     vsnprintf(buf + off, MAX_LOG - off, fmt, ap);
