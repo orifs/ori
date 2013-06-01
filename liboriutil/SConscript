@@ -12,6 +12,7 @@ src = [
     "objecthash.cc",
     "objectinfo.cc",
     "oricrypt.cc",
+    "orinet.cc",
     "oriutil.cc",
     "rwlock.cc",
     "stopwatch.cc",

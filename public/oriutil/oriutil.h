@@ -48,6 +48,8 @@ ObjectHash Util_HashBlob(const uint8_t *data, size_t len);
 ObjectHash Util_HashFile(const std::string &path);
 
 std::vector<std::string> Util_PathToVector(const std::string &path);
+std::vector<std::string> Util_StringSplit(const std::string &str, char sep);
+std::string Util_StringJoin(const std::vector<std::string> &str, char sep);
 std::string Util_GetFullname();
 std::string Util_GetHome();
 int Util_SetBlocking(int fd, bool block);

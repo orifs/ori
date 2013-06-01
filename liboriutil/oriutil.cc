@@ -536,6 +536,44 @@ Util_PathToVector(const string &path)
     return rval;
 }
 
+vector<string>
+Util_StringSplit(const string &str, char sep)
+{
+    size_t pos = 0;
+    vector<string> rval;
+
+    while (pos < str.length()) {
+        size_t end = str.find(sep, pos);
+        if (end == str.npos) {
+            rval.push_back(str.substr(pos));
+            break;
+        }
+
+        rval.push_back(str.substr(pos, end - pos));
+        pos = end + 1;
+    }
+
+    return rval;
+}
+
+string
+Util_StringJoin(const vector<string> &str, char sep)
+{
+    int i;
+    string rval = "";
+
+    if (str.size() == 0)
+        return rval;
+
+    rval = str[0];
+    for (i = 1; i < str.size(); i++) {
+        rval += sep;
+        rval += str[i];
+    }
+
+    return rval;
+}
+
 string
 Util_GetFullname()
 {
@@ -881,6 +919,14 @@ OriUtil_selfTest(void)
     ASSERT(pv[0] == "b");
     ASSERT(pv[1] == "b.txt");
     ASSERT(pv[2] == "file");
+
+    string sv_orig = "a,ab,abc";
+    vector<string> sv = Util_StringSplit(sv_orig, ',');
+    ASSERT(sv[0] == "a");
+    ASSERT(sv[1] == "ab");
+    ASSERT(sv[2] == "abc");
+    string sv_after = Util_StringJoin(sv, ',');
+    ASSERT(sv_orig == sv_after);
 
     // Test for serialization
     std::string testStr;
