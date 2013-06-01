@@ -639,6 +639,9 @@ Util_PrintHex(const std::string &data, off_t off, size_t limit)
             size_t ix = row * row_size + col;
             if ((limit != 0 && ix >= limit) || ix >= data.length()) {
                 stop = true;
+                for (; col < row_size; col++) {
+                    printf("   ");
+                }
                 break;
             }
             ix += off;
@@ -651,6 +654,9 @@ Util_PrintHex(const std::string &data, off_t off, size_t limit)
             size_t ix = row * row_size + col;
             if ((limit != 0 && ix >= limit) || ix >= data.length()) {
                 stop = true;
+                for (; col < row_size; col++) {
+                    printf(" ");
+                }
                 break;
             }
             ix += off;
@@ -663,6 +669,7 @@ Util_PrintHex(const std::string &data, off_t off, size_t limit)
         }
         printf("|");
     }
+    printf("\n");
 }
 
 /*
