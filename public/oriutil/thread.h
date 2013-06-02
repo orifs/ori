@@ -87,7 +87,6 @@ protected:
 private:
     ThreadState cstate;
     std::string tname;
-    Thread *entry;
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
     pthread_t tid;
     pthread_attr_t *attr;
