@@ -25,8 +25,11 @@
 using namespace std;
 
 #include <oriutil/debug.h>
+#include <oriutil/oriutil.h>
 #include <ori/version.h>
 #include <ori/localrepo.h>
+
+#define ORISYNC_LOGFILE         "/.orisync.log"
 
 /********************************************************************
  *
@@ -153,6 +156,8 @@ main(int argc, char *argv[])
     int idx;
 
     if (argc == 1) {
+        ori_open_log(Util_GetHome() + ORISYNC_LOGFILE);
+
         return start_server();
     }
 

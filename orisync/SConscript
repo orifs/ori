@@ -23,7 +23,7 @@ libs = [
        ]
 
 if sys.platform != "darwin":
-    libs += ['rt']
+    libs += ['rt', 'pthread']
     if env["WITH_MDNS"] == "1":
         libs += ['dns_sd']
 
