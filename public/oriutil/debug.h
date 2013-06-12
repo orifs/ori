@@ -55,14 +55,14 @@ int ori_open_log(const std::string &logPath);
 #define PANIC() { printf("PANIC: " \
                          "function %s, file %s, line %d\n", \
                          __FUNCTION__, __FILE__, __LINE__); abort(); }
-#define NOT_IMPLEMENTED(_x) if (!_x) { printf("NOT_IMPLEMENTED: (" #_x "), " \
+#define NOT_IMPLEMENTED(_x) if (!(_x)) { printf("NOT_IMPLEMENTED: (" #_x "), " \
                                 "function %s, file %s, line %d\n", \
                                 __FUNCTION__, __FILE__, __LINE__); abort(); }
 #else /* _WIN32 */
 #define PANIC() { printf("PANIC: " \
                          "function %s, file %s, line %d\n", \
                          __func__, __FILE__, __LINE__); abort(); }
-#define NOT_IMPLEMENTED(_x) if (!_x) { printf("NOT_IMPLEMENTED: (" #_x "), " \
+#define NOT_IMPLEMENTED(_x) if (!(_x)) { printf("NOT_IMPLEMENTED: (" #_x "), " \
                                 "function %s, file %s, line %d\n", \
                                 __func__, __FILE__, __LINE__); abort(); }
 #endif /* _WIN32 */

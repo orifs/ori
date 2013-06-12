@@ -38,6 +38,9 @@ KVSerializer_selfTest()
     a.putStr("B", "2");
     a.putStr("C", "3");
     a.putU8("D", 4);
+    a.putU16("E", 0x1234);
+    a.putU32("F", 0x12345678);
+    a.putU64("G", 0x0123456789ABCDEFULL);
 
     b.fromBlob(a.getBlob());
 
@@ -55,6 +58,18 @@ KVSerializer_selfTest()
     }
     if (b.getU8("D") != 4) {
         cout << "Error getU8('D') failed!" << endl;
+        return -1;
+    }
+    if (b.getU16("E") != 0x1234) {
+        cout << "Error getU16('E') failed!" << endl;
+        return -1;
+    }
+    if (b.getU32("F") != 0x12345678) {
+        cout << "Error getU32('F') failed!" << endl;
+        return -1;
+    }
+    if (b.getU64("G") != 0x0123456789ABCDEFULL) {
+        cout << "Error getU64('G') failed!" << endl;
         return -1;
     }
 
@@ -106,6 +121,44 @@ KVSerializer::putU8(const std::string &key, uint8_t value)
     table[key] = encoded;
 }
 
+void
+KVSerializer::putU16(const std::string &key, uint16_t value)
+{
+    string encoded = "WXX";
+
+    encoded[1] = (value >> 8) & 0xff;
+    encoded[2] = value & 0xff;
+    table[key] = encoded;
+}
+
+void
+KVSerializer::putU32(const std::string &key, uint32_t value)
+{
+    string encoded = "DXXXX";
+
+    encoded[1] = (value >> 24) & 0xff;
+    encoded[2] = (value >> 16) & 0xff;
+    encoded[3] = (value >> 8) & 0xff;
+    encoded[4] = value & 0xff;
+    table[key] = encoded;
+}
+
+void
+KVSerializer::putU64(const std::string &key, uint64_t value)
+{
+    string encoded = "QXXXXXXXX";
+
+    encoded[1] = (value >> 56) & 0xff;
+    encoded[2] = (value >> 48) & 0xff;
+    encoded[3] = (value >> 40) & 0xff;
+    encoded[4] = (value >> 32) & 0xff;
+    encoded[5] = (value >> 24) & 0xff;
+    encoded[6] = (value >> 16) & 0xff;
+    encoded[7] = (value >> 8) & 0xff;
+    encoded[8] = value & 0xff;
+    table[key] = encoded;
+}
+
 std::string
 KVSerializer::getStr(const std::string &key) const
 {
@@ -133,6 +186,65 @@ KVSerializer::getU8(const std::string &key) const
     return val;
 }
 
+uint16_t
+KVSerializer::getU16(const std::string &key) const
+{
+    const string encoded = table.at(key);
+    uint16_t val;
+
+    if (encoded[0] != 'W')
+        throw SerializationException("The value is not a uint16_t type");
+    if (encoded.length() != 3)
+        throw SerializationException("The value is incorrectly formatted");
+
+    val = ((uint16_t)encoded[1] & 0xff) << 8;
+    val |= (uint16_t)encoded[2] & 0xff;
+
+    return val;
+}
+
+uint32_t
+KVSerializer::getU32(const std::string &key) const
+{
+    const string encoded = table.at(key);
+    uint32_t val;
+
+    if (encoded[0] != 'D')
+        throw SerializationException("The value is not a uint32_t type");
+    if (encoded.length() != 5)
+        throw SerializationException("The value is incorrectly formatted");
+
+    val = ((uint32_t)encoded[1] & 0xff) << 24;
+    val |= ((uint32_t)encoded[2] & 0xff) << 16;
+    val |= ((uint32_t)encoded[3] & 0xff) << 8;
+    val |= (uint32_t)encoded[4] & 0xff;
+
+    return val;
+}
+
+uint64_t
+KVSerializer::getU64(const std::string &key) const
+{
+    const string encoded = table.at(key);
+    uint64_t val;
+
+    if (encoded[0] != 'Q')
+        throw SerializationException("The value is not a uint64_t type");
+    if (encoded.length() != 9)
+        throw SerializationException("The value is incorrectly formatted");
+
+    val = ((uint64_t)encoded[1] & 0xff) << 56;
+    val |= ((uint64_t)encoded[2] & 0xff) << 48;
+    val |= ((uint64_t)encoded[3] & 0xff) << 40;
+    val |= ((uint64_t)encoded[4] & 0xff) << 32;
+    val |= ((uint64_t)encoded[5] & 0xff) << 24;
+    val |= ((uint64_t)encoded[6] & 0xff) << 16;
+    val |= ((uint64_t)encoded[7] & 0xff) << 8;
+    val |= (uint64_t)encoded[8] & 0xff;
+
+    return val;
+}
+
 KVSerializer::KVType
 KVSerializer::getType(const std::string &key) const
 {
@@ -142,6 +254,12 @@ KVSerializer::getType(const std::string &key) const
         return KVTypeString;
     if (encoded[0] == 'B')
         return KVTypeU8;
+    if (encoded[0] == 'W')
+        return KVTypeU16;
+    if (encoded[0] == 'D')
+        return KVTypeU32;
+    if (encoded[0] == 'Q')
+        return KVTypeU64;
 
     return KVTypeNull;
 }
@@ -177,15 +295,15 @@ KVSerializer::fromBlob(const std::string &blob)
         if (len - index <= 4)
             throw SerializationException("Object invalid");
 
-        entryLen = ((uint8_t)blob[index]) << 8;
-        entryLen |= (uint8_t)blob[index+1];
+        entryLen = ((uint16_t)blob[index]) << 8;
+        entryLen |= (uint16_t)blob[index+1];
         if (len - index < entryLen + 2)
             throw SerializationException("Error parsing key length");
         key = blob.substr(index+2, entryLen);
         index += 2 + entryLen;
 
-        entryLen = ((uint8_t)blob[index]) << 8;
-        entryLen |= (uint8_t)blob[index+1];
+        entryLen = ((uint16_t)blob[index]) << 8;
+        entryLen |= (uint16_t)blob[index+1];
         if (len - index < entryLen)
             throw SerializationException("Error parsing value length");
         value = blob.substr(index+2, entryLen);
@@ -207,14 +325,14 @@ KVSerializer::getBlob() const
         uint8_t lenH, lenL;
 
         // length must be less than size
-        NOT_IMPLEMENTED(it->first.length() > 0x0000FFFF);
+        NOT_IMPLEMENTED(it->first.length() <= 0x0000FFFF);
         lenH = it->first.length() >> 8;
         lenL = it->first.length() & 0x00FF;
         entry = lenH;
         entry += lenL;
         entry += it->first;
 
-        NOT_IMPLEMENTED(it->second.length() > 0x0000FFFF);
+        NOT_IMPLEMENTED(it->second.length() <= 0x0000FFFF);
         lenH = it->second.length() >> 8;
         lenL = it->second.length() & 0x00FF;
         entry += lenH;
@@ -225,5 +343,37 @@ KVSerializer::getBlob() const
     }
 
     return blob;
+}
+
+void
+KVSerializer::dump() const
+{
+    map<string, string>::const_iterator it;
+
+    cout << "KVSerializer Dump:" << endl;
+    for (it = table.begin(); it != table.end(); it++)
+    {
+        KVType type = getType(it->first);
+        char buf[32];
+
+        if (type == KVTypeString) {
+            cout << it->first << ": " << getStr(it->first) << endl;
+        } else if (type == KVTypeU8) {
+            snprintf(buf, sizeof(buf), "%u", getU8(it->first));
+            cout << it->first << ": " << buf << endl;
+        } else if (type == KVTypeU16) {
+            snprintf(buf, sizeof(buf), "%u", getU16(it->first));
+            cout << it->first << ": " << buf << endl;
+        } else if (type == KVTypeU32) {
+            snprintf(buf, sizeof(buf), "%u", getU32(it->first));
+            cout << it->first << ": " << buf << endl;
+        } else if (type == KVTypeU64) {
+            snprintf(buf, sizeof(buf), "%lu", getU64(it->first));
+            cout << it->first << ": " << buf << endl;
+        } else {
+            cout << "Unknown type!" << endl;
+        }
+
+    }
 }
 

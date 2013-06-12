@@ -36,21 +36,34 @@ public:
         host = kv.getStr("host");
         numRepos = kv.getU8("numRepos");
 
+        repos.clear();
+
         for (int i = 0; i < numRepos; i++) {
-            // TODO: Parse repo info
+            char prefix[32];
+            std::map<std::string, RepoInfo>::iterator it;
+
+            snprintf(prefix, sizeof(prefix), "repo.%d", i);
+
+            RepoInfo info = RepoInfo();
+            info.getKV(kv, prefix);
         }
     }
-    std::string getBlob() {
+    std::string getBlob() const {
         KVSerializer kv;
-        std::map<std::string, RepoInfo>::iterator it;
+        int i;
+        std::map<std::string, RepoInfo>::const_iterator it;
 
         kv.putStr("host", host);
         kv.putStr("hostId", hostId);
         kv.putStr("cluster", cluster);
         kv.putU8("numRepos", repos.size());
 
-        for (it = repos.begin(); it != repos.end(); it++) {
-            // TODO: Serialize repo info
+        for (i = 0, it = repos.begin(); it != repos.end(); i++, it++) {
+            char prefix[32];
+
+            snprintf(prefix, sizeof(prefix), "repo.%d", i);
+
+            it->second.putKV(kv, prefix);
         }
 
         return kv.getBlob();

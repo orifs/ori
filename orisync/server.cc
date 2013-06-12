@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <cstdlib>
 
 #include <unistd.h>
 #include <errno.h>
@@ -200,9 +201,9 @@ public:
 
         ctxt.assign(buf+32, len-32);
         ptxt = OriCrypt_Decrypt(ctxt, rc.getKey());
-        Util_PrintHex(ptxt);
         try {
             kv.fromBlob(ptxt);
+            kv.dump();
 
             // Ignore requests from self
             if (kv.getStr("hostId") == rc.getUUID())
@@ -227,7 +228,7 @@ public:
         for (it = hosts.begin(); it != hosts.end(); it++) {
             cout << it->second.getHost() << endl;
         }
-        cout << "==== End Hosts ====" << endl;
+        cout << "==== End Hosts ====" << endl << endl;
     }
     void run() {
         while (1) {
