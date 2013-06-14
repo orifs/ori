@@ -547,7 +547,7 @@ main(int argc, char *argv[])
     }
 
 
-    LOG("Executing '%s'", argv[1]);
+    DLOG("Executing '%s'", argv[1]);
     return commands[idx].cmd(argc-1, (const char **)argv+1);
 }
 

@@ -42,17 +42,25 @@
 class RWLock;
 struct RWKey {
     typedef std::tr1::shared_ptr<RWKey> sp;
-    RWKey(RWLock *l = NULL);
-    virtual ~RWKey();
-    RWLock *lock;
+    virtual ~RWKey() { };
 };
 struct ReaderKey : public RWKey {
+protected:
     ReaderKey(RWLock *l = NULL);
+public:
     virtual ~ReaderKey();
+private:
+    RWLock *lock;
+    friend class RWLock;
 };
 struct WriterKey : public RWKey {
+protected:
     WriterKey(RWLock *l = NULL);
+public:
     virtual ~WriterKey();
+private:
+    RWLock *lock;
+    friend class RWLock;
 };
 
 class RWLock

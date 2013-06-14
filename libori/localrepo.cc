@@ -233,12 +233,13 @@ LocalRepo::open(const string &root)
         version = Util_ReadFile(rootPath + ORI_PATH_VERSION);
 
         if (version != ORI_FS_VERSION_STR) {
-            printf("Unsupported file system version\n");
+            WARNING("LocalRepo::open: Unsupported file system version!");
             return false;
         }
     }
     catch (std::ios_base::failure &e)
     {
+        WARNING("LocalRepo::open: %s", e.what());
         return false;
     }
 

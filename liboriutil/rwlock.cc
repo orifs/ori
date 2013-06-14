@@ -22,17 +22,8 @@
 #include <oriutil/rwlock.h>
 #include <oriutil/thread.h>
 
-RWKey::RWKey(RWLock *l)
-    : lock(l)
-{
-}
-
-RWKey::~RWKey()
-{
-}
-
 ReaderKey::ReaderKey(RWLock *l)
-    : RWKey(l)
+    : lock(l)
 {
 }
 
@@ -43,7 +34,7 @@ ReaderKey::~ReaderKey()
 }
 
 WriterKey::WriterKey(RWLock *l)
-    : RWKey(l)
+    : lock(l)
 {
 }
 

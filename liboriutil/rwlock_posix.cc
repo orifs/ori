@@ -56,7 +56,7 @@ RWKey::sp RWLock::readLock()
 {
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
-    LOG("%u readLock: %u", tid, lockNum);
+    DLOG("%u readLock: %u", tid, lockNum);
     //Util_LogBacktrace();
 #endif
 
@@ -69,7 +69,7 @@ RWKey::sp RWLock::readLock()
     pthread_rwlock_rdlock(&lockHandle);
 
 #if LOG_LOCKING == 1
-    LOG("%u success readLock: %u", tid, lockNum);
+    DLOG("%u success readLock: %u", tid, lockNum);
 #endif
 
 #if CHECK_LOCK_ORDER == 1
@@ -103,7 +103,7 @@ void RWLock::readUnlock()
 
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
-    LOG("%u readUnlock: %u", tid, lockNum);
+    DLOG("%u readUnlock: %u", tid, lockNum);
 #endif
 }
 
@@ -111,7 +111,7 @@ RWKey::sp RWLock::writeLock()
 {
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
-    LOG("%u writeLock: %u", tid, lockNum);
+    DLOG("%u writeLock: %u", tid, lockNum);
     //Util_LogBacktrace();
 #endif
 
@@ -124,7 +124,7 @@ RWKey::sp RWLock::writeLock()
     pthread_rwlock_wrlock(&lockHandle);
 
 #if LOG_LOCKING == 1
-    LOG("%u success writeLock: %u", tid, lockNum);
+    DLOG("%u success writeLock: %u", tid, lockNum);
 #endif
 
 #if CHECK_LOCK_ORDER == 1
@@ -158,7 +158,7 @@ void RWLock::writeUnlock()
 
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
-    LOG("%u writeUnlock: %u", tid, lockNum);
+    DLOG("%u writeUnlock: %u", tid, lockNum);
 #endif
 }
 

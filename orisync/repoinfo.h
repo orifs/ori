@@ -21,10 +21,17 @@ class RepoInfo {
 public:
     RepoInfo() {
     }
+    RepoInfo(const std::string &repoId, const std::string &path) {
+        this->repoId = repoId;
+        this->path = path;
+    }
     ~RepoInfo() {
     }
     std::string getRepoId() {
         return repoId;
+    }
+    void updateHead(const std::string &head) {
+        this->head = head;
     }
     std::string getHead() {
         return head;

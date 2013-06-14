@@ -77,8 +77,31 @@ public:
     std::string getHostId() {
         return hostId;
     }
+    bool hasRepo(const std::string &repoId) const {
+        std::map<std::string, RepoInfo>::const_iterator it = repos.find(repoId);
+
+        return it != repos.end();
+    }
     RepoInfo getRepo(const std::string &repoId) {
         return repos[repoId];
+    }
+    void updateRepo(const std::string &repoId, const RepoInfo &info) {
+        repos[repoId] = info;
+    }
+    void removeRepo(const std::string &repoId) {
+        std::map<std::string, RepoInfo>::iterator it = repos.find(repoId);
+
+        repos.erase(it);
+    }
+    std::list<std::string> listRepos() const {
+        std::map<std::string, RepoInfo>::const_iterator it;
+        std::list<std::string> val;
+
+        for (it = repos.begin(); it != repos.end(); it++) {
+            val.push_back(it->first);
+        }
+
+        return val;
     }
 private:
     std::string host;

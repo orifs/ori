@@ -117,14 +117,14 @@ if env["WITH_GPROF"] == "1":
     env.Append(LINKFLAGS = [ "-pg" ])
 
 if env["BUILDTYPE"] == "DEBUG":
-    env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall",
+    env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-DORI_DEBUG", "-Wall",
 	"-Wno-deprecated-declarations" ])
     env.Append(LINKFLAGS = [ "-g" ])
 elif env["BUILDTYPE"] == "PERF":
-    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-Wall", "-O0"])
+    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-DORI_PERF", "-Wall", "-O0"])
     env.Append(LDFLAGS = [ "-g" ])
 elif env["BUILDTYPE"] == "RELEASE":
-    env.Append(CPPFLAGS = ["-DNDEBUG", "-Wall", "-O2"])
+    env.Append(CPPFLAGS = ["-DNDEBUG", "-DORI_RELEASE", "-Wall", "-O2"])
 else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
@@ -311,8 +311,8 @@ if env["WITH_GOOGLEHEAP"] == "1":
 if env["WITH_GOOGLEPROF"] == "1":
     env.Append(LIBS = ["profiler"])
 if env["WITH_TSAN"] == "1":
-    env.Append(CPPFLAGS = ["-fsanitize=thread"])
-    env.Append(LINKFLAGS = ["-fsanitize=thread"])
+    env.Append(CPPFLAGS = ["-fsanitize=thread", "-fPIE"])
+    env.Append(LINKFLAGS = ["-fsanitize=thread", "-pie"])
 if env["WITH_ASAN"] == "1":
     env.Append(CPPFLAGS = ["-fsanitize=address"])
     env.Append(LINKFLAGS = ["-fsanitize=address"])

@@ -55,6 +55,8 @@ using namespace std;
 #define ORISYNC_UDPPORT         8051
 // Advertisement interval
 #define ORISYNC_ADVINTERVAL     5
+// Repository check interval
+#define ORISYNC_MONINTERVAL     300
 
 OriSyncConf rc;
 
@@ -91,7 +93,7 @@ public:
         close(fd);
     }
     string generate() {
-        ReaderKey key(&infoLock);
+        RWKey::sp key = infoLock.readLock();
         char buf[32];
         string msg;
 
@@ -173,7 +175,7 @@ public:
         close(fd);
     }
     void updateHost(KVSerializer &kv) {
-        WriterKey key(&hostsLock);
+        RWKey::sp key = hostsLock.writeLock();
         map<string, HostInfo>::iterator it;
         string hostId = kv.getStr("hostId");
 
@@ -221,7 +223,7 @@ public:
         }
     }
     void dumpHosts() {
-        ReaderKey(hostsLock);
+        RWKey::sp key = hostsLock.readLock();
         map<string, HostInfo>::iterator it;
 
         cout << "=== Begin Hosts ===" << endl;
@@ -253,8 +255,54 @@ private:
     int fd;
 };
 
+class Monitor : public Thread
+{
+public:
+    Monitor() : Thread() {
+    }
+    /*
+     * Update repository information and return thre repoId, otherwise empty 
+     * string.
+     */
+    void updateRepo(const string &path) {
+        LocalRepo repo = LocalRepo(path);
+        RepoInfo info;
+
+        if (!repo.open()) {
+            WARNING("LocalRepo at %s failed to open!", path.c_str());
+            return;
+        }
+
+        RWKey::sp key = infoLock.writeLock();
+        if (myInfo.hasRepo(repo.getUUID())) {
+            info = myInfo.getRepo(repo.getUUID());
+        } else {
+            info = RepoInfo(repo.getUUID(), repo.getRootPath());
+        }
+        info.updateHead(repo.getHead().hex());
+        myInfo.updateRepo(repo.getUUID(), info);
+
+        LOG("Checked %s: %s %s", path.c_str(), repo.getHead().hex().c_str(), repo.getUUID().c_str());
+
+        return;
+    }
+    void run() {
+        list<string> repos = rc.getRepos();
+        list<string>::iterator it;
+
+        while (1) {
+            for (it = repos.begin(); it != repos.end(); it++) {
+                updateRepo(*it);
+            }
+
+            sleep(ORISYNC_MONINTERVAL);
+        }
+    }
+};
+
 Announcer *announcer;
 Listener *listener;
+Monitor *monitor;
 
 void
 Httpd_getRoot(struct evhttp_request *req, void *arg)
@@ -275,9 +323,11 @@ Httpd_getRoot(struct evhttp_request *req, void *arg)
 int
 start_server()
 {
+    MSG("Starting OriSync");
     rc = OriSyncConf();
     announcer = new Announcer();
     listener = new Listener();
+    monitor = new Monitor();
 
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
     // XXX: Update addresses periodically
@@ -285,6 +335,7 @@ start_server()
 
     announcer->start();
     listener->start();
+    monitor->start();
 
     struct event_base *base = event_base_new();
     struct evhttp *httpd = evhttp_new(base);
@@ -294,6 +345,8 @@ start_server()
 
     event_base_dispatch(base);
     evhttp_free(httpd);
+
+    // XXX: Wait for worker threads
 
     return 0;
 }
