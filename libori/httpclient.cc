@@ -73,7 +73,7 @@ HttpClient::HttpClient(const std::string &remotePath)
     remoteHost = tmp.substr(0, portPos);
     remoteRepo = tmp.substr(pathPos + 1);
 
-    LOG("libevent %s", event_get_version());
+    DLOG("libevent %s", event_get_version());
 }
 
 HttpClient::~HttpClient()
@@ -92,7 +92,7 @@ HttpClient::connect()
     base = event_base_new();
     dnsBase = evdns_base_new(base, /* Add DNS servers */ 0);
     if (dnsBase == NULL) {
-        LOG("HTTP client couldn't set up evdns!");
+        WARNING("HTTP client couldn't set up evdns!");
         return -1;
     }
 
@@ -102,7 +102,7 @@ HttpClient::connect()
     std::string remoteIP = Util_ResolveHost(remoteHost);
     con = evhttp_connection_base_new(base, dnsBase, remoteIP.c_str(), port);
     if (con == NULL) {
-        LOG("HTTP client couldn't set up connection!");
+        WARNING("HTTP client couldn't set up connection!");
         return -1;
     }
 
@@ -146,14 +146,14 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *r)
     struct evbuffer *bufIn;
 
     if (!req) {
-        LOG("req is NULL!");
+        WARNING("req is NULL!");
         event_base_loopexit(client->base, NULL);
         return;
     }
 
     status = evhttp_request_get_response_code(req);
     if (status != HTTP_OK) {
-        LOG("HTTP request failed!");
+        WARNING("HTTP request failed!");
         event_base_loopexit(client->base, NULL);
         return;
     }
@@ -169,7 +169,7 @@ HttpClient_requestDoneCB(struct evhttp_request *req, void *r)
     int len = evbuffer_get_length(bufIn);
     char *data = (char *)evbuffer_pullup(bufIn, len);
     if (data == NULL) {
-        LOG("Error running evbuffer_pullup");
+        WARNING("Error running evbuffer_pullup");
         event_base_loopexit(client->base, NULL);
         return;
     }
@@ -195,7 +195,7 @@ HttpClient::getRequest(const string &command, string &response)
 
     status = evhttp_make_request(con, req, EVHTTP_REQ_GET, command.c_str());
     if (status < 0) {
-        LOG("HTTP request failure!");
+        WARNING("HTTP request failure!");
         return -1;
     }
 
@@ -225,7 +225,7 @@ HttpClient::postRequest(const string &url,
 
     int status = evhttp_make_request(con, req, EVHTTP_REQ_POST, url.c_str());
     if (status < 0) {
-        LOG("HTTP request failure!");
+        WARNING("HTTP request failure!");
         return -1;
     }
 

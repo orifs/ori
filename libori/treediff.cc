@@ -447,7 +447,7 @@ bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
     }
     else
     {
-        LOG("%c %c\n", e->type, to_merge.type);
+        WARNING("%c %c\n", e->type, to_merge.type);
         NOT_IMPLEMENTED(false && "Unknown combination of TreeDiffEntries");
     }
     return false;
@@ -670,7 +670,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
         const TreeDiffEntry &tde = entries[i];
         if (tde.type == TreeDiffEntry::Noop) continue;
 
-        LOG("Applying %c   %s (%s)", tde.type, tde.filepath.c_str(),
+        DLOG("Applying %c   %s (%s)", tde.type, tde.filepath.c_str(),
             tde.newFilename.c_str());
         //if (i % 80 == 0 && i > 0) putc('\n', stdout);
         //putc(tde.type, stdout);
@@ -728,7 +728,7 @@ TreeDiff::applyTo(Tree::Flat flat, Repo *dest_repo)
                 te.type = (!hashes.second.isEmpty()) ? TreeEntry::LargeBlob :
                     TreeEntry::Blob;
             } else {
-                LOG("attribute-only diff");
+                DLOG("attribute-only diff");
             }
             
             te.attrs.mergeFrom(tde.newAttrs);
