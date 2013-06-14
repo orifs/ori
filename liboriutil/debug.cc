@@ -125,7 +125,7 @@ ori_log(int level, const char *fmt, ...)
         cerr << buf;
 #else /* RELEASE or PERF */
     if (level <= LEVEL_ERR)
-        cerr << buf;
+        cerr << buf + off;
 #endif
 
     if (logStream.is_open())

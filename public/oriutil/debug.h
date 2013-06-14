@@ -35,14 +35,26 @@ int ori_open_log(const std::string &logPath);
 #define LEVEL_DBG	3 /* Debug */
 #define LEVEL_VRB	4 /* Verbose */
 
-#ifdef DEBUG
-#define WARNING(fmt, ...) ori_log(LEVEL_ERR, "WARNING: " fmt "\n", ##__VA_ARGS__)
-#define MSG(fmt, ...) ori_log(LEVEL_MSG, fmt "\n", ##__VA_ARGS__)
-#define LOG(fmt, ...) ori_log(LEVEL_LOG, fmt "\n", ##__VA_ARGS__)
-#else
+/*
+ * Remove all logging in PERF builds
+ */
+#ifdef ORI_PERF
 #define WARNING(fmt, ...)
 #define MSG(fmt, ...)
 #define LOG(fmt, ...)
+#else
+#define WARNING(fmt, ...) ori_log(LEVEL_ERR, "WARNING: " fmt "\n", ##__VA_ARGS__)
+#define MSG(fmt, ...) ori_log(LEVEL_MSG, fmt "\n", ##__VA_ARGS__)
+#define LOG(fmt, ...) ori_log(LEVEL_LOG, fmt "\n", ##__VA_ARGS__)
+#endif
+
+/*
+ * Only DEBUG builds compile in DLOG messages
+ */
+#ifdef DEBUG
+#define DLOG(fmt, ...) ori_log(LEVEL_DBG, fmt "\n", ##__VA_ARGS__)
+#elif
+#define DLOG(fmt, ...)
 #endif
 
 #ifdef DEBUG
