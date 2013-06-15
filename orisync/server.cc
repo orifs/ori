@@ -55,6 +55,8 @@ using namespace std;
 #define ORISYNC_UDPPORT         8051
 // Advertisement interval
 #define ORISYNC_ADVINTERVAL     5
+// Reject advertisements with large time skew
+#define ORISYNC_ADVSKEW         5
 // Repository check interval
 #define ORISYNC_MONINTERVAL     300
 
@@ -206,6 +208,12 @@ public:
         try {
             kv.fromBlob(ptxt);
             kv.dump();
+
+            // Prevent replay attacks from leaking information
+            uint64_t now = time(NULL);
+            uint64_t ts = kv.getU64("time");
+            if (ts > now + ORISYNC_ADVSKEW || ts < now - ORISYNC_ADVSKEW)
+                return;
 
             // Ignore requests from self
             if (kv.getStr("hostId") == rc.getUUID())

@@ -53,6 +53,7 @@ public:
         int i;
         std::map<std::string, RepoInfo>::const_iterator it;
 
+        kv.putU64("time", (uint64_t)time(NULL));
         kv.putStr("host", host);
         kv.putStr("hostId", hostId);
         kv.putStr("cluster", cluster);
