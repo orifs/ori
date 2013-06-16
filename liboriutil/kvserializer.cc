@@ -26,6 +26,8 @@
 
 using namespace std;
 
+#define KVSERIALIZER_VERSIONSTR "KV00"
+
 int
 KVSerializer_selfTest()
 {
@@ -289,6 +291,15 @@ KVSerializer::fromBlob(const std::string &blob)
     int index = 0;
     int len = blob.length();
 
+    if (len < 4) {
+        throw SerializationException("Error invalid version");
+    }
+
+    if (blob.substr(0, 4) != KVSERIALIZER_VERSIONSTR) {
+        throw SerializationException("Error unsupported version");
+    }
+    index = 4;
+
     while (index < len) {
         string key, value;
         uint16_t entryLen;
@@ -318,6 +329,8 @@ KVSerializer::getBlob() const
 {
     string blob;
     map<string, string>::const_iterator it;
+
+    blob = KVSERIALIZER_VERSIONSTR;
 
     for (it = table.begin(); it != table.end(); it++)
     {
