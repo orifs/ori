@@ -29,6 +29,7 @@
 #include <set>
 
 #include <oriutil/debug.h>
+#include <oriutil/objecthash.h>
 #include <oriutil/oriutil.h>
 #include <ori/snapshotindex.h>
 

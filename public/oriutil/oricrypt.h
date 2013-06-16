@@ -17,6 +17,11 @@
 #ifndef __ORICRYPT_H__
 #define __ORICRYPT_H__
 
+#include "objecthash.h"
+
+ObjectHash OriCrypt_HashString(const std::string &str);
+ObjectHash OriCrypt_HashBlob(const uint8_t *data, size_t len);
+ObjectHash OriCrypt_HashFile(const std::string &path);
 std::string
 OriCrypt_Encrypt(const std::string &plaintext, const std::string &key);
 std::string

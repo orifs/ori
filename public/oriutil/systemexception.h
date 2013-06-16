@@ -17,6 +17,8 @@
 #ifndef __SYSTEMEXCEPTION_H__
 #define __SYSTEMEXCEPTION_H__
 
+#include <string.h>
+
 #ifndef _WIN32
 #include <errno.h>
 #endif

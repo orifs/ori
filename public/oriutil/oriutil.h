@@ -22,8 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "objecthash.h"
-
 // GCC Only
 #define UNUSED __attribute__((unused))
 
@@ -42,10 +40,6 @@ int Util_CopyFile(const std::string &origPath, const std::string &newPath);
 int Util_MoveFile(const std::string &origPath, const std::string &newPath);
 int Util_DeleteFile(const std::string &path);
 int Util_RenameFile(const std::string &from, const std::string &to);
-
-ObjectHash Util_HashString(const std::string &str);
-ObjectHash Util_HashBlob(const uint8_t *data, size_t len);
-ObjectHash Util_HashFile(const std::string &path);
 
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::vector<std::string> Util_StringSplit(const std::string &str, char sep);

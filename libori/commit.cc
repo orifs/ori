@@ -24,6 +24,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <oriutil/key.h>
 #include <oriutil/stream.h>
 #include <ori/commit.h>
@@ -274,7 +275,7 @@ ObjectHash
 Commit::hash() const
 {
     const std::string &blob = getBlob();
-    ObjectHash h = Util_HashString(blob);
+    ObjectHash h = OriCrypt_HashString(blob);
     /*fprintf(stderr, "Commit blob len %lu, hash %s\n", blob.size(),
             h.hex().c_str());
     Util_PrintHex(blob);*/

@@ -43,6 +43,7 @@ using namespace std;
 #include <ori/version.h>
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
 #include <oriutil/zeroconf.h>
 #include <ori/localrepo.h>
@@ -489,7 +490,7 @@ ObjectHash
 LocalRepo::addTree(const Tree &tree)
 {
     string blob = tree.getBlob();
-    ObjectHash hash = Util_HashString(blob);
+    ObjectHash hash = OriCrypt_HashString(blob);
 
     if (hasObject(hash)) {
         return hash;
@@ -515,7 +516,7 @@ ObjectHash
 LocalRepo::addCommit(/* const */ Commit &commit)
 {
     string blob = commit.getBlob();
-    ObjectHash hash = Util_HashString(blob);
+    ObjectHash hash = OriCrypt_HashString(blob);
     string refPath;
 
     if (hasObject(hash)) {
@@ -611,7 +612,7 @@ LocalRepo::verifyObject(const ObjectHash &objId)
     if (type == ObjectInfo::Null)
         return "Object with Null type!";
 
-    ObjectHash computedHash = Util_HashString(o->getPayload());
+    ObjectHash computedHash = OriCrypt_HashString(o->getPayload());
     if (computedHash != objId) {
         stringstream ss;
         ss << "Object hash mismatch! (computed hash "

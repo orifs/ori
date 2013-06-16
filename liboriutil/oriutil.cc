@@ -55,22 +55,11 @@
 #include <uuid/uuid.h>
 #endif
 
-#ifdef ORI_USE_SHA256
-#include <openssl/sha.h>
-
-#ifdef OPENSSL_NO_SHA256
-#error "SHA256 not supported!"
-#endif
-#endif /* ORI_USE_SHA256 */
-
-#ifdef ORI_USE_SKEIN
-#include "skein.h"
-#endif /* ORI_USE_SKEIN */
-
 #include "tuneables.h"
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <oriutil/stream.h>
 
 using namespace std;
@@ -371,147 +360,6 @@ Util_RenameFile(const std::string &from, const std::string &to)
 
     return 0;
 }
-
-ObjectHash
-Util_HashString(const string &str)
-{
-    return Util_HashBlob((uint8_t*)str.data(), str.size());
-}
-
-#ifdef ORI_USE_SHA256
-
-/*
- * Compute SHA 256 hash for a string.
- */
-ObjectHash
-Util_HashBlob(const uint8_t *data, size_t len)
-{
-    SHA256_CTX state;
-    ObjectHash hash;
-
-    SHA256_Init(&state);
-    SHA256_Update(&state, data, len);
-    SHA256_Final(hash.hash, &state);
-
-    return hash;
-}
-
-
-/*
- * Compute SHA 256 hash for a file.
- */
-ObjectHash
-Util_HashFile(const string &path)
-{
-    int fd;
-    char buf[HASHFILE_BUFSZ];
-    struct stat sb;
-    int64_t bytesLeft;
-    int64_t bytesRead;
-    SHA256_CTX state;
-    ObjectHash hash;
-
-    SHA256_Init(&state);
-
-    fd = open(path.c_str(), O_RDONLY);
-    if (fd < 0) {
-        return ObjectHash();
-    }
-
-    if (fstat(fd, &sb) < 0) {
-        close(fd);
-        return ObjectHash();
-    }
-
-    bytesLeft = sb.st_size;
-    while(bytesLeft > 0) {
-        bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
-        if (bytesRead < 0) {
-            if (errno == EINTR)
-                continue;
-            close(fd);
-            return ObjectHash();
-        }
-
-        SHA256_Update(&state, buf, bytesRead);
-        bytesLeft -= bytesRead;
-    }
-
-    SHA256_Final(hash.hash, &state);
-
-    close(fd);
-
-    return hash;
-}
-
-#endif
-
-#ifdef ORI_USE_SKEIN
-
-/*
- * Compute SHA 256 hash for a string.
- */
-ObjectHash
-Util_HashBlob(const uint8_t *blob, size_t len)
-{
-    Skein_256_Ctxt_t state;
-    ObjectHash hash;
-
-    Skein_256_Init(&state, 256);
-    Skein_256_Update(&state, (u08b_t *)blob, len);
-    Skein_256_Final(&state, (u08b_t *)hash.hash);
-
-    return hash;
-}
-
-/*
- * Compute SHA 256 hash for a file.
- */
-ObjectHash
-Util_HashFile(const string &path)
-{
-    int fd;
-    char buf[HASHFILE_BUFSZ];
-    struct stat sb;
-    int64_t bytesLeft;
-    int64_t bytesRead;
-    Skein_256_Ctxt_t state;
-    ObjectHash hash;
-
-    Skein_256_Init(&state, 256);
-
-    fd = open(path.c_str(), O_RDONLY);
-    if (fd < 0) {
-        return ObjectHash();
-    }
-
-    if (fstat(fd, &sb) < 0) {
-        close(fd);
-        return ObjectHash();
-    }
-
-    bytesLeft = sb.st_size;
-    while(bytesLeft > 0) {
-        bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
-        if (bytesRead < 0) {
-            if (errno == EINTR)
-                continue;
-            close(fd);
-            return ObjectHash();
-        }
-
-        Skein_256_Update(&state, (u08b_t *)buf, bytesRead);
-        bytesLeft -= bytesRead;
-    }
-
-    Skein_256_Final(&state, (u08b_t *)hash.hash);
-
-    close(fd);
-
-    return hash;
-}
-
-#endif
 
 vector<string>
 Util_PathToVector(const string &path)
@@ -843,7 +691,7 @@ OriUtil_selfTest(void)
         buf[i] = '0' + (i % 10);
     }
     buf[TESTFILE_SIZE] = '\0';
-    origHash = Util_HashString(buf);
+    origHash = OriCrypt_HashString(buf);
 
     Util_WriteFile(buf, TESTFILE_SIZE, "test.orig");
 
@@ -864,7 +712,7 @@ OriUtil_selfTest(void)
     }
     std::string fbuf = Util_ReadFile("test.c");
     //ASSERT(fbuf);
-    newHash = Util_HashString(fbuf);
+    newHash = OriCrypt_HashString(fbuf);
     // XXX: Check that 'test.b' does not exist
 
     if (newHash != origHash) {
@@ -872,7 +720,7 @@ OriUtil_selfTest(void)
         ASSERT(false);
     }
 
-    newHash = Util_HashFile("test.a");
+    newHash = OriCrypt_HashFile("test.a");
 
     if (newHash != origHash) {
         printf("Hash mismatch!\n");

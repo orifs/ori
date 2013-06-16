@@ -26,6 +26,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
 #include <ori/treediff.h>
 #include <ori/largeblob.h>
@@ -249,7 +250,7 @@ static int _diffToDirHelper(_scanHelperData *sd, const string &path)
         if (info.payload_size != newAttrs.getAs<size_t>(ATTR_FILESIZE) ||
                 newAttrs.getAs<time_t>(ATTR_MTIME) >= sd->commit->getTime()) {
 
-            ObjectHash newHash = Util_HashFile(fullPath);
+            ObjectHash newHash = OriCrypt_HashFile(fullPath);
             modified = newHash != te.hash;
         }
     }
@@ -260,7 +261,7 @@ static int _diffToDirHelper(_scanHelperData *sd, const string &path)
         if (lb.totalSize() != newAttrs.getAs<size_t>(ATTR_FILESIZE) ||
                 newAttrs.getAs<time_t>(ATTR_MTIME) >= sd->commit->getTime()) {
 
-            ObjectHash newHash = Util_HashFile(fullPath);
+            ObjectHash newHash = OriCrypt_HashFile(fullPath);
             modified = newHash != te.largeHash;
         }
     }

@@ -30,6 +30,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
 #include <ori/repo.h>
 #include <ori/largeblob.h>
@@ -360,7 +361,7 @@ Tree::unflatten(const Flat &flat, Repo *r)
         const string &tn = tree_names[i];
         if (tn.size() == 0) continue;
         string blob = trees[tn].getBlob();
-        ObjectHash hash = Util_HashString(blob);
+        ObjectHash hash = OriCrypt_HashString(blob);
 
         // Add to Repo
         r->addObject(ObjectInfo::Tree, hash, blob);
@@ -383,7 +384,7 @@ Tree::unflatten(const Flat &flat, Repo *r)
 ObjectHash
 Tree::hash() const
 {
-    return Util_HashString(getBlob());
+    return OriCrypt_HashString(getBlob());
 }
 
 void

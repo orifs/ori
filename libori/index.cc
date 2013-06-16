@@ -30,6 +30,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <ori/object.h>
 #include <ori/index.h>
 
@@ -104,7 +105,7 @@ Index::open(const string &indexFile)
         std::vector<uint8_t> storedChecksum(16);
         ss.read(&storedChecksum[0], 16);
         ObjectHash computedChecksum =
-            Util_HashString(entry_str.substr(0, IndexEntry::SIZE));
+            OriCrypt_HashString(entry_str.substr(0, IndexEntry::SIZE));
         if (memcmp(&storedChecksum[0], computedChecksum.hash, 16) != 0) {
             // XXX: Attempt truncating last entries
             cout << "Index has corrupt entries please rebuild it!" << endl;
@@ -248,7 +249,7 @@ Index::_writeEntry(const IndexEntry &e)
     ss.writeUInt32(e.packed_size);
     ss.writeUInt32(e.packfile);
 
-    ObjectHash checksum = Util_HashString(ss.str());
+    ObjectHash checksum = OriCrypt_HashString(ss.str());
     ss.write(checksum.hash, 16);
 
     const string &final = ss.str();

@@ -21,7 +21,7 @@
 #include <string>
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <oriutil/stream.h>
 #include <ori/mergestate.h>
 
@@ -91,5 +91,5 @@ MergeState::fromBlob(const string &blob)
 ObjectHash
 MergeState::hash() const
 {
-    return Util_HashString(getBlob());
+    return OriCrypt_HashString(getBlob());
 }

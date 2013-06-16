@@ -27,6 +27,8 @@
 #include <oriutil/debug.h>
 #include <oriutil/scan.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
+
 #include <ori/localrepo.h>
 
 using namespace std;
@@ -41,7 +43,7 @@ StatusDirectoryCB(map<string, ObjectHash> *dirState, const string &path)
     ObjectHash objHash;
 
     if (!Util_IsDirectory(objPath)) {
-        objHash = Util_HashFile(objPath);
+        objHash = OriCrypt_HashFile(objPath);
         ASSERT(!objHash.isEmpty());
         objPath = objPath.substr(repoRoot.size());
     } else {

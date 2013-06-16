@@ -26,7 +26,9 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <oriutil/dag.h>
+
 #include <ori/object.h>
 #include <ori/largeblob.h>
 #include <ori/repo.h>
@@ -74,7 +76,7 @@ Repo::copyFrom(Object *other)
 ObjectHash
 Repo::addBlob(ObjectType type, const string &blob)
 {
-    ObjectHash hash = Util_HashString(blob);
+    ObjectHash hash = OriCrypt_HashString(blob);
     addObject(type, hash, blob);
     return hash;
 }

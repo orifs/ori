@@ -38,7 +38,7 @@
 #endif
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/oricrypt.h>
 #include <ori/largeblob.h>
 
 #ifdef ORI_USE_RK
@@ -133,7 +133,7 @@ public:
         // Add the fragment into the repository
         // XXX: Journal for cleanup!
         string blob = string((const char *)b, l);
-        ObjectHash hash = Util_HashString(blob);
+        ObjectHash hash = OriCrypt_HashString(blob);
         lb->repo->addObject(ObjectInfo::Blob, hash, blob);
 
         // Add the fragment to the LargeBlob object.
@@ -211,7 +211,7 @@ LargeBlob::chunkFile(const string &path)
 	return;
     }
 
-    totalHash = Util_HashFile(path);
+    totalHash = OriCrypt_HashFile(path);
 
     c.chunk(&cb);
 }
@@ -250,7 +250,7 @@ LargeBlob::extractFile(const string &path)
     }
 
 #ifdef DEBUG
-    ObjectHash extractedHash = Util_HashFile(path);
+    ObjectHash extractedHash = OriCrypt_HashFile(path);
     ASSERT(extractedHash == totalHash);
 #endif /* DEBUG */
 }
