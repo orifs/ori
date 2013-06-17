@@ -17,26 +17,7 @@
 #ifndef __KVSERIALIZER_H__
 #define __KVSERIALIZER_H__
 
-class SerializationException : public std::exception
-{
-public:
-    SerializationException(const std::string &msg) {
-        errorString = msg;
-    }
-    virtual ~SerializationException() throw()
-    {
-    }
-    virtual const char* what() const throw()
-    {
-        return errorString.c_str();
-    }
-private:
-    std::string errorString;
-};
-
-class Serializer
-{
-};
+#include "serializationexception.h"
 
 class KVSerializer
 {
