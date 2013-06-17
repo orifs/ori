@@ -37,7 +37,6 @@ RepoControl::~RepoControl()
 void
 RepoControl::open()
 {
-    // XXX: LocalRepo::open should throw a SystemException directly
     repo.open();
     path = repo.getRootPath();
     uuid = repo.getUUID();
