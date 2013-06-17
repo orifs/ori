@@ -83,21 +83,22 @@ MetadataLog::~MetadataLog()
     }
 }
 
-bool
+// XXX: Handle crach detection and recovery
+void
 MetadataLog::open(const string &filename)
 {
     fd = ::open(filename.c_str(), O_RDWR | O_CREAT | O_APPEND, 0644);
     if (fd < 0) {
-        perror("MetadataLog::open open");
-        return false;
+        WARNING("MetadataLog open failed!");
+        throw SystemException();
     }
 
     this->filename = filename;
 
     struct stat sb;
     if (fstat(fd, &sb) < 0) {
-        perror("MetadataLog::open fstat");
-        return false;
+        WARNING("MetadataLog fstat failed!");
+        throw SystemException();
     }
 
     size_t readSoFar = 0;
@@ -108,21 +109,21 @@ MetadataLog::open(const string &filename)
         if (n == 0)
             break;
         if (n < 0) {
-            perror("MetadataLog::open read");
-            return false;
+            WARNING("MetadataLog read failed!");
+            throw SystemException();
         }
 
         if (readSoFar + nbytes > (size_t)sb.st_size) {
             // TODO: truncate this entry
-            fprintf(stderr, "Corruption in this entry!\n");
-            return false;
+            WARNING("Corrupted metadata log entry!");
+            throw SystemException();
         }
 
         string packet;
         packet.resize(nbytes);
         if (read(fd, &packet[0], nbytes) < 0) {
-            perror("MetadataLog::open read");
-            return false;
+            WARNING("MetadataLog read failed!");
+            throw SystemException();
         }
         readSoFar += nbytes;
 
@@ -153,8 +154,6 @@ MetadataLog::open(const string &filename)
             }
         }
     }
-
-    return true;
 }
 
 void

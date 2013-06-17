@@ -48,6 +48,7 @@
 #include "orisyncconf.h"
 #include "repoinfo.h"
 #include "hostinfo.h"
+#include "repocontrol.h"
 
 using namespace std;
 
@@ -273,11 +274,13 @@ public:
      * string.
      */
     void updateRepo(const string &path) {
-        LocalRepo repo = LocalRepo(path);
+        RepoControl repo = RepoControl(path);
         RepoInfo info;
 
-        if (!repo.open()) {
-            WARNING("LocalRepo at %s failed to open!", path.c_str());
+        try {
+            repo.open();
+        } catch (SystemException &e) {
+            WARNING("Failed to open repository %s: %s", path.c_str(), e.what());
             return;
         }
 
@@ -285,12 +288,12 @@ public:
         if (myInfo.hasRepo(repo.getUUID())) {
             info = myInfo.getRepo(repo.getUUID());
         } else {
-            info = RepoInfo(repo.getUUID(), repo.getRootPath());
+            info = RepoInfo(repo.getUUID(), repo.getPath());
         }
-        info.updateHead(repo.getHead().hex());
+        info.updateHead(repo.getHead());
         myInfo.updateRepo(repo.getUUID(), info);
 
-        LOG("Checked %s: %s %s", path.c_str(), repo.getHead().hex().c_str(), repo.getUUID().c_str());
+        LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
 
         return;
     }

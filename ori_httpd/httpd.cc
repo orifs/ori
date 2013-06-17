@@ -454,7 +454,6 @@ usage()
 int
 main(int argc, char *argv[])
 {
-    bool success;
     int ch;
     unsigned long port = 8080;
 
@@ -483,14 +482,15 @@ main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    if (argc == 1) {
-        success = repository.open(argv[0]);
-    } else {
-        success = repository.open();
-    }
-    if (!success) {
+    try {
+        if (argc == 1) {
+            repository.open(argv[0]);
+        } else {
+            repository.open();
+        }
+    } catch (std::exception &e) {
+        cout << e.what() << endl;
         cout << "Could not open the local repository!" << endl;
-        cout << "Run ori_httpd -h for help" << endl;
         return 1;
     }
 

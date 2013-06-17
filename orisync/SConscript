@@ -9,6 +9,7 @@ src = [
     "cmd_remove.cc",
     "cmd_list.cc",
     "main.cc",
+    "repocontrol.cc",
     "server.cc",
 ]
 

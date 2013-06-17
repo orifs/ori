@@ -55,7 +55,10 @@ OriPriv::OriPriv(const std::string &repoPath)
     nextId = ORIPRIVID_INVALID + 1;
     nextFH = 1;
 
-    if (!repo->open()) {
+    try {
+        repo->open();
+    } catch (exception &e) {
+        cout << e.what() << endl;
         printf("Failed to open ori repository please check the path!\n");
         exit(1);
     }
@@ -409,9 +412,9 @@ OriPriv::readFile(OriFileInfo *info, char *buf, size_t size, off_t offset)
         lb.fromBlob(repo->getPayload(info->hash));
         // XXX: Cache
 
-        size_t total = 0;
+        ssize_t total = 0;
         while (total < size) {
-            size_t res = lb.read((uint8_t*)(buf + total),
+            ssize_t res = lb.read((uint8_t*)(buf + total),
                                  size - total,
                                  offset + total);
             if (res == 0)

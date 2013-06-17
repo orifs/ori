@@ -42,6 +42,8 @@ using namespace std;
 
 #include <ori/version.h>
 #include <oriutil/debug.h>
+#include <oriutil/runtimeexception.h>
+#include <oriutil/systemexception.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
@@ -215,7 +217,7 @@ LocalRepo_PeerHelper(LocalRepo *l, const string &path)
     return 0;
 }
 
-bool
+void
 LocalRepo::open(const string &root)
 {
     if (root.compare("") != 0) {
@@ -223,7 +225,7 @@ LocalRepo::open(const string &root)
     }
 
     if (rootPath.compare("") == 0)
-        return false;
+        throw RuntimeException(ORIEC_INVALIDARGS, "Root path not set");
 
     try {
         // Read UUID
@@ -235,20 +237,34 @@ LocalRepo::open(const string &root)
 
         if (version != ORI_FS_VERSION_STR) {
             WARNING("LocalRepo::open: Unsupported file system version!");
-            return false;
+            throw RuntimeException(ORIEC_UNSUPPORTEDVERSION, "Unsuppported file system version!");
         }
     }
     catch (std::ios_base::failure &e)
     {
         WARNING("LocalRepo::open: %s", e.what());
-        return false;
+        throw SystemException();
     }
 
     // XXX: Check and rebuild index on error
-    index.open(rootPath + ORI_PATH_INDEX);
-    snapshots.open(rootPath + ORI_PATH_SNAPSHOTS);
-    if (!metadata.open(rootPath + ORI_PATH_METADATA))
-        return false;
+    index.open(rootPath + ORI_PATH_INDEX); // throws SystemException or RuntimeException
+
+    // Open snapshot index
+    try {
+        snapshots.open(rootPath + ORI_PATH_SNAPSHOTS); // throws SystemException
+    } catch (exception &e) {
+        index.close();
+        throw e;
+    }
+
+    // Open Metadata Log
+    try {
+        metadata.open(rootPath + ORI_PATH_METADATA); // throws SystemException
+    } catch (exception &e) {
+        index.close();
+        snapshots.close();
+        throw e;
+    }
     packfiles.reset(new PackfileManager(getRootPath() + ORI_PATH_OBJS));
 
     // Scan for peers
@@ -269,7 +285,6 @@ LocalRepo::open(const string &root)
     }
 
     opened = true;
-    return true;
 }
 
 void

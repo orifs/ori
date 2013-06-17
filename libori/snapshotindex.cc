@@ -31,6 +31,7 @@
 #include <oriutil/debug.h>
 #include <oriutil/objecthash.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/systemexception.h>
 #include <ori/snapshotindex.h>
 
 using namespace std;
@@ -56,17 +57,14 @@ SnapshotIndex::open(const string &indexFile)
     fd = ::open(indexFile.c_str(), O_RDWR | O_CREAT,
               S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fd < 0) {
-        perror("open");
-        cout << "Could not open the index file!" << endl;
-        PANIC();
-        return;
+        WARNING("Could not open the snapshot index file!");
+        throw SystemException();
     };
 
 
     if (::fstat(fd, &sb) < 0) {
-        perror("fstat");
-        PANIC();
-        return;
+        WARNING("Could not fstat the snapshot index file!");
+        throw SystemException();
     }
 
     int len = sb.st_size;

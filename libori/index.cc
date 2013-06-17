@@ -29,6 +29,8 @@
 #include <boost/tr1/unordered_map.hpp>
 
 #include <oriutil/debug.h>
+#include <oriutil/runtimeexception.h>
+#include <oriutil/systemexception.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/oricrypt.h>
 #include <ori/object.h>
@@ -62,26 +64,25 @@ Index::open(const string &indexFile)
     fd = ::open(indexFile.c_str(), O_RDWR | O_CREAT,
               S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fd < 0) {
-        perror("open");
-        cout << "Could not open the index file!" << endl;
-        PANIC();
-        return;
+        WARNING("Could not open the index file!");
+        throw SystemException();
     }
 
 
     if (::fstat(fd, &sb) < 0) {
-        perror("fstat");
-        PANIC();
-        return;
+        int errcode = errno;
+        ::close(fd);
+        fd = -1;
+        WARNING("Could not fstat the index file!");
+        throw SystemException(errcode);
     }
 
     if (sb.st_size % TOTAL_ENTRYSIZE != 0) {
         // XXX: Attempt truncating last entries
-        cout << "Index seems dirty please rebuild it!" << endl;
+        WARNING("Index seems dirty please rebuild it!");
         ::close(fd);
         fd = -1;
-        exit(1);
-        return;
+        throw RuntimeException(ORIEC_INDEXDIRTY, "Index dirty");
     }
 
     entries = sb.st_size / TOTAL_ENTRYSIZE;
@@ -108,11 +109,10 @@ Index::open(const string &indexFile)
             OriCrypt_HashString(entry_str.substr(0, IndexEntry::SIZE));
         if (memcmp(&storedChecksum[0], computedChecksum.hash, 16) != 0) {
             // XXX: Attempt truncating last entries
-            cout << "Index has corrupt entries please rebuild it!" << endl;
+            WARNING("Index has corrupt entries please rebuild it!");
             ::close(fd);
             fd = -1;
-            exit(1);
-            return;
+            throw RuntimeException(ORIEC_INDEXCORRUPT, "Index corrupt");
         }
 
         index[entry.info.hash] = entry;

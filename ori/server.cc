@@ -178,8 +178,10 @@ int cmd_sshserver(int argc, const char *argv[])
         printError("Need repository name");
         exit(1);
     }
-    if (!repository.open(argv[1])) {
-        printError("No repo found");
+    try {
+        repository.open(argv[1]);
+    } catch (std::exception &e) {
+        printError(e.what());
         exit(101);
     }
 

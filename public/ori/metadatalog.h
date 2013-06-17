@@ -49,7 +49,7 @@ public:
     MetadataLog();
     ~MetadataLog();
 
-    bool open(const std::string &filename);
+    void open(const std::string &filename);
     /// rewrites the log file, optionally with new counts
     void rewrite(const RefcountMap *refs = NULL, const MetadataMap *data = NULL);
 

@@ -76,7 +76,7 @@ class LocalRepo : public Repo
 public:
     LocalRepo(const std::string &root = "");
     ~LocalRepo();
-    bool open(const std::string &root = "");
+    void open(const std::string &root = "");
     void close();
     void save();
     LocalRepoLock::sp lock();

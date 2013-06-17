@@ -518,12 +518,15 @@ main(int argc, char *argv[])
     // Open the repository for all command except the following
     if (commands[idx].flags & CMD_NEED_REPO)
     {
-        if (repository.open()) {
+        try {
+            repository.open();
             has_repo = true;
             if (ori_open_log(repository.getLogPath()) < 0) {
                 printf("Couldn't open log!\n");
                 exit(1);
             }
+        } catch (std::exception &e) {
+            // Fall through
         }
     }
 

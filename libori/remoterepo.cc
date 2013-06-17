@@ -62,7 +62,8 @@ RemoteRepo::connect(const string &url)
     } else {
         LocalRepo *lr = new LocalRepo(url);
         r = lr;
-        return lr->open(url);
+        lr->open(url);
+        return true;
     }
 
     return false;
