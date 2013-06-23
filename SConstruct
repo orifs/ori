@@ -39,7 +39,7 @@ opts.AddVariables(
     ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "0"),
     ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
         "0"),
-    ("HASH_ALGO", "Hash algorithm (SHA256 or SKEIN).", "SHA256"),
+    ("HASH_ALGO", "Hash algorithm (SHA256).", "SHA256"),
     ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY; NONE).",
         "FASTLZ"),
     ("CHUNKING_ALGO", "Chunking algorithm (RK; FIXED).", "RK"),
@@ -77,8 +77,6 @@ if sys.platform == "win32":
 
 if env["HASH_ALGO"] == "SHA256":
     env.Append(CPPFLAGS = [ "-DORI_USE_SHA256" ])
-elif env["HASH_ALGO"] == "SKEIN":
-    env.Append(CPPFLAGS = [ "-DORI_USE_SKEIN" ])
 else:
     print "Error unsupported hash algorithm"
     sys.exit(-1)
@@ -300,10 +298,6 @@ if env["COMPRESSION_ALGO"] == "FASTLZ":
     env.Append(CPPPATH = ['#libfastlz'])
     env.Append(LIBS = ["fastlz"], LIBPATH = ['#build/libfastlz'])
     SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
-if env["HASH_ALGO"] == "SKEIN":
-    env.Append(CPPPATH = ['#libskein'])
-    env.Append(LIBS = ["skein"], LIBPATH = ['#build/libskein'])
-    SConscript('libskein/SConscript', variant_dir='build/libskein')
 
 # Debugging Tools
 if env["WITH_GOOGLEHEAP"] == "1":

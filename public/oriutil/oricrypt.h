@@ -19,6 +19,7 @@
 
 #include "objecthash.h"
 
+std::string OriCrypt_MD5String(const std::string &str);
 ObjectHash OriCrypt_HashString(const std::string &str);
 ObjectHash OriCrypt_HashBlob(const uint8_t *data, size_t len);
 ObjectHash OriCrypt_HashFile(const std::string &path);

@@ -18,8 +18,10 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <iostream>
 #include <string>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
 #include <exception>
 #include <stdexcept>
 
@@ -32,6 +34,7 @@
 
 #include <openssl/aes.h>
 #include <openssl/sha.h>
+#include <openssl/md5.h>
 #include <openssl/rand.h>
 #include <openssl/evp.h>
 
@@ -41,18 +44,29 @@
 
 #include "tuneables.h"
 
-#ifdef OPENSSL_NO_AES
-#error "OpenSSL AES support not present!"
-#endif
-#if defined(OPENSSL_NO_SHA) || defined(OPENSSL_NO_SHA1) || defined(OPENSSL_NO_SHA256)
-#error "OpenSSL SHA support not present!"
-#endif
-
-#ifdef ORI_USE_SKEIN
-#include "skein.h"
-#endif /* ORI_USE_SKEIN */
-
 using namespace std;
+
+/*
+ * Return the MD5 hash given a string
+ */
+std::string
+OriCrypt_MD5String(const string &str)
+{
+    MD5_CTX state;
+    stringstream rval;
+    unsigned char hash[MD5_DIGEST_LENGTH];
+
+    MD5_Init(&state);
+    MD5_Update(&state, str.data(), str.size());
+    MD5_Final(hash, &state);
+
+    for (int i = 0; i < MD5_DIGEST_LENGTH; i++)
+    {
+        rval << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    }
+
+    return rval.str();
+}
 
 ObjectHash
 OriCrypt_HashString(const string &str)
@@ -128,72 +142,6 @@ OriCrypt_HashFile(const string &path)
 
 #endif
 
-#ifdef ORI_USE_SKEIN
-
-/*
- * Compute SHA 256 hash for a string.
- */
-ObjectHash
-OriCrypt_HashBlob(const uint8_t *blob, size_t len)
-{
-    Skein_256_Ctxt_t state;
-    ObjectHash hash;
-
-    Skein_256_Init(&state, 256);
-    Skein_256_Update(&state, (u08b_t *)blob, len);
-    Skein_256_Final(&state, (u08b_t *)hash.hash);
-
-    return hash;
-}
-
-/*
- * Compute SHA 256 hash for a file.
- */
-ObjectHash
-OriCrypt_HashFile(const string &path)
-{
-    int fd;
-    char buf[HASHFILE_BUFSZ];
-    struct stat sb;
-    int64_t bytesLeft;
-    int64_t bytesRead;
-    Skein_256_Ctxt_t state;
-    ObjectHash hash;
-
-    Skein_256_Init(&state, 256);
-
-    fd = open(path.c_str(), O_RDONLY);
-    if (fd < 0) {
-        return ObjectHash();
-    }
-
-    if (fstat(fd, &sb) < 0) {
-        close(fd);
-        return ObjectHash();
-    }
-
-    bytesLeft = sb.st_size;
-    while(bytesLeft > 0) {
-        bytesRead = read(fd, buf, MIN(bytesLeft, HASHFILE_BUFSZ));
-        if (bytesRead < 0) {
-            if (errno == EINTR)
-                continue;
-            close(fd);
-            return ObjectHash();
-        }
-
-        Skein_256_Update(&state, (u08b_t *)buf, bytesRead);
-        bytesLeft -= bytesRead;
-    }
-
-    Skein_256_Final(&state, (u08b_t *)hash.hash);
-
-    close(fd);
-
-    return hash;
-}
-
-#endif
 
 /*
  * Encrypts the plaintext given a key and a randomly generated salt. The salt 
