@@ -53,7 +53,7 @@ int ori_open_log(const std::string &logPath);
  */
 #ifdef DEBUG
 #define DLOG(fmt, ...) ori_log(LEVEL_DBG, fmt "\n", ##__VA_ARGS__)
-#elif
+#else
 #define DLOG(fmt, ...)
 #endif
 
