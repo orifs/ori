@@ -4,8 +4,10 @@ Import('env')
 
 src = [
     "commit.cc",
+    "evbufstream.cc",
     "httpclient.cc",
     "httprepo.cc",
+    "httpserver.cc",
     "index.cc",
     "largeblob.cc",
     "localobject.cc",

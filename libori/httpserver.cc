@@ -43,14 +43,14 @@
 #include <oriutil/zeroconf.h>
 #include <ori/version.h>
 #include <ori/localrepo.h>
+#include <ori/httpserver.h>
 
 #include "evbufstream.h"
-#include "httpd.h"
 
 using namespace std;
 
 static void
-OriHttpdLogCB(int severity, const char *msg)
+HTTPServerLogCB(int severity, const char *msg)
 {
 #ifdef DEBUG
     const char *sev[] = {
@@ -61,35 +61,35 @@ OriHttpdLogCB(int severity, const char *msg)
 }
 
 void
-OriHttpdReqHandlerCB(struct evhttp_request *req, void *arg)
+HTTPServerReqHandlerCB(struct evhttp_request *req, void *arg)
 {
-    OriHttpd *httpd = (OriHttpd *)arg;
+    HTTPServer *httpd = (HTTPServer *)arg;
 
     httpd->entry(req);
 
     return;
 }
 
-OriHttpd::OriHttpd(LocalRepo &repository, uint16_t port)
+HTTPServer::HTTPServer(LocalRepo &repository, uint16_t port)
     : repo(repository), httpd(NULL), base(NULL)
 {
     base = event_base_new();
-    event_set_log_callback(OriHttpdLogCB);
+    event_set_log_callback(HTTPServerLogCB);
 
     httpd = evhttp_new(base);
     evhttp_bind_socket(httpd, "0.0.0.0", port);
 
-    evhttp_set_gencb(httpd, OriHttpdReqHandlerCB, this);
+    evhttp_set_gencb(httpd, HTTPServerReqHandlerCB, this);
 }
 
-OriHttpd::~OriHttpd()
+HTTPServer::~HTTPServer()
 {
     evhttp_free(httpd);
     event_base_free(base);
 }
 
 void
-OriHttpd::start()
+HTTPServer::start()
 {
 #if !defined(WITHOUT_MDNS)
     // mDNS
@@ -100,7 +100,7 @@ OriHttpd::start()
 }
 
 void
-OriHttpd::entry(struct evhttp_request *req)
+HTTPServer::entry(struct evhttp_request *req)
 {
     string url = evhttp_request_get_uri(req);
 
@@ -149,7 +149,7 @@ OriHttpd::entry(struct evhttp_request *req)
 }
 
 int
-OriHttpd::authenticate(struct evhttp_request *req, struct evbuffer *buf)
+HTTPServer::authenticate(struct evhttp_request *req, struct evbuffer *buf)
 {
     int n;
     char output[64];
@@ -175,7 +175,7 @@ authFailed:
 }
 
 void
-OriHttpd::stop(struct evhttp_request *req)
+HTTPServer::stop(struct evhttp_request *req)
 {
     struct evbuffer *buf;
 
@@ -197,7 +197,7 @@ OriHttpd::stop(struct evhttp_request *req)
 }
 
 void
-OriHttpd::getId(struct evhttp_request *req)
+HTTPServer::getId(struct evhttp_request *req)
 {
     string repoId = repo.getUUID();
     struct evbuffer *buf;
@@ -217,7 +217,7 @@ OriHttpd::getId(struct evhttp_request *req)
 }
 
 void
-OriHttpd::getVersion(struct evhttp_request *req)
+HTTPServer::getVersion(struct evhttp_request *req)
 {
     string ver = repo.getVersion();
     struct evbuffer *buf;
@@ -237,7 +237,7 @@ OriHttpd::getVersion(struct evhttp_request *req)
 }
 
 void
-OriHttpd::head(struct evhttp_request *req)
+HTTPServer::head(struct evhttp_request *req)
 {
     ObjectHash headId = repo.getHead();
     ASSERT(!headId.isEmpty());
@@ -258,7 +258,7 @@ OriHttpd::head(struct evhttp_request *req)
 }
 
 void
-OriHttpd::getIndex(struct evhttp_request *req)
+HTTPServer::getIndex(struct evhttp_request *req)
 {
     LOG("httpd: getindex");
 
@@ -283,7 +283,7 @@ OriHttpd::getIndex(struct evhttp_request *req)
 }
 
 void
-OriHttpd::getCommits(struct evhttp_request *req)
+HTTPServer::getCommits(struct evhttp_request *req)
 {
     LOG("httpd: getCommits");
 
@@ -306,7 +306,7 @@ OriHttpd::getCommits(struct evhttp_request *req)
 }
 
 void
-OriHttpd::contains(struct evhttp_request *req)
+HTTPServer::contains(struct evhttp_request *req)
 {
     // Get object hashes
     evbuffer *buf = evhttp_request_get_input_buffer(req);
@@ -335,7 +335,7 @@ OriHttpd::contains(struct evhttp_request *req)
 }
 
 void
-OriHttpd::getObjs(struct evhttp_request *req)
+HTTPServer::getObjs(struct evhttp_request *req)
 {
     // Get object hashes
     evbuffer *buf = evhttp_request_get_input_buffer(req);
@@ -361,7 +361,7 @@ OriHttpd::getObjs(struct evhttp_request *req)
 }
 
 void
-OriHttpd::getObjInfo(struct evhttp_request *req)
+HTTPServer::getObjInfo(struct evhttp_request *req)
 {
     string url = evhttp_request_get_uri(req);
     string sObjId;
@@ -393,7 +393,7 @@ OriHttpd::getObjInfo(struct evhttp_request *req)
 }
 
 // void
-// OriHttpd::pushObj(struct evhttp_request *req, void *arg)
+// HTTPServer::pushObj(struct evhttp_request *req, void *arg)
 // {
 //     const char *cl = evhttp_find_header(req->input_headers, "Content-Length");
 //     uint32_t length;

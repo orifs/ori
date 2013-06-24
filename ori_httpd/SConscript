@@ -4,8 +4,6 @@ Import('env')
 
 src = [
     "main.cc",
-    "httpd.cc",
-    "evbufstream.cc",
 ]
 
 libs = [

@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __HTTPD_H__
-#define __HTTPD_H__
+#ifndef __HTTPSERVER_H__
+#define __HTTPSERVER_H__
 
 #include <event2/event.h>
 #include <event2/http.h>
@@ -24,11 +24,11 @@
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
 
-class OriHttpd
+class HTTPServer
 {
 public:
-    OriHttpd(LocalRepo &repository, uint16_t port);
-    ~OriHttpd();
+    HTTPServer(LocalRepo &repository, uint16_t port);
+    ~HTTPServer();
     void start();
 protected:
     void entry(struct evhttp_request *req);
@@ -48,7 +48,7 @@ private:
     struct evhttp *httpd;
     /* set if a test needs to call loopexit on a base */
     struct event_base *base;
-    friend void OriHttpdReqHandlerCB(struct evhttp_request *req, void *arg);
+    friend void HTTPServerReqHandlerCB(struct evhttp_request *req, void *arg);
 };
 
 #endif

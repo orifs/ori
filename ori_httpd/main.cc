@@ -43,9 +43,7 @@
 #include <oriutil/zeroconf.h>
 #include <ori/version.h>
 #include <ori/localrepo.h>
-
-#include "evbufstream.h"
-#include "httpd.h"
+#include <ori/httpserver.h>
 
 using namespace std;
 
@@ -108,7 +106,7 @@ main(int argc, char *argv[])
     ori_open_log(repository.getLogPath());
     LOG("libevent %s", event_get_version());
 
-    OriHttpd server = OriHttpd(repository, port);
+    HTTPServer server = HTTPServer(repository, port);
     server.start();
 
     return 0;
