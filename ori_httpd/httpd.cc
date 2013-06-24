@@ -45,17 +45,111 @@
 #include <ori/localrepo.h>
 
 #include "evbufstream.h"
+#include "httpd.h"
 
 using namespace std;
 
-static struct evhttp *httpd;
-/* set if a test needs to call loopexit on a base */
-static struct event_base *base;
+static void
+OriHttpdLogCB(int severity, const char *msg)
+{
+#ifdef DEBUG
+    const char *sev[] = {
+        "Debug", "Msg", "Warning", "Error",
+    };
+    LOG("%s: %s", sev[severity], msg);
+#endif
+}
 
-LocalRepo repository;
+void
+OriHttpdReqHandlerCB(struct evhttp_request *req, void *arg)
+{
+    OriHttpd *httpd = (OriHttpd *)arg;
+
+    httpd->entry(req);
+
+    return;
+}
+
+OriHttpd::OriHttpd(LocalRepo &repository, uint16_t port)
+    : repo(repository), httpd(NULL), base(NULL)
+{
+    base = event_base_new();
+    event_set_log_callback(OriHttpdLogCB);
+
+    httpd = evhttp_new(base);
+    evhttp_bind_socket(httpd, "0.0.0.0", port);
+
+    evhttp_set_gencb(httpd, OriHttpdReqHandlerCB, this);
+}
+
+OriHttpd::~OriHttpd()
+{
+    evhttp_free(httpd);
+    event_base_free(base);
+}
+
+void
+OriHttpd::start()
+{
+#if !defined(WITHOUT_MDNS)
+    // mDNS
+    MDNS_Register(port);
+#endif
+
+    event_base_dispatch(base);
+}
+
+void
+OriHttpd::entry(struct evhttp_request *req)
+{
+    string url = evhttp_request_get_uri(req);
+
+    /*
+     * HTTP Paths
+     * /stop - Debug Only
+     * /id - Repository id
+     * /version - Repository version
+     * /HEAD - HEAD revision
+     * /index
+     * /commits
+     * /contains
+     * /getobjs
+     * /objs/...
+     * /objinfo/...
+     */
+
+#ifdef DEBUG
+    if (url == "/stop") {
+        stop(req);
+    } else
+#endif
+    if (url == "/id") {
+        getId(req);
+    } else if (url == "/version") {
+        getVersion(req);
+    } else if (url == "/HEAD") {
+        head(req);
+    } else if (url == "/index") {
+        getIndex(req);
+    } else if (url == "/commits") {
+        getCommits(req);
+    } else if (url == "/contains") {
+        contains(req);
+    } else if (url == "/getobjs") {
+        getObjs(req);
+    } else if (StrUtil_StartsWith(url, "/objs/")) {
+        evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");
+        return;
+    } else if (StrUtil_StartsWith(url, "/objinfo/")) {
+        getObjInfo(req);
+    } else {
+        evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");
+        return;
+    }
+}
 
 int
-Httpd_authenticate(struct evhttp_request *req, struct evbuffer *buf)
+OriHttpd::authenticate(struct evhttp_request *req, struct evbuffer *buf)
 {
     int n;
     char output[64];
@@ -81,7 +175,7 @@ authFailed:
 }
 
 void
-Httpd_stop(struct evhttp_request *req, void *arg)
+OriHttpd::stop(struct evhttp_request *req)
 {
     struct evbuffer *buf;
 
@@ -92,7 +186,7 @@ Httpd_stop(struct evhttp_request *req, void *arg)
         return;
     }
 
-    if (Httpd_authenticate(req, buf) < 0)
+    if (authenticate(req, buf) < 0)
     {
         return;
     }
@@ -103,9 +197,9 @@ Httpd_stop(struct evhttp_request *req, void *arg)
 }
 
 void
-Httpd_getId(struct evhttp_request *req, void *arg)
+OriHttpd::getId(struct evhttp_request *req)
 {
-    string repoId = repository.getUUID();
+    string repoId = repo.getUUID();
     struct evbuffer *buf;
 
     LOG("httpd: getid");
@@ -123,9 +217,9 @@ Httpd_getId(struct evhttp_request *req, void *arg)
 }
 
 void
-Httpd_getVersion(struct evhttp_request *req, void *arg)
+OriHttpd::getVersion(struct evhttp_request *req)
 {
-    string ver = repository.getVersion();
+    string ver = repo.getVersion();
     struct evbuffer *buf;
 
     LOG("httpd: getversion");
@@ -143,9 +237,9 @@ Httpd_getVersion(struct evhttp_request *req, void *arg)
 }
 
 void
-Httpd_head(struct evhttp_request *req, void *arg)
+OriHttpd::head(struct evhttp_request *req)
 {
-    ObjectHash headId = repository.getHead();
+    ObjectHash headId = repo.getHead();
     ASSERT(!headId.isEmpty());
     struct evbuffer *buf;
 
@@ -164,13 +258,13 @@ Httpd_head(struct evhttp_request *req, void *arg)
 }
 
 void
-Httpd_getIndex(struct evhttp_request *req, void *arg)
+OriHttpd::getIndex(struct evhttp_request *req)
 {
     LOG("httpd: getindex");
 
     evbufwstream es;
 
-    std::set<ObjectInfo> objects = repository.listObjects();
+    std::set<ObjectInfo> objects = repo.listObjects();
     es.writeUInt64(objects.size());
     for (std::set<ObjectInfo>::iterator it = objects.begin();
             it != objects.end();
@@ -189,13 +283,13 @@ Httpd_getIndex(struct evhttp_request *req, void *arg)
 }
 
 void
-Httpd_getCommits(struct evhttp_request *req, void *arg)
+OriHttpd::getCommits(struct evhttp_request *req)
 {
     LOG("httpd: getCommits");
 
     evbufwstream es;
 
-    vector<Commit> commits = repository.listCommits();
+    vector<Commit> commits = repo.listCommits();
     es.writeUInt32(commits.size());
     for (size_t i = 0; i < commits.size(); i++) {
         std::string blob = commits[i].getBlob();
@@ -212,44 +306,36 @@ Httpd_getCommits(struct evhttp_request *req, void *arg)
 }
 
 void
-Httpd_getObjInfo(struct evhttp_request *req, void *arg)
+OriHttpd::contains(struct evhttp_request *req)
 {
-    string url = evhttp_request_get_uri(req);
-    string sObjId;
-    if (url.substr(0, 9) == "/objinfo/") {
-	sObjId = url.substr(9);
-    }
-    else {
-	evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");
-	return;
-    }
-    
-    if (sObjId.size() != 64) {
-        evhttp_send_error(req, HTTP_BADREQUEST, "Bad Request");
-        return;
-    }
-    
-    LOG("httpd: getobjinfo %s", sObjId.c_str());
+    // Get object hashes
+    evbuffer *buf = evhttp_request_get_input_buffer(req);
+    evbufstream in(buf);
+    evbufwstream out;
 
-    Object::sp obj = repository.getObject(ObjectHash::fromHex(sObjId));
-    if (obj == NULL) {
-        evhttp_send_reply(req, HTTP_NOTFOUND, "Object Not Found", evbuffer_new());
-        return;
+    uint32_t numObjs = in.readUInt32();
+    fprintf(stderr, "Transmitting %u objects\n", numObjs);
+    string rval = "";
+    for (size_t i = 0; i < numObjs; i++) {
+        ObjectHash hash;
+        in.readHash(hash);
+
+        if (repo.hasObject(hash))
+            rval += "P"; // Present
+        else
+            rval += "N"; // Not Present
+        // XXX: Remote later show other states
     }
 
-    ObjectInfo objInfo = obj->getInfo();
-
-    // Transmit
-    evbufwstream es;
-    es.writeInfo(objInfo);
+    out.write(rval.data(), rval.size());
 
     evhttp_add_header(req->output_headers, "Content-Type",
             "application/octet-stream");
-    evhttp_send_reply(req, HTTP_OK, "OK", es.buf());
+    evhttp_send_reply(req, HTTP_OK, "OK", out.buf());
 }
 
 void
-Httpd_getObjs(struct evhttp_request *req, void *arg)
+OriHttpd::getObjs(struct evhttp_request *req)
 {
     // Get object hashes
     evbuffer *buf = evhttp_request_get_input_buffer(req);
@@ -267,45 +353,47 @@ Httpd_getObjs(struct evhttp_request *req, void *arg)
 
     // Transmit
     evbufwstream out;
-    repository.transmit(&out, objs);
+    repo.transmit(&out, objs);
 
     evhttp_add_header(req->output_headers, "Content-Type",
             "application/octet-stream");
     evhttp_send_reply(req, HTTP_OK, "OK", out.buf());
 }
 
-
 void
-Httpd_contains(struct evhttp_request *req, void *arg)
+OriHttpd::getObjInfo(struct evhttp_request *req)
 {
-    // Get object hashes
-    evbuffer *buf = evhttp_request_get_input_buffer(req);
-    evbufstream in(buf);
-    evbufwstream out;
+    string url = evhttp_request_get_uri(req);
+    string sObjId;
+    ASSERT(url.substr(0, 9) == "/objinfo/");
+    
+    sObjId = url.substr(9);
+    if (sObjId.size() != 64) {
+        evhttp_send_error(req, HTTP_BADREQUEST, "Bad Request");
+        return;
+    }
+    
+    LOG("httpd: getobjinfo %s", sObjId.c_str());
 
-    uint32_t numObjs = in.readUInt32();
-    fprintf(stderr, "Transmitting %u objects\n", numObjs);
-    string rval = "";
-    for (size_t i = 0; i < numObjs; i++) {
-        ObjectHash hash;
-        in.readHash(hash);
-
-        if (repository.hasObject(hash))
-            rval += "P"; // Present
-        else
-            rval += "N"; // Not Present
-        // XXX: Remote later show other states
+    Object::sp obj = repo.getObject(ObjectHash::fromHex(sObjId));
+    if (obj == NULL) {
+        evhttp_send_reply(req, HTTP_NOTFOUND, "Object Not Found", evbuffer_new());
+        return;
     }
 
-    out.write(rval.data(), rval.size());
+    ObjectInfo objInfo = obj->getInfo();
+
+    // Transmit
+    evbufwstream es;
+    es.writeInfo(objInfo);
 
     evhttp_add_header(req->output_headers, "Content-Type",
             "application/octet-stream");
-    evhttp_send_reply(req, HTTP_OK, "OK", out.buf());
+    evhttp_send_reply(req, HTTP_OK, "OK", es.buf());
 }
 
 // void
-// Httpd_pushObj(struct evhttp_request *req, void *arg)
+// OriHttpd::pushObj(struct evhttp_request *req, void *arg)
 // {
 //     const char *cl = evhttp_find_header(req->input_headers, "Content-Length");
 //     uint32_t length;
@@ -356,110 +444,3 @@ Httpd_contains(struct evhttp_request *req, void *arg)
 //     evhttp_send_reply(req, HTTP_OK, "OK", outbuf);
 // }
  
-void
-Httpd_logCB(int severity, const char *msg)
-{
-#ifdef DEBUG
-    const char *sev[] = {
-        "Debug", "Msg", "Warning", "Error",
-    };
-    LOG("%s: %s", sev[severity], msg);
-#endif
-}
-
-void
-Httpd_main(uint16_t port)
-{
-    base = event_base_new();
-    event_set_log_callback(Httpd_logCB);
-
-    httpd = evhttp_new(base);
-    evhttp_bind_socket(httpd, "0.0.0.0", port);
-
-    evhttp_set_cb(httpd, "/id", Httpd_getId, NULL);
-    evhttp_set_cb(httpd, "/version", Httpd_getVersion, NULL);
-    evhttp_set_cb(httpd, "/HEAD", Httpd_head, NULL);
-    evhttp_set_cb(httpd, "/index", Httpd_getIndex, NULL);
-    evhttp_set_cb(httpd, "/commits", Httpd_getCommits, NULL);
-    evhttp_set_cb(httpd, "/contains", Httpd_contains, NULL);
-    //evhttp_set_cb(httpd, "/objs", Httpd_pushobj, NULL);
-#ifdef DEBUG
-    evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
-#endif
-    evhttp_set_cb(httpd, "/getobjs", Httpd_getObjs, NULL);
-    // Generic handler provides:
-    // getObject: /objs/*
-    // getObjectInfo: /objinfo/*
-    evhttp_set_gencb(httpd, Httpd_getObjInfo, NULL);
-
-#if !defined(WITHOUT_MDNS)
-    // mDNS
-    MDNS_Register(port);
-#endif
-
-    event_base_dispatch(base);
-    evhttp_free(httpd);
-}
-
-void
-usage()
-{
-    printf("Ori Distributed Personal File System (%s) - HTTP Server\n\n",
-            ORI_VERSION_STR);
-    cout << "usage: ori_httpd [options] <repository path>" << endl << endl;
-    cout << "Options:" << endl;
-    cout << "-p port    Set the HTTP port number (default 8080)" << endl;
-    cout << "-h         Show this message" << endl;
-}
-
-int
-main(int argc, char *argv[])
-{
-    int ch;
-    unsigned long port = 8080;
-
-    while ((ch = getopt(argc, argv, "p:h")) != -1) {
-        switch (ch) {
-            case 'p':
-            {
-                char *p;
-                port = strtoul(optarg, &p, 10);
-                if (*p != '\0' || port > 65535) {
-                    cout << "Invalid port number '" << optarg << "'" << endl;
-                    usage();
-                    return 1;
-                }
-                break;
-            }
-            case 'h':
-                usage();
-                return 0;
-            case '?':
-            default:
-                usage();
-                return 1;
-        }
-    }
-    argc -= optind;
-    argv += optind;
-
-    try {
-        if (argc == 1) {
-            repository.open(argv[0]);
-        } else {
-            repository.open();
-        }
-    } catch (std::exception &e) {
-        cout << e.what() << endl;
-        cout << "Could not open the local repository!" << endl;
-        return 1;
-    }
-
-    ori_open_log(repository.getLogPath());
-    LOG("libevent %s", event_get_version());
-
-    Httpd_main(port);
-
-    return 0;
-}
-
