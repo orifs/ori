@@ -212,76 +212,6 @@ Httpd_getCommits(struct evhttp_request *req, void *arg)
 }
 
 void
-Httpd_stringDeleteCB(const void *data, size_t len, void *extra)
-{
-    string *p = (string *)extra;
-
-    delete p;
-}
-
-/*void
-Httpd_getObj(struct evhttp_request *req, void *arg)
-{
-    string sobjId;
-    auto_ptr<bytestream> bs;
-    string *payload = new string();
-    string objInfo;
-    struct evbuffer *buf;
-    bool includePayload;
-
-    buf = evbuffer_new();
-    if (buf == NULL) {
-        LOG("httpd_getobj: evbuffer_new failed!");
-    }
-
-    sobjId = evhttp_request_get_uri(req);
-
-    if (sobjId.substr(0, 6) == "/objs/") {
-	sobjId = sobjId.substr(6);
-	includePayload = true;
-    } else if (sobjId.substr(0, 9) == "/objinfo/") {
-	sobjId = sobjId.substr(9);
-	includePayload = false;
-    } else {
-	evhttp_send_reply(req, HTTP_NOTFOUND, "File Not Found", buf);
-	return;
-    }
-
-    if (sobjId.size() != 64) {
-        evhttp_send_reply(req, HTTP_BADREQUEST, "Bad Request", buf);
-        return;
-    }
-    
-    LOG("httpd: getobj %s", sobjId.c_str());
-
-    Object::sp obj = repository.getObject(ObjectHash::fromHex(sobjId));
-    if (obj == NULL) {
-        evhttp_send_reply(req, HTTP_NOTFOUND, "Object Not Found", buf);
-        return;
-    }
-
-    if (includePayload) {
-	bs = obj->getStoredPayloadStream();
-	*payload = bs->readAll();
-    }
-    objInfo = obj->getInfo().getInfo();
-
-    ASSERT(objInfo.size() == 16);
-
-    // Transmit
-    evbuffer_add(buf, objInfo.data(), objInfo.size());
-    if (includePayload) {
-	evbuffer_add_reference(buf, payload->data(), payload->size(),
-			       Httpd_stringDeleteCB, payload);
-    }
-
-    evhttp_add_header(req->output_headers, "Content-Type", "text/plain");
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-
-    return;
-}*/
-
-void
 Httpd_getObjInfo(struct evhttp_request *req, void *arg)
 {
     string url = evhttp_request_get_uri(req);
@@ -338,6 +268,36 @@ Httpd_getObjs(struct evhttp_request *req, void *arg)
     // Transmit
     evbufwstream out;
     repository.transmit(&out, objs);
+
+    evhttp_add_header(req->output_headers, "Content-Type",
+            "application/octet-stream");
+    evhttp_send_reply(req, HTTP_OK, "OK", out.buf());
+}
+
+
+void
+Httpd_contains(struct evhttp_request *req, void *arg)
+{
+    // Get object hashes
+    evbuffer *buf = evhttp_request_get_input_buffer(req);
+    evbufstream in(buf);
+    evbufwstream out;
+
+    uint32_t numObjs = in.readUInt32();
+    fprintf(stderr, "Transmitting %u objects\n", numObjs);
+    string rval = "";
+    for (size_t i = 0; i < numObjs; i++) {
+        ObjectHash hash;
+        in.readHash(hash);
+
+        if (repository.hasObject(hash))
+            rval += "P"; // Present
+        else
+            rval += "N"; // Not Present
+        // XXX: Remote later show other states
+    }
+
+    out.write(rval.data(), rval.size());
 
     evhttp_add_header(req->output_headers, "Content-Type",
             "application/octet-stream");
@@ -421,6 +381,7 @@ Httpd_main(uint16_t port)
     evhttp_set_cb(httpd, "/HEAD", Httpd_head, NULL);
     evhttp_set_cb(httpd, "/index", Httpd_getIndex, NULL);
     evhttp_set_cb(httpd, "/commits", Httpd_getCommits, NULL);
+    evhttp_set_cb(httpd, "/contains", Httpd_contains, NULL);
     //evhttp_set_cb(httpd, "/objs", Httpd_pushobj, NULL);
 #ifdef DEBUG
     evhttp_set_cb(httpd, "/stop", Httpd_stop, NULL);
