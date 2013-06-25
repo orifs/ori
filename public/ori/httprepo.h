@@ -40,6 +40,7 @@ public:
     Object::sp getObject(const ObjectHash &id);
     ObjectInfo getObjectInfo(const ObjectHash &id);
     bool hasObject(const ObjectHash &id);
+    std::vector<bool> hasObjects(const ObjectHashVec &objs);
     bytestream *getObjects(const ObjectHashVec &objs);
     std::set<ObjectInfo> listObjects();
     int addObject(ObjectType type, const ObjectHash &hash,

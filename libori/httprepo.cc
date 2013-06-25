@@ -39,6 +39,8 @@
 #include <ori/httprepo.h>
 #include <ori/packfile.h>
 
+#include "httpdefs.h"
+
 using namespace std;
 
 /*
@@ -63,7 +65,7 @@ HttpRepo::getUUID()
     int status;
     string uuid;
 
-    status = client->getRequest("/id", uuid);
+    status = client->getRequest(ORIHTTP_PATH_ID, uuid);
     if (status < 0) {
         ASSERT(false);
         return "";
@@ -78,7 +80,7 @@ HttpRepo::getHead()
     int status;
     string headId;
 
-    status = client->getRequest("/HEAD", headId);
+    status = client->getRequest(ORIHTTP_PATH_HEAD, headId);
     if (status < 0) {
         ASSERT(false);
         return ObjectHash();
@@ -149,7 +151,7 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
     string payload;
     ObjectInfo rval = ObjectInfo();
 
-    status = client->getRequest("/objinfo/" + id.hex(), payload);
+    status = client->getRequest(ORIHTTP_PATH_OBJINFO + id.hex(), payload);
     if (status < 0)
 	return rval;
 
@@ -158,6 +160,9 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
     return rval;
 }
 
+/*
+ * XXX: Use new API /contains
+ */
 bool
 HttpRepo::hasObject(const ObjectHash &id) {
     if (!containedObjs) {
@@ -173,6 +178,39 @@ HttpRepo::hasObject(const ObjectHash &id) {
     return containedObjs->find(id) != containedObjs->end();
 }
 
+vector<bool>
+HttpRepo::hasObjects(const ObjectHashVec &vec) {
+    strwstream ss;
+    string resp;
+    vector<bool> rval;
+
+    ss.writeUInt32(vec.size());
+    for (size_t i = 0; i < vec.size(); i++) {
+        ss.writeHash(vec[i]);
+    }
+
+    int status = client->postRequest(ORIHTTP_PATH_GETOBJS, ss.str(), resp);
+    if (status == 0) {
+        return rval;
+    }
+    if (resp.size() != vec.size()) {
+        return rval;
+    }
+
+    for (size_t i = 0; i < resp.size(); i++) {
+        if (resp[i] == 'P') {
+            rval.push_back(true);
+        } else if (resp[i] == 'N') {
+            rval.push_back(false);
+        } else {
+            WARNING("Unknown status for hasObjects query!");
+            rval.push_back(false);
+        }
+    }
+
+    return rval;
+}
+
 bytestream *
 HttpRepo::getObjects(const ObjectHashVec &vec) {
     strwstream ss;
@@ -182,7 +220,7 @@ HttpRepo::getObjects(const ObjectHashVec &vec) {
     }
 
     string resp;
-    int status = client->postRequest("/getobjs", ss.str(), resp);
+    int status = client->postRequest(ORIHTTP_PATH_GETOBJS, ss.str(), resp);
     bytestream::ap bs(new strstream(resp));
 
     if (status == 0) {
@@ -197,7 +235,7 @@ HttpRepo::listObjects()
     set<ObjectInfo> rval;
 
     string index;
-    int status = client->getRequest("/index", index);
+    int status = client->getRequest(ORIHTTP_PATH_INDEX, index);
     strstream ss(index);
 
     if (status == 0) {
@@ -229,7 +267,7 @@ HttpRepo::listCommits()
     vector<Commit> rval;
 
     string index;
-    int status = client->getRequest("/commits", index);
+    int status = client->getRequest(ORIHTTP_PATH_COMMITS, index);
     strstream ss(index);
 
     if (status == 0) {

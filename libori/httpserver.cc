@@ -46,6 +46,7 @@
 #include <ori/httpserver.h>
 
 #include "evbufstream.h"
+#include "httpdefs.h"
 
 using namespace std;
 
@@ -123,24 +124,24 @@ HTTPServer::entry(struct evhttp_request *req)
         stop(req);
     } else
 #endif
-    if (url == "/id") {
+    if (url == ORIHTTP_PATH_ID) {
         getId(req);
-    } else if (url == "/version") {
+    } else if (url == ORIHTTP_PATH_VERSION) {
         getVersion(req);
-    } else if (url == "/HEAD") {
+    } else if (url == ORIHTTP_PATH_HEAD) {
         head(req);
-    } else if (url == "/index") {
+    } else if (url == ORIHTTP_PATH_INDEX) {
         getIndex(req);
-    } else if (url == "/commits") {
+    } else if (url == ORIHTTP_PATH_COMMITS) {
         getCommits(req);
-    } else if (url == "/contains") {
+    } else if (url == ORIHTTP_PATH_CONTAINS) {
         contains(req);
-    } else if (url == "/getobjs") {
+    } else if (url == ORIHTTP_PATH_GETOBJS) {
         getObjs(req);
     } else if (StrUtil_StartsWith(url, "/objs/")) {
         evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");
         return;
-    } else if (StrUtil_StartsWith(url, "/objinfo/")) {
+    } else if (StrUtil_StartsWith(url, ORIHTTP_PATH_OBJINFO)) {
         getObjInfo(req);
     } else {
         evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");
