@@ -160,22 +160,18 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
     return rval;
 }
 
-/*
- * XXX: Use new API /contains
- */
 bool
 HttpRepo::hasObject(const ObjectHash &id) {
-    if (!containedObjs) {
-        containedObjs = new std::tr1::unordered_set<ObjectHash>();
-        std::set<ObjectInfo> objs = listObjects();
-        for (std::set<ObjectInfo>::iterator it = objs.begin();
-                it != objs.end();
-                it++) {
-            containedObjs->insert((*it).hash);
-        }
-    }
+    ObjectHashVec vec;
+    vector<bool> result;
 
-    return containedObjs->find(id) != containedObjs->end();
+    // XXX: Implement cache
+
+    vec.push_back(id);
+    result = hasObjects(vec);
+    if (result.size() != 1)
+        return false;
+    return result[0];
 }
 
 vector<bool>
@@ -189,7 +185,7 @@ HttpRepo::hasObjects(const ObjectHashVec &vec) {
         ss.writeHash(vec[i]);
     }
 
-    int status = client->postRequest(ORIHTTP_PATH_GETOBJS, ss.str(), resp);
+    int status = client->postRequest(ORIHTTP_PATH_CONTAINS, ss.str(), resp);
     if (status == 0) {
         return rval;
     }

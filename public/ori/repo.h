@@ -53,7 +53,7 @@ public:
             const ObjectHash &id
             ) = 0;
     virtual bool hasObject(const ObjectHash &id) = 0;
-
+    virtual std::vector<bool> hasObjects(const ObjectHashVec &ids);
     virtual bytestream *getObjects(
             const ObjectHashVec &objs
             ) = 0;

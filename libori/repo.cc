@@ -61,6 +61,22 @@ Repo::~Repo() {
 }
 
 /*
+ * Default implementations
+ */
+
+vector<bool>
+Repo::hasObjects(const ObjectHashVec &ids)
+{
+    vector<bool> rval = vector<bool>(ids.size());
+
+    for (int i = 0; i < ids.size(); i++) {
+        rval[i] = hasObject(ids[i]);
+    }
+
+    return rval;
+}
+
+/*
  * High-level operations
  */
 
