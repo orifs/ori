@@ -81,10 +81,13 @@ cmd_clone(int argc, const char *argv[])
 	RemoteRepo srcRepo;
 	srcRepo.connect(srcRoot);
 
+        // XXX: Need to rely on sync log.
+        ObjectHash head = srcRepo->getHead();
+
         dstRepo.pull(srcRepo.get());
 
-        // XXX: Need to rely on sync log.
-        dstRepo.updateHead(srcRepo->getHead());
+        if (!head.isEmpty())
+            dstRepo.updateHead(head);
     }
 
     // TODO: rebuild references

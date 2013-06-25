@@ -203,7 +203,7 @@ HTTPServer::getId(struct evhttp_request *req)
     string repoId = repo.getUUID();
     struct evbuffer *buf;
 
-    LOG("httpd: getid");
+    DLOG("httpd: getid");
 
     buf = evbuffer_new();
     if (buf == NULL) {
@@ -223,7 +223,7 @@ HTTPServer::getVersion(struct evhttp_request *req)
     string ver = repo.getVersion();
     struct evbuffer *buf;
 
-    LOG("httpd: getversion");
+    DLOG("httpd: getversion");
 
     buf = evbuffer_new();
     if (buf == NULL) {
@@ -241,10 +241,9 @@ void
 HTTPServer::head(struct evhttp_request *req)
 {
     ObjectHash headId = repo.getHead();
-    ASSERT(!headId.isEmpty());
     struct evbuffer *buf;
 
-    LOG("httpd: gethead");
+    DLOG("httpd: gethead %s", headId.hex().c_str());
 
     buf = evbuffer_new();
     if (buf == NULL) {
@@ -261,7 +260,7 @@ HTTPServer::head(struct evhttp_request *req)
 void
 HTTPServer::getIndex(struct evhttp_request *req)
 {
-    LOG("httpd: getindex");
+    DLOG("httpd: getindex");
 
     evbufwstream es;
 
@@ -286,7 +285,7 @@ HTTPServer::getIndex(struct evhttp_request *req)
 void
 HTTPServer::getCommits(struct evhttp_request *req)
 {
-    LOG("httpd: getCommits");
+    DLOG("httpd: getCommits");
 
     evbufwstream es;
 
@@ -314,13 +313,16 @@ HTTPServer::contains(struct evhttp_request *req)
     evbufstream in(buf);
     evbufwstream out;
 
+    DLOG("httpd: contains");
+
     uint32_t numObjs = in.readUInt32();
-    fprintf(stderr, "Transmitting %u objects\n", numObjs);
     string rval = "";
-    for (size_t i = 0; i < numObjs; i++) {
+    for (uint32_t i = 0; i < numObjs; i++) {
         ObjectHash hash;
         in.readHash(hash);
 
+        DLOG("httpd: contains: %d of %d %s %c", i + 1, numObjs,
+                hash.hex().c_str(), repo.hasObject(hash) ? 'P' : 'N');
         if (repo.hasObject(hash))
             rval += "P"; // Present
         else
@@ -342,13 +344,17 @@ HTTPServer::getObjs(struct evhttp_request *req)
     evbuffer *buf = evhttp_request_get_input_buffer(req);
     evbufstream in(buf);
 
+    DLOG("httpd: getObjs");
+
     uint32_t numObjs = in.readUInt32();
-    fprintf(stderr, "Transmitting %u objects\n", numObjs);
     std::vector<ObjectHash> objs;
-    for (size_t i = 0; i < numObjs; i++) {
+    for (uint32_t i = 0; i < numObjs; i++) {
         ObjectHash hash;
         in.readHash(hash);
         objs.push_back(hash);
+
+        DLOG("httpd: getObjs %d of %d %s", i + 1, numObjs,
+                hash.hex().c_str());
     }
 
 
@@ -374,7 +380,7 @@ HTTPServer::getObjInfo(struct evhttp_request *req)
         return;
     }
     
-    LOG("httpd: getobjinfo %s", sObjId.c_str());
+    DLOG("httpd: getobjinfo %s", sObjId.c_str());
 
     Object::sp obj = repo.getObject(ObjectHash::fromHex(sObjId));
     if (obj == NULL) {
