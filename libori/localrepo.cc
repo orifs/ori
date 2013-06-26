@@ -872,7 +872,7 @@ LocalRepo::pull(Repo *r)
         ObjectHash hash = toPull.front();
         toPull.pop_front();
 
-        Object::sp o(r->getObject(hash));
+        Object::sp o(getObject(hash));
         if (!o) {
             printf("Error getting object %s\n", hash.hex().c_str());
             continue;
@@ -891,8 +891,7 @@ LocalRepo::pull(Repo *r)
                 toPull.push_back(c.getTree());
                 newObjs.push_back(c.getTree());
             }
-        }
-        else if (t == ObjectInfo::Tree) {
+        } else if (t == ObjectInfo::Tree) {
             Tree t;
             t.fromBlob(o->getPayload());
             for (map<string, TreeEntry>::iterator it = t.tree.begin();
@@ -906,8 +905,7 @@ LocalRepo::pull(Repo *r)
                     newObjs.push_back(entry_hash);
                 }
             }
-        }
-        else if (t == ObjectInfo::LargeBlob) {
+        } else if (t == ObjectInfo::LargeBlob) {
             LargeBlob lb(this);
             lb.fromBlob(o->getPayload());
 
@@ -926,9 +924,6 @@ LocalRepo::pull(Repo *r)
             objs.reset(r->getObjects(newObjs));
             receive(objs.get());
         }
-
-        // Add the object to this repo
-        //copyFrom(o.get());
     }
 }
 
