@@ -27,14 +27,6 @@
 #include <fcntl.h>
 #endif
 
-#if defined(__FreeBSD__)
-#include <sys/endian.h>
-#elif defined(__APPLE__)
-#include <libkern/OSByteOrder.h>
-#elif defined(__linux__)
-#include <endian.h>
-#endif
-
 #ifdef ORI_USE_FASTLZ
 #include "fastlz.h"
 #endif /* ORI_USE_FASTLZ */
@@ -42,6 +34,7 @@
 #include <string>
 
 #include "tuneables.h"
+#include "byteswap.h"
 
 #include <oriutil/debug.h>
 #include <oriutil/systemexception.h>
@@ -50,40 +43,6 @@
 using namespace std;
 
 #define USE_EXCEPTIONS 1
-
-/* BSD byte swapping functions for Windows and Mac OS X */
-#if defined(_WIN32)
-#define htobe16(_x) _byteswap_ushort(_x)
-#define be16toh(_x) _byteswap_ushort(_x)
-#define htobe32(_x) _byteswap_ulong(_x)
-#define be32toh(_x) _byteswap_ulong(_x)
-#define htobe64(_x) _byteswap_uint64(_x)
-#define be64toh(_x) _byteswap_uint64(_x)
-#elif defined(__APPLE__)
-#define ori_swap16(_x) \
-    ((((_x) & 0xff00) >> 8) | \
-    (((_x) & 0x00ff) << 8))
-#define ori_swap32(_x) \
-    ((((_x) & 0xff000000U) >> 24) | \
-    (((_x) & 0x00ff0000U) >> 8) | \
-    (((_x) & 0x0000ff00U) << 8) | \
-    (((_x) & 0x000000ffU) << 24))
-#define ori_swap64(_x) \
-    ((((_x) & 0xff00000000000000U) >> 56) | \
-    (((_x) & 0x00ff000000000000U) >> 40) | \
-    (((_x) & 0x0000ff0000000000U) >> 24) | \
-    (((_x) & 0x000000ff00000000U) >> 8) | \
-    (((_x) & 0x00000000ff000000U) << 8) | \
-    (((_x) & 0x0000000000ff0000U) << 24) | \
-    (((_x) & 0x000000000000ff00U) << 40) | \
-    (((_x) & 0x00000000000000ffU) << 56))
-#define htobe16(_x) ori_swap16(_x)
-#define be16toh(_x) ori_swap16(_x)
-#define htobe32(_x) ori_swap32(_x)
-#define be32toh(_x) ori_swap32(_x)
-#define htobe64(_x) ori_swap64(_x)
-#define be64toh(_x) ori_swap64(_x)
-#endif
 
 /*
  * Stream Types
