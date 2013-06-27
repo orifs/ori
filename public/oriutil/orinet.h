@@ -17,6 +17,7 @@
 #ifndef __ORINET_H__
 #define __ORINET_H__
 
+std::string OriNet_ResolveHost(const std::string &hostname);
 std::vector<std::string> OriNet_GetAddrs();
 
 #endif /* __ORINET_H__ */

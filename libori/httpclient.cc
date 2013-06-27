@@ -34,8 +34,10 @@
 
 #include <string>
 #include <iostream>
+#include <vector>
 
 #include <oriutil/debug.h>
+#include <oriutil/orinet.h>
 #include <oriutil/oriutil.h>
 #include <ori/httpclient.h>
 #include <ori/httprepo.h>
@@ -99,7 +101,7 @@ HttpClient::connect()
     port = strtoul(remotePort.c_str(), NULL, 10);
 
     // Can't get evdns to work, using Util_ResolveHost
-    std::string remoteIP = Util_ResolveHost(remoteHost);
+    std::string remoteIP = OriNet_ResolveHost(remoteHost);
     con = evhttp_connection_base_new(base, dnsBase, remoteIP.c_str(), port);
     if (con == NULL) {
         WARNING("HTTP client couldn't set up connection!");

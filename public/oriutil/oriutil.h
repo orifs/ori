@@ -53,7 +53,6 @@ void Util_PrintBacktrace();
 void Util_LogBacktrace();
 std::string Util_NewUUID();
 bool Util_IsPathRemote(const std::string &path);
-std::string Util_ResolveHost(const std::string &hostname);
 
 std::string StrUtil_Basename(const std::string &path);
 std::string StrUtil_Dirname(const std::string &path);
