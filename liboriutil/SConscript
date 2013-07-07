@@ -30,5 +30,6 @@ if env["WITH_MDNS"] == "1":
 env.StaticLibrary("oriutil", src)
 
 # Test Binaries
-env.Program("test_oriutil", "test_oriutil.cc")
+if env["BUILD_BINARIES"] == "1":
+    env.Program("test_oriutil", "test_oriutil.cc")
 

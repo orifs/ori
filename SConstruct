@@ -1,6 +1,7 @@
 import sys
 import os
 import multiprocessing
+import SCons.Util
 
 ## Helper Functions
 
@@ -37,6 +38,8 @@ opts.AddVariables(
     ("WITH_TSAN", "Enable Clang Race Detector.", "0"),
     ("WITH_ASAN", "Enable Clang AddressSanitizer.", "0"),
     ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "0"),
+    ("BUILD_BINARIES", "Build binaries (0 or 1).", "1"),
+    ("CROSSCOMPILE", "Cross compile (0 or 1).", "0"),
     ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
         "0"),
     ("HASH_ALGO", "Hash algorithm (SHA256).", "SHA256"),
@@ -52,14 +55,22 @@ env = Environment(options = opts,
 Help(opts.GenerateHelpText(env))
 
 # Copy environment variables
-if os.getenv('CC') != None:
+if os.environ.has_key('CC'):
     env["CC"] = os.getenv('CC')
-if os.getenv('CXX') != None:
+if os.environ.has_key('CXX'):
     env["CXX"] = os.getenv('CXX')
-if os.getenv('AS') != None:
+if os.environ.has_key('AS'):
     env["AS"] = os.getenv('AS')
-if os.getenv('LD') != None:
+if os.environ.has_key('LD'):
     env["LINK"] = os.getenv('LD')
+if os.environ.has_key('CFLAGS'):
+    env.Append(CCFLAGS = SCons.Util.CLVar(os.environ['CFLAGS']))
+if os.environ.has_key('CPPFLAGS'):
+    env.Append(CPPFLAGS = SCons.Util.CLVar(os.environ['CPPFLAGS']))
+if os.environ.has_key('CXXFLAGS'):
+    env.Append(CXXFLAGS = SCons.Util.CLVar(os.environ['CXXFLAGS']))
+if os.environ.has_key('LDFLAGS'):
+    env.Append(LINKFLAGS = SCons.Util.CLVar(os.environ['LDFLAGS']))
 
 # Windows Configuration Changes
 if sys.platform == "win32":
@@ -144,11 +155,11 @@ def GetNumCPUs(env):
 env.SetOption('num_jobs', GetNumCPUs(env))
 
 # Modify CPPPATH and LIBPATH
-if sys.platform != "darwin" and sys.platform != "win32":
+if sys.platform != "darwin" and sys.platform != "win32" and env["CROSSCOMPILE"] == "0":
     env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
     env.Append(LIBPATH = [ "/usr/local/lib/event2" ])
 
-if sys.platform != "win32":
+if sys.platform != "win32" and env["CROSSCOMPILE"] == "0":
     env.Append(CPPPATH = [ "/usr/local/include" ])
     env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
@@ -160,11 +171,6 @@ if sys.platform == "freebsd9" or sys.platform == "freebsd8":
     env.Append(CPPFLAGS = "-DHAVE_EXECINFO")
 elif sys.platform == "linux2" or sys.platform == "darwin":
     env.Append(CPPFLAGS = "-DHAVE_EXECINFO")
-
-if sys.platform == "darwin":
-    # OpenSSL needs to be overridden on OS X
-    env.Append(LIBPATH=['/usr/local/Cellar/openssl/1.0.1c/lib'],
-               CPPPATH=['/usr/local/Cellar/openssl/1.0.1c/include'])
 
 if sys.platform == "win32":
     env.Append(LIBPATH=['#../boost_1_53_0\stage\lib'],
@@ -190,9 +196,13 @@ if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
     CheckFailed()
 
-if (sys.platform != "win32") and not conf.CheckPkgConfig():
-    print 'pkg-config not found!'
-    Exit(1)
+if (sys.platform == "win32") or env["CROSSCOMPILE"] == "1":
+    env["HAS_PKGCONFIG"] = "0"
+else:
+    env["HAS_PKGCONFIG"] = "1"
+    if not conf.CheckPkgConfig():
+        print 'pkg-config not found!'
+        Exit(1)
 
 #
 #env.AppendUnique(CXXFLAGS = ['-std=c++11'])
@@ -237,11 +247,11 @@ if env["COMPRESSION_ALGO"] == "LZMA":
         print 'Please install liblzma'
         Exit(1)
 
-if sys.platform != "win32" and not conf.CheckPkg('fuse'):
+if env["HAS_PKGCONFIG"] == "1" and not conf.CheckPkg('fuse'):
     print 'FUSE is not registered in pkg-config'
     Exit(1)
 
-if sys.platform != "win32":
+if env["HAS_PKGCONFIG"] == "1":
     if not conf.CheckPkg('libevent'):
         print 'libevent is not registered in pkg-config'
         Exit(1)
@@ -252,7 +262,7 @@ has_event2 = conf.CheckLibWithHeader('event-2.0', 'event2/event.h', 'C',
 'event_init();')
 has_event = conf.CheckLibWithHeader('event', 'event2/event.h', 'C', 
 'event_init();')
-if not (has_event or has_event2):
+if not (has_event or has_event2 or (env["CROSSCOMPILE"] == "1")):
     print 'Please install libevent 2.0+'
     Exit(1)
 
@@ -261,7 +271,11 @@ if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
 	print 'Please install libdns_sd'
 	Exit(1)
 
-# Test for recent OpenSSL
+if env["HAS_PKGCONFIG"] == "1":
+    if not conf.CheckPkg("openssl"):
+        print 'openssl is not registered in pkg-config'
+        Exit(1)
+    env.ParseConfig('pkg-config --libs --cflags openssl')
 
 conf.Finish()
 
@@ -317,14 +331,15 @@ if env["WITH_TSAN"] == "1" and env["WITH_ASAN"] == "1":
 # Installation Targets
 
 # Ori Utilities
-SConscript('ori/SConscript', variant_dir='build/ori')
-SConscript('orisync/SConscript', variant_dir='build/orisync')
-if env["WITH_LIBS3"] == "1":
-    SConscript('oris3/SConscript', variant_dir='build/oris3')
-if env["WITH_FUSE"] == "1":
-    SConscript('orifs/SConscript', variant_dir='build/orifs')
-if env["WITH_HTTPD"] == "1":
-    SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
+if env["BUILD_BINARIES"] == "1":
+    SConscript('ori/SConscript', variant_dir='build/ori')
+    SConscript('orisync/SConscript', variant_dir='build/orisync')
+    if env["WITH_LIBS3"] == "1":
+        SConscript('oris3/SConscript', variant_dir='build/oris3')
+    if env["WITH_FUSE"] == "1":
+        SConscript('orifs/SConscript', variant_dir='build/orifs')
+    if env["WITH_HTTPD"] == "1":
+        SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
 
 # Install Targets
 if env["WITH_FUSE"] == "1":
