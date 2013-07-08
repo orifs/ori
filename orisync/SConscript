@@ -2,6 +2,8 @@ import sys
 
 Import('env')
 
+orisync_env = env.Clone()
+
 src = [
     "orisyncconf.cc",
     "cmd_init.cc",
@@ -14,14 +16,14 @@ src = [
 ]
 
 libs = [
-        "oriutil",
-        "ori",
-        "fastlz",
-        "crypto",
-        "stdc++",
-        "event_core",
-        "event_extra",
-       ]
+    "oriutil",
+    "ori",
+    "fastlz",
+    "crypto",
+    "stdc++",
+    "event_core",
+    "event_extra",
+]
 
 if sys.platform != "darwin":
     libs += ['rt', 'pthread']
@@ -31,7 +33,7 @@ if sys.platform != "darwin":
 if sys.platform == "linux2":
     libs += ['uuid', 'resolv']
 
-env.Append(LIBS = libs)
+orisync_env.Append(LIBS = libs)
 
-env.Program("orisync", src)
+orisync_env.Program("orisync", src)
 

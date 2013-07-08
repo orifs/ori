@@ -17,6 +17,12 @@ def CheckPkg(context, name):
     context.Result(ret)
     return ret
 
+def CheckPkgMinVersion(context, name, version):
+    context.Message('Checking %s-%s or greater... ' % (name, version))
+    ret = context.TryAction('pkg-config --atleast-version \'%s\' \'%s\'' % (version, name))[0]
+    context.Result(ret)
+    return ret
+
 ## Configuration
 
 opts = Variables('Local.sc')
@@ -186,7 +192,8 @@ def CheckFailed():
 
 # Configuration
 conf = env.Configure(custom_tests = { 'CheckPkgConfig' : CheckPkgConfig,
-                                      'CheckPkg' : CheckPkg })
+                                      'CheckPkg' : CheckPkg,
+                                      'CheckPkgMinVersion' : CheckPkgMinVersion })
 
 if not conf.CheckCC():
     print 'Your C compiler and/or environment is incorrectly configured.'
@@ -247,23 +254,23 @@ if env["COMPRESSION_ALGO"] == "LZMA":
         print 'Please install liblzma'
         Exit(1)
 
-if env["HAS_PKGCONFIG"] == "1" and not conf.CheckPkg('fuse'):
-    print 'FUSE is not registered in pkg-config'
-    Exit(1)
+if env["WITH_FUSE"] == "1":
+    if env["HAS_PKGCONFIG"] == "1" and not conf.CheckPkg('fuse'):
+        print 'FUSE is not registered in pkg-config'
+        Exit(1)
 
 if env["HAS_PKGCONFIG"] == "1":
     if not conf.CheckPkg('libevent'):
         print 'libevent is not registered in pkg-config'
         Exit(1)
+    if not conf.CheckPkgMinVersion("libevent", "2.0"):
+        print 'libevent version 2.0 or above required'
+        Exit(1)
     env.ParseConfig('pkg-config --libs --cflags libevent')
 
-# Library is libevent.so or libevent-2.0.so depending on the system
-has_event2 = conf.CheckLibWithHeader('event-2.0', 'event2/event.h', 'C', 
-'event_init();')
-has_event = conf.CheckLibWithHeader('event', 'event2/event.h', 'C', 
-'event_init();')
-if not (has_event or has_event2 or (env["CROSSCOMPILE"] == "1")):
-    print 'Please install libevent 2.0+'
+has_event = conf.CheckLibWithHeader('', 'event2/event.h', 'C', 'event_init();')
+if not (has_event or (env["CROSSCOMPILE"] == "1")):
+    print 'Cannot link test binary with libevent 2.0+'
     Exit(1)
 
 if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
@@ -275,35 +282,25 @@ if env["HAS_PKGCONFIG"] == "1":
     if not conf.CheckPkg("openssl"):
         print 'openssl is not registered in pkg-config'
         Exit(1)
+    if not conf.CheckPkgMinVersion("openssl", "1.0.0"):
+        print 'openssl version 1.0.0 or above required'
+        Exit(1)
     env.ParseConfig('pkg-config --libs --cflags openssl')
 
 conf.Finish()
 
 Export('env')
 
-# libori
+# Set compile options for binaries
+env.Append(CPPPATH = ['#public', '#.'])
+env.Append(LIBS = ["diffmerge", "z"], LIBPATH = ['#build/libdiffmerge'])
+env.Append(LIBS = ["ori"], LIBPATH = ['#build/libori'])
+env.Append(LIBS = ["oriutil"], LIBPATH = ['#build/liboriutil'])
+
+# Optional Components
 if env["WITH_LIBS3"] == "1":
     env.Append(CPPPATH = '#libs3-2.0/inc')
-
-SConscript('libdiffmerge/SConscript', variant_dir='build/libdiffmerge')
-SConscript('libori/SConscript', variant_dir='build/libori')
-SConscript('liboriutil/SConscript', variant_dir='build/liboriutil')
-
-# Set compile options for binaries
-env.Append(LIBS = ["diffmerge", "z"],
-           LIBPATH = ['#build/libdiffmerge'])
-
-env.Append(LIBS = ["ori"],
-           CPPPATH = ['#public'],
-           LIBPATH = ['#build/libori'])
-
-env.Append(LIBS = ["oriutil"],
-           CPPPATH = ['#public'],
-           LIBPATH = ['#build/liboriutil'])
-
-if env["WITH_LIBS3"] == "1":
     SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
-
 if env["COMPRESSION_ALGO"] == "SNAPPY":
     env.Append(CPPPATH = ['#snappy-1.0.5'])
     env.Append(LIBS = ["snappy"], LIBPATH = ['#build/snappy-1.0.5'])
@@ -328,7 +325,10 @@ if env["WITH_TSAN"] == "1" and env["WITH_ASAN"] == "1":
     print "Cannot set both WITH_TSAN and WITH_ASAN!"
     sys.exit(-1)
 
-# Installation Targets
+# libori
+SConscript('libdiffmerge/SConscript', variant_dir='build/libdiffmerge')
+SConscript('libori/SConscript', variant_dir='build/libori')
+SConscript('liboriutil/SConscript', variant_dir='build/liboriutil')
 
 # Ori Utilities
 if env["BUILD_BINARIES"] == "1":

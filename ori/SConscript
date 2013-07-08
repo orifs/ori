@@ -2,6 +2,8 @@ import sys
 
 Import('env')
 
+ori_env = env.Clone()
+
 src = [
     "cmd_addkey.cc",
     "cmd_branch.cc",
@@ -54,7 +56,7 @@ libs = [
 	"stdc++",
 	"event_core",
 	"event_extra",
-       ]
+]
 
 if sys.platform != "darwin":
     libs += ['rt']
@@ -64,7 +66,7 @@ if sys.platform != "darwin":
 if sys.platform == "linux2":
     libs += ['uuid', 'resolv']
 
-env.Append(LIBS = libs)
+ori_env.Append(LIBS = libs)
 
-env.Program("ori", src)
+ori_env.Program("ori", src)
 

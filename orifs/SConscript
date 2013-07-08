@@ -2,6 +2,8 @@ import sys
 
 Import('env')
 
+orifs_env = env.Clone()
+
 src = [
     "logging.cc",
     "oricmd.cc",
@@ -11,16 +13,16 @@ src = [
 ]
 
 libs = [
-        "ori",
-        "oriutil",
-        "fastlz",
-        "crypto",
-        ]
+    "ori",
+    "oriutil",
+    "fastlz",
+    "crypto",
+]
 
-env.ParseConfig('pkg-config --libs --cflags fuse')
+orifs_env.ParseConfig('pkg-config --libs --cflags fuse')
 if sys.platform != "darwin":
     libs += ['rt', 'pthread']
 
-env.Append(LIBS = libs, CPPPATH = [ "$CPPPATH", "#include", "#" ])
+orifs_env.Append(LIBS = libs, CPPPATH = [ "$CPPPATH", "#include", "#" ])
 
-env.Program("orifs", src)
+orifs_env.Program("orifs", src)
