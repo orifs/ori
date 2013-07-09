@@ -297,6 +297,10 @@ env.Append(LIBS = ["diffmerge", "z"], LIBPATH = ['#build/libdiffmerge'])
 env.Append(LIBS = ["ori"], LIBPATH = ['#build/libori'])
 env.Append(LIBS = ["oriutil"], LIBPATH = ['#build/liboriutil'])
 
+if sys.platform != "win32" and sys.platform != "darwin":
+    env.Append(CPPFLAGS = ['-pthread'])
+    env.Append(LIBS = ["pthread"])
+
 # Optional Components
 if env["WITH_LIBS3"] == "1":
     env.Append(CPPPATH = '#libs3-2.0/inc')

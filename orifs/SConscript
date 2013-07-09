@@ -21,7 +21,9 @@ libs = [
 
 orifs_env.ParseConfig('pkg-config --libs --cflags fuse')
 if sys.platform != "darwin":
-    libs += ['rt', 'pthread']
+    libs += ['rt']
+if sys.platform == "linux2":
+    libs += ['uuid']
 
 orifs_env.Append(LIBS = libs, CPPPATH = [ "$CPPPATH", "#include", "#" ])
 
