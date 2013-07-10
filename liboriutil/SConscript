@@ -1,4 +1,5 @@
 import os
+import sys
 
 Import('env')
 
@@ -31,5 +32,12 @@ env.StaticLibrary("oriutil", src)
 
 # Test Binaries
 if env["BUILD_BINARIES"] == "1":
-    env.Program("test_oriutil", "test_oriutil.cc")
+    env_testori = env.Clone()
+    libs = ["crypto", "stdc++"]
+    if sys.platform != "darwin":
+        libs += ['rt']
+    if sys.platform == "linux2":
+        libs += ['uuid', 'resolv']
+    env_testori.Append(LIBS = libs)
+    env_testori.Program("test_oriutil", "test_oriutil.cc")
 
