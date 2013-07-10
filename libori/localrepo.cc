@@ -48,10 +48,10 @@ using namespace std;
 #include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
 #include <oriutil/zeroconf.h>
-#include <ori/localrepo.h>
-#include <ori/remoterepo.h>
-#include <ori/sshrepo.h>
 #include <ori/largeblob.h>
+#include <ori/localrepo.h>
+#include <ori/sshrepo.h>
+#include <ori/remoterepo.h>
 
 int
 LocalRepo_Init(const std::string &rootPath)
@@ -385,6 +385,9 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
     return Object::sp(o);
 }
 
+// XXX: Verify and recover from corrupt objects!!!
+// XXX: Why do we check compression in Packfile::getPayload
+// XXX: LocalObject::getStream and transactions multiple places.
 LocalObject::sp LocalRepo::getLocalObject(const ObjectHash &objId)
 {
     ASSERT(opened);
@@ -1322,14 +1325,14 @@ LocalRepo::commitFromTree(const ObjectHash &treeHash, Commit &c,
     if (status == "normal") {
         updateHead(commitHash);
 
-	// Remove merge state
-	/*
-	 * XXX: During a crash it's possible the merge state needs to be 
-	 * removed, because the commit has been updated.
-	 */
-	if (hasMergeState()) {
-	    clearMergeState();
-	}
+        // Remove merge state
+        /*
+         * XXX: During a crash it's possible the merge state needs to be 
+         * removed, because the commit has been updated.
+         */
+        if (hasMergeState()) {
+            clearMergeState();
+        }
     }
 
     LOG("Commit Hash: %s", commitHash.hex().c_str());
@@ -1652,21 +1655,27 @@ LocalRepo::getSubtreeObjects(const ObjectHash &treeId)
     treeQ.push(treeId);
 
     while (!treeQ.empty()) {
-	map<string, TreeEntry>::iterator it;
-	Tree t = getTree(treeQ.front());
-	treeQ.pop();
+        map<string, TreeEntry>::iterator it;
+        Tree t = getTree(treeQ.front());
+        treeQ.pop();
 
-	for (it = t.tree.begin(); it != t.tree.end(); it++) {
-	    TreeEntry e = (*it).second;
-	    set<ObjectHash>::iterator p = rval.find(e.hash);
+        for (it = t.tree.begin(); it != t.tree.end(); it++) {
+            TreeEntry e = (*it).second;
+            set<ObjectHash>::iterator p = rval.find(e.hash);
 
-	    if (p == rval.end()) {
-		if (e.type == TreeEntry::Tree) {
-		    treeQ.push(e.hash);
-		}
-		rval.insert(e.hash);
-	    }
-	}
+            if (p == rval.end()) {
+                if (e.type == TreeEntry::Tree) {
+                    treeQ.push(e.hash);
+                } else if (e.type == TreeEntry::LargeBlob) {
+                    LargeBlob lb = getLargeBlob(e.hash);
+                    std::map<uint64_t, LBlobEntry>::iterator it;
+                    for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
+                        rval.insert(it->second.hash);
+                    }
+                }
+                rval.insert(e.hash);
+            }
+        }
     }
 
     return rval;

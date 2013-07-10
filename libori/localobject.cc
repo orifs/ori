@@ -66,6 +66,7 @@ LocalObject::~LocalObject()
 {
 }
 
+// XXX: Eliminate duplicate compression code!
 bytestream *LocalObject::getPayloadStream() {
     if (packfile.get()) {
         return packfile->getPayload(entry);

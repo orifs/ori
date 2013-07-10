@@ -34,6 +34,8 @@ extern ObjectHash EMPTYFILE_HASH;
 
 typedef std::vector<ObjectHash> ObjectHashVec;
 
+class LargeBlob;
+
 class Repo
 {
 public:
@@ -80,6 +82,7 @@ public:
 
     virtual Tree getTree(const ObjectHash &treeId);
     virtual Commit getCommit(const ObjectHash &commitId);
+    virtual LargeBlob getLargeBlob(const ObjectHash &objId);
 
     // High level operations
     virtual void copyFrom(

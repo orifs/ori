@@ -32,8 +32,6 @@
 #include <ori/object.h>
 #include <ori/largeblob.h>
 #include <ori/repo.h>
-#include <ori/localrepo.h>
-#include <ori/sshrepo.h>
 
 using namespace std;
 
@@ -197,6 +195,25 @@ Repo::getCommit(const ObjectHash &commitId)
     c.fromBlob(blob);
 
     return c;
+}
+
+LargeBlob
+Repo::getLargeBlob(const ObjectHash &objId)
+{
+    Object::sp o(getObject(objId));
+    string blob = o->getPayload();
+
+    ASSERT(objId == EMPTYFILE_HASH || o->getInfo().type == ObjectInfo::LargeBlob);
+
+    LargeBlob lb(this);
+    if (blob.size() == 0) {
+        printf("Error getting commit blob\n");
+        PANIC();
+        return lb;
+    }
+    lb.fromBlob(blob);
+
+    return lb;
 }
 
 DAG<ObjectHash, Commit>
