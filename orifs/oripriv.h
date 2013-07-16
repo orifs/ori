@@ -135,12 +135,13 @@ public:
 class OriPriv
 {
 public:
-    OriPriv(const std::string &repoPath);
+    OriPriv(const std::string &repoPath,
+            const std::string &origin = "",
+            Repo *remoteRepo = NULL);
     ~OriPriv();
     // Repository Operations
     void reset();
     void cleanup();
-    void setInstaClone(const std::string &origin, Repo *remoteRepo);
     std::pair<std::string, int> getTemp();
     // Current Change Operations
     uint64_t generateFH();

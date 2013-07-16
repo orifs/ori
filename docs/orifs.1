@@ -19,10 +19,14 @@ explaining where unsaved data is located and how it may be recovered.  In
 future releases this bug will addressed.
 .SH OPTIONS
 .TP
-\fB\-o repo=[\fIPATH\fR]\fR
+\fB\--shallow\fR
+Used in conjunction with --clone to specify a shallow clone of the remote 
+repository.
+.TP
+\fB\--repo=[\fIPATH\fR]\fR
 Specify the path to the underlying repository.
 .TP
-\fB\-o repo=[\fIPATH\fR],clone=[\fIREMOTEPATH\fR]\fR
+\fB\--repo=[\fIPATH\fR] --clone=[\fIREMOTEPATH\fR]\fR
 Create a new InstaCloned repository from the specified repository.
 .TP
 \fB\-d\fR

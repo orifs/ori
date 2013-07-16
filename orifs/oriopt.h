@@ -18,6 +18,7 @@
 #define __ORIOPT_H__
 
 struct mount_ori_config {
+    int shallow;
     char *repo_path;
     char *clone_path;
 };

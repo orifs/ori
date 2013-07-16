@@ -78,7 +78,6 @@ public:
     ~LocalRepo();
     void open(const std::string &root = "");
     void close();
-    void save();
     LocalRepoLock::sp lock();
 
     // Remote Repository (Thin/Insta-clone)

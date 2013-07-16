@@ -48,7 +48,7 @@
 using namespace std;
 using namespace std::tr1;
 
-OriPriv::OriPriv(const std::string &repoPath)
+OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remoteRepo)
     : cmd(this)
 {
     repo = new LocalRepo(repoPath);
@@ -61,6 +61,14 @@ OriPriv::OriPriv(const std::string &repoPath)
         cout << e.what() << endl;
         printf("Failed to open ori repository please check the path!\n");
         exit(1);
+    }
+
+    if (remoteRepo) {
+        ASSERT(origin != "");
+        repo->addPeer("origin", origin);
+        repo->setInstaClone("origin", true);
+        repo->setRemote(remoteRepo);
+        repo->updateHead(remoteRepo->getHead());
     }
 
     RWLock::LockOrderVector order;
@@ -147,16 +155,6 @@ OriPriv::cleanup()
     // and committed files.  This would allow us to reclaim temporary space 
     // after a commit.
     DirIterate(tmpDir, this, cleanupHelper);
-}
-
-void
-OriPriv::setInstaClone(const string &origin, Repo *remoteRepo)
-{
-    ASSERT(remoteRepo != NULL);
-
-    repo->addPeer("origin", origin);
-    repo->setInstaClone("origin", true);
-    repo->setRemote(remoteRepo);
 }
 
 pair<string, int>

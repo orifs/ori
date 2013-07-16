@@ -69,15 +69,6 @@ OriPriv *priv;
 static void *
 ori_init(struct fuse_conn_info *conn)
 {
-    if (config.clone_path != NULL) {
-        string originPath = config.clone_path;
-
-        if (!Util_IsPathRemote(originPath))
-            originPath = Util_RealPath(originPath);
-
-        priv->setInstaClone(config.clone_path, remoteRepo.get());
-    }
-
     FUSE_LOG("Ori Filesystem starting ...");
 
     return priv;
@@ -1004,8 +995,9 @@ usage()
     printf("Ori Distributed Personal File System (%s) - FUSE Driver\n",
             ORI_VERSION_STR);
     printf("Usage:\n");
-    printf("orifs -o repo=[REPOSITORY PATH] [MOUNT POINT]\n");
-    printf("orifs -o clone=[REMOTE PATH],repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("orifs --repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("orifs --clone=[REMOTE PATH] --repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("orifs --shallow --clone=[REMOTE PATH] --repo=[REPOSITORY PATH] [MOUNT POINT]\n");
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
     printf("Website: http://ori.scs.stanford.edu/\n");
@@ -1021,6 +1013,7 @@ main(int argc, char *argv[])
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     mount_ori_parse_opt(&args, &config);
 
+    printf("shallow = %d\n", config.shallow);
     if (config.repo_path == NULL) {
         usage();
         exit(1);
@@ -1030,6 +1023,12 @@ main(int argc, char *argv[])
         char *path = realpath(config.repo_path, NULL);
         if (path != NULL)
             config.repo_path = path;
+
+        if (config.shallow == 1) {
+            printf("The --shallow flag can only be specified with --clone.\n\n");
+            usage();
+            exit(1);
+        }
     }
 
     FUSE_LOG("Ori FUSE Driver");
@@ -1071,8 +1070,33 @@ main(int argc, char *argv[])
         return 1;
     }
 
+    if (config.shallow == 0 && config.clone_path != NULL) {
+        try {
+            LocalRepo repo;
+
+            NOT_IMPLEMENTED(false);
+            repo.open(config.repo_path);
+            repo.setHead(remoteRepo->getHead());
+            repo.pull(remoteRepo.get());
+            repo.close();
+        } catch (SystemException &e) {
+            FUSE_LOG("Unexpected %s", e.what());
+            throw e;
+        }
+    }
+
     try {
-        priv = new OriPriv(config.repo_path);
+        if (config.shallow == 1 && config.clone_path != NULL) {
+            string originPath = config.clone_path;
+
+            if (!Util_IsPathRemote(originPath)) {
+                originPath = Util_RealPath(originPath);
+            }
+
+            priv = new OriPriv(config.repo_path, originPath, remoteRepo.get());
+        } else {
+            priv = new OriPriv(config.repo_path);
+        }
     } catch (SystemException e) {
         FUSE_LOG("Unexpected %s", e.what());
         throw e;
