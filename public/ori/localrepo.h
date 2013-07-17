@@ -81,8 +81,23 @@ public:
     LocalRepoLock::sp lock();
 
     // Remote Repository (Thin/Insta-clone)
+    /**
+     * Set remote repository explicitly.
+     */
     void setRemote(Repo *r);
+    /**
+     * Remove remote repository.
+     */
     void clearRemote();
+    /**
+     * Sets remote caching flags.
+     * \param cacheLocally If true forces remote objects to be stored locally
+     *                     (default)
+     */
+    void setRemoteFlags(bool cacheLocally);
+    /**
+     * Check if a remote repository is set.
+     */
     bool hasRemote();
 
     // Repo implementation
@@ -226,6 +241,7 @@ private:
     LocalRepoLock::sp repoProcessLock;
 
     // Remote Operations
+    bool cacheRemoteObjects;
     Repo *remoteRepo;
     RemoteRepo resumeRepo;
 

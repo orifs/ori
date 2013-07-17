@@ -382,7 +382,8 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     OriFileInfo *info;
     int status;
 
-    // FUSE_LOG("FUSE ori_read(path=\"%s\", length=%ld)", path, size);
+    // FUSE_LOG("FUSE ori_read(path=\"%s\", length=%ld, offset=%ld)",
+    //          path, size, offset);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return priv->cmd.read(buf, size, offset);
@@ -1039,6 +1040,9 @@ main(int argc, char *argv[])
     }
     FUSE_LOG("Opening repo at %s", config.repo_path);
     printf("Opening repo at %s\n", config.repo_path);
+
+    // Debugging
+    ori_open_log("ori.log");
 
     if (!Util_FileExists(config.repo_path)) {
         int status = mkdir(config.repo_path, 0755);

@@ -278,6 +278,7 @@ LocalRepo::open(const string &root)
 	    if (resumeRepo.connect((*it).second.getUrl())) {
 		LOG("Autoconnected to '%s' to resume InstaClone.",
 		    (*it).second.getUrl().c_str());
+                cacheRemoteObjects = true;
 		remoteRepo = resumeRepo.get();
 		break;
 	    }
@@ -340,12 +341,19 @@ LocalRepo::setRemote(Repo *r)
 {
     ASSERT(remoteRepo == NULL);
     remoteRepo = r;
+    cacheRemoteObjects = true;
 }
 
 void
 LocalRepo::clearRemote()
 {
     remoteRepo = NULL;
+}
+
+void
+LocalRepo::setRemoteFlags(bool cacheLocally)
+{
+    cacheRemoteObjects = cacheLocally;
 }
 
 bool
@@ -363,18 +371,23 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
     LocalObject::sp o(getLocalObject(objId));
 
     if (!o) {
-        fprintf(stderr, "Object not found: %s\n", objId.hex().c_str());
+        LOG("Object not found: %s", objId.hex().c_str());
 	if (remoteRepo != NULL) {
-	    // XXX: Save object locally
-            fprintf(stderr, "Instaclone getting object %s\n",
-                    objId.hex().c_str());
+            LOG("Instaclone getting object %s", objId.hex().c_str());
 	    Object::sp ro = remoteRepo->getObject(objId);
 
-	    if (!ro)
+	    if (!ro) {
+                LOG("Object not available on remote machine!");
 		return Object::sp();
+            }
 
-	    auto_ptr<bytestream> bs(ro->getPayloadStream());
-	    addBlob(ro->getInfo().type, bs->readAll());
+            if (cacheRemoteObjects) {
+                auto_ptr<bytestream> bs(ro->getPayloadStream());
+                string buf = bs->readAll();
+	        addBlob(ro->getInfo().type, buf);
+                // XXX: Need to run this in background it's too slow!
+                sync();
+            }
 
 	    return ro;
 	} else {
@@ -1412,13 +1425,14 @@ LocalRepo::isObjectStored(const ObjectHash &objId)
 bool
 LocalRepo::hasObject(const ObjectHash &objId)
 {
-    bool val = isObjectStored(objId);
+    if (isObjectStored(objId))
+        return true;
 
-    if (val && remoteRepo != NULL) {
-	val = remoteRepo->hasObject(objId);
+    if (remoteRepo != NULL) {
+	return remoteRepo->hasObject(objId);
     }
 
-    return val;
+    return false;
 }
 
 /*
