@@ -21,7 +21,7 @@
 #define STR(x) STR_HELPER(x)
 
 #define ORI_MAJOR_VERSION       0
-#define ORI_MINOR_VERSION       7
+#define ORI_MINOR_VERSION       8
 #define ORI_VERSION_STR \
     "Version " STR(ORI_MAJOR_VERSION) "." STR(ORI_MINOR_VERSION)
 

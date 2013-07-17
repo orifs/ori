@@ -26,6 +26,7 @@
 #define MOUNT_ORI_OPT(t, p, v) {t, offsetof(mount_ori_config, p), v}
 static struct fuse_opt mount_ori_opts[] = {
     MOUNT_ORI_OPT("--shallow", shallow, 1),
+    MOUNT_ORI_OPT("--nocache", nocache, 1),
     MOUNT_ORI_OPT("--repo=%s", repo_path, 0),
     MOUNT_ORI_OPT("--clone=%s", clone_path, 0),
     { NULL, 0, 0 }, // FUSE_OPT_END: Macro incompatible with C++

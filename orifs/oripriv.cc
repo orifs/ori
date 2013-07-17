@@ -44,9 +44,13 @@
 #include "logging.h"
 #include "oricmd.h"
 #include "oripriv.h"
+#include "oriopt.h"
 
 using namespace std;
 using namespace std::tr1;
+
+// XXX: Hacky remove dependence
+extern mount_ori_config config;
 
 OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remoteRepo)
     : cmd(this)
@@ -67,6 +71,9 @@ OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remote
         ASSERT(origin != "");
         repo->addPeer("origin", origin);
         repo->setInstaClone("origin", true);
+        if (config.nocache == 1) {
+            repo->setRemoteFlags(false);
+        }
         repo->setRemote(remoteRepo);
         repo->updateHead(remoteRepo->getHead());
     }

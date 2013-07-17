@@ -995,10 +995,12 @@ usage()
 {
     printf("Ori Distributed Personal File System (%s) - FUSE Driver\n",
             ORI_VERSION_STR);
-    printf("Usage:\n");
-    printf("orifs --repo=[REPOSITORY PATH] [MOUNT POINT]\n");
-    printf("orifs --clone=[REMOTE PATH] --repo=[REPOSITORY PATH] [MOUNT POINT]\n");
-    printf("orifs --shallow --clone=[REMOTE PATH] --repo=[REPOSITORY PATH] [MOUNT POINT]\n");
+    printf("Usage: orifs [OPTIONS] [MOUNT POINT]\n\n");
+    printf("Options:\n");
+    printf("    --repo=[REPOSITORY PATH]        Repository path (required)\n");
+    printf("    --clone=[REMOTE PATH]           Clone remote repository\n");
+    printf("    --shallow                       Force caching shallow clone\n");
+    printf("    --nocache                       Force no caching clone\n");
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
     printf("Website: http://ori.scs.stanford.edu/\n");
