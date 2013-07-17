@@ -64,7 +64,8 @@ void SshServer::serve() {
     while (true) {
         // Get command
         std::string command;
-        if (fs.readPStr(command) == 0) break;
+        if (fs.readPStr(command) == 0)
+            break;
 
         if (command == "hello") {
             cmd_hello();
@@ -77,6 +78,9 @@ void SshServer::serve() {
         }
         else if (command == "readobjs") {
             cmd_readObjs();
+        }
+        else if (command == "getobjinfo") {
+            cmd_getObjInfo();
         }
         else if (command == "get head") {
             cmd_getHead();
@@ -95,6 +99,7 @@ void SshServer::serve() {
 
 void SshServer::cmd_hello()
 {
+    DLOG("hello");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
     fs.writePStr(ORI_PROTO_VERSION);
@@ -102,6 +107,7 @@ void SshServer::cmd_hello()
 
 void SshServer::cmd_listObjs()
 {
+    DLOG("listObjs");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
 
@@ -116,6 +122,7 @@ void SshServer::cmd_listObjs()
 
 void SshServer::cmd_listCommits()
 {
+    DLOG("listCommits");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
 
@@ -130,15 +137,15 @@ void SshServer::cmd_listCommits()
 void SshServer::cmd_readObjs()
 {
     // Read object ids
-    fprintf(stderr, "Reading object IDs\n");
     fdstream in(STDIN_FILENO, -1);
     uint32_t numObjs = in.readUInt32();
-    fprintf(stderr, "Transmitting %u objects\n", numObjs);
+    DLOG("readObjs: Transmitting %u objects", numObjs);
     std::vector<ObjectHash> objs;
-    for (size_t i = 0; i < numObjs; i++) {
+    for (uint32_t i = 0; i < numObjs; i++) {
         ObjectHash hash;
         in.readHash(hash);
         objs.push_back(hash);
+        DLOG("readObjs: %d of %d - %s", i + 1, numObjs, hash.hex().c_str());
     }
 
     fdwstream fs(STDOUT_FILENO);
@@ -146,8 +153,26 @@ void SshServer::cmd_readObjs()
     repository.transmit(&fs, objs);
 }
 
+void SshServer::cmd_getObjInfo()
+{
+    fdstream in(STDIN_FILENO, -1);
+    ObjectHash hash;
+    ObjectInfo info;
+
+    in.readHash(hash);
+    fdwstream fs(STDOUT_FILENO);
+    info = repository.getObjectInfo(hash);
+    if (info.type == ObjectInfo::Null) {
+        fs.writeUInt8(ERROR);
+        return;
+    }
+    fs.writeUInt8(OK);
+    fs.writeInfo(info);
+}
+
 void SshServer::cmd_getHead()
 {
+    DLOG("getHead");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
     fs.writeHash(repository.getHead());
@@ -190,7 +215,7 @@ int cmd_sshserver(int argc, const char *argv[])
         exit(1);
     }
 
-    fprintf(stderr, "Starting server\n");
+    LOG("Starting SSH server");
 
     SshServer server;
     server.serve();

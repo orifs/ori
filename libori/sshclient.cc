@@ -193,10 +193,6 @@ bool SshClient::respIsOK() {
 }
 
 
-
-
-
-
 /*
  * cmd_sshclient
  */

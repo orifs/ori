@@ -75,7 +75,9 @@ OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remote
             repo->setRemoteFlags(false);
         }
         repo->setRemote(remoteRepo);
-        repo->updateHead(remoteRepo->getHead());
+        ObjectHash head = remoteRepo->getHead();
+        if (!head.isEmpty())
+            repo->updateHead(head);
     }
 
     RWLock::LockOrderVector order;

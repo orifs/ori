@@ -1016,7 +1016,9 @@ main(int argc, char *argv[])
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     mount_ori_parse_opt(&args, &config);
 
-    printf("shallow = %d\n", config.shallow);
+    FUSE_LOG("Config:");
+    FUSE_LOG("shallow = %d", config.shallow);
+    FUSE_LOG("nocache = %d", config.nocache);
     if (config.repo_path == NULL) {
         usage();
         exit(1);

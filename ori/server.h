@@ -14,6 +14,7 @@ public:
     void cmd_listObjs();
     void cmd_listCommits();
     void cmd_readObjs();
+    void cmd_getObjInfo();
     void cmd_getHead();
 
 private:

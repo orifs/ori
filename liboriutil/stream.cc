@@ -246,7 +246,6 @@ void bytestream::readHash(ObjectHash &out)
         }
     }
     readExact((uint8_t*)out.hash, ObjectHash::SIZE);
-    assert(!out.isEmpty());
 }
 
 void bytestream::readInfo(ObjectInfo &out)
@@ -791,7 +790,6 @@ int bytewstream::writeLPStr(const std::string &str)
 
 void bytewstream::writeHash(const ObjectHash &hash)
 {
-    assert(!hash.isEmpty());
     if (typedStream) {
         uint8_t type = STREAM_TYPE_OBJHASH;
         if (write(&type, 1) != 1)
