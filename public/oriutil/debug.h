@@ -29,11 +29,12 @@ void ori_log(int level, const char *fmt, ...)
 #endif
 int ori_open_log(const std::string &logPath);
 
-#define LEVEL_ERR	0 /* Error */
-#define LEVEL_MSG	1 /* Stdout */
-#define LEVEL_LOG	2 /* Log */
-#define LEVEL_DBG	3 /* Debug */
-#define LEVEL_VRB	4 /* Verbose */
+#define LEVEL_SYS       0 /* Assert/Panic/Abort/NotImplemented */
+#define LEVEL_ERR       1 /* Error */
+#define LEVEL_MSG       2 /* Stdout */
+#define LEVEL_LOG       3 /* Log */
+#define LEVEL_DBG       4 /* Debug */
+#define LEVEL_VRB       5 /* Verbose */
 
 /*
  * Remove all logging in PERF builds
@@ -58,24 +59,29 @@ int ori_open_log(const std::string &logPath);
 #endif
 
 #ifdef DEBUG
-#define ASSERT(_x) assert(_x)
+#define ASSERT(_x) \
+    if (!(_x)) { \
+        ori_log(LEVEL_SYS, "ASSERT("#_x"): %s %s:%d\n", \
+                __FUNCTION__, __FILE__, __LINE__); \
+        assert(_x); \
+    }
 #else
 #define ASSERT(_x)
 #endif
 
 #ifdef _WIN32
-#define PANIC() { printf("PANIC: " \
+#define PANIC() { ori_log(LEVEL_SYS, "PANIC: " \
                          "function %s, file %s, line %d\n", \
                          __FUNCTION__, __FILE__, __LINE__); abort(); }
-#define NOT_IMPLEMENTED(_x) if (!(_x)) { printf("NOT_IMPLEMENTED: (" #_x "), " \
-                                "function %s, file %s, line %d\n", \
+#define NOT_IMPLEMENTED(_x) if (!(_x)) { ori_log(LEVEL_SYS, \
+                                "NOT_IMPLEMENTED(" #_x "): %s %s:%d\n", \
                                 __FUNCTION__, __FILE__, __LINE__); abort(); }
 #else /* _WIN32 */
-#define PANIC() { printf("PANIC: " \
+#define PANIC() { ori_log(LEVEL_SYS, "PANIC: " \
                          "function %s, file %s, line %d\n", \
                          __func__, __FILE__, __LINE__); abort(); }
-#define NOT_IMPLEMENTED(_x) if (!(_x)) { printf("NOT_IMPLEMENTED: (" #_x "), " \
-                                "function %s, file %s, line %d\n", \
+#define NOT_IMPLEMENTED(_x) if (!(_x)) { ori_log(LEVEL_SYS, \
+                                "NOT_IMPLEMENTED(" #_x "): %s %s:%d\n", \
                                 __func__, __FILE__, __LINE__); abort(); }
 #endif /* _WIN32 */
 

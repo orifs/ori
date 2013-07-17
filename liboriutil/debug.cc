@@ -95,6 +95,8 @@ ori_log(int level, const char *fmt, ...)
 #endif
 
     switch (level) {
+        case LEVEL_SYS:
+            break;
         case LEVEL_ERR:
             strncat(buf, "ERROR: ", MAX_LOG - off);
             break;
