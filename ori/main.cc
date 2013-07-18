@@ -497,7 +497,6 @@ cmd_help(int argc, const char *argv[])
     return 0;
 }
 
-
 int
 main(int argc, char *argv[])
 {
@@ -520,11 +519,11 @@ main(int argc, char *argv[])
     {
         try {
             repository.open();
-            has_repo = true;
             if (ori_open_log(repository.getLogPath()) < 0) {
                 printf("Couldn't open log!\n");
                 exit(1);
             }
+            has_repo = true;
         } catch (std::exception &e) {
             // Fall through
         }

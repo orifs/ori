@@ -132,9 +132,9 @@ if env["WITH_GPROF"] == "1":
     env.Append(LINKFLAGS = [ "-pg" ])
 
 if env["BUILDTYPE"] == "DEBUG":
-    env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-DORI_DEBUG", "-Wall",
-	"-Wno-deprecated-declarations" ])
-    env.Append(LINKFLAGS = [ "-g" ])
+    env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-DORI_DEBUG", "-Wall", 
+        "-Wno-deprecated-declarations" ])
+    env.Append(LINKFLAGS = [ "-g", "-rdynamic" ])
 elif env["BUILDTYPE"] == "PERF":
     env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-DORI_PERF", "-Wall", "-O0"])
     env.Append(LDFLAGS = [ "-g" ])
