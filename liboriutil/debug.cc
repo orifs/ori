@@ -32,9 +32,14 @@
 #include <mach/clock.h>
 #endif
 
+#ifdef HAVE_EXECINFO
+#include <execinfo.h>
+#endif /* HAVE_EXECINFO */
+
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <stdexcept>
 
 #include <oriutil/debug.h>
 #include <oriutil/mutex.h>
@@ -72,6 +77,11 @@ get_timespec(struct timespec *ts)
 
 #define MAX_LOG         512
 
+/*
+ * Formats the log entries and append them to the log.  Messages are written to 
+ * stderr if they are urgent enough (depending on build).  This function must 
+ * not log, throw exceptions, or use our ASSERT, PANIC, NOT_IMPLEMENTED macros.
+ */
 void
 ori_log(int level, const char *fmt, ...)
 {
@@ -141,9 +151,46 @@ ori_log(int level, const char *fmt, ...)
     lock_log.unlock();
 }
 
+void ori_terminate() {
+    static bool thrown = false;
+#ifdef HAVE_EXECINFO
+    const size_t MAX_FRAMES = 128;
+    int num;
+    void *array[MAX_FRAMES];
+    char **names;
+#endif /* HAVE_EXECINFO */
+
+    if (!thrown) {
+        try {
+            throw;
+        } catch (const std::exception &e) {
+            ori_log(LEVEL_SYS, "Caught unhandled exception: %s\n", e.what());
+        } catch (...) {
+            ori_log(LEVEL_SYS, "Caught unhandled exception: (unknown type)");
+        }
+    }
+
+#ifdef HAVE_EXECINFO
+    num = backtrace(array, MAX_FRAMES);
+    names = backtrace_symbols(array, num);
+    ori_log(LEVEL_SYS, "Backtrace:\n");
+    for (int i = 0; i < num; i++) {
+        if (names != NULL)
+            ori_log(LEVEL_SYS, "[%d] %s\n", i, names[i]);
+        else
+            ori_log(LEVEL_SYS, "[%d] [0x%p]\n", i, array[i]);
+    }
+    free(names);
+#else
+    ori_log(LEVEL_SYS, "Backtrace not support not included in this build\n");
+#endif /* HAVE_EXECINFO */
+}
+
 int ori_open_log(const string &logPath) {
     if (logPath == "")
         return -1;
+
+    set_terminate(ori_terminate);
 
     logStream.open(logPath.c_str(), fstream::in | fstream::out | fstream::app);
     if (logStream.fail()) {
@@ -153,3 +200,4 @@ int ori_open_log(const string &logPath) {
 
     return 0;
 }
+
