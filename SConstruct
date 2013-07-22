@@ -246,6 +246,16 @@ if sys.platform == "freebsd9" or sys.platform == "freebsd8":
         print 'FreeBSD requires libexecinfo to build.'
         Exit(1)
 
+check_uuid_h = conf.CheckCHeader('uuid.h')
+check_uuid_uuid_h = conf.CheckCHeader('uuid/uuid.h')
+if check_uuid_h:
+    env.Append(CPPFLAGS = "-DHAVE_UUID_H")
+elif check_uuid_uuid_h:
+    env.Append(CPPFLAGS = "-DHAVE_UUID_UUID_H")
+else:
+    print 'Supported UUID header is missing!'
+    Exit(1)
+
 if env["COMPRESSION_ALGO"] == "LZMA":
     if not conf.CheckLibWithHeader('lzma',
                                    'lzma.h',
