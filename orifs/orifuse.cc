@@ -953,6 +953,32 @@ ori_utimens(const char *path, const struct timespec tv[2])
     return 0;
 }
 
+static int
+ori_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
+{
+    OriFileInfo *info;
+
+    if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        return 0;
+    } else if (strncmp(path,
+                       ORI_SNAPSHOT_DIRPATH,
+                       strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
+        return -EBADF;
+    }
+
+    try {
+        info = priv->getFileInfo(fi->fh);
+        if (info->fd == -1)
+            return 0; // XXX: File is closed ignore
+
+        return fsync(info->fd);
+    } catch (SystemException &e) {
+        // Fall through
+    }
+
+    return 0;
+}
+
 static struct fuse_operations ori_oper;
 
 static void
@@ -987,6 +1013,7 @@ ori_setup_ori_oper()
     ori_oper.chown = ori_chown;
     ori_oper.utimens = ori_utimens;
 
+    ori_oper.fsync = ori_fsync;
     // XXX: lock (for DLM)
 }
 
