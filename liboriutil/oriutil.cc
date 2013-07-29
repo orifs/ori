@@ -47,7 +47,7 @@
 #include <vector>
 #include <string>
 
-#if defined(__FreeBSD__) && !defined(__APPLE__)
+#if (defined(__FreeBSD__) && !defined(__APPLE__)) || defined(__NetBSD__)
 #include <uuid.h>
 #endif /* __FreeBSD__ */
 
@@ -564,7 +564,7 @@ void Util_LogBacktrace()
 std::string
 Util_NewUUID()
 {
-#if defined(__FreeBSD__) && !defined(__APPLE__)
+#if (defined(__FreeBSD__) && !defined(__APPLE__)) || defined(__NetBSD__)
     uint32_t status;
     uuid_t id;
     char *uuidBuf;
