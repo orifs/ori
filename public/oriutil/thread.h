@@ -24,7 +24,8 @@
 
 #include <stdint.h>
 
-#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__NetBSD__)
 #include <unistd.h>
 #include <limits.h>
 #include <pthread.h>
@@ -44,6 +45,8 @@ typedef pid_t threadid_t;
 #elif defined(__FreeBSD__)
 #include <sys/thr.h>
 typedef long threadid_t;
+#elif defined(__NetBSD__)
+typedef uintptr_t threadid_t;
 #elif defined(_WIN32)
 typedef DWORD threadid_t;
 #else
@@ -87,7 +90,8 @@ protected:
 private:
     ThreadState cstate;
     std::string tname;
-#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
+    || defined(__NetBSD__)
     pthread_t tid;
     pthread_attr_t *attr;
 #elif defined(_WIN32)
