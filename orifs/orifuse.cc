@@ -1063,13 +1063,13 @@ main(int argc, char *argv[])
         }
     }
 
-    FUSE_LOG("Ori FUSE Driver");
+    FUSE_PLOG("Ori FUSE Driver");
 
     if (config.clone_path != NULL) {
         FUSE_LOG("InstaCloning from %s", config.clone_path);
         printf("InstaCloning from %s\n", config.clone_path);
     }
-    FUSE_LOG("Opening repo at %s", config.repo_path);
+    FUSE_PLOG("Opening repo at %s", config.repo_path);
     printf("Opening repo at %s\n", config.repo_path);
 
     // Debugging

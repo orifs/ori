@@ -147,7 +147,7 @@ OriCommand::cmd_commit(int argc, const char *argv[])
     sw.start();
 #endif /* DEBUG */
 
-    FUSE_LOG("Command: commit");
+    FUSE_PLOG("Command: commit");
 
     string msg = priv->commit("FUSE commit from user");
 
@@ -155,8 +155,8 @@ OriCommand::cmd_commit(int argc, const char *argv[])
 
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
-    FUSE_LOG("commit result: %s", msg.c_str());
-    FUSE_LOG("commit elapsed %ldms", sw.getElapsedTime());
+    FUSE_PLOG("commit result: %s", msg.c_str());
+    FUSE_PLOG("commit elapsed %ldus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return 0;
@@ -170,7 +170,7 @@ OriCommand::cmd_log(int argc, const char *argv[])
     sw.start();
 #endif /* DEBUG */
 
-    FUSE_LOG("Command: log");
+    FUSE_PLOG("Command: log");
 
     ObjectHash commit = priv->getTip();
 
@@ -197,7 +197,7 @@ OriCommand::cmd_log(int argc, const char *argv[])
    
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
-    FUSE_LOG("log elapsed %ldms", sw.getElapsedTime());
+    FUSE_PLOG("log elapsed %ldus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return 0;
@@ -227,7 +227,7 @@ OriCommand::cmd_status(int argc, const char *argv[])
     sw.start();
 #endif /* DEBUG */
 
-    FUSE_LOG("Command: status");
+    FUSE_PLOG("Command: status");
 
     map<string, OriFileState::StateType> diff = priv->getDiff();
     map<string, OriFileState::StateType>::iterator it;
@@ -249,7 +249,7 @@ OriCommand::cmd_status(int argc, const char *argv[])
 
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
-    FUSE_LOG("status elapsed %ldms", sw.getElapsedTime());
+    FUSE_PLOG("status elapsed %ldus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return 0;

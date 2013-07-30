@@ -19,6 +19,7 @@ libs = [
     "crypto",
 ]
 
+orifs_env.ParseConfig('pkg-config --libs --cflags libevent')
 orifs_env.ParseConfig('pkg-config --libs --cflags fuse')
 if sys.platform != "darwin":
     libs += ['rt']
