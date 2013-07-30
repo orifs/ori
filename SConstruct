@@ -136,13 +136,24 @@ if env["BUILDTYPE"] == "DEBUG":
         "-Wno-deprecated-declarations" ])
     env.Append(LINKFLAGS = [ "-g", "-rdynamic" ])
 elif env["BUILDTYPE"] == "PERF":
-    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-DORI_PERF", "-Wall", "-O0"])
-    env.Append(LDFLAGS = [ "-g" ])
+    env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-DORI_PERF", "-Wall", "-O2"])
+    env.Append(LDFLAGS = [ "-g", "-rdynamic" ])
 elif env["BUILDTYPE"] == "RELEASE":
     env.Append(CPPFLAGS = ["-DNDEBUG", "-DORI_RELEASE", "-Wall", "-O2"])
 else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
+
+with open(".git/HEAD", 'r') as hf:
+    head = hf.read()
+    if head.startswith("ref: "):
+        if head.endswith("\n"):
+            head = head[0:-1]
+        with open(".git/" + head[5:]) as bf:
+            branch = bf.read()
+            if branch.endswith("\n"):
+                branch = branch[0:-1]
+            env.Append(CPPFLAGS = [ "-DGIT_VERSION=\\\"" + branch + "\\\""])
 
 if env["VERBOSE"] == "0":
     env["CCCOMSTR"] = "Compiling $SOURCE"

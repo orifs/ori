@@ -114,6 +114,7 @@ int cmd_mdnsserver(int argc, const char *argv[]); // Debug
 #endif
 int cmd_httpclient(int argc, const char *argv[]); // Debug
 static int cmd_help(int argc, const char *argv[]);
+static int cmd_version(int argc, const char *argv[]);
 
 static Cmd commands[] = {
     {
@@ -433,6 +434,13 @@ static Cmd commands[] = {
         NULL,
         CMD_DEBUG,
     },
+    {
+        "version",
+        "Show version information",
+        cmd_version,
+        NULL,
+        CMD_DEBUG,
+    },
 #if !defined(WITHOUT_MDNS)
     {
         "mdnsserver",
@@ -493,6 +501,25 @@ cmd_help(int argc, const char *argv[])
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
     printf("Website: http://ori.scs.stanford.edu/\n");
+
+    return 0;
+}
+
+static int
+cmd_version(int argc, const char *argv[])
+{
+    printf("Ori Distributed Personal File System (%s) - Command Line Interface\n",
+            ORI_VERSION_STR);
+#ifdef GIT_VERSION
+    printf("Git Commit Id: " GIT_VERSION "\n");
+#endif
+#if defined(DEBUG) || defined(ORI_DEBUG)
+    printf("Build: DEBUG\n");
+#elif defined(ORI_PERF)
+    printf("Build: PERF\n");
+#else
+    printf("Build: RELEASE\n");
+#endif
 
     return 0;
 }
