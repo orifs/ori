@@ -142,7 +142,7 @@ OriCommand::cmd_fsck(int argc, const char *argv[])
 int
 OriCommand::cmd_commit(int argc, const char *argv[])
 {
-#ifdef DEBUG
+#if defined(DEBUG) || defined(ORI_PERF)
     Stopwatch sw = Stopwatch();
     sw.start();
 #endif /* DEBUG */
@@ -153,7 +153,7 @@ OriCommand::cmd_commit(int argc, const char *argv[])
 
     printf("%s\n", msg.c_str());
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_LOG("commit result: %s", msg.c_str());
     FUSE_LOG("commit elapsed %ldms", sw.getElapsedTime());
@@ -165,7 +165,7 @@ OriCommand::cmd_commit(int argc, const char *argv[])
 int
 OriCommand::cmd_log(int argc, const char *argv[])
 {
-#ifdef DEBUG
+#if defined(DEBUG) || defined(ORI_PERF)
     Stopwatch sw = Stopwatch();
     sw.start();
 #endif /* DEBUG */
@@ -195,7 +195,7 @@ OriCommand::cmd_log(int argc, const char *argv[])
         // XXX: Handle merge cases
     }
    
-#ifdef DEBUG
+#if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_LOG("log elapsed %ldms", sw.getElapsedTime());
 #endif /* DEBUG */
@@ -222,7 +222,7 @@ OriCommand::cmd_show(int argc, const char *argv[])
 int
 OriCommand::cmd_status(int argc, const char *argv[])
 {
-#ifdef DEBUG
+#if defined(DEBUG) || defined(ORI_PERF)
     Stopwatch sw = Stopwatch();
     sw.start();
 #endif /* DEBUG */
@@ -247,7 +247,7 @@ OriCommand::cmd_status(int argc, const char *argv[])
         printf("%c   %s\n", type, it->first.c_str());
     }
 
-#ifdef DEBUG
+#if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_LOG("status elapsed %ldms", sw.getElapsedTime());
 #endif /* DEBUG */
