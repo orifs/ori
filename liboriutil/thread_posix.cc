@@ -141,6 +141,8 @@ threadid_t Thread::getID() {
     long lwtid;
     thr_self(&lwtid);
     return lwtid;
+#elif defined(__NetBSD__)
+    return (uintptr_t)pthread_self();
 #else
 #error "Thread: platform not supported"
 #endif
