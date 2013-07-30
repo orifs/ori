@@ -157,6 +157,12 @@ MetadataLog::open(const string &filename)
 }
 
 void
+MetadataLog::sync()
+{
+    ::fsync(fd);
+}
+
+void
 MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
 {
     if (refs == NULL)

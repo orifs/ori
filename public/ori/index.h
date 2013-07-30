@@ -33,6 +33,7 @@ public:
     ~Index();
     void open(const std::string &indexFile);
     void close();
+    void sync();
     void rewrite();
     void dump();
     void updateEntry(const ObjectHash &objId, const IndexEntry &entry);

@@ -727,6 +727,9 @@ LocalRepo::listObjects()
     return index.getList();
 }
 
+/*
+ * This gu
+ */
 void
 LocalRepo::sync()
 {
@@ -735,6 +738,8 @@ LocalRepo::sync()
         full = currTransaction->full();
         currTransaction->commit();
         currTransaction.reset();
+        index.sync();
+        metadata.sync();
     }
     if (full) {
         currPackfile = packfiles->newPackfile();

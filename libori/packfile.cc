@@ -207,14 +207,15 @@ Packfile::commit(PfTransaction *t, Index *idx)
         numObjects++;
 
         IndexEntry ie;
-	ie.info = t->infos[i];
-	ie.offset = offsets[i];
-	ie.packed_size = t->payloads[i].size();
-	ie.packfile = packid;
+        ie.info = t->infos[i];
+        ie.offset = offsets[i];
+        ie.packed_size = t->payloads[i].size();
+        ie.packfile = packid;
 
         idx->updateEntry(ie.info.hash, ie);
     }
 
+    ::fsync(fd);
     t->committed = true;
 }
 

@@ -140,6 +140,12 @@ Index::close()
 }
 
 void
+Index::sync()
+{
+    ::fsync(fd);
+}
+
+void
 Index::rewrite()
 {
     int fdNew;
