@@ -20,6 +20,7 @@
 struct mount_ori_config {
     int shallow;
     int nocache;
+    int journal;
     char *repo_path;
     char *clone_path;
 };

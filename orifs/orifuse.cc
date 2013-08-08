@@ -138,6 +138,8 @@ ori_unlink(const char *path)
         return -e.getErrno();
     }
 
+    priv->journal("unlink", path);
+
     return 0;
 }
 
@@ -284,6 +286,11 @@ ori_rename(const char *from_path, const char *to_path)
         return -e.getErrno();
     }
 
+    string journalArg = from_path;
+    journalArg += ":";
+    journalArg += to_path;
+    priv->journal("rename", journalArg);
+
     return 0;
 }
 
@@ -322,6 +329,10 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     info.first->statInfo.st_mode |= mode;
 
     parentDir->add(StrUtil_Basename(path), info.first->id);
+
+    string journalArg = path;
+    journalArg += ":" + info.first->path;
+    priv->journal("create", journalArg);
 
     // Set fh
     fi->fh = info.second;
@@ -606,6 +617,8 @@ ori_mkdir(const char *path, mode_t mode)
     parentDir->add(StrUtil_Basename(path), info->id);
     parentInfo->statInfo.st_nlink++;
 
+    priv->journal("mkdir", path);
+
     return 0;
 }
 
@@ -655,6 +668,8 @@ ori_rmdir(const char *path)
     } catch (SystemException e) {
         return -e.getErrno();
     }
+
+    priv->journal("rmdir", path);
 
     return 0;
 }
@@ -1028,6 +1043,9 @@ usage()
     printf("    --clone=[REMOTE PATH]           Clone remote repository\n");
     printf("    --shallow                       Force caching shallow clone\n");
     printf("    --nocache                       Force no caching clone\n");
+    printf("    --journal-none                  Disable recovery journal\n");
+    printf("    --journal-async                 Asynchronous recovery journal\n");
+    printf("    --journal-sync                  Synchronous recovery journal\n");
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
     printf("Website: http://ori.scs.stanford.edu/\n");
@@ -1137,6 +1155,22 @@ main(int argc, char *argv[])
         throw e;
     }
 
-    return fuse_main(args.argc, args.argv, &ori_oper, NULL);
+    if (config.journal == 1) {
+        priv->setJournalMode(OriJournalMode::NoJournal);
+    } else if (config.journal == 2 || config.journal == 0) {
+        // XXX: default
+        priv->setJournalMode(OriJournalMode::AsyncJournal);
+    } else if (config.journal == 3) {
+        priv->setJournalMode(OriJournalMode::SyncJournal);
+    } else {
+        NOT_IMPLEMENTED(false);
+    }
+
+    int status = fuse_main(args.argc, args.argv, &ori_oper, NULL);
+    if (status != 0) {
+        priv->cleanup();
+    }
+
+    return status;
 }
 

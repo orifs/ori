@@ -129,21 +129,26 @@ OriPriv::reset()
 
     // Create temporary directory
     tmpDir = repo->getRootPath() + ORI_PATH_TMP + "fuse";
+    journalFile = tmpDir + "/journal";
 
     // Attempt to delete the temporary directory if it exists
     if (Util_FileExists(tmpDir) && Util_RmDir(tmpDir) != 0) {
         printf("\nAn error has occurred!\n");
         printf("\nProblem: orifs may have previously exited uncleanly\n\n");
         printf("Solution:\n"
-"Check the .ori/tmp/fuse directory for any files that may not have been\n"
-"saved to the file systems store.  You can copy or move these files to\n"
-"another location. Then delete the .ori/tmp/fuse directory and all\n"
-"remaining files.\n\n");
+    "Check the .ori/tmp/fuse directory for any files that may not have been\n"
+    "saved to the file systems store.  You can copy or move these files to\n"
+    "another location. Then delete the .ori/tmp/fuse directory and all\n"
+    "remaining files.\n\n");
         printf("Notes: This is a known bug and will be fixed in the future.\n");
         exit(1);
     }
 
     if (::mkdir(tmpDir.c_str(), 0700) < 0)
+        throw SystemException(errno);
+
+    journalFd = ::creat(journalFile.c_str(), 0744);
+    if (journalFd < 0)
         throw SystemException(errno);
 }
 
@@ -776,6 +781,8 @@ OriPriv::commit(const string &msg, bool temporary)
 
     repo->sync();
 
+    journal("snapshot", commitHash.hex());
+
     return "Commit Hash: " + commitHash.hex();
 }
 
@@ -837,6 +844,32 @@ OriPriv::getDiff()
     getDiffHelper("", &diff);
 
     return diff;
+}
+
+void
+OriPriv::setJournalMode(OriJournalMode::JournalMode mode)
+{
+    journalMode = mode;
+}
+
+void
+OriPriv::journal(const string &event, const string &arg)
+{
+    int len;
+    string buf;
+
+    if (journalMode == OriJournalMode::NoJournal)
+        return;
+
+    buf = event + ":" + arg + "\n";
+    len = write(journalFd, buf.c_str(), buf.size());
+    if (len < 0 || len != buf.size())
+        throw SystemException();
+
+    if (journalMode == OriJournalMode::SyncJournal)
+        fsync(journalFd);
+
+    return;
 }
 
 /*

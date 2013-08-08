@@ -132,6 +132,16 @@ public:
     };
 };
 
+class OriJournalMode
+{
+public:
+    enum JournalMode {
+        NoJournal,
+        AsyncJournal,
+        SyncJournal,
+    };
+};
+
 class OriPriv
 {
 public:
@@ -174,6 +184,8 @@ private:
 public:
     std::string commit(const std::string &msg, bool temporary = false);
     std::map<std::string, OriFileState::StateType> getDiff();
+    void setJournalMode(OriJournalMode::JournalMode mode);
+    void journal(const std::string &event, const std::string &arg);
     // Debugging
     void fsck(bool fromCmd = false);
 private:
@@ -182,6 +194,11 @@ private:
     std::map<OriPrivId, OriDir*> dirs;
     std::map<std::string, OriFileInfo*> paths;
     std::tr1::unordered_map<uint64_t, OriFileInfo*> handles;
+
+    // Journal
+    OriJournalMode::JournalMode journalMode;
+    std::string journalFile;
+    int journalFd;
 
     // Repository State
     LocalRepo *repo;

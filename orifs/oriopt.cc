@@ -27,6 +27,9 @@
 static struct fuse_opt mount_ori_opts[] = {
     MOUNT_ORI_OPT("--shallow", shallow, 1),
     MOUNT_ORI_OPT("--nocache", nocache, 1),
+    MOUNT_ORI_OPT("--journal-none", journal, 1),
+    MOUNT_ORI_OPT("--journal-async", journal, 2),
+    MOUNT_ORI_OPT("--journal-sync", journal, 3),
     MOUNT_ORI_OPT("--repo=%s", repo_path, 0),
     MOUNT_ORI_OPT("--clone=%s", clone_path, 0),
     { NULL, 0, 0 }, // FUSE_OPT_END: Macro incompatible with C++
