@@ -32,7 +32,7 @@ extern LocalRepo repository;
  * Print repository statistics.
  */
 int
-cmd_stats(int argc, const char *argv[])
+cmd_stats(int argc, char * const argv[])
 {
     uint64_t commits = 0;
     uint64_t trees = 0;

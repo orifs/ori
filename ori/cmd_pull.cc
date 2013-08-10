@@ -36,7 +36,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_pull(int argc, const char *argv[])
+cmd_pull(int argc, char * const argv[])
 {
     string srcRoot;
 

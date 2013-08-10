@@ -21,7 +21,7 @@
 #include "fuse_cmd.h"
 
 int
-cmd_fsck(int argc, const char *argv[])
+cmd_fsck(int argc, char * const argv[])
 {
     OF_RunCommand("fsck");
 

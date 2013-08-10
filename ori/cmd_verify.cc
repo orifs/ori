@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Verify the repository.
  */
 int
-cmd_verify(int argc, const char *argv[])
+cmd_verify(int argc, char * const argv[])
 {
     int status = 0;
     string error;

@@ -30,7 +30,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_snapshots(int argc, const char *argv[])
+cmd_snapshots(int argc, char * const argv[])
 {
     map<string, ObjectHash> snapshots = repository.listSnapshots();
     map<string, ObjectHash>::iterator it;

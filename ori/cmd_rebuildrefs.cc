@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Rebuild the reference counts.
  */
 int
-cmd_rebuildrefs(int argc, const char *argv[])
+cmd_rebuildrefs(int argc, char * const argv[])
 {
     if (argc != 1) {
         cout << "rebuildrefs takes no arguments!" << endl;

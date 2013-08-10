@@ -30,7 +30,7 @@ extern LocalRepo repository;
  * Strip all meta-data including reference counts.
  */
 int
-cmd_stripmetadata(int argc, const char *argv[])
+cmd_stripmetadata(int argc, char * const argv[])
 {
     if (argc != 1) {
         cout << "stripmetadata takes no arguments!" << endl;

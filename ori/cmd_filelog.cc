@@ -27,7 +27,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_filelog(int argc, const char *argv[])
+cmd_filelog(int argc, char * const argv[])
 {
     ObjectHash commit = repository.getHead();
     list<pair<Commit, ObjectHash> > revs;

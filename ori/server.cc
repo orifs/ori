@@ -185,7 +185,7 @@ void ae_flush() {
     fsync(STDOUT_FILENO);
 }
 
-int cmd_sshserver(int argc, const char *argv[])
+int cmd_sshserver(int argc, char * const argv[])
 {
     atexit(ae_flush);
 

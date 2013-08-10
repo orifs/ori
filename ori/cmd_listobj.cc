@@ -28,7 +28,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_listobj(int argc, const char *argv[])
+cmd_listobj(int argc, char * const argv[])
 {
     set<ObjectInfo> objects = repository.listObjects();
     set<ObjectInfo>::iterator it;

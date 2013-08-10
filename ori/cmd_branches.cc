@@ -27,7 +27,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_branches(int argc, const char *argv[])
+cmd_branches(int argc, char * const argv[])
 {
     string currentBranch = repository.getBranch();
     set<string> branches = repository.listBranches();

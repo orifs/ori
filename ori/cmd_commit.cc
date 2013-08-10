@@ -40,7 +40,7 @@ usage_commit(void)
 }
 
 int
-cmd_commit(int argc, const char *argv[])
+cmd_commit(int argc, char * const argv[])
 {
     if (OF_RunCommand("commit"))
         return 0;

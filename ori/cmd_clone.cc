@@ -24,6 +24,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <getopt.h>
+
 #include <string>
 #include <iostream>
 
@@ -37,24 +39,68 @@ using namespace std;
 
 extern LocalRepo repository;
 
-int
-cmd_clone(int argc, const char *argv[])
+void
+usage_clone()
 {
+    cout << "ori clone [OPTIONS] SOURCE [DESTINATION]" << endl;
+    cout << endl;
+    cout << "Create a local clone of a repository." << endl;
+    cout << endl;
+    cout << "Options:" << endl;
+    cout << "    --full         Full clone (default)" << endl;
+    cout << "    --shallow      Shallow clone" << endl;
+}
+
+int
+cmd_clone(int argc, char * const argv[])
+{
+    int ch;
+    int clone_mode = 0;
     int status;
     string srcRoot;
     string newRoot;
 
-    if (argc != 2 && argc != 3) {
-	printf("Specify a repository to clone.\n");
-	printf("usage: ori clone <repo> [<dir>]\n");
-	return 1;
+    struct option longopts[] = {
+        { "full",       no_argument,    NULL,   'f' },
+        { "shallow",    no_argument,    NULL,   's' },
+        { NULL,         0,              NULL,   0   }
+    };
+
+    while ((ch = getopt_long(argc, argv, "fs", longopts, NULL)) != -1) {
+        switch (ch) {
+            case 'f':
+                if (clone_mode != 0) {
+                    printf("Cannot set multiple clone modes!\n");
+                    return 1;
+                }
+                clone_mode = 1;
+                break;
+            case 's':
+                if (clone_mode != 0) {
+                    printf("Cannot set multiple clone modes!\n");
+                    return 1;
+                }
+                clone_mode = 2;
+                break;
+            default:
+                printf("usage: ori clone [options] <repo> [<dir>]\n");
+                return 1;
+        }
+    }
+    argc -= optind;
+    argv += optind;
+
+    if (argc != 1 && argc != 2) {
+        printf("Specify a repository to clone.\n");
+        printf("usage: ori clone [options] <repo> [<dir>]\n");
+        return 1;
     }
 
-    srcRoot = argv[1];
+    srcRoot = argv[0];
     if (argc == 2) {
-	newRoot = srcRoot.substr(srcRoot.rfind("/")+1);
+        newRoot = argv[1];
     } else {
-	newRoot = argv[2];
+        newRoot = srcRoot.substr(srcRoot.rfind("/")+1);
     }
     if (!Util_FileExists(newRoot)) {
         mkdir(newRoot.c_str(), 0755);
@@ -73,18 +119,23 @@ cmd_clone(int argc, const char *argv[])
     // Setup remote pointer
     string originPath = srcRoot;
     if (!Util_IsPathRemote(srcRoot)) {
-	originPath = Util_RealPath(srcRoot);
+        originPath = Util_RealPath(srcRoot);
     }
     dstRepo.addPeer("origin", originPath);
+    if (clone_mode == 2) {
+        dstRepo.setInstaClone("origin", true);
+    }
 
     {
-	RemoteRepo srcRepo;
-	srcRepo.connect(srcRoot);
+        RemoteRepo srcRepo;
+        srcRepo.connect(srcRoot);
 
         // XXX: Need to rely on sync log.
         ObjectHash head = srcRepo->getHead();
 
-        dstRepo.pull(srcRepo.get());
+        if (clone_mode != 2) {
+            dstRepo.pull(srcRepo.get());
+        }
 
         if (!head.isEmpty())
             dstRepo.updateHead(head);

@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Rebuild the index
  */
 int
-cmd_rebuildindex(int argc, const char *argv[])
+cmd_rebuildindex(int argc, char * const argv[])
 {
     if (argc != 1) {
         cout << "rebuildindex takes no arguments!" << endl;

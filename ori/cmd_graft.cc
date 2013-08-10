@@ -46,7 +46,7 @@ usage_graft(void)
  * XXX: Eventually we need to implement a POSIX compliant copy command.
  */
 int
-cmd_graft(int argc, const char *argv[])
+cmd_graft(int argc, char * const argv[])
 {
     string srcRoot, dstRoot, srcRelPath, dstRelPath;
     string dstName = "";

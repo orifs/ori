@@ -30,7 +30,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_removekey(int argc, const char *argv[])
+cmd_removekey(int argc, char * const argv[])
 {
     string rootPath = LocalRepo::findRootPath();
 

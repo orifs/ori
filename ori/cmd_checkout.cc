@@ -89,7 +89,7 @@ StatusTreeIter(map<string, pair<string, string> > *tipState,
 }*/
 
 int
-cmd_checkout(int argc, const char *argv[])
+cmd_checkout(int argc, char * const argv[])
 {
     Commit c;
     ObjectHash tip = repository.getHead();

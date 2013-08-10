@@ -39,7 +39,7 @@ int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut);
 };
 
 int
-cmd_merge(int argc, const char *argv[])
+cmd_merge(int argc, char * const argv[])
 {
     if (argc != 2) {
 	cout << "merge takes one arguments!" << endl;

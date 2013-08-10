@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Reclaim unused space.
  */
 int
-cmd_gc(int argc, const char *argv[])
+cmd_gc(int argc, char * const argv[])
 {
     repository.gc();
 

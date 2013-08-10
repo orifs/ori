@@ -29,7 +29,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_status(int argc, const char *argv[])
+cmd_status(int argc, char * const argv[])
 {
     if (OF_RunCommand("status"))
         return 0;

@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Dump the index
  */
 int
-cmd_dumpindex(int argc, const char *argv[])
+cmd_dumpindex(int argc, char * const argv[])
 {
     if (argc != 1) {
         cout << "dumpindex takes no arguments!" << endl;

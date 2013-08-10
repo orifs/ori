@@ -36,7 +36,7 @@ using namespace std;
  * TODO: Destroy partially created repository to handle errors better.
  */
 int
-cmd_init(int argc, const char *argv[])
+cmd_init(int argc, char * const argv[])
 {
     string rootPath;
     

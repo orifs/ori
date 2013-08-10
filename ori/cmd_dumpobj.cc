@@ -27,7 +27,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_dumpobj(int argc, const char *argv[])
+cmd_dumpobj(int argc, char * const argv[])
 {
     ObjectHash id = ObjectHash::fromHex(argv[1]);
 
@@ -64,11 +64,11 @@ cmd_dumpobj(int argc, const char *argv[])
             break;
         case ObjectInfo::LargeBlob:
         {
-            printf("\nChunk Table:\n");
             string rawBlob = repository.getPayload(id);
             LargeBlob lb = LargeBlob(&repository);
             lb.fromBlob(rawBlob);
 
+            printf("\nChunk Table (%lu chunks):\n", lb.parts.size());
             std::map<uint64_t, LBlobEntry>::iterator it;
             for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
                 printf("%016lx    %s %d\n", (*it).first,

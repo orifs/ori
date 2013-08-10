@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Find lost Heads
  */
 int
-cmd_findheads(int argc, const char *argv[])
+cmd_findheads(int argc, char * const argv[])
 {
     RefcountMap refs = repository.recomputeRefCounts();
 

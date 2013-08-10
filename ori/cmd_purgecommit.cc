@@ -27,7 +27,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_purgecommit(int argc, const char *argv[])
+cmd_purgecommit(int argc, char * const argv[])
 {
     if (argc != 2) {
 	cout << "Error: Incorrect number of arguements." << endl;

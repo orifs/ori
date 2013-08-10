@@ -28,7 +28,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_catobj(int argc, const char *argv[])
+cmd_catobj(int argc, char * const argv[])
 {
     long len;
     const unsigned char *rawBuf;

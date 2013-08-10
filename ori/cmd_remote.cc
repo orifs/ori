@@ -37,7 +37,7 @@ using namespace std;
 extern LocalRepo repository;
     
 int
-cmd_remote(int argc, const char *argv[])
+cmd_remote(int argc, char * const argv[])
 {
     if (argc == 1) {
 	map<string, Peer> peers = repository.getPeers();

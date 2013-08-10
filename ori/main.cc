@@ -56,65 +56,66 @@ LocalRepo repository;
 typedef struct Cmd {
     const char *name;
     const char *desc;
-    int (*cmd)(int argc, const char *argv[]);
+    int (*cmd)(int argc, char * const argv[]);
     void (*usage)(void);
     int flags;
 } Cmd;
 
 // General Operations
-int cmd_addkey(int argc, const char *argv[]);
-int cmd_branches(int argc, const char *argv[]);
-int cmd_branch(int argc, const char *argv[]);
-int cmd_checkout(int argc, const char *argv[]);
-int cmd_clone(int argc, const char *argv[]);
+int cmd_addkey(int argc, char * const argv[]);
+int cmd_branches(int argc, char * const argv[]);
+int cmd_branch(int argc, char * const argv[]);
+int cmd_checkout(int argc, char * const argv[]);
+void usage_clone(void);
+int cmd_clone(int argc, char * const argv[]);
 void usage_commit(void);
-int cmd_commit(int argc, const char *argv[]);
-int cmd_diff(int argc, const char *argv[]);
-int cmd_filelog(int argc, const char *argv[]);
-int cmd_findheads(int argc, const char *argv[]);
-int cmd_gc(int argc, const char *argv[]);
+int cmd_commit(int argc, char * const argv[]);
+int cmd_diff(int argc, char * const argv[]);
+int cmd_filelog(int argc, char * const argv[]);
+int cmd_findheads(int argc, char * const argv[]);
+int cmd_gc(int argc, char * const argv[]);
 void usage_graft(void);
-int cmd_graft(int argc, const char *argv[]);
-int cmd_init(int argc, const char *argv[]);
-int cmd_listkeys(int argc, const char *argv[]);
-int cmd_log(int argc, const char *argv[]);
-int cmd_merge(int argc, const char *argv[]);
-int cmd_pull(int argc, const char *argv[]);
-int cmd_rebuildindex(int argc, const char *argv[]);
-int cmd_rebuildrefs(int argc, const char *argv[]);
-int cmd_remote(int argc, const char *argv[]);
-int cmd_removekey(int argc, const char *argv[]);
-int cmd_setkey(int argc, const char *argv[]);
-int cmd_show(int argc, const char *argv[]);
-int cmd_snapshot(int argc, const char *argv[]);
-int cmd_snapshots(int argc, const char *argv[]);
-int cmd_status(int argc, const char *argv[]);
-int cmd_tip(int argc, const char *argv[]);
-int cmd_verify(int argc, const char *argv[]);
+int cmd_graft(int argc, char * const argv[]);
+int cmd_init(int argc, char * const argv[]);
+int cmd_listkeys(int argc, char * const argv[]);
+int cmd_log(int argc, char * const argv[]);
+int cmd_merge(int argc, char * const argv[]);
+int cmd_pull(int argc, char * const argv[]);
+int cmd_rebuildindex(int argc, char * const argv[]);
+int cmd_rebuildrefs(int argc, char * const argv[]);
+int cmd_remote(int argc, char * const argv[]);
+int cmd_removekey(int argc, char * const argv[]);
+int cmd_setkey(int argc, char * const argv[]);
+int cmd_show(int argc, char * const argv[]);
+int cmd_snapshot(int argc, char * const argv[]);
+int cmd_snapshots(int argc, char * const argv[]);
+int cmd_status(int argc, char * const argv[]);
+int cmd_tip(int argc, char * const argv[]);
+int cmd_verify(int argc, char * const argv[]);
 
 // Debug Operations
-int cmd_catobj(int argc, const char *argv[]); // Debug
-int cmd_dumpindex(int argc, const char *argv[]); // Debug
-int cmd_dumpmeta(int argc, const char *argv[]); // Debug
-int cmd_dumpobj(int argc, const char *argv[]); // Debug
-int cmd_dumppackfile(int argc, const char *argv[]); // Debug
-int cmd_dumprefs(int argc, const char *argv[]); // Debug
-int cmd_fsck(int argc, const char *argv[]);
-int cmd_listobj(int argc, const char *argv[]); // Debug
-int cmd_refcount(int argc, const char *argv[]); // Debug
-int cmd_stats(int argc, const char *argv[]); // Debug
-int cmd_purgeobj(int argc, const char *argv[]); // Debug
-int cmd_purgecommit(int argc, const char *argv[]);
-int cmd_stripmetadata(int argc, const char *argv[]); // Debug
-int cmd_sshserver(int argc, const char *argv[]); // Internal
-int cmd_sshclient(int argc, const char *argv[]); // Debug
-int cmd_treediff(int argc, const char *argv[]);
+int cmd_catobj(int argc, char * const argv[]); // Debug
+int cmd_dumpindex(int argc, char * const argv[]); // Debug
+int cmd_dumpmeta(int argc, char * const argv[]); // Debug
+int cmd_dumpobj(int argc, char * const argv[]); // Debug
+int cmd_dumppackfile(int argc, char * const argv[]); // Debug
+int cmd_dumprefs(int argc, char * const argv[]); // Debug
+int cmd_fsck(int argc, char * const argv[]);
+int cmd_listobj(int argc, char * const argv[]); // Debug
+int cmd_refcount(int argc, char * const argv[]); // Debug
+int cmd_stats(int argc, char * const argv[]); // Debug
+int cmd_purgeobj(int argc, char * const argv[]); // Debug
+int cmd_purgecommit(int argc, char * const argv[]);
+int cmd_stripmetadata(int argc, char * const argv[]); // Debug
+int cmd_sshserver(int argc, char * const argv[]); // Internal
+int cmd_sshclient(int argc, char * const argv[]); // Debug
+int cmd_treediff(int argc, char * const argv[]);
 #if !defined(WITHOUT_MDNS)
-int cmd_mdnsserver(int argc, const char *argv[]); // Debug
+int cmd_mdnsserver(int argc, char * const argv[]); // Debug
 #endif
-int cmd_httpclient(int argc, const char *argv[]); // Debug
-static int cmd_help(int argc, const char *argv[]);
-static int cmd_version(int argc, const char *argv[]);
+int cmd_httpclient(int argc, char * const argv[]); // Debug
+static int cmd_help(int argc, char * const argv[]);
+static int cmd_version(int argc, char * const argv[]);
 
 static Cmd commands[] = {
     {
@@ -149,7 +150,7 @@ static Cmd commands[] = {
         "clone",
         "Clone a repository into the local directory",
         cmd_clone,
-        NULL,
+        usage_clone,
         0,
     },
     {
@@ -468,7 +469,7 @@ lookupcmd(const char *cmd)
 }
 
 static int
-cmd_help(int argc, const char *argv[])
+cmd_help(int argc, char * const argv[])
 {
     int i = 0;
 
@@ -506,7 +507,7 @@ cmd_help(int argc, const char *argv[])
 }
 
 static int
-cmd_version(int argc, const char *argv[])
+cmd_version(int argc, char * const argv[])
 {
     printf("Ori Distributed Personal File System (%s) - Command Line Interface\n",
             ORI_VERSION_STR);
@@ -577,6 +578,6 @@ main(int argc, char *argv[])
 
 
     DLOG("Executing '%s'", argv[1]);
-    return commands[idx].cmd(argc-1, (const char **)argv+1);
+    return commands[idx].cmd(argc-1, (char * const*)argv+1);
 }
 

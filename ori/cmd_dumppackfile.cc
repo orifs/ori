@@ -30,7 +30,7 @@ extern LocalRepo repository;
  * Dump the packfile
  */
 int
-cmd_dumppackfile(int argc, const char *argv[])
+cmd_dumppackfile(int argc, char * const argv[])
 {
     if (argc != 2) {
         cout << "dumpindex takes one argument!" << endl;

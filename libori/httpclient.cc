@@ -247,7 +247,7 @@ HttpClient::putRequest(const string &command,
 }
 
 int
-cmd_httpclient(int argc, const char *argv[])
+cmd_httpclient(int argc, char * const argv[])
 {
     if (argc < 2) {
         printf("Usage: ori httpclient http://hostname:port/path\n");

@@ -31,7 +31,7 @@ extern LocalRepo repository;
  * to a particular object.
  */
 int
-cmd_refcount(int argc, const char *argv[])
+cmd_refcount(int argc, char * const argv[])
 {
     const MetadataLog &md = repository.getMetadata();
     if (argc == 1) {

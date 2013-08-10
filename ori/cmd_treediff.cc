@@ -27,7 +27,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_treediff(int argc, const char *argv[])
+cmd_treediff(int argc, char * const argv[])
 {
     if (argc != 3) {
 	cout << "treediff takes two arguments!" << endl;

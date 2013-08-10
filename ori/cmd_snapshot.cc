@@ -29,7 +29,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_snapshot(int argc, const char *argv[])
+cmd_snapshot(int argc, char * const argv[])
 {
     /*if (OF_RunCommand("snapshot"))
         return 0;*/

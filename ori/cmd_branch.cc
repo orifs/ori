@@ -27,7 +27,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_branch(int argc, const char *argv[])
+cmd_branch(int argc, char * const argv[])
 {
     if (argc == 1) {
 	string branch = repository.getBranch();

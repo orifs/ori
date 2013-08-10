@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Dump the metadata
  */
 int
-cmd_dumpmeta(int argc, const char *argv[])
+cmd_dumpmeta(int argc, char * const argv[])
 {
     if (argc != 1) {
         cout << "dumpmeta takes no arguments!" << endl;

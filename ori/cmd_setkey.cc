@@ -29,7 +29,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_setkey(int argc, const char *argv[])
+cmd_setkey(int argc, char * const argv[])
 {
     int status;
     string rootPath = LocalRepo::findRootPath();

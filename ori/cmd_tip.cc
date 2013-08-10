@@ -29,7 +29,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_tip(int argc, const char *argv[])
+cmd_tip(int argc, char * const argv[])
 {
     if (OF_RunCommand("tip"))
         return 0;

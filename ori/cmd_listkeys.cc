@@ -28,7 +28,7 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_listkeys(int argc, const char *argv[])
+cmd_listkeys(int argc, char * const argv[])
 {
     string rootPath = LocalRepo::findRootPath();
 

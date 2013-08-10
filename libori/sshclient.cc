@@ -196,7 +196,7 @@ bool SshClient::respIsOK() {
 /*
  * cmd_sshclient
  */
-int cmd_sshclient(int argc, const char *argv[]) {
+int cmd_sshclient(int argc, char * const argv[]) {
     if (argc < 2) {
         printf("Usage: ori sshclient [username@]hostname\n");
         exit(1);

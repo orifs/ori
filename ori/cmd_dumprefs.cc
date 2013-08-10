@@ -29,7 +29,7 @@ extern LocalRepo repository;
  * Dump the reference count map
  */
 int
-cmd_dumprefs(int argc, const char *argv[])
+cmd_dumprefs(int argc, char * const argv[])
 {
     if (argc != 1) {
         cout << "dumprefs takes no arguments!" << endl;
