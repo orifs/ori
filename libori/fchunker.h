@@ -56,7 +56,10 @@ void FChunker<chunk_size>::chunk(ChunkerCB *cb)
     }
 
 fastPath:
-    while (len > off + chunk_size) {
+    if (off - start == 0)
+        off += chunk_size;
+
+    while (len >= off) {
 	cb->match(in + start, off - start);
 
 	start = off;
@@ -68,8 +71,8 @@ fastPath:
 	goto fastPath;
     }
 
-    if (start < off) {
-        cb->match(in + start, off - start);
+    if (len > start) {
+        cb->match(in + start, len - start);
     }
 
     return;

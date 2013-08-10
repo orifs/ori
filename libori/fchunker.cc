@@ -29,6 +29,9 @@
 
 #include "fchunker.h"
 
+#define CHUNK_LEN 1024
+#define TEST_LEN (1024 * 1024 * 1024)
+
 class TestCB : public ChunkerCB
 {
 public:
@@ -62,6 +65,7 @@ public:
 
 	chunks++;
 	chunkLen += l;
+        assert(l == CHUNK_LEN);
 
 	SHA256_Init(&state);
 	SHA256_Update(&state, b, l);
@@ -85,12 +89,12 @@ public:
     uint64_t len;
 };
 
-#define TEST_LEN (1024 * 1024 * 1024)
-
 int main(int argc, char *argv[])
 {
     TestCB cb = TestCB(TEST_LEN);
-    FChunker<1024> c = FChunker<1024>();
+    FChunker<CHUNK_LEN> c = FChunker<CHUNK_LEN>();
+
+    assert(TEST_LEN % CHUNK_LEN == 0);
 
     cb.fill();
 
@@ -105,6 +109,6 @@ int main(int argc, char *argv[])
     printf("Chunks %lu, Avg Chunk %lu\n", cb.chunks, cb.chunkLen / cb.chunks);
     printf("Time %3.3f, Speed %3.2fMB/s\n", tDiff, 1024.0 / tDiff);
 
-    assert(cb.chunks == TEST_LEN / 1024);
+    assert(cb.chunks == TEST_LEN / CHUNK_LEN);
 }
 
