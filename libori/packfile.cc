@@ -391,7 +391,7 @@ Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
     for (size_t i = 0; i < objects.size(); i++) {
         if (includedHashes.find(objects[i].info.hash) != includedHashes.end()) {
             // Duplicate object
-            fprintf(stderr, "WARNING packfile: duplicate object in transmit\n");
+            DLOG("duplicate object in Packfile::transmit");
             continue;
         }
         includedHashes.insert(objects[i].info.hash);

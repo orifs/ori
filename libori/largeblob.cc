@@ -201,7 +201,9 @@ LargeBlob::chunkFile(const string &path)
 #endif /* ORI_USE_RK */
 
 #ifdef ORI_USE_FIXED
-    FChunker<4096> c = FChunker<4096>();
+    //FChunker<4096> c = FChunker<4096>();
+    FChunker<64*1024> c = FChunker<64*1024>();
+    //FChunker<1024*1024> c = FChunker<1024*1024>();
 #endif /* ORI_USE_FIXED */
 
     status = cb.open(path);

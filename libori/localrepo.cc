@@ -1144,9 +1144,8 @@ LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
             Packfile::sp pf = packfiles->getPackfile(ie.packfile);
             packs[pf].push_back(ie);
             includedHashes.insert(objs[i]);
-        }
-        else {
-            fprintf(stderr, "WARNING: duplicate object in LocalRepo::transmit\n");
+        } else {
+            DLOG("duplicate object in LocalRepo::transmit");
         }
     }
 
