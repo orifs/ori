@@ -51,24 +51,20 @@ void FChunker<chunk_size>::chunk(ChunkerCB *cb)
     register uint64_t start = 0;
 
     if (cb->load(&in, &len, &off) == 0) {
-	assert(false);
-	return;
+        assert(false);
+        return;
     }
 
 fastPath:
-    if (off - start == 0)
+    while (len > off + chunk_size) {
         off += chunk_size;
-
-    while (len >= off) {
-	cb->match(in + start, off - start);
-
-	start = off;
-	off += chunk_size;
+        cb->match(in + start, off - start);
+        start = off;
     }
 
     if (cb->load(&in, &len, &off) == 1) {
         start = off;
-	goto fastPath;
+        goto fastPath;
     }
 
     if (len > start) {
