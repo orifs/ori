@@ -52,21 +52,26 @@ LocalRepo repository;
 void
 usage()
 {
-    printf("Ori Distributed Personal File System (%s) - HTTP Server\n\n",
+    printf("Ori Distributed Personal File System (%s) - HTTP Server\n",
             ORI_VERSION_STR);
-    cout << "usage: ori_httpd [options] <repository path>" << endl << endl;
+    cout << "Usage: ori_httpd [OPTIONS] [REPOSITORY PATH]" << endl << endl;
     cout << "Options:" << endl;
-    cout << "-p port    Set the HTTP port number (default 8080)" << endl;
-    cout << "-h         Show this message" << endl;
+    cout << "    -p port    Set the HTTP port number (default: 8080)" << endl;
+#if !defined(WITHOUT_MDNS)
+    cout << "    -m         Enable mDNS (default)" << endl;
+    cout << "    -n         Disable mDNS" << endl;
+#endif
+    cout << "    -h         Show this message" << endl;
 }
 
 int
 main(int argc, char *argv[])
 {
     int ch;
+    bool mDNS_flag = true;
     unsigned long port = 8080;
 
-    while ((ch = getopt(argc, argv, "p:h")) != -1) {
+    while ((ch = getopt(argc, argv, "p:mnh")) != -1) {
         switch (ch) {
             case 'p':
             {
@@ -79,6 +84,12 @@ main(int argc, char *argv[])
                 }
                 break;
             }
+            case 'm':
+                mDNS_flag = true;
+                break;
+            case 'n':
+                mDNS_flag = false;
+                break;
             case 'h':
                 usage();
                 return 0;
@@ -100,6 +111,7 @@ main(int argc, char *argv[])
     } catch (std::exception &e) {
         cout << e.what() << endl;
         cout << "Could not open the local repository!" << endl;
+        usage();
         return 1;
     }
 
@@ -107,7 +119,7 @@ main(int argc, char *argv[])
     LOG("libevent %s", event_get_version());
 
     HTTPServer server = HTTPServer(repository, port);
-    server.start();
+    server.start(mDNS_flag);
 
     return 0;
 }

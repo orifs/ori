@@ -29,7 +29,7 @@ class HTTPServer
 public:
     HTTPServer(LocalRepo &repository, uint16_t port);
     ~HTTPServer();
-    void start();
+    void start(bool mDNSEnable);
 protected:
     void entry(struct evhttp_request *req);
 private:
@@ -45,6 +45,7 @@ private:
     void getObjs(struct evhttp_request *req);
     void getObjInfo(struct evhttp_request *req);
     LocalRepo &repo;
+    uint16_t port;
     struct evhttp *httpd;
     /* set if a test needs to call loopexit on a base */
     struct event_base *base;

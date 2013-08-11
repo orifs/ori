@@ -229,7 +229,7 @@ _print_cb(const OriPeer &peer)
     printf("Peer: %s:%d\n", peer.hostname.c_str(), peer.port);
 }
 
-int cmd_mdnsserver(int argc, const char *argv[])
+int cmd_mdnsserver(int argc, char * const argv[])
 {
     printf("Starting mDNS server...\n");
     struct event_base *evbase = event_base_new();

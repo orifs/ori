@@ -72,7 +72,7 @@ HTTPServerReqHandlerCB(struct evhttp_request *req, void *arg)
 }
 
 HTTPServer::HTTPServer(LocalRepo &repository, uint16_t port)
-    : repo(repository), httpd(NULL), base(NULL)
+    : repo(repository), port(port), httpd(NULL), base(NULL)
 {
     base = event_base_new();
     event_set_log_callback(HTTPServerLogCB);
@@ -90,11 +90,12 @@ HTTPServer::~HTTPServer()
 }
 
 void
-HTTPServer::start()
+HTTPServer::start(bool mDNSEnable)
 {
 #if !defined(WITHOUT_MDNS)
     // mDNS
-    MDNS_Register(port);
+    if (mDNSEnable)
+        MDNS_Register(port);
 #endif
 
     event_base_dispatch(base);
