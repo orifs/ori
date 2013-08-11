@@ -186,7 +186,7 @@ HttpRepo::hasObjects(const ObjectHashVec &vec) {
     }
 
     int status = client->postRequest(ORIHTTP_PATH_CONTAINS, ss.str(), resp);
-    if (status == 0) {
+    if (status < 0) {
         return rval;
     }
     if (resp.size() != vec.size()) {

@@ -60,7 +60,7 @@ OriNet_ResolveHost(const string &hostname) {
 
     freeaddrinfo(result);
 
-    DLOG("Resolved IP addr: %s\n", buf);
+    DLOG("Resolved IP addr: %s", buf);
     return buf;
 }
 
