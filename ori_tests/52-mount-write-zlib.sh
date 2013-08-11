@@ -1,4 +1,4 @@
-PKG_NAME="zlib-1.2.7"
+PKG_NAME="zlib-1.2.8"
 PKG_TARBALL="$PKG_NAME.tar.gz"
 PKG_URL="http://zlib.net/$PKG_TARBALL"
 
@@ -12,7 +12,7 @@ mkdir -p $EXTRACT_DIR
 
 $ORI_EXE init $TEMP_REPO
 
-$ORIFS_EXE -o repo=$TEMP_REPO $MTPOINT
+$ORIFS_EXE --repo=$TEMP_REPO $MTPOINT
 sleep 1.5
 
 cd $MTPOINT

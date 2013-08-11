@@ -51,7 +51,7 @@ for t in `find $ORI_TESTS -name '*.sh' | sort`; do
     TEST_NAME=`basename $t .sh`
     UPPERNAME=`echo $TEST_NAME | tr '[a-z]-' '[A-Z]_'`
     VARNAME=${UPPERNAME:3}
-    if [ ${!VARNAME} = "no" ]; then
+    if [ ${!VARNAME}"!" = "no!" ]; then
         echo "SKIPPED: $TEST_NAME" | tee -a $TEST_RESULTS
         continue
     fi

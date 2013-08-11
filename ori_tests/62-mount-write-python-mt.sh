@@ -12,7 +12,7 @@ mkdir -p $EXTRACT_DIR
 
 $ORI_EXE init $TEMP_REPO
 
-$ORIFS_EXE -o repo=$TEMP_REPO $MTPOINT
+$ORIFS_EXE --repo=$TEMP_REPO $MTPOINT
 sleep 1.5
 
 cd $MTPOINT
