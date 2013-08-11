@@ -95,8 +95,8 @@ class FileChunkerCB : public ChunkerCB
 public:
     FileChunkerCB(LargeBlob *l)
     {
-	lb = l;
-	lbOff = 0;
+        lb = l;
+        lbOff = 0;
         buf = NULL;
     }
     ~FileChunkerCB()
@@ -108,25 +108,25 @@ public:
     }
     int open(const string &path)
     {
-	struct stat sb;
+        struct stat sb;
 
         bufLen = 8 * 1024 * 1024;
-	buf = new uint8_t[bufLen];
-	if (buf == NULL)
-	    return -ENOMEM;
+        buf = new uint8_t[bufLen];
+        if (buf == NULL)
+            return -ENOMEM;
 
-	srcFd = ::open(path.c_str(), O_RDONLY);
-	if (srcFd < 0)
-	    return -errno;
+        srcFd = ::open(path.c_str(), O_RDONLY);
+        if (srcFd < 0)
+            return -errno;
 
-	if (fstat(srcFd, &sb) < 0) {
-	    close(srcFd);
-	    return -errno;
-	}
-	fileLen = sb.st_size;
+        if (fstat(srcFd, &sb) < 0) {
+            close(srcFd);
+            return -errno;
+        }
+        fileLen = sb.st_size;
         fileOff = 0;
 
-	return 0;
+        return 0;
     }
     virtual void match(const uint8_t *b, uint32_t l)
     {
@@ -137,8 +137,8 @@ public:
         lb->repo->addObject(ObjectInfo::Blob, hash, blob);
 
         // Add the fragment to the LargeBlob object.
-	lb->parts.insert(make_pair(lbOff, LBlobEntry(hash, l)));
-	lbOff += l;
+        lb->parts.insert(make_pair(lbOff, LBlobEntry(hash, l)));
+        lbOff += l;
     }
     virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
     {
@@ -176,7 +176,7 @@ public:
         *l += status;
         //*o = 32;
 
-	return 1;
+        return 1;
     }
 private:
     // Output large blob
@@ -202,15 +202,14 @@ LargeBlob::chunkFile(const string &path)
 
 #ifdef ORI_USE_FIXED
     //FChunker<4096> c = FChunker<4096>();
-    FChunker<64*1024> c = FChunker<64*1024>();
-    //FChunker<1024*1024> c = FChunker<1024*1024>();
+    FChunker<32*1024> c = FChunker<32*1024>();
 #endif /* ORI_USE_FIXED */
 
     status = cb.open(path);
     if (status < 0) {
-	perror("Cannot open large file for chunking");
-	PANIC();
-	return;
+        perror("Cannot open large file for chunking");
+        PANIC();
+        return;
     }
 
     totalHash = OriCrypt_HashFile(path);
@@ -225,7 +224,7 @@ LargeBlob::extractFile(const string &path)
     map<uint64_t, LBlobEntry>::iterator it;
 
     fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
-	        S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     if (fd < 0) {
         perror("Cannot open file for writing");
         PANIC();
