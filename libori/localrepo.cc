@@ -274,7 +274,7 @@ LocalRepo::open(const string &root)
     map<string, Peer>::iterator it;
     for (it = peers.begin(); it != peers.end(); it++) {
 	if ((*it).second.isInstaCloning()) {
-	    // XXX: Open remote connection
+            // XXX: Open remote connection
 	    if (resumeRepo.connect((*it).second.getUrl())) {
 		LOG("Autoconnected to '%s' to resume InstaClone.",
 		    (*it).second.getUrl().c_str());
@@ -291,6 +291,11 @@ LocalRepo::open(const string &root)
 void
 LocalRepo::close()
 {
+    if (!opened)
+        return;
+
+    sync();
+
     currTransaction.reset();
     index.close();
     snapshots.close();
@@ -372,27 +377,27 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
 
     if (!o) {
         LOG("Object not found: %s", objId.hex().c_str());
-	if (remoteRepo != NULL) {
+        if (remoteRepo != NULL) {
             LOG("Instaclone getting object %s", objId.hex().c_str());
-	    Object::sp ro = remoteRepo->getObject(objId);
+            Object::sp ro = remoteRepo->getObject(objId);
 
-	    if (!ro) {
+            if (!ro) {
                 LOG("Object not available on remote machine!");
-		return Object::sp();
+                return Object::sp();
             }
 
             if (cacheRemoteObjects) {
                 auto_ptr<bytestream> bs(ro->getPayloadStream());
                 string buf = bs->readAll();
-	        addBlob(ro->getInfo().type, buf);
-                // XXX: Need to run this in background it's too slow!
-                sync();
+                addBlob(ro->getInfo().type, buf);
+
+                // XXX: Add reference counts
             }
 
-	    return ro;
-	} else {
-	    return Object::sp();
-	}
+            return ro;
+        } else {
+            return Object::sp();
+        }
     }
 
     return Object::sp(o);
@@ -703,16 +708,18 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 bool
 LocalRepo::copyObject(const ObjectHash &objId, const string &path)
 {
-    LocalObject::sp o = getLocalObject(objId);
+    Object::sp o = getObject(objId);
 
     // XXX: Add better error handling
-    if (!o)
-	return false;
+    if (!o) {
+        WARNING("LocalRepo::copyObject failed to access object.\n");
+        return false;
+    }
 
     bytestream::ap bs(o->getPayloadStream());
     if (o->getInfo().type == ObjectInfo::Blob) {
         if (bs->copyToFile(path) < 0)
-	    return false;
+            return false;
     } else if (o->getInfo().type == ObjectInfo::LargeBlob) {
         LargeBlob lb = LargeBlob(this);
         lb.fromBlob(bs->readAll());
