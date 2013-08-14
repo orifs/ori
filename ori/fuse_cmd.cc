@@ -24,7 +24,7 @@
 
 #include <string>
 
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 
 #include "fuse_cmd.h"
 
@@ -41,10 +41,10 @@ std::string OF_ControlPath()
 
     while (path.size() > 0) {
         std::string control_path = path + "/" + ORI_CONTROL_FILENAME;
-        if (Util_FileExists(control_path)) {
+        if (OriFile_Exists(control_path)) {
             return control_path;
         }
-        path = StrUtil_Dirname(path);
+        path = OriFile_Dirname(path);
     }
 
     return "";

@@ -23,6 +23,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 
 #include "orisyncconf.h"
 
@@ -44,7 +45,7 @@ OriSyncConf::OriSyncConf()
     ASSERT(home != "");
 
     rcFile = home + "/.orisyncrc";
-    if (Util_FileExists(rcFile)) {
+    if (OriFile_Exists(rcFile)) {
         load();
     }
 }
@@ -117,14 +118,14 @@ OriSyncConf::save() const
     if (rcFile != "") {
         string blob = getBlob();
 
-        Util_WriteFile(blob.data(), blob.size(), rcFile);
+        OriFile_WriteFile(blob.data(), blob.size(), rcFile);
     }
 }
 
 void
 OriSyncConf::load()
 {
-    string blob = Util_ReadFile(rcFile);
+    string blob = OriFile_ReadFile(rcFile);
 
     fromBlob(blob);
 }

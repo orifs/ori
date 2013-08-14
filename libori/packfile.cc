@@ -35,6 +35,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/scan.h>
 #include <oriutil/systemexception.h>
 #include <ori/packfile.h>
@@ -298,7 +299,7 @@ bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)
     }
 
     ::close(oldFd);
-    Util_RenameFile(tmpFilename, filename);
+    OriFile_Rename(tmpFilename, filename);
 
     // Commit the transaction
     bool empty = tr->payloads.size() == 0;
@@ -535,12 +536,12 @@ PackfileManager::newPackfile()
 bool
 PackfileManager::hasPackfile(packid_t id)
 {
-    return Util_FileExists(_getPackfileName(id));
+    return OriFile_Exists(_getPackfileName(id));
 }
 
 static int _freeListCB(vector<packid_t> *existing, const string &cpath)
 {
-    string path = StrUtil_Basename(cpath);
+    string path = OriFile_Basename(cpath);
     packid_t id = 0;
     if (sscanf(path.c_str(), "pack%u.pak", &id) != 1) {
         return 0;

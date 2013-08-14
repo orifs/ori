@@ -45,6 +45,7 @@ using namespace std;
 #include <oriutil/runtimeexception.h>
 #include <oriutil/systemexception.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/oristr.h>
 #include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
@@ -108,14 +109,14 @@ LocalRepo_Init(const std::string &rootPath)
 
     // Create default branch
     tmpDir = rootPath + ORI_PATH_HEADS + "/default";
-    if (!Util_WriteFile(EMPTY_COMMIT.hex(), tmpDir))
+    if (!OriFile_WriteFile(EMPTY_COMMIT.hex(), tmpDir))
     {
 	perror("Could not create default branch");
 	return 1;
     }
 
     // Set branch name
-    if (!Util_WriteFile("@default", 8, rootPath + ORI_PATH_HEAD)) {
+    if (!OriFile_WriteFile("@default", 8, rootPath + ORI_PATH_HEAD)) {
 	perror("Could not create branch file");
 	return 1;
     }
@@ -176,7 +177,7 @@ LocalRepoLock::LocalRepoLock(const std::string &filename)
 LocalRepoLock::~LocalRepoLock()
 {
     if (lockFile.size() > 0) {
-        if (Util_DeleteFile(lockFile) < 0) {
+        if (OriFile_Delete(lockFile) < 0) {
             perror("unlink");
         }
     }
@@ -231,10 +232,10 @@ LocalRepo::open(const string &root)
     try {
         // Read UUID
         std::string uuid_path = rootPath + ORI_PATH_UUID;
-        id = Util_ReadFile(uuid_path);
+        id = OriFile_ReadFile(uuid_path);
 
         // Read Version
-        version = Util_ReadFile(rootPath + ORI_PATH_VERSION);
+        version = OriFile_ReadFile(rootPath + ORI_PATH_VERSION);
 
         if (version != ORI_FS_VERSION_STR) {
             WARNING("LocalRepo::open: Unsupported file system version!");
@@ -505,7 +506,7 @@ LocalRepo::addObject(ObjectType type, const ObjectHash &hash,
 
     /*string objPath = objIdToPath(hash);
 
-    if (!Util_FileExists(objPath)) {
+    if (!OriFile_Exists(objPath)) {
         createObjDirs(hash);
 
         LocalObject o;
@@ -781,7 +782,7 @@ LocalRepo::rebuildIndex()
     string indexPath = rootPath + ORI_PATH_INDEX;
     index.close();
 
-    Util_DeleteFile(indexPath);
+    OriFile_Delete(indexPath);
 
     index.open(indexPath);
 
@@ -2059,7 +2060,7 @@ LocalRepo::listBranches()
 string
 LocalRepo::getBranch()
 {
-    std::string branch = Util_ReadFile(rootPath + ORI_PATH_HEAD);
+    std::string branch = OriFile_ReadFile(rootPath + ORI_PATH_HEAD);
     return branch;
 }
 
@@ -2080,11 +2081,11 @@ LocalRepo::setBranch(const std::string &name)
 	ObjectHash head = getHead();
 	printf("Creating branch '%s'\n", name.c_str());
 
-	Util_WriteFile(head.hex(), branchFile);
+	OriFile_WriteFile(head.hex(), branchFile);
     }
 
     string ref = "@" + name;
-    Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
+    OriFile_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
 }
 
 /*
@@ -2100,7 +2101,7 @@ LocalRepo::getHead()
     if (branch[0] == '@') {
 	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
         try {
-            commitId = Util_ReadFile(headPath);
+            commitId = OriFile_ReadFile(headPath);
         } catch (std::ios_base::failure &e) {
 	    return EMPTY_COMMIT;
         }
@@ -2126,10 +2127,10 @@ LocalRepo::updateHead(const ObjectHash &commitId)
 
     if (branch[0] == '@') {
 	headPath = rootPath + ORI_PATH_HEADS + branch.substr(1);
-	Util_WriteFile(commitId.hex(), headPath);
+	OriFile_WriteFile(commitId.hex(), headPath);
     } else if (branch[0] == '#') {
 	string ref = "#" + commitId.hex();
-	Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
+	OriFile_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
     } else {
 	NOT_IMPLEMENTED(false);
     }
@@ -2144,7 +2145,7 @@ void
 LocalRepo::setHead(const ObjectHash &commitId)
 {
     string ref = "#" + commitId.hex();
-    Util_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
+    OriFile_WriteFile(ref.c_str(), ref.size(), rootPath + ORI_PATH_HEAD);
 }
 
 /*
@@ -2172,7 +2173,7 @@ LocalRepo::setMergeState(const MergeState &state)
     string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
     string blob = state.getBlob();
 
-    Util_WriteFile(blob.data(), blob.size(), mergeStatePath);
+    OriFile_WriteFile(blob.data(), blob.size(), mergeStatePath);
 }
 
 /*
@@ -2185,7 +2186,7 @@ LocalRepo::getMergeState()
     MergeState state;
     string blob;
 
-    blob = Util_ReadFile(mergeStatePath);
+    blob = OriFile_ReadFile(mergeStatePath);
     state.fromBlob(blob);
 
     return state;
@@ -2199,7 +2200,7 @@ LocalRepo::clearMergeState()
 {
     string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
 
-    Util_DeleteFile(mergeStatePath);
+    OriFile_Delete(mergeStatePath);
 }
 
 /*
@@ -2210,7 +2211,7 @@ LocalRepo::hasMergeState()
 {
     string mergeStatePath = rootPath + ORI_PATH_MERGESTATE;
 
-    return Util_FileExists(mergeStatePath);
+    return OriFile_Exists(mergeStatePath);
 }
 
 /*
@@ -2317,7 +2318,7 @@ LocalRepo::removePeer(const string &name)
 
     if (it != peers.end()) {
 	peers.erase(it);
-	Util_DeleteFile(rootPath + ORI_PATH_REMOTES + name);
+	OriFile_Delete(rootPath + ORI_PATH_REMOTES + name);
     }
 
     return true;

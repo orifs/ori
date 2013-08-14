@@ -26,6 +26,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
 #include <ori/treediff.h>
@@ -202,7 +203,7 @@ static int _diffToDirHelper(_scanHelperData *sd, const string &path)
     map<string, TreeEntry>::iterator it = sd->flattened_tree->find(relPath);
     if (it == sd->flattened_tree->end()) {
         // New file/dir
-        if (Util_IsDirectory(fullPath)) {
+        if (OriFile_IsDirectory(fullPath)) {
             diffEntry.type = TreeDiffEntry::NewDir;
         }
         else {
@@ -216,7 +217,7 @@ static int _diffToDirHelper(_scanHelperData *sd, const string &path)
 
     // Potentially modified file/dir
     const TreeEntry &te = (*it).second;
-    if (Util_IsDirectory(fullPath)) {
+    if (OriFile_IsDirectory(fullPath)) {
         if (te.type != TreeEntry::Tree) {
             // File replaced by dir
             diffEntry.type = TreeDiffEntry::DeletedFile;
@@ -404,7 +405,7 @@ bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
         e->type = TreeDiffEntry::Noop;
         // Delete temporary file
         if (e->newFilename != "") {
-            Util_DeleteFile(e->newFilename);
+            OriFile_Delete(e->newFilename);
             e->newFilename = "";
         }
         _resetLatestEntry(e->filepath);
@@ -416,7 +417,7 @@ bool TreeDiff::mergeInto(const TreeDiffEntry &to_merge)
         e->type = TreeDiffEntry::DeletedFile;
         // Delete temporary file
         if (e->newFilename != "") {
-            Util_DeleteFile(e->newFilename);
+            OriFile_Delete(e->newFilename);
             e->newFilename = "";
         }
         return false;

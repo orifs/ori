@@ -22,7 +22,7 @@
 #include <iostream>
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <ori/localrepo.h>
 
 using namespace std;
@@ -53,7 +53,7 @@ cmd_removekey(int argc, char * const argv[])
 	return 1;
     }
 
-    if (Util_DeleteFile(rootPath + ORI_PATH_TRUSTED + argv[1]) < 0) {
+    if (OriFile_Delete(rootPath + ORI_PATH_TRUSTED + argv[1]) < 0) {
 	cout << "Failed to delete key!" << endl;
 	return 1;
     }

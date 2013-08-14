@@ -34,6 +34,7 @@
 #include <boost/tr1/memory.hpp>
 #include <oriutil/oritr1.h>
 
+#include <oriutil/orifile.h>
 #include <oriutil/scan.h>
 #include <oriutil/systemexception.h>
 #include <oriutil/rwlock.h>
@@ -132,7 +133,7 @@ OriPriv::reset()
     journalFile = tmpDir + "/journal";
 
     // Attempt to delete the temporary directory if it exists
-    if (Util_FileExists(tmpDir) && Util_RmDir(tmpDir) != 0) {
+    if (OriFile_Exists(tmpDir) && OriFile_RmDir(tmpDir) != 0) {
         printf("\nAn error has occurred!\n");
         printf("\nProblem: orifs may have previously exited uncleanly\n\n");
         printf("Solution:\n"
@@ -155,7 +156,7 @@ OriPriv::reset()
 int
 cleanupHelper(OriPriv *priv, const string &path)
 {
-    Util_DeleteFile(path);
+    OriFile_Delete(path);
 
     return 0;
 }
@@ -967,8 +968,8 @@ OriPriv::fsck(bool fromCmd)
     OriPrivCheckDir(this, fromCmd, "", dir);
 
     for (it = paths.begin(); it != paths.end(); it++) {
-        string basename = StrUtil_Basename(it->first);
-        string parentPath = StrUtil_Dirname(it->first);
+        string basename = OriFile_Basename(it->first);
+        string parentPath = OriFile_Dirname(it->first);
         OriDir *dir = NULL;
 
         if (it->first == "/")

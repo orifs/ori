@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,6 +31,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <ori/localrepo.h>
 #include <ori/remoterepo.h>
 #include <ori/treediff.h>
@@ -102,7 +103,7 @@ cmd_clone(int argc, char * const argv[])
     } else {
         newRoot = srcRoot.substr(srcRoot.rfind("/")+1);
     }
-    if (!Util_FileExists(newRoot)) {
+    if (!OriFile_Exists(newRoot)) {
         mkdir(newRoot.c_str(), 0755);
     }
     status = LocalRepo_Init(newRoot);
@@ -119,7 +120,7 @@ cmd_clone(int argc, char * const argv[])
     // Setup remote pointer
     string originPath = srcRoot;
     if (!Util_IsPathRemote(srcRoot)) {
-        originPath = Util_RealPath(srcRoot);
+        originPath = OriFile_RealPath(srcRoot);
     }
     dstRepo.addPeer("origin", originPath);
     if (clone_mode == 2) {

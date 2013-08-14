@@ -20,7 +20,7 @@
 #include <string>
 #include <iostream>
 
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/key.h>
 #include <ori/localrepo.h>
 
@@ -67,7 +67,7 @@ cmd_setkey(int argc, char * const argv[])
 	return 1;
     }
 
-    status = Util_CopyFile(argv[1], rootPath + ORI_PATH_PRIVATEKEY);
+    status = OriFile_Copy(argv[1], rootPath + ORI_PATH_PRIVATEKEY);
     if (status < 0)
     {
 	cout << "Failed to copy the private key into the repository." << endl;

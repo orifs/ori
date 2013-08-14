@@ -26,6 +26,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/oricrypt.h>
 #include <oriutil/dag.h>
 
@@ -150,7 +151,7 @@ Repo::addLargeFile(const string &path)
 pair<ObjectHash, ObjectHash>
 Repo::addFile(const string &path)
 {
-    size_t sz = Util_FileSize(path);
+    size_t sz = OriFile_GetSize(path);
 
     if (sz > LARGEFILE_MINIMUM)
         return addLargeFile(path);

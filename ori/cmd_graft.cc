@@ -21,7 +21,7 @@
 #include <iomanip>
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <ori/localrepo.h>
 
 using namespace std;
@@ -60,8 +60,8 @@ cmd_graft(int argc, char * const argv[])
     }
 
     // Convert relative paths to full paths.
-    srcRelPath = Util_RealPath(argv[1]);
-    dstRelPath = Util_RealPath(argv[2]);
+    srcRelPath = OriFile_RealPath(argv[1]);
+    dstRelPath = OriFile_RealPath(argv[2]);
 
     if (srcRelPath == "") {
         cout << "Error: Source file or directory does not exist!" << endl;
@@ -78,7 +78,7 @@ cmd_graft(int argc, char * const argv[])
 	    dstName = newDstPath.substr(newDstPath.find_last_of("/") + 1);
 	    dstRelPath = newDstPath.substr(0, newDstPath.find_last_of("/") + 1);
 	}
-	dstRelPath = Util_RealPath(dstRelPath);
+	dstRelPath = OriFile_RealPath(dstRelPath);
 	if (dstRelPath == "") {
 	    cout << "Error: Unable to resolve relative paths." << endl;
 	    return 1;
@@ -98,7 +98,7 @@ cmd_graft(int argc, char * const argv[])
         cout << "Warning: source or destination is not a repository." << endl;
         string dstFile = dstRelPath + "/" + dstName;
 
-        if (Util_IsDirectory(srcRelPath)) {
+        if (OriFile_IsDirectory(srcRelPath)) {
             execl("/bin/cp", "cp", "-r", srcRelPath.c_str(), dstFile.c_str(),
                   (char *)NULL);
         } else {

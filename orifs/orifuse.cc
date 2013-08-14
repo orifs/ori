@@ -37,6 +37,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/systemexception.h>
 #include <oriutil/rwlock.h>
 #include <ori/version.h>
@@ -105,7 +106,7 @@ ori_unlink(const char *path)
 
     FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -124,7 +125,7 @@ ori_unlink(const char *path)
         if (info->isDir())
             return -EPERM;
 
-        parentDir->remove(StrUtil_Basename(path));
+        parentDir->remove(OriFile_Basename(path));
         if (info->isSymlink() || info->isReg()) {
             if (info->type == FILETYPE_TEMPORARY)
                 unlink(info->path.c_str());
@@ -156,7 +157,7 @@ ori_symlink(const char *target_path, const char *link_path)
 
     FUSE_LOG("FUSE ori_symlink(path=\"%s\")", link_path);
 
-    parentPath = StrUtil_Dirname(link_path);
+    parentPath = OriFile_Dirname(link_path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -179,7 +180,7 @@ ori_symlink(const char *target_path, const char *link_path)
     info->path = target_path;
     info->statInfo.st_size = info->path.length();
 
-    parentDir->add(StrUtil_Basename(link_path), info->id);
+    parentDir->add(OriFile_Basename(link_path), info->id);
 
     return 0;
 }
@@ -220,10 +221,10 @@ ori_rename(const char *from_path, const char *to_path)
     FUSE_LOG("FUSE ori_rename(from_path=\"%s\", to_path=\"%s\")",
              from_path, to_path);
 
-    fromParent = StrUtil_Dirname(from_path);
+    fromParent = OriFile_Dirname(from_path);
     if (fromParent == "")
         fromParent = "/";
-    toParent = StrUtil_Dirname(to_path);
+    toParent = OriFile_Dirname(to_path);
     if (toParent == "")
         toParent = "/";
 
@@ -271,8 +272,8 @@ ori_rename(const char *from_path, const char *to_path)
 
         priv->rename(from_path, to_path);
 
-        string from = StrUtil_Basename(from_path);
-        string to = StrUtil_Basename(to_path);
+        string from = OriFile_Basename(from_path);
+        string to = OriFile_Basename(to_path);
         FUSE_LOG("%s %s", from.c_str(), to.c_str());
 
         fromDir->remove(from);
@@ -309,7 +310,7 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     FUSE_LOG("FUSE ori_create(path=\"%s\")", path);
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -328,7 +329,7 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     pair<OriFileInfo *, uint64_t> info = priv->addFile(path);
     info.first->statInfo.st_mode |= mode;
 
-    parentDir->add(StrUtil_Basename(path), info.first->id);
+    parentDir->add(OriFile_Basename(path), info.first->id);
 
     string journalArg = path;
     journalArg += ":" + info.first->path;
@@ -365,7 +366,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
         return writing ? -EPERM : 0;
     }
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -414,8 +415,8 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
 
         parentPath = snapshot.substr(pos);
         snapshot = snapshot.substr(0, pos);
-        fileName = StrUtil_Basename(parentPath);
-        parentPath = StrUtil_Dirname(parentPath);
+        fileName = OriFile_Basename(parentPath);
+        parentPath = OriFile_Dirname(parentPath);
         if (parentPath == "")
             parentPath = "/";
 
@@ -594,7 +595,7 @@ ori_mkdir(const char *path, mode_t mode)
 
     FUSE_LOG("FUSE ori_mkdir(path=\"%s\")", path);
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -614,7 +615,7 @@ ori_mkdir(const char *path, mode_t mode)
     OriFileInfo *info = priv->addDir(path);
     info->statInfo.st_mode |= mode;
 
-    parentDir->add(StrUtil_Basename(path), info->id);
+    parentDir->add(OriFile_Basename(path), info->id);
     parentInfo->statInfo.st_nlink++;
 
     priv->journal("mkdir", path);
@@ -634,7 +635,7 @@ ori_rmdir(const char *path)
 
     FUSE_LOG("FUSE ori_rmdir(path=\"%s\")", path);
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -660,7 +661,7 @@ ori_rmdir(const char *path)
             return -ENOTEMPTY;
         }
 
-        parentDir->remove(StrUtil_Basename(path));
+        parentDir->remove(OriFile_Basename(path));
         parentInfo->statInfo.st_nlink--;
         priv->rmDir(path);
 
@@ -817,8 +818,8 @@ ori_getattr(const char *path, struct stat *stbuf)
 
         parentPath = snapshot.substr(pos);
         snapshot = snapshot.substr(0, pos);
-        fileName = StrUtil_Basename(parentPath);
-        parentPath = StrUtil_Dirname(parentPath);
+        fileName = OriFile_Basename(parentPath);
+        parentPath = OriFile_Dirname(parentPath);
         if (parentPath == "")
             parentPath = "/";
 
@@ -870,7 +871,7 @@ ori_chmod(const char *path, mode_t mode)
     OriPriv *priv = GetOriPriv();
     string parentPath;
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -904,7 +905,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
     OriPriv *priv = GetOriPriv();
     string parentPath;
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -939,7 +940,7 @@ ori_utimens(const char *path, const struct timespec tv[2])
     OriPriv *priv = GetOriPriv();
     string parentPath;
 
-    parentPath = StrUtil_Dirname(path);
+    parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
@@ -1093,7 +1094,7 @@ main(int argc, char *argv[])
     // Debugging
     ori_open_log("ori.log");
 
-    if (!Util_FileExists(config.repo_path)) {
+    if (!OriFile_Exists(config.repo_path)) {
         int status = mkdir(config.repo_path, 0755);
         if (status < 0) {
             printf("Repository does not exist and failed to create directory.\n");
@@ -1143,7 +1144,7 @@ main(int argc, char *argv[])
             string originPath = config.clone_path;
 
             if (!Util_IsPathRemote(originPath)) {
-                originPath = Util_RealPath(originPath);
+                originPath = OriFile_RealPath(originPath);
             }
 
             priv = new OriPriv(config.repo_path, originPath, remoteRepo.get());

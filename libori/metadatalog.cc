@@ -29,7 +29,7 @@
 #include <boost/tr1/unordered_map.hpp>
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/stream.h>
 #include <oriutil/systemexception.h>
 #include <ori/metadatalog.h>
@@ -189,7 +189,7 @@ MetadataLog::rewrite(const RefcountMap *refs, const MetadataMap *data)
     refcounts.clear();
     metadata.clear();
 
-    Util_RenameFile(tmpFilename, filename);
+    OriFile_Rename(tmpFilename, filename);
     ::close(oldFd);
 }
 

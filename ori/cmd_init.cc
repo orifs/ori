@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -25,7 +25,7 @@
 #include <string>
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <ori/localrepo.h>
 
 using namespace std;
@@ -46,14 +46,14 @@ cmd_init(int argc, char * const argv[])
         free(cwd);
     } else if (argc == 2) {
         rootPath = argv[1];
-	if (!Util_FileExists(rootPath)) {
-	    mkdir(rootPath.c_str(), 0755);
-	} else {
-	    if (!Util_IsDirectory(rootPath)) {
-		printf("The specified path exists, but is not a directory!\n");
-		return 1;
-	    }
-	}
+        if (!OriFile_Exists(rootPath)) {
+            mkdir(rootPath.c_str(), 0755);
+        } else {
+            if (!OriFile_IsDirectory(rootPath)) {
+                printf("The specified path exists, but is not a directory!\n");
+                return 1;
+            }
+        }
     } else {
         printf("Too many arguments!\n");
         return 1;

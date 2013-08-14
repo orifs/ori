@@ -30,6 +30,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
 #include <ori/repo.h>
@@ -335,11 +336,11 @@ Tree::unflatten(const Flat &flat, Repo *r)
         }
         else if (te.type == TreeEntry::Blob ||
                 te.type == TreeEntry::LargeBlob) {
-            string treename = StrUtil_Dirname((*it).first);
+            string treename = OriFile_Dirname((*it).first);
             if (trees.find(treename) == trees.end()) {
                 trees[treename] = Tree();
             }
-            string basename = StrUtil_Basename((*it).first);
+            string basename = OriFile_Basename((*it).first);
             trees[treename].tree[basename] = te;
         }
         else {
@@ -372,8 +373,8 @@ Tree::unflatten(const Flat &flat, Repo *r)
         te.type = TreeEntry::Tree;
         ASSERT(te.hasBasicAttrs());
 
-        string parent = StrUtil_Dirname(tn);
-        trees[parent].tree[StrUtil_Basename(tn)] = te;
+        string parent = OriFile_Dirname(tn);
+        trees[parent].tree[OriFile_Basename(tn)] = te;
     }
 
     r->addBlob(ObjectInfo::Tree, trees[""].getBlob());

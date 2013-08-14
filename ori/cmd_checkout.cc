@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,7 +26,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/scan.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/oricrypt.h>
 
 #include <ori/localrepo.h>
@@ -42,7 +42,7 @@ StatusDirectoryCB(map<string, ObjectHash> *dirState, const string &path)
     string objPath = path;
     ObjectHash objHash;
 
-    if (!Util_IsDirectory(objPath)) {
+    if (!OriFile_IsDirectory(objPath)) {
         objHash = OriCrypt_HashFile(objPath);
         ASSERT(!objHash.isEmpty());
         objPath = objPath.substr(repoRoot.size());

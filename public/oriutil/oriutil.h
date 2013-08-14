@@ -25,22 +25,6 @@
 // GCC Only
 #define UNUSED __attribute__((unused))
 
-bool Util_FileExists(const std::string &path);
-bool Util_IsDirectory(const std::string &path);
-int Util_MkDir(const std::string &path);
-int Util_RmDir(const std::string &path);
-size_t Util_FileSize(const std::string &path);
-std::string Util_RealPath(const std::string &path);
-std::string Util_ReadFile(const std::string &path);
-bool Util_WriteFile(const std::string &blob, const std::string &path);
-bool Util_WriteFile(const char *blob, size_t len, const std::string &path);
-bool Util_AppendFile(const std::string &blob, const std::string &path);
-bool Util_AppendFile(const char *blob, size_t len, const std::string &path);
-int Util_CopyFile(const std::string &origPath, const std::string &newPath);
-int Util_MoveFile(const std::string &origPath, const std::string &newPath);
-int Util_DeleteFile(const std::string &path);
-int Util_RenameFile(const std::string &from, const std::string &to);
-
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
 std::string Util_GetHome();
@@ -48,9 +32,6 @@ int Util_SetBlocking(int fd, bool block);
 
 std::string Util_NewUUID();
 bool Util_IsPathRemote(const std::string &path);
-
-std::string StrUtil_Basename(const std::string &path);
-std::string StrUtil_Dirname(const std::string &path);
 
 #endif /* __ORI_ORIUTIL_H__ */
 

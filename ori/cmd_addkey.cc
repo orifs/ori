@@ -20,7 +20,7 @@
 #include <string>
 #include <iostream>
 
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/key.h>
 #include <ori/localrepo.h>
 
@@ -70,11 +70,11 @@ cmd_addkey(int argc, char * const argv[])
     cout << "E-mail:      " << pub.getEmail() << endl;
     cout << "Fingerprint: " << pub.computeDigest() << endl;
 
-    status = Util_CopyFile(argv[1],
-			   rootPath + ORI_PATH_TRUSTED + pub.computeDigest());
+    status = OriFile_Copy(argv[1],
+                          rootPath + ORI_PATH_TRUSTED + pub.computeDigest());
     if (status < 0)
     {
-	cout << "Failed to copy the public key into the repository." << endl;
+        cout << "Failed to copy the public key into the repository." << endl;
     }
 
     return 0;

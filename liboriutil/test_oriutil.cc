@@ -20,6 +20,7 @@ using namespace std;
 
 int OriStr_selfTest(void);
 int OriUtil_selfTest(void);
+int OriFile_selfTest(void);
 int LRUCache_selfTest(void);
 int KVSerializer_selfTest(void);
 int OriCrypt_selfTest(void);
@@ -31,6 +32,7 @@ main(int argc, const char *argv[])
     int result = 0;
     result += OriStr_selfTest();
     result += OriUtil_selfTest();
+    result += OriFile_selfTest();
     result += LRUCache_selfTest();
     result += KVSerializer_selfTest();
     result += OriCrypt_selfTest();

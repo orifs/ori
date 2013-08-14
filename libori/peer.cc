@@ -24,6 +24,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <ori/repo.h>
 #include <ori/localrepo.h>
 #include <ori/httpclient.h>
@@ -61,8 +62,8 @@ Peer::Peer(const std::string &path)
     repoId = "";
     peerFile = path;
 
-    if (Util_FileExists(path)) {
-        string blob = Util_ReadFile(path);
+    if (OriFile_Exists(path)) {
+        string blob = OriFile_ReadFile(path);
         fromBlob(blob);
     }
 }
@@ -153,7 +154,7 @@ Peer::save() const
     if (peerFile != "") {
         string blob = getBlob();
 
-        Util_WriteFile(blob.data(), blob.size(), peerFile);
+        OriFile_WriteFile(blob.data(), blob.size(), peerFile);
     }
 }
 

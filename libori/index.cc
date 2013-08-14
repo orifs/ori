@@ -31,7 +31,7 @@
 #include <oriutil/debug.h>
 #include <oriutil/runtimeexception.h>
 #include <oriutil/systemexception.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/oricrypt.h>
 #include <ori/object.h>
 #include <ori/index.h>
@@ -124,8 +124,8 @@ Index::open(const string &indexFile)
     ASSERT(fd >= 0); // Assume that the repository lock protects the index
 
     // Delete temporary index if present
-    if (Util_FileExists(indexFile + ".tmp")) {
-        Util_DeleteFile(indexFile + ".tmp");
+    if (OriFile_Exists(indexFile + ".tmp")) {
+        OriFile_Delete(indexFile + ".tmp");
     }
 }
 
@@ -171,7 +171,7 @@ Index::rewrite()
         _writeEntry((*it).second);
     }
 
-    Util_RenameFile(newIndex, fileName);
+    OriFile_Rename(newIndex, fileName);
 }
 
 void

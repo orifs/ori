@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/orifile.h>
 #include <oriutil/dag.h>
 #include <oriutil/objecthash.h>
 #include <ori/localrepo.h>
@@ -140,7 +140,7 @@ cmd_merge(int argc, char * const argv[])
 	    mkdir(path.c_str(), 0755);
 	} else if (mdiff.entries[i].type == TreeDiffEntry::DeletedFile) {
 	    printf("D       %s\n", e.filepath.c_str());
-	    Util_DeleteFile(path);
+	    OriFile_Delete(path);
 	} else if (mdiff.entries[i].type == TreeDiffEntry::DeletedDir) {
 	    printf("D       %s\n", e.filepath.c_str());
 	    rmdir(path.c_str()); 
