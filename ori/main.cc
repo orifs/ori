@@ -87,6 +87,7 @@ int cmd_remote(int argc, char * const argv[]);
 int cmd_removekey(int argc, char * const argv[]);
 int cmd_setkey(int argc, char * const argv[]);
 int cmd_show(int argc, char * const argv[]);
+void usage_snapshot(void);
 int cmd_snapshot(int argc, char * const argv[]);
 int cmd_snapshots(int argc, char * const argv[]);
 int cmd_status(int argc, char * const argv[]);
@@ -153,12 +154,12 @@ static Cmd commands[] = {
         usage_clone,
         0,
     },
-    {
+    { // Deprecated
         "commit",
         "Commit changes into the repository",
         cmd_commit,
         usage_commit,
-        CMD_NEED_REPO | CMD_FUSE_ENABLED,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED | CMD_DEBUG,
     },
     {
         "diff",
@@ -276,8 +277,8 @@ static Cmd commands[] = {
         "snapshot",
         "Create a repository snapshot",
         cmd_snapshot,
-        NULL,
-        CMD_NEED_REPO,
+        usage_snapshot,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
         "snapshots",

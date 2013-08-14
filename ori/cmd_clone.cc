@@ -83,7 +83,7 @@ cmd_clone(int argc, char * const argv[])
                 clone_mode = 2;
                 break;
             default:
-                printf("usage: ori clone [options] <repo> [<dir>]\n");
+                printf("usage: ori clone [OPTIONS] <REPO SOURCE> [<DIR>]\n");
                 return 1;
         }
     }

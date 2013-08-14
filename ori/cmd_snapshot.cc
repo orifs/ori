@@ -19,28 +19,74 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <getopt.h>
+
 #include <string>
 #include <iostream>
 
 #include <ori/localrepo.h>
 
+#include "fuse_cmd.h"
+
 using namespace std;
 
 extern LocalRepo repository;
 
+void
+usage_snapshot(void)
+{
+    cout << "ori snapshot [OPTIONS] [SNAPSHOT NAME]" << endl;
+    cout << endl;
+    cout << "Create a snapshot of the file system." << endl;
+    cout << endl;
+    cout << "An additional snapshot name may be set, but it may only" << endl;
+    cout << "contain letters, numbers, underscores, and periods." << endl;
+    cout << endl;
+    cout << "Options:" << endl;
+    cout << "    -m message     Add a message to the snapshot" << endl;
+}
+
 int
 cmd_snapshot(int argc, char * const argv[])
 {
-    /*if (OF_RunCommand("snapshot"))
-        return 0;*/
+    int ch;
+    bool hasMsg = false;
+    bool hasName = false;
+    string msg;
+    string name;
 
-    if (argc != 2) {
-	cout << "Specify a snapshot name." << endl;
-	cout << "usage: ori snapshot <snapshot name>" << endl;
-	return 1;
+    if (OF_RunCommand("snapshot"))
+        return 0;
+
+    struct option longopts[] = {
+        { "message",    required_argument,  NULL,   'm' },
+        { NULL,         0,                  NULL,   0   }
+    };
+
+    while ((ch = getopt_long(argc, argv, "mh", longopts, NULL)) != -1) {
+        switch (ch) {
+            case 'm':
+                hasMsg = true;
+                msg = optarg;
+                break;
+            default:
+                printf("Usage: ori snapshot [OPTIONS] [SNAPSHOT NAME]\n");
+                return 1;
+        }
+    }
+    argc -= optind;
+    argv += optind;
+
+    if (argc != 0 && argc != 1) {
+        cout << "Wrong number of arguments." << endl;
+        cout << "Usage: ori snapshot [OPTIONS] [SNAPSHOT NAME]" << endl;
+        return 1;
     }
 
-    string snapshotName = argv[1];
+    if (argc == 1) {
+        hasName = true;
+        name = argv[0];
+    }
 
     Commit c;
     Tree tip_tree;
@@ -60,8 +106,15 @@ cmd_snapshot(int argc, char * const argv[])
             &repository);
 
     Commit newCommit;
-    newCommit.setMessage("Created snapshot."); // TODO: allow user to specify message
-    newCommit.setSnapshot(snapshotName);
+
+    if (hasMsg)
+        newCommit.setMessage(msg);
+    if (hasName) {
+        newCommit.setSnapshot(name);
+        if (!hasMsg)
+            newCommit.setMessage("Created snapshot '" + name + "'");
+    }
+
     repository.commitFromTree(new_tree.hash(), newCommit);
 
     return 0;

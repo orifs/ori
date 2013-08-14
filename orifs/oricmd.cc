@@ -94,7 +94,7 @@ OriCommand::write(const char *buf, size_t size, size_t offset)
     // XXX: Support arguments
     cmd.assign(buf, size);
 
-    if (strncmp(buf, "commit", size) == 0)
+    if (strncmp(buf, "snapshot", size) == 0)
         status = cmd_commit(argc, (const char **)argv);
     if (strncmp(buf, "fsck", size) == 0)
         status = cmd_fsck(argc, (const char **)argv);
