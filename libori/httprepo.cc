@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -107,7 +107,6 @@ Object::sp
 HttpRepo::getObject(const ObjectHash &id)
 {
     //LOG("WARNING: single ID request %s", id.hex().c_str());
-    //Util_PrintBacktrace();
 
     ObjectHashVec objs;
     objs.push_back(id);
@@ -153,7 +152,7 @@ HttpRepo::getObjectInfo(const ObjectHash &id)
 
     status = client->getRequest(ORIHTTP_PATH_OBJINFO + id.hex(), payload);
     if (status < 0)
-	return rval;
+        return rval;
 
     rval.fromString(payload);
 

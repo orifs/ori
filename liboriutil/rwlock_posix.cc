@@ -57,7 +57,6 @@ RWKey::sp RWLock::readLock()
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
     DLOG("%u readLock: %u", tid, lockNum);
-    //Util_LogBacktrace();
 #endif
 
 #if CHECK_LOCK_ORDER == 1
@@ -112,7 +111,6 @@ RWKey::sp RWLock::writeLock()
 #if LOG_LOCKING == 1
     threadid_t tid = Thread::getID();
     DLOG("%u writeLock: %u", tid, lockNum);
-    //Util_LogBacktrace();
 #endif
 
 #if CHECK_LOCK_ORDER == 1

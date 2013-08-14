@@ -278,7 +278,7 @@ Commit::hash() const
     ObjectHash h = OriCrypt_HashString(blob);
     /*fprintf(stderr, "Commit blob len %lu, hash %s\n", blob.size(),
             h.hex().c_str());
-    Util_PrintHex(blob);*/
+    OriDebug_PrintHex(blob);*/
     return h;
 }
 
@@ -301,7 +301,7 @@ Commit::print() const
     cout << "Date:    " << timeStr;
     if (flags & COMMIT_FLAG_HAS_SIGNATURE) {
         cout << "Signature: ";
-        Util_PrintHex(signature.data(), 0, signature.length());
+        OriDebug_PrintHex(signature.data(), 0, signature.length());
         cout << endl;
     }
     if (!graftCommitId.isEmpty()) {

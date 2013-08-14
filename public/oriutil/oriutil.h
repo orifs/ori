@@ -48,9 +48,6 @@ std::string Util_GetFullname();
 std::string Util_GetHome();
 int Util_SetBlocking(int fd, bool block);
 
-void Util_PrintHex(const std::string &data, off_t off = 0, size_t limit = 0);
-void Util_PrintBacktrace();
-void Util_LogBacktrace();
 std::string Util_NewUUID();
 bool Util_IsPathRemote(const std::string &path);
 

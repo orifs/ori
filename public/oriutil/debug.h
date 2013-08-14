@@ -85,5 +85,11 @@ int ori_open_log(const std::string &logPath);
                                 __func__, __FILE__, __LINE__); abort(); }
 #endif /* _WIN32 */
 
+void OriDebug_PrintHex(const std::string &data,
+                       off_t off = 0,
+                       size_t limit = 0);
+void OriDebug_PrintBacktrace();
+void OriDebug_LogBacktrace();
+
 #endif /* __DEBUG_H__ */
 

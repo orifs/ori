@@ -55,7 +55,7 @@ cmd_catobj(int argc, char * const argv[])
 
     if (hex) {
         printf("Hex Dump (%ld bytes):\n", len);
-        Util_PrintHex(buf, 0, len);
+        OriDebug_PrintHex(buf, 0, len);
         printf("\n");
     } else {
         printf("%s", rawBuf);

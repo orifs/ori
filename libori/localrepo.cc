@@ -326,7 +326,7 @@ LocalRepo::lock()
             fprintf(stderr, "Repository at %s is already locked\n",
                     rootPath.c_str());
             fprintf(stderr, "Another instance of ORI (pid %s) may currently be using it\n", pnum_str);
-            Util_PrintBacktrace();
+            OriDebug_PrintBacktrace();
         } else {
             perror("symlink");
         }
