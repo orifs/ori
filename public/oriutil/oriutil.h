@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -42,8 +42,6 @@ int Util_DeleteFile(const std::string &path);
 int Util_RenameFile(const std::string &from, const std::string &to);
 
 std::vector<std::string> Util_PathToVector(const std::string &path);
-std::vector<std::string> Util_StringSplit(const std::string &str, char sep);
-std::string Util_StringJoin(const std::vector<std::string> &str, char sep);
 std::string Util_GetFullname();
 std::string Util_GetHome();
 int Util_SetBlocking(int fd, bool block);
@@ -53,8 +51,6 @@ bool Util_IsPathRemote(const std::string &path);
 
 std::string StrUtil_Basename(const std::string &path);
 std::string StrUtil_Dirname(const std::string &path);
-bool StrUtil_StartsWith(const std::string &str, const std::string &part);
-bool StrUtil_EndsWith(const std::string &str, const std::string &part);
 
 #endif /* __ORI_ORIUTIL_H__ */
 

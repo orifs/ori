@@ -37,6 +37,7 @@
 #include <event2/util.h>
 
 #include <oriutil/debug.h>
+#include <oriutil/oristr.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/oricrypt.h>
 #include <oriutil/orinet.h>
@@ -342,7 +343,7 @@ start_server()
 
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
     // XXX: Update addresses periodically
-    myInfo.setHost(Util_StringJoin(OriNet_GetAddrs(), ','));
+    myInfo.setHost(OriStr_Join(OriNet_GetAddrs(), ','));
 
     announcer->start();
     listener->start();

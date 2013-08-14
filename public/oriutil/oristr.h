@@ -14,34 +14,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <iostream>
+#ifndef __ORI_ORISTR_H__
+#define __ORI_ORISTR_H__
 
-using namespace std;
+#include <stdint.h>
 
-int OriStr_selfTest(void);
-int OriUtil_selfTest(void);
-int LRUCache_selfTest(void);
-int KVSerializer_selfTest(void);
-int OriCrypt_selfTest(void);
-int Key_selfTest(void);
+#include <string>
+#include <vector>
 
-int
-main(int argc, const char *argv[])
-{
-    int result = 0;
-    result += OriStr_selfTest();
-    result += OriUtil_selfTest();
-    result += LRUCache_selfTest();
-    result += KVSerializer_selfTest();
-    result += OriCrypt_selfTest();
-    //result += Key_selfTest();
+std::vector<std::string> OriStr_Split(const std::string &str, char sep);
+std::string OriStr_Join(const std::vector<std::string> &str, char sep);
 
-    if (result == 0) {
-        cout << "All tests passed!" << endl;
-    } else {
-        cout << -result << " errors occurred." << endl;
-    }
+bool OriStr_StartsWith(const std::string &str, const std::string &part);
+bool OriStr_EndsWith(const std::string &str, const std::string &part);
 
-    return 0;
-}
+#endif /* __ORI_ORISTR_H__ */
 

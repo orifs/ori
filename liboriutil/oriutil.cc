@@ -384,44 +384,6 @@ Util_PathToVector(const string &path)
     return rval;
 }
 
-vector<string>
-Util_StringSplit(const string &str, char sep)
-{
-    size_t pos = 0;
-    vector<string> rval;
-
-    while (pos < str.length()) {
-        size_t end = str.find(sep, pos);
-        if (end == str.npos) {
-            rval.push_back(str.substr(pos));
-            break;
-        }
-
-        rval.push_back(str.substr(pos, end - pos));
-        pos = end + 1;
-    }
-
-    return rval;
-}
-
-string
-Util_StringJoin(const vector<string> &str, char sep)
-{
-    int i;
-    string rval = "";
-
-    if (str.size() == 0)
-        return rval;
-
-    rval = str[0];
-    for (i = 1; i < str.size(); i++) {
-        rval += sep;
-        rval += str[i];
-    }
-
-    return rval;
-}
-
 string
 Util_GetFullname()
 {
@@ -515,10 +477,6 @@ Util_IsPathRemote(const string &path) {
     return true;
 }
 
-
-/*
- * String utilities
- */
 std::string
 StrUtil_Basename(const std::string &path)
 {
@@ -537,24 +495,6 @@ StrUtil_Dirname(const std::string &path)
         return path;
     }
     return path.substr(0, ix);
-}
-
-bool
-StrUtil_StartsWith(const std::string &str, const std::string &part)
-{
-    if (str.length() < part.length())
-        return false;
-
-    return str.substr(0, part.length()) == part;
-}
-
-bool
-StrUtil_EndsWith(const std::string &str, const std::string &part)
-{
-    if (str.length() < part.length())
-        return false;
-
-    return str.substr(str.length() - part.length(), part.length()) == part;
 }
 
 // XXX: Debug Only
@@ -617,7 +557,6 @@ OriUtil_selfTest(void)
     ASSERT(tv[0] == "abc");
     ASSERT(tv[1] == "def");
 
-
     // Tests for stream classes
     int test_fd = open("test.a", O_RDWR | O_CREAT, 0644);
     write(test_fd, "hello, world!", 13);
@@ -648,24 +587,12 @@ OriUtil_selfTest(void)
     ASSERT(StrUtil_Basename(path) == "hello.txt");
     ASSERT(Util_PathToVector(path).size() == 4);
 
-    path = "hello.txt";
-    ASSERT(StrUtil_StartsWith(path, "hello"));
-    ASSERT(StrUtil_EndsWith(path, ".txt"));
-
     path = "/b/b.txt/file";
     std::vector<string> pv = Util_PathToVector(path);
     ASSERT(pv.size() == 3);
     ASSERT(pv[0] == "b");
     ASSERT(pv[1] == "b.txt");
     ASSERT(pv[2] == "file");
-
-    string sv_orig = "a,ab,abc";
-    vector<string> sv = Util_StringSplit(sv_orig, ',');
-    ASSERT(sv[0] == "a");
-    ASSERT(sv[1] == "ab");
-    ASSERT(sv[2] == "abc");
-    string sv_after = Util_StringJoin(sv, ',');
-    ASSERT(sv_orig == sv_after);
 
     // Test for serialization
     std::string testStr;

@@ -39,7 +39,7 @@
 #include <event2/keyvalq_struct.h>
 
 #include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
+#include <oriutil/oristr.h>
 #include <oriutil/zeroconf.h>
 #include <ori/version.h>
 #include <ori/localrepo.h>
@@ -139,10 +139,10 @@ HTTPServer::entry(struct evhttp_request *req)
         contains(req);
     } else if (url == ORIHTTP_PATH_GETOBJS) {
         getObjs(req);
-    } else if (StrUtil_StartsWith(url, "/objs/")) {
+    } else if (OriStr_StartsWith(url, "/objs/")) {
         evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");
         return;
-    } else if (StrUtil_StartsWith(url, ORIHTTP_PATH_OBJINFO)) {
+    } else if (OriStr_StartsWith(url, ORIHTTP_PATH_OBJINFO)) {
         getObjInfo(req);
     } else {
         evhttp_send_error(req, HTTP_NOTFOUND, "File Not Found");

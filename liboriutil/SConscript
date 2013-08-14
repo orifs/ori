@@ -14,6 +14,7 @@ src = [
     "objectinfo.cc",
     "oricrypt.cc",
     "orinet.cc",
+    "oristr.cc",
     "oriutil.cc",
     "rwlock.cc",
     "stopwatch.cc",

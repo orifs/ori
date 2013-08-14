@@ -45,6 +45,7 @@ using namespace std;
 #include <oriutil/runtimeexception.h>
 #include <oriutil/systemexception.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/oristr.h>
 #include <oriutil/oricrypt.h>
 #include <oriutil/scan.h>
 #include <oriutil/zeroconf.h>
@@ -210,7 +211,7 @@ LocalRepo_PeerHelper(LocalRepo *l, const string &path)
     name = name.substr(name.find_last_of("/") + 1);
 
     // Skip journal files
-    if (!StrUtil_EndsWith(name, ".journal") && !StrUtil_EndsWith(name, ".tmp")) {
+    if (!OriStr_EndsWith(name, ".journal") && !OriStr_EndsWith(name, ".tmp")) {
         l->peers[name] = p;
     }
 
