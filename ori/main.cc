@@ -106,7 +106,7 @@ int cmd_listobj(int argc, char * const argv[]); // Debug
 int cmd_refcount(int argc, char * const argv[]); // Debug
 int cmd_stats(int argc, char * const argv[]); // Debug
 int cmd_purgeobj(int argc, char * const argv[]); // Debug
-int cmd_purgecommit(int argc, char * const argv[]);
+int cmd_purgesnapshot(int argc, char * const argv[]);
 int cmd_stripmetadata(int argc, char * const argv[]); // Debug
 int cmd_sshserver(int argc, char * const argv[]); // Internal
 int cmd_sshclient(int argc, char * const argv[]); // Debug
@@ -239,9 +239,9 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
-        "purgecommit",
-        "Purge commit",
-        cmd_purgecommit,
+        "purgesnapshot",
+        "Purge snapshot",
+        cmd_purgesnapshot,
         NULL,
         CMD_NEED_REPO,
     },

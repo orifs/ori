@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,11 +27,11 @@ using namespace std;
 extern LocalRepo repository;
 
 int
-cmd_purgecommit(int argc, char * const argv[])
+cmd_purgesnapshot(int argc, char * const argv[])
 {
     if (argc != 2) {
 	cout << "Error: Incorrect number of arguements." << endl;
-	cout << "ori purgecommit <COMMITID>" << endl;
+	cout << "ori purgesnapshot <COMMITID>" << endl;
 	return 1;
     }
 
