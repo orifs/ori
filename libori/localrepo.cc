@@ -80,6 +80,12 @@ LocalRepo_Init(const std::string &rootPath, bool bareRepo)
         }
     }
 
+    if (bareRepo) {
+        // Create README for bare repositories
+        OriFile_WriteFile("DO NOT TOUCH ANY FILES!",
+                          oriPath + "/README");
+    }
+
     // Create tmp directory
     tmpDir = oriPath + "/tmp";
     if (mkdir(tmpDir.c_str(), ORI_DIR_MASK) < 0) {
@@ -116,7 +122,7 @@ LocalRepo_Init(const std::string &rootPath, bool bareRepo)
     }
 
     // Create default branch
-    tmpDir = oriPath + "/default";
+    tmpDir = oriPath + ORI_PATH_HEADS + "default";
     if (!OriFile_WriteFile(EMPTY_COMMIT.hex(), tmpDir))
     {
 	perror("Could not create default branch");
