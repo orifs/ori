@@ -142,7 +142,7 @@ LocalRepo_Init(const std::string &rootPath)
 
     // Construct UUID
     uuidFile = rootPath + ORI_PATH_UUID;
-    fd = open(uuidFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0660);
+    fd = open(uuidFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0644);
     if (fd < 0) {
         perror("Could not create UUID file");
         return 1;
@@ -151,11 +151,11 @@ LocalRepo_Init(const std::string &rootPath)
     std::string generated_uuid = Util_NewUUID();
     write(fd, generated_uuid.data(), generated_uuid.length());
     close(fd);
-    chmod(uuidFile.c_str(), 0440);
+    chmod(uuidFile.c_str(), 0444);
 
     // Construct version file
     versionFile = rootPath + ORI_PATH_VERSION;
-    fd = open(versionFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0660);
+    fd = open(versionFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0644);
     if (fd < 0) {
         perror("Could not create version file");
         return 1;
