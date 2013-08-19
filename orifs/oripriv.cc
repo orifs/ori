@@ -34,6 +34,7 @@
 #include <boost/tr1/memory.hpp>
 #include <oriutil/oritr1.h>
 
+#include <oriutil/debug.h>
 #include <oriutil/orifile.h>
 #include <oriutil/scan.h>
 #include <oriutil/systemexception.h>
@@ -62,6 +63,8 @@ OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remote
 
     try {
         repo->open();
+        if (ori_open_log(repo->getLogPath()) < 0)
+            printf("Couldn't open log!\n");
     } catch (exception &e) {
         cout << e.what() << endl;
         printf("Failed to open ori repository please check the path!\n");

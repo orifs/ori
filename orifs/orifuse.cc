@@ -1091,9 +1091,6 @@ main(int argc, char *argv[])
     FUSE_PLOG("Opening repo at %s", config.repo_path);
     printf("Opening repo at %s\n", config.repo_path);
 
-    // Debugging
-    ori_open_log("ori.log");
-
     if (!OriFile_Exists(config.repo_path)) {
         int status = mkdir(config.repo_path, 0755);
         if (status < 0) {

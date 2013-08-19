@@ -43,6 +43,7 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/mutex.h>
+#include <oriutil/orifile.h>
 
 using namespace std;
 
@@ -140,13 +141,14 @@ ori_log(int level, const char *fmt, ...)
         cerr << buf + off;
 #endif
 
-    if (logStream.is_open())
+    if (logStream.is_open()) {
         logStream.write(buf, strlen(buf));
 
-    // XXX: May cause performance issues disable on release builds
+        // Disabled on release builds for performance reasons
 #ifdef DEBUG
-    logStream.flush();
+        logStream.flush();
 #endif
+    }
 
     lock_log.unlock();
 }
@@ -191,6 +193,10 @@ int ori_open_log(const string &logPath) {
         return -1;
 
     set_terminate(ori_terminate);
+
+    if (!OriFile_Exists(logPath)) {
+        OriFile_WriteFile("", logPath);
+    }
 
     logStream.open(logPath.c_str(), fstream::in | fstream::out | fstream::app);
     if (logStream.fail()) {
