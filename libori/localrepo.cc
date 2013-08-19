@@ -55,10 +55,14 @@ using namespace std;
 #include <ori/sshrepo.h>
 #include <ori/remoterepo.h>
 
+#define ORI_DIR_MASK        0755
+#define ORI_FILE_MASK       0644
+#define ORI_ID_FILE_MASK    0444
+
 int
-LocalRepo_Init(const std::string &rootPath)
+LocalRepo_Init(const std::string &rootPath, bool bareRepo)
 {
-    string oriDir;
+    string oriPath;
     string tmpDir;
     string objDir;
     string versionFile;
@@ -66,49 +70,53 @@ LocalRepo_Init(const std::string &rootPath)
     int fd;
 
     // Create directory
-    oriDir = rootPath + ORI_PATH_DIR;
-    if (mkdir(oriDir.c_str(), 0755) < 0) {
-        perror("Could not create '.ori' directory");
-        return 1;
+    if (bareRepo) {
+        oriPath = rootPath;
+    } else {
+        oriPath = rootPath + ORI_PATH_DIR;
+        if (mkdir(oriPath.c_str(), ORI_DIR_MASK) < 0) {
+            perror("Could not create '.ori' directory");
+            return 1;
+        }
     }
 
     // Create tmp directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/tmp";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+    tmpDir = oriPath + "/tmp";
+    if (mkdir(tmpDir.c_str(), ORI_DIR_MASK) < 0) {
         perror("Could not create '.ori/tmp' directory");
         return 1;
     }
 
     // Create objs directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/objs";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+    tmpDir = oriPath + "/objs";
+    if (mkdir(tmpDir.c_str(), ORI_DIR_MASK) < 0) {
         perror("Could not create '.ori/objs' directory");
         return 1;
     }
 
     // Create trusted keys directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/trusted";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+    tmpDir = oriPath + "/trusted";
+    if (mkdir(tmpDir.c_str(), ORI_DIR_MASK) < 0) {
         perror("Could not create '.ori/trusted' directory");
         return 1;
     }
 
     // Create refs directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/refs";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+    tmpDir = oriPath + "/refs";
+    if (mkdir(tmpDir.c_str(), ORI_DIR_MASK) < 0) {
         perror("Could not create '.ori/refs' directory");
         return 1;
     }
 
     // Create refs/heads directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/refs/heads";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+    tmpDir = oriPath + "/refs/heads";
+    if (mkdir(tmpDir.c_str(), ORI_DIR_MASK) < 0) {
         perror("Could not create '.ori/refs/heads' directory");
         return 1;
     }
 
     // Create default branch
-    tmpDir = rootPath + ORI_PATH_HEADS + "/default";
+    tmpDir = oriPath + "/default";
     if (!OriFile_WriteFile(EMPTY_COMMIT.hex(), tmpDir))
     {
 	perror("Could not create default branch");
@@ -116,33 +124,21 @@ LocalRepo_Init(const std::string &rootPath)
     }
 
     // Set branch name
-    if (!OriFile_WriteFile("@default", 8, rootPath + ORI_PATH_HEAD)) {
+    if (!OriFile_WriteFile("@default", 8, oriPath + ORI_PATH_HEAD)) {
 	perror("Could not create branch file");
 	return 1;
     }
 
     // Create refs/remotes directory
-    tmpDir = rootPath + ORI_PATH_DIR + "/refs/remotes";
-    if (mkdir(tmpDir.c_str(), 0755) < 0) {
+    tmpDir = oriPath + "/refs/remotes";
+    if (mkdir(tmpDir.c_str(), ORI_DIR_MASK) < 0) {
         perror("Could not create '.ori/refs/remotes' directory");
         return 1;
     }
 
-    // Create first level of object sub-directories
-    /*for (int i = 0; i < 256; i++)
-    {
-	stringstream hexval;
-	string path = rootPath + ORI_PATH_OBJS;
-
-	hexval << hex << setw(2) << setfill('0') << i;
-	path += hexval.str();
-
-	mkdir(path.c_str(), S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
-    }*/
-
     // Construct UUID
-    uuidFile = rootPath + ORI_PATH_UUID;
-    fd = open(uuidFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0644);
+    uuidFile = oriPath + ORI_PATH_UUID;
+    fd = open(uuidFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, ORI_FILE_MASK);
     if (fd < 0) {
         perror("Could not create UUID file");
         return 1;
@@ -151,11 +147,11 @@ LocalRepo_Init(const std::string &rootPath)
     std::string generated_uuid = Util_NewUUID();
     write(fd, generated_uuid.data(), generated_uuid.length());
     close(fd);
-    chmod(uuidFile.c_str(), 0444);
+    chmod(uuidFile.c_str(), ORI_ID_FILE_MASK);
 
     // Construct version file
-    versionFile = rootPath + ORI_PATH_VERSION;
-    fd = open(versionFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, 0644);
+    versionFile = oriPath + ORI_PATH_VERSION;
+    fd = open(versionFile.c_str(), O_CREAT|O_WRONLY|O_APPEND, ORI_FILE_MASK);
     if (fd < 0) {
         perror("Could not create version file");
         return 1;

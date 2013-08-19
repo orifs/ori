@@ -35,25 +35,25 @@
 #include "mergestate.h"
 
 #define ORI_PATH_DIR "/.ori"
-#define ORI_PATH_VERSION "/.ori/version"
-#define ORI_PATH_UUID "/.ori/id"
-#define ORI_PATH_INDEX "/.ori/index"
-#define ORI_PATH_SNAPSHOTS "/.ori/snapshots"
-#define ORI_PATH_METADATA "/.ori/metadata"
-#define ORI_PATH_DIRSTATE "/.ori/dirstate"
-#define ORI_PATH_HEAD "/.ori/HEAD"
-#define ORI_PATH_MERGESTATE "/.ori/mergestate"
-#define ORI_PATH_LOG "/.ori/ori.log"
-#define ORI_PATH_TMP "/.ori/tmp/"
-#define ORI_PATH_OBJS "/.ori/objs/"
-#define ORI_PATH_HEADS "/.ori/refs/heads/"
-#define ORI_PATH_REMOTES "/.ori/refs/remotes/"
-#define ORI_PATH_PRIVATEKEY "/.ori/private.pem"
-#define ORI_PATH_TRUSTED "/.ori/trusted/"
-#define ORI_PATH_LOCK "/.ori/lock"
-#define ORI_PATH_BACKUP_CONF "/.ori/backup.conf"
+#define ORI_PATH_VERSION "/version"
+#define ORI_PATH_UUID "/id"
+#define ORI_PATH_INDEX "/index"
+#define ORI_PATH_SNAPSHOTS "/snapshots"
+#define ORI_PATH_METADATA "/metadata"
+#define ORI_PATH_DIRSTATE "/dirstate"
+#define ORI_PATH_HEAD "/HEAD"
+#define ORI_PATH_MERGESTATE "/mergestate"
+#define ORI_PATH_LOG "/ori.log"
+#define ORI_PATH_TMP "/tmp/"
+#define ORI_PATH_OBJS "/objs/"
+#define ORI_PATH_HEADS "/refs/heads/"
+#define ORI_PATH_REMOTES "/refs/remotes/"
+#define ORI_PATH_PRIVATEKEY "/private.pem"
+#define ORI_PATH_TRUSTED "/trusted/"
+#define ORI_PATH_LOCK "/lock"
+#define ORI_PATH_BACKUP_CONF "/backup.conf"
 
-int LocalRepo_Init(const std::string &path);
+int LocalRepo_Init(const std::string &path, bool barerepo);
 
 class HistoryCB
 {

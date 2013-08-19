@@ -76,6 +76,7 @@ int cmd_findheads(int argc, char * const argv[]);
 int cmd_gc(int argc, char * const argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, char * const argv[]);
+void usage_init(void);
 int cmd_init(int argc, char * const argv[]);
 int cmd_listkeys(int argc, char * const argv[]);
 int cmd_log(int argc, char * const argv[]);
@@ -207,7 +208,7 @@ static Cmd commands[] = {
         "init",
         "Initialize the repository",
         cmd_init,
-        NULL,
+        usage_init,
         0,
     },
     {

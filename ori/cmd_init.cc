@@ -22,6 +22,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <getopt.h>
+
 #include <string>
 
 #include <oriutil/debug.h>
@@ -29,6 +31,21 @@
 #include <ori/localrepo.h>
 
 using namespace std;
+
+void
+usage_init()
+{
+    cout << "ori init [OPTIONS] PATH" << endl;
+    cout << endl;
+    cout << "Create a new repository, by default this is a bare" << endl;
+    cout << "repository that cannot be checked out through the CLI." << endl;
+    cout << "For systems without FUSE support you can use the" << endl;
+    cout << "--non-bare flag to force a full repository to be" << endl;
+    cout << "created." << endl;
+    cout << endl;
+    cout << "Options:" << endl;
+    cout << "    --non-bare     Non-bare repository" << endl;
+}
 
 /*
  * Create a new repository.
@@ -38,14 +55,34 @@ using namespace std;
 int
 cmd_init(int argc, char * const argv[])
 {
+    int ch;
     string rootPath;
+    bool bareRepo = true;
     
-    if (argc == 1) {
+    struct option longopts[] = {
+        { "non-bare",   no_argument,    NULL,   'n' },
+        { NULL,         0,              NULL,   0   }
+    };
+
+    while ((ch = getopt_long(argc, argv, "n", longopts, NULL)) != -1) {
+        switch (ch) {
+            case 'n':
+                bareRepo = false;
+                break;
+            default:
+                printf("usage: ori init [OPTIONS] PATH\n");
+                return 1;
+        }
+    }
+    argc -= optind;
+    argv += optind;
+
+    if (argc == 0) {
         char *cwd = getcwd(NULL, MAXPATHLEN);
         rootPath = cwd;
         free(cwd);
-    } else if (argc == 2) {
-        rootPath = argv[1];
+    } else if (argc == 1) {
+        rootPath = argv[0];
         if (!OriFile_Exists(rootPath)) {
             mkdir(rootPath.c_str(), 0755);
         } else {
@@ -59,6 +96,6 @@ cmd_init(int argc, char * const argv[])
         return 1;
     }
 
-    return LocalRepo_Init(rootPath);
+    return LocalRepo_Init(rootPath, bareRepo);
 }
 

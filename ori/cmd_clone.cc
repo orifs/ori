@@ -49,6 +49,7 @@ usage_clone()
     cout << endl;
     cout << "Options:" << endl;
     cout << "    --full         Full clone (default)" << endl;
+    cout << "    --non-bare     Non-bare repository" << endl;
     cout << "    --shallow      Shallow clone" << endl;
 }
 
@@ -60,10 +61,12 @@ cmd_clone(int argc, char * const argv[])
     int status;
     string srcRoot;
     string newRoot;
+    bool bareRepo;
 
     struct option longopts[] = {
         { "full",       no_argument,    NULL,   'f' },
         { "shallow",    no_argument,    NULL,   's' },
+        { "non-bare",   no_argument,    NULL,   'n' },
         { NULL,         0,              NULL,   0   }
     };
 
@@ -75,6 +78,9 @@ cmd_clone(int argc, char * const argv[])
                     return 1;
                 }
                 clone_mode = 1;
+                break;
+            case 'n':
+                bareRepo = false;
                 break;
             case 's':
                 if (clone_mode != 0) {
@@ -102,11 +108,14 @@ cmd_clone(int argc, char * const argv[])
         newRoot = argv[1];
     } else {
         newRoot = srcRoot.substr(srcRoot.rfind("/")+1);
+        // If there are no slashes in the path then look for a colon
+        if (newRoot == srcRoot)
+            newRoot = srcRoot.substr(srcRoot.rfind(":")+1);
     }
     if (!OriFile_Exists(newRoot)) {
         mkdir(newRoot.c_str(), 0755);
     }
-    status = LocalRepo_Init(newRoot);
+    status = LocalRepo_Init(newRoot, bareRepo);
     if (status != 0) {
         printf("Failed to construct an empty repository!\n");
         return 1;

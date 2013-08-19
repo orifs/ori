@@ -1062,9 +1062,6 @@ main(int argc, char *argv[])
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     mount_ori_parse_opt(&args, &config);
 
-    FUSE_LOG("Config:");
-    FUSE_LOG("shallow = %d", config.shallow);
-    FUSE_LOG("nocache = %d", config.nocache);
     if (config.repo_path == NULL) {
         usage();
         exit(1);
@@ -1091,10 +1088,14 @@ main(int argc, char *argv[])
     FUSE_PLOG("Opening repo at %s", config.repo_path);
     printf("Opening repo at %s\n", config.repo_path);
 
-    if (!OriFile_Exists(config.repo_path)) {
+    if (!OriFile_Exists(config.repo_path) && config.clone_path == NULL) {
+        printf("Repository does not exist! You must create one with ");
+        printf("'ori init', or you may\nreplicate one from another host!\n");
+        return 1;
+    } else if (!OriFile_Exists(config.repo_path)) {
         int status = mkdir(config.repo_path, 0755);
         if (status < 0) {
-            printf("Repository does not exist and failed to create directory.\n");
+            printf("Failed to destination repository directory!\n");
             return 1;
         }
 
@@ -1102,7 +1103,7 @@ main(int argc, char *argv[])
 
         FUSE_LOG("Creating new repository %s", config.repo_path);
         printf("Creating new repository %s\n", config.repo_path);
-        if (LocalRepo_Init(config.repo_path) != 0) {
+        if (LocalRepo_Init(config.repo_path, /* bareRepo */true) != 0) {
             printf("Repository does not exist and failed to create one.\n");
             return 1;
         }
