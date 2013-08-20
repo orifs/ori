@@ -65,6 +65,9 @@ Util_IsValidName(const string &path)
 {
     string::const_iterator it;
 
+    if (path.size() == 0)
+        return false;
+
     for (it = path.begin(); it != path.end(); it++)
     {
         if (*it >= 'a' && *it <= 'z')
