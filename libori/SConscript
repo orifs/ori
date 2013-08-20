@@ -18,6 +18,7 @@ src = [
     "packfile.cc",
     "peer.cc",
     "repo.cc",
+    "repostore.cc",
     "remoterepo.cc",
     "snapshotindex.cc",
     "sshclient.cc",

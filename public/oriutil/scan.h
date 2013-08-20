@@ -143,6 +143,73 @@ DirTraverse(const std::string &path,
     return 0;
 }
 
+/*
+ * Recursive traverse of a directory tree calling the callback function for 
+ * directories after traversing inside.
+ */
+template <typename T>
+int
+DirRTraverse(const std::string &path,
+           T arg,
+           int (*f)(T, const std::string&))
+{
+    int status;
+    DIR *dir = NULL;
+    struct dirent *entry = NULL;
+    std::string fullpath;
+
+    if (path == "") {
+        dir = opendir(".");
+    } else {
+        dir = opendir(path.c_str());
+    }
+
+    if (dir == NULL) {
+        perror("Scan_RTraverse opendir");
+        return -1;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (path != "") {
+            fullpath = path + "/";
+        } else {
+            fullpath = "";
+        }
+        fullpath += entry->d_name;
+
+        if (strcmp(entry->d_name, ".") == 0)
+            continue;
+        if (strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        // '.ori' should never be scanned
+        if (strcmp(entry->d_name, ".ori") == 0)
+            continue;
+
+        // This check avoids symbol links to directories.
+        if (entry->d_type == DT_DIR) {
+            status = DirRTraverse(fullpath, arg, f);
+            if (status != 0) {
+                //closedir(dir);
+                //return status;
+                fprintf(stderr, "Couldn't scan directory %s\n", fullpath.c_str());
+                continue;
+            }
+        }
+
+        if (f != NULL) {
+            status = f(arg, fullpath);
+            if (status != 0) {
+                closedir(dir);
+                return status;
+            }
+        }
+    }
+
+    closedir(dir);
+    return 0;
+}
+
 
 #endif /* __SCAN_H__ */
 

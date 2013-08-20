@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Stanford University
+ * Copyright (c) 2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,26 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __ORI_ORIUTIL_H__
-#define __ORI_ORIUTIL_H__
+#ifndef __REPOSTORE_H__
+#define __REPOSTORE_H__
 
 #include <stdint.h>
 
 #include <string>
-#include <vector>
+#include <set>
 
-// GCC Only
-#define UNUSED __attribute__((unused))
+#define REPOSTORE_ROOTDIR   "/.ori"
 
-bool Util_IsValidName(const std::string &path);
+std::string RepoStore_GetRepoPath(const std::string &fsName);
+std::set<std::string> RepoStore_GetRepos();
 
-std::vector<std::string> Util_PathToVector(const std::string &path);
-std::string Util_GetFullname();
-std::string Util_GetHome();
-int Util_SetBlocking(int fd, bool block);
-
-std::string Util_NewUUID();
-bool Util_IsPathRemote(const std::string &path);
-
-#endif /* __ORI_ORIUTIL_H__ */
+#endif /* __REPOSTORE_H__ */
 

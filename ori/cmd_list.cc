@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Stanford University
+ * Copyright (c) 2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,26 +14,47 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __ORI_ORIUTIL_H__
-#define __ORI_ORIUTIL_H__
-
 #include <stdint.h>
+#include <stdio.h>
+
+#include <unistd.h>
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#include <getopt.h>
 
 #include <string>
-#include <vector>
+#include <iostream>
 
-// GCC Only
-#define UNUSED __attribute__((unused))
+#include <oriutil/debug.h>
+#include <oriutil/orifile.h>
+#include <ori/repostore.h>
 
-bool Util_IsValidName(const std::string &path);
+using namespace std;
 
-std::vector<std::string> Util_PathToVector(const std::string &path);
-std::string Util_GetFullname();
-std::string Util_GetHome();
-int Util_SetBlocking(int fd, bool block);
+void
+usage_list()
+{
+    cout << "ori list" << endl;
+    cout << endl;
+    cout << "List all local file systems." << endl;
+}
 
-std::string Util_NewUUID();
-bool Util_IsPathRemote(const std::string &path);
+/*
+ * List local file systems.
+ */
+int
+cmd_list(int argc, char * const argv[])
+{
+    set<string> repos = RepoStore_GetRepos();
+    set<string>::iterator it;
 
-#endif /* __ORI_ORIUTIL_H__ */
+    for (it = repos.begin(); it != repos.end(); it++)
+    {
+        cout << *it << endl;
+    }
+
+    return 0;
+}
 

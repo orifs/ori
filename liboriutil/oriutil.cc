@@ -60,6 +60,26 @@
 
 using namespace std;
 
+bool
+Util_IsValidName(const string &path)
+{
+    string::const_iterator it;
+
+    for (it = path.begin(); it != path.end(); it++)
+    {
+        if (*it >= 'a' && *it <= 'z')
+            continue;
+        if (*it >= 'A' && *it <= 'Z')
+            continue;
+        if (*it >= '0' && *it <= '9')
+            continue;
+        if (*it == '_' || *it == '.')
+            continue;
+        return false;
+    }
+    return true;
+}
+
 vector<string>
 Util_PathToVector(const string &path)
 {

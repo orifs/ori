@@ -70,6 +70,10 @@ void usage_clone(void);
 int cmd_clone(int argc, char * const argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, char * const argv[]);
+void usage_create();
+int cmd_create(int argc, char * const argv[]);
+void usage_destroy();
+int cmd_destroy(int argc, char * const argv[]);
 int cmd_diff(int argc, char * const argv[]);
 int cmd_filelog(int argc, char * const argv[]);
 int cmd_findheads(int argc, char * const argv[]);
@@ -78,6 +82,8 @@ void usage_graft(void);
 int cmd_graft(int argc, char * const argv[]);
 void usage_init(void);
 int cmd_init(int argc, char * const argv[]);
+void usage_list();
+int cmd_list(int argc, char * const argv[]);
 int cmd_listkeys(int argc, char * const argv[]);
 int cmd_log(int argc, char * const argv[]);
 int cmd_merge(int argc, char * const argv[]);
@@ -129,24 +135,24 @@ static Cmd commands[] = {
     },
     {
         "branch",
-        "Set or print current branch",
+        "Set or print current branch (EXPERIMENTAL)",
         cmd_branch,
         NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
         "branches",
-        "List all available branches",
+        "List all available branches (EXPERIMENTAL)",
         cmd_branches,
         NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
         "checkout",
-        "Checkout a revision of the repository",
+        "Checkout a revision of the repository (DEBUG)",
         cmd_checkout,
         NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
         "clone",
@@ -157,10 +163,24 @@ static Cmd commands[] = {
     },
     { // Deprecated
         "commit",
-        "Commit changes into the repository",
+        "Commit changes into the repository (DEPRECATED)",
         cmd_commit,
         usage_commit,
         CMD_NEED_REPO | CMD_FUSE_ENABLED | CMD_DEBUG,
+    },
+    {
+        "create",
+        "Create a new file system",
+        cmd_create,
+        usage_create,
+        0,
+    },
+    {
+        "destroy",
+        "Destroy a file system",
+        cmd_destroy,
+        usage_destroy,
+        0,
     },
     {
         "diff",
@@ -206,9 +226,16 @@ static Cmd commands[] = {
     },
     {
         "init",
-        "Initialize the repository",
+        "Initialize the repository (EXPERIMENTAL)",
         cmd_init,
         usage_init,
+        CMD_DEBUG,
+    },
+    {
+        "list",
+        "List local file systems",
+        cmd_list,
+        usage_list,
         0,
     },
     {
