@@ -42,6 +42,18 @@ RepoStore_GetRepoPath(const string &fsName)
     return Util_GetHome() + REPOSTORE_ROOTDIR"/" + fsName + ".ori";
 }
 
+string
+RepoStore_FindRepo(const string &fsNameOrPath)
+{
+    if (Util_IsValidName(fsNameOrPath)) {
+        string val = RepoStore_GetRepoPath(fsNameOrPath);
+        if (OriFile_Exists(val))
+            return val;
+    }
+
+    return fsNameOrPath;
+}
+
 int
 getRepoHelper(set<string> *repos, const std::string &path)
 {

@@ -42,6 +42,7 @@
 #include <oriutil/oriutil.h>
 #include <oriutil/zeroconf.h>
 #include <ori/version.h>
+#include <ori/repostore.h>
 #include <ori/localrepo.h>
 #include <ori/httpserver.h>
 
@@ -54,7 +55,7 @@ usage()
 {
     printf("Ori Distributed Personal File System (%s) - HTTP Server\n",
             ORI_VERSION_STR);
-    cout << "Usage: ori_httpd [OPTIONS] [REPOSITORY PATH]" << endl << endl;
+    cout << "Usage: ori_httpd [OPTIONS] FSNAME" << endl << endl;
     cout << "Options:" << endl;
     cout << "    -p port    Set the HTTP port number (default: 8080)" << endl;
 #if !defined(WITHOUT_MDNS)
@@ -70,6 +71,7 @@ main(int argc, char *argv[])
     int ch;
     bool mDNS_flag = true;
     unsigned long port = 8080;
+    string rootPath;
 
     while ((ch = getopt(argc, argv, "p:mnh")) != -1) {
         switch (ch) {
@@ -102,12 +104,16 @@ main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+    if (argc != 1) {
+        cout << "File system name is missing!" << endl;
+        usage();
+        return 1;
+    }
+
+    rootPath = RepoStore_FindRepo(argv[0]);
+
     try {
-        if (argc == 1) {
-            repository.open(argv[0]);
-        } else {
-            repository.open();
-        }
+        repository.open(rootPath);
     } catch (std::exception &e) {
         cout << e.what() << endl;
         cout << "Could not open the local repository!" << endl;
