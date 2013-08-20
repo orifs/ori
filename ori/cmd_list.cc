@@ -26,10 +26,12 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
 
 #include <oriutil/debug.h>
 #include <oriutil/orifile.h>
 #include <ori/repostore.h>
+#include <ori/localrepo.h>
 
 using namespace std;
 
@@ -50,9 +52,15 @@ cmd_list(int argc, char * const argv[])
     set<string> repos = RepoStore_GetRepos();
     set<string>::iterator it;
 
+    cout << left << setw(32) << "Name" << "File System ID" << endl;
     for (it = repos.begin(); it != repos.end(); it++)
     {
-        cout << *it << endl;
+        string path, id;
+
+        path = RepoStore_GetRepoPath(*it) + ORI_PATH_UUID;
+        id = OriFile_ReadFile(path);
+        
+        cout << left << setw(32) << *it << id << endl;
     }
 
     return 0;
