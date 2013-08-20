@@ -66,8 +66,6 @@ int cmd_addkey(int argc, char * const argv[]);
 int cmd_branches(int argc, char * const argv[]);
 int cmd_branch(int argc, char * const argv[]);
 int cmd_checkout(int argc, char * const argv[]);
-void usage_clone(void);
-int cmd_clone(int argc, char * const argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, char * const argv[]);
 int cmd_diff(int argc, char * const argv[]);
@@ -92,6 +90,8 @@ int cmd_remote(int argc, char * const argv[]);
 void usage_removefs();
 int cmd_removefs(int argc, char * const argv[]);
 int cmd_removekey(int argc, char * const argv[]);
+void usage_replicate(void);
+int cmd_replicate(int argc, char * const argv[]);
 int cmd_setkey(int argc, char * const argv[]);
 int cmd_show(int argc, char * const argv[]);
 void usage_snapshot(void);
@@ -153,13 +153,6 @@ static Cmd commands[] = {
         cmd_checkout,
         NULL,
         CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "clone",
-        "Clone a repository into the local directory",
-        cmd_clone,
-        usage_clone,
-        0,
     },
     { // Deprecated
         "commit",
@@ -286,6 +279,13 @@ static Cmd commands[] = {
         cmd_removekey,
         NULL,
         CMD_NEED_REPO,
+    },
+    {
+        "replicate",
+        "Create a local replica",
+        cmd_replicate,
+        usage_replicate,
+        0,
     },
     {
         "setkey",

@@ -32,6 +32,7 @@
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/orifile.h>
+#include <ori/repostore.h>
 #include <ori/localrepo.h>
 #include <ori/remoterepo.h>
 #include <ori/treediff.h>
@@ -41,9 +42,9 @@ using namespace std;
 extern LocalRepo repository;
 
 void
-usage_clone()
+usage_replicate()
 {
-    cout << "ori clone [OPTIONS] SOURCE [DESTINATION]" << endl;
+    cout << "ori replicate [OPTIONS] SOURCE [DESTINATION]" << endl;
     cout << endl;
     cout << "Create a local clone of a repository." << endl;
     cout << endl;
@@ -54,14 +55,14 @@ usage_clone()
 }
 
 int
-cmd_clone(int argc, char * const argv[])
+cmd_replicate(int argc, char * const argv[])
 {
     int ch;
     int clone_mode = 0;
     int status;
     string srcRoot;
     string newRoot;
-    bool bareRepo;
+    bool bareRepo = true;
 
     struct option longopts[] = {
         { "full",       no_argument,    NULL,   'f' },
@@ -104,6 +105,11 @@ cmd_clone(int argc, char * const argv[])
     }
 
     srcRoot = argv[0];
+
+    // If repository is local find the full path
+    if (Util_IsValidName(srcRoot))
+        srcRoot = RepoStore_FindRepo(srcRoot);
+
     if (argc == 2) {
         newRoot = argv[1];
     } else {
@@ -112,6 +118,11 @@ cmd_clone(int argc, char * const argv[])
         if (newRoot == srcRoot)
             newRoot = srcRoot.substr(srcRoot.rfind(":")+1);
     }
+
+    if (Util_IsValidName(newRoot) && bareRepo) {
+        newRoot = RepoStore_GetRepoPath(newRoot);
+    }
+
     if (!OriFile_Exists(newRoot)) {
         mkdir(newRoot.c_str(), 0755);
     }
@@ -140,7 +151,6 @@ cmd_clone(int argc, char * const argv[])
         RemoteRepo srcRepo;
         srcRepo.connect(srcRoot);
 
-        // XXX: Need to rely on sync log.
         ObjectHash head = srcRepo->getHead();
 
         if (clone_mode != 2) {
@@ -151,7 +161,6 @@ cmd_clone(int argc, char * const argv[])
             dstRepo.updateHead(head);
     }
 
-    // TODO: rebuild references
     RefcountMap refs = dstRepo.recomputeRefCounts();
     if (!dstRepo.rewriteRefCounts(refs))
         return 1;
