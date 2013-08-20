@@ -64,7 +64,6 @@ using namespace std;
 #define ORI_SNAPSHOT_DIRNAME ".snapshot"
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
-int cwdfd = -1;
 mount_ori_config config;
 RemoteRepo remoteRepo;
 OriPriv *priv;
@@ -1062,6 +1061,7 @@ int
 main(int argc, char *argv[])
 {
     int ch;
+    bool createReplica = false;
 
     ori_setup_ori_oper();
 
@@ -1094,6 +1094,7 @@ main(int argc, char *argv[])
                 break;
             case 'c':
                 config.clonePath = optarg;
+                createReplica = true;
                 break;
             case 's':
                 config.shallow = 1;
@@ -1139,39 +1140,46 @@ main(int argc, char *argv[])
      * If there is no repo path, then check if the repository name is the 
      * mountpoint name.  Otherwise we will generate it form the clone path.
      */
-    if (config.repoPath == "" && config.clonePath == "") {
+    if (config.repoPath == "" && !createReplica) {
         config.repoPath = OriFile_Basename(config.mountPoint);
     }
-
-
-    if (config.repoPath != "" && Util_IsValidName(config.repoPath)) {
-        string storePath = RepoStore_GetRepoPath(config.repoPath);
-        if (OriFile_Exists(storePath))
-            config.repoPath = storePath;
+    if (config.repoPath == "" && createReplica) {
+        string fsName = config.clonePath;
+        fsName = fsName.substr(fsName.rfind("/") + 1);
+        if (fsName == config.clonePath)
+            fsName = fsName.substr(fsName.rfind(":") + 1);
+        config.repoPath = RepoStore_GetRepoPath(fsName);
     }
+
+    config.repoPath = RepoStore_FindRepo(config.repoPath);
     if (config.repoPath != "" && !OriFile_Exists(config.repoPath)) {
         printf("Specify the repository name or repository path!\n");
         exit(1);
     }
 
-    if (config.clonePath == "") {
-        string path = OriFile_RealPath(config.repoPath);
-        if (path != "")
-            config.repoPath = path;
-    }
+    /*
+     * Now we do the real work of replicating and mounting the file system.
+     */
 
     FUSE_PLOG("Ori FUSE Driver");
 
-    if (config.clonePath != "") {
+    if (createReplica) {
         FUSE_LOG("InstaCloning from %s", config.clonePath.c_str());
     }
     FUSE_PLOG("Opening repo at %s", config.repoPath.c_str());
 
-    if (!OriFile_Exists(config.repoPath) && config.clonePath == "") {
+    if (!OriFile_Exists(config.repoPath) && !createReplica) {
         printf("Repository does not exist! You must create one with ");
         printf("'ori init', or you may\nreplicate one from another host!\n");
         return 1;
-    } else if (!OriFile_Exists(config.repoPath)) {
+    }
+
+    if (createReplica) {
+        if (OriFile_Exists(config.repoPath)) {
+            printf("Cannot replicate onto an existing file system!\n");
+            return 1;
+        }
+
         int status = OriFile_MkDir(config.repoPath);
         if (status < 0) {
             printf("Failed to destination repository directory!\n");
@@ -1195,12 +1203,10 @@ main(int argc, char *argv[])
 
             FUSE_LOG("InstaClone: Enabled!");
         }
-    } else if (config.clonePath != "") {
-        printf("Cannot InstaClone into an existing repository.\n");
-        return 1;
     }
+    config.repoPath = OriFile_RealPath(config.repoPath);
 
-    if (config.shallow == 0 && config.clonePath != "") {
+    if (config.shallow == 0 && createReplica) {
         try {
             LocalRepo repo;
 
@@ -1216,7 +1222,7 @@ main(int argc, char *argv[])
     }
 
     try {
-        if (config.shallow == 1 && config.clonePath != "") {
+        if (config.shallow == 1 && createReplica) {
             string originPath = config.clonePath;
 
             if (!Util_IsPathRemote(originPath)) {
@@ -1250,15 +1256,21 @@ main(int argc, char *argv[])
     int fuse_argc = 0;
     char *fuse_argv[4] = { fuse_cmd, fuse_single };
 
+    if (config.debug == 1) {
+        cout << "Repo Path:     " << config.repoPath << endl;
+        cout << "Clone Path:    " << config.clonePath << endl;
+        cout << "Mount Point:   " << config.mountPoint << endl;
+    }
+
     strncpy(fuse_mntpt, config.mountPoint.c_str(), 512);
     if (config.debug == 1)
     {
-        fuse_argv[1] = fuse_debug;
+        fuse_argv[2] = fuse_debug;
+        fuse_argv[3] = fuse_mntpt;
+        fuse_argc = 4;
+    } else {
         fuse_argv[2] = fuse_mntpt;
         fuse_argc = 3;
-    } else {
-        fuse_argv[1] = fuse_mntpt;
-        fuse_argc = 2;
     }
 
     int status = fuse_main(fuse_argc, fuse_argv, &ori_oper, NULL);

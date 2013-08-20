@@ -27,7 +27,10 @@
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
 #include <ori/server.h>
+#include <ori/repostore.h>
 #include <ori/localrepo.h>
+
+using namespace std;
 
 extern LocalRepo repository;
 
@@ -187,6 +190,8 @@ void ae_flush() {
 
 int cmd_sshserver(int argc, char * const argv[])
 {
+    string repoPath;
+
     atexit(ae_flush);
 
     Util_SetBlocking(STDIN_FILENO, true);
@@ -203,8 +208,10 @@ int cmd_sshserver(int argc, char * const argv[])
         printError("Need repository name");
         exit(1);
     }
+
+    repoPath = RepoStore_FindRepo(argv[1]);
     try {
-        repository.open(argv[1]);
+        repository.open(repoPath);
     } catch (std::exception &e) {
         printError(e.what());
         exit(101);
