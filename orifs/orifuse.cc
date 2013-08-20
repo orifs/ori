@@ -28,6 +28,8 @@
 #include <dirent.h>
 #include <pwd.h>
 
+#include <getopt.h>
+
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 
@@ -40,6 +42,7 @@
 #include <oriutil/orifile.h>
 #include <oriutil/systemexception.h>
 #include <oriutil/rwlock.h>
+#include <ori/repostore.h>
 #include <ori/version.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
@@ -61,6 +64,7 @@ using namespace std;
 #define ORI_SNAPSHOT_DIRNAME ".snapshot"
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
+int cwdfd = -1;
 mount_ori_config config;
 RemoteRepo remoteRepo;
 OriPriv *priv;
@@ -1047,6 +1051,8 @@ usage()
     printf("    --journal-none                  Disable recovery journal\n");
     printf("    --journal-async                 Asynchronous recovery journal\n");
     printf("    --journal-sync                  Synchronous recovery journal\n");
+    printf("    --debug                         Enable FUSE debug mode\n");
+    printf("    --help                          Print this message\n");
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
     printf("Website: http://ori.scs.stanford.edu/\n");
@@ -1055,79 +1061,151 @@ usage()
 int
 main(int argc, char *argv[])
 {
+    int ch;
+
     ori_setup_ori_oper();
-    umask(0);
 
-    // Parse arguments
-    struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-    mount_ori_parse_opt(&args, &config);
+    config.shallow = 0;
+    config.nocache = 0;
+    config.journal = 0;
+    config.debug = 0;
+    config.repoPath = "";
+    config.clonePath = "";
+    config.mountPoint = "";
 
-    if (config.repo_path == NULL) {
+    struct option longopts[] = {
+        { "repo",           required_argument,  NULL,   'r' },
+        { "clone",          required_argument,  NULL,   'c' },
+        { "shallow",        no_argument,        NULL,   's' },
+        { "nocache",        no_argument,        NULL,   'n' },
+        { "journal-none",   no_argument,        NULL,   'x' },
+        { "journal-async",  no_argument,        NULL,   'y' },
+        { "journal-sync",   no_argument,        NULL,   'z' },
+        { "debug",          no_argument,        NULL,   'd' },
+        { "help",           no_argument,        NULL,   'h' },
+        { NULL,             0,                  NULL,   0   }
+    };
+
+    while ((ch = getopt_long(argc, argv, "r:c:snxyzdh", longopts, NULL)) != -1)
+    {
+        switch (ch) {
+            case 'r':
+                config.repoPath = optarg;
+                break;
+            case 'c':
+                config.clonePath = optarg;
+                break;
+            case 's':
+                config.shallow = 1;
+                break;
+            case 'n':
+                config.nocache = 1;
+                break;
+            case 'x':
+                config.journal = 1;
+                break;
+            case 'y':
+                config.journal = 2;
+                break;
+            case 'z':
+                config.journal = 3;
+                break;
+            case 'd':
+                config.debug = 1;
+                break;
+            case 'h':
+                usage();
+                exit(0);
+            default:
+                printf("Unknown option!\n");
+                exit(1);
+        }
+    }
+    argc -= optind;
+    argv += optind;
+
+    if (argc != 1) {
         usage();
+        return 1;
+    }
+    if (argc > 1) {
+        printf("Too many arguments!\n");
+        return 1;
+    }
+
+    config.mountPoint = argv[0];
+
+    /*
+     * If there is no repo path, then check if the repository name is the 
+     * mountpoint name.  Otherwise we will generate it form the clone path.
+     */
+    if (config.repoPath == "" && config.clonePath == "") {
+        config.repoPath = OriFile_Basename(config.mountPoint);
+    }
+
+
+    if (config.repoPath != "" && Util_IsValidName(config.repoPath)) {
+        string storePath = RepoStore_GetRepoPath(config.repoPath);
+        if (OriFile_Exists(storePath))
+            config.repoPath = storePath;
+    }
+    if (config.repoPath != "" && !OriFile_Exists(config.repoPath)) {
+        printf("Specify the repository name or repository path!\n");
         exit(1);
     }
 
-    if (config.clone_path == NULL) {
-        char *path = realpath(config.repo_path, NULL);
-        if (path != NULL)
-            config.repo_path = path;
-
-        if (config.shallow == 1) {
-            printf("The --shallow flag can only be specified with --clone.\n\n");
-            usage();
-            exit(1);
-        }
+    if (config.clonePath == "") {
+        string path = OriFile_RealPath(config.repoPath);
+        if (path != "")
+            config.repoPath = path;
     }
 
     FUSE_PLOG("Ori FUSE Driver");
 
-    if (config.clone_path != NULL) {
-        FUSE_LOG("InstaCloning from %s", config.clone_path);
-        printf("InstaCloning from %s\n", config.clone_path);
+    if (config.clonePath != "") {
+        FUSE_LOG("InstaCloning from %s", config.clonePath.c_str());
     }
-    FUSE_PLOG("Opening repo at %s", config.repo_path);
-    printf("Opening repo at %s\n", config.repo_path);
+    FUSE_PLOG("Opening repo at %s", config.repoPath.c_str());
 
-    if (!OriFile_Exists(config.repo_path) && config.clone_path == NULL) {
+    if (!OriFile_Exists(config.repoPath) && config.clonePath == "") {
         printf("Repository does not exist! You must create one with ");
         printf("'ori init', or you may\nreplicate one from another host!\n");
         return 1;
-    } else if (!OriFile_Exists(config.repo_path)) {
-        int status = mkdir(config.repo_path, 0755);
+    } else if (!OriFile_Exists(config.repoPath)) {
+        int status = OriFile_MkDir(config.repoPath);
         if (status < 0) {
             printf("Failed to destination repository directory!\n");
             return 1;
         }
 
-        config.repo_path = realpath(config.repo_path, NULL);
+        config.repoPath = OriFile_RealPath(config.repoPath);
 
-        FUSE_LOG("Creating new repository %s", config.repo_path);
-        printf("Creating new repository %s\n", config.repo_path);
-        if (LocalRepo_Init(config.repo_path, /* bareRepo */true) != 0) {
+        printf("Creating new repository %s\n", config.repoPath.c_str());
+        if (LocalRepo_Init(config.repoPath, /* bareRepo */true) != 0) {
             printf("Repository does not exist and failed to create one.\n");
             return 1;
         }
 
-        if (config.clone_path != NULL) {
-            if (!remoteRepo.connect(config.clone_path)) {
+        if (config.clonePath != "") {
+            if (!remoteRepo.connect(config.clonePath)) {
                 printf("Failed to connect to remote repository: %s\n",
-                       config.clone_path);
+                       config.clonePath.c_str());
                 return 1;
             }
 
             FUSE_LOG("InstaClone: Enabled!");
         }
-    } else if (config.clone_path != NULL) {
+    } else if (config.clonePath != "") {
         printf("Cannot InstaClone into an existing repository.\n");
         return 1;
     }
 
-    if (config.shallow == 0 && config.clone_path != NULL) {
+    if (config.shallow == 0 && config.clonePath != "") {
         try {
             LocalRepo repo;
 
             NOT_IMPLEMENTED(false);
-            repo.open(config.repo_path);
+            repo.open(config.repoPath);
             repo.setHead(remoteRepo->getHead());
             repo.pull(remoteRepo.get());
             repo.close();
@@ -1138,16 +1216,16 @@ main(int argc, char *argv[])
     }
 
     try {
-        if (config.shallow == 1 && config.clone_path != NULL) {
-            string originPath = config.clone_path;
+        if (config.shallow == 1 && config.clonePath != "") {
+            string originPath = config.clonePath;
 
             if (!Util_IsPathRemote(originPath)) {
                 originPath = OriFile_RealPath(originPath);
             }
 
-            priv = new OriPriv(config.repo_path, originPath, remoteRepo.get());
+            priv = new OriPriv(config.repoPath, originPath, remoteRepo.get());
         } else {
-            priv = new OriPriv(config.repo_path);
+            priv = new OriPriv(config.repoPath);
         }
     } catch (SystemException e) {
         FUSE_LOG("Unexpected %s", e.what());
@@ -1165,7 +1243,25 @@ main(int argc, char *argv[])
         NOT_IMPLEMENTED(false);
     }
 
-    int status = fuse_main(args.argc, args.argv, &ori_oper, NULL);
+    char fuse_cmd[] = "orifs";
+    char fuse_single[] = "-s";
+    char fuse_debug[] = "-d";
+    char fuse_mntpt[512];
+    int fuse_argc = 0;
+    char *fuse_argv[4] = { fuse_cmd, fuse_single };
+
+    strncpy(fuse_mntpt, config.mountPoint.c_str(), 512);
+    if (config.debug == 1)
+    {
+        fuse_argv[1] = fuse_debug;
+        fuse_argv[2] = fuse_mntpt;
+        fuse_argc = 3;
+    } else {
+        fuse_argv[1] = fuse_mntpt;
+        fuse_argc = 2;
+    }
+
+    int status = fuse_main(fuse_argc, fuse_argv, &ori_oper, NULL);
     if (status != 0) {
         priv->cleanup();
     }

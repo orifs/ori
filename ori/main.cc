@@ -70,10 +70,6 @@ void usage_clone(void);
 int cmd_clone(int argc, char * const argv[]);
 void usage_commit(void);
 int cmd_commit(int argc, char * const argv[]);
-void usage_create();
-int cmd_create(int argc, char * const argv[]);
-void usage_destroy();
-int cmd_destroy(int argc, char * const argv[]);
 int cmd_diff(int argc, char * const argv[]);
 int cmd_filelog(int argc, char * const argv[]);
 int cmd_findheads(int argc, char * const argv[]);
@@ -87,10 +83,14 @@ int cmd_list(int argc, char * const argv[]);
 int cmd_listkeys(int argc, char * const argv[]);
 int cmd_log(int argc, char * const argv[]);
 int cmd_merge(int argc, char * const argv[]);
+void usage_newfs();
+int cmd_newfs(int argc, char * const argv[]);
 int cmd_pull(int argc, char * const argv[]);
 int cmd_rebuildindex(int argc, char * const argv[]);
 int cmd_rebuildrefs(int argc, char * const argv[]);
 int cmd_remote(int argc, char * const argv[]);
+void usage_removefs();
+int cmd_removefs(int argc, char * const argv[]);
 int cmd_removekey(int argc, char * const argv[]);
 int cmd_setkey(int argc, char * const argv[]);
 int cmd_show(int argc, char * const argv[]);
@@ -167,20 +167,6 @@ static Cmd commands[] = {
         cmd_commit,
         usage_commit,
         CMD_NEED_REPO | CMD_FUSE_ENABLED | CMD_DEBUG,
-    },
-    {
-        "create",
-        "Create a new file system",
-        cmd_create,
-        usage_create,
-        0,
-    },
-    {
-        "destroy",
-        "Destroy a file system",
-        cmd_destroy,
-        usage_destroy,
-        0,
     },
     {
         "diff",
@@ -260,6 +246,13 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
+        "newfs",
+        "Create a new file system",
+        cmd_newfs,
+        usage_newfs,
+        0,
+    },
+    {
         "pull",
         "Pull changes from a repository",
         cmd_pull,
@@ -279,6 +272,13 @@ static Cmd commands[] = {
         cmd_remote,
         NULL,
         CMD_NEED_REPO,
+    },
+    {
+        "removefs",
+        "Remove a local replica",
+        cmd_removefs,
+        usage_removefs,
+        0,
     },
     {
         "removekey",

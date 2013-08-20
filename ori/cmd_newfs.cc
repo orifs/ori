@@ -36,9 +36,9 @@
 using namespace std;
 
 void
-usage_create()
+usage_newfs()
 {
-    cout << "ori create [OPTIONS] FSNAME" << endl;
+    cout << "ori newfs [OPTIONS] FSNAME" << endl;
     cout << endl;
     cout << "Create a new repository, this is a bare repository stored" << endl;
     cout << "stored in your home directory under '.ori'." << endl;
@@ -48,12 +48,12 @@ usage_create()
 }
 
 /*
- * Create a new repository.
+ * Create a new file system.
  *
- * TODO: Destroy partially created repository to handle errors better.
+ * TODO: Destroy repository's that have failed to be created.
  */
 int
-cmd_create(int argc, char * const argv[])
+cmd_newfs(int argc, char * const argv[])
 {
     int ch;
     int status;
@@ -72,7 +72,7 @@ cmd_create(int argc, char * const argv[])
                 autosync = true;
                 break;
             default:
-                printf("Usage: ori create [OPTIONS] FSNAME\n");
+                printf("Usage: ori newfs [OPTIONS] FSNAME\n");
                 return 1;
         }
     }
@@ -84,7 +84,7 @@ cmd_create(int argc, char * const argv[])
             printf("Argument required!\n");
         if (argc > 1)
             printf("Too many arguments!\n"); 
-        printf("Usage: ori create [OPTIONS] FSNAME\n");
+        printf("Usage: ori newfs [OPTIONS] FSNAME\n");
         return 1;
     }
     

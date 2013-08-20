@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,15 +17,17 @@
 #ifndef __ORIOPT_H__
 #define __ORIOPT_H__
 
+#include <string>
+
 struct mount_ori_config {
     int shallow;
     int nocache;
     int journal;
-    char *repo_path;
-    char *clone_path;
+    int debug;
+    std::string repoPath;
+    std::string clonePath;
+    std::string mountPoint;
 };
-
-void mount_ori_parse_opt(struct fuse_args *args, mount_ori_config *conf);
 
 #endif /* __ORIOPT_H__ */
 

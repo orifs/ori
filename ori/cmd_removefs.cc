@@ -36,16 +36,16 @@
 using namespace std;
 
 void
-usage_destroy()
+usage_removefs()
 {
-    cout << "ori destroy FSNAME" << endl;
+    cout << "ori removefs FSNAME" << endl;
     cout << endl;
-    cout << "Destroy a repository. This is a permanant operation local" << endl;
-    cout << "to this machine" << endl;
+    cout << "Remove a local replica. This is a permanant operation," << endl;
+    cout << "is local to this machine." << endl;
 }
 
 static int
-destroyHelper(int unused, const string &path)
+removefsHelper(int unused, const string &path)
 {
     if (OriFile_IsDirectory(path))
         OriFile_RmDir(path);
@@ -56,10 +56,10 @@ destroyHelper(int unused, const string &path)
 }
 
 /*
- * Destroy a repository.
+ * Remove a local replica.
  */
 int
-cmd_destroy(int argc, char * const argv[])
+cmd_removefs(int argc, char * const argv[])
 {
     string fsName;
     string rootPath;
@@ -69,7 +69,7 @@ cmd_destroy(int argc, char * const argv[])
             printf("Argument required!\n");
         if (argc > 2)
             printf("Too many arguments!\n"); 
-        printf("Usage: ori destroy FSNAME\n");
+        printf("Usage: ori removefs FSNAME\n");
         return 1;
     }
     
@@ -87,7 +87,7 @@ cmd_destroy(int argc, char * const argv[])
 
     // XXX: unregister with autosync
 
-    DirRTraverse(rootPath, 0, destroyHelper);
+    DirRTraverse(rootPath, 0, removefsHelper);
     OriFile_RmDir(rootPath);
 
     return 0;

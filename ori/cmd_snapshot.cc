@@ -63,7 +63,7 @@ cmd_snapshot(int argc, char * const argv[])
         { NULL,         0,                  NULL,   0   }
     };
 
-    while ((ch = getopt_long(argc, argv, "mh", longopts, NULL)) != -1) {
+    while ((ch = getopt_long(argc, argv, "m:", longopts, NULL)) != -1) {
         switch (ch) {
             case 'm':
                 hasMsg = true;
