@@ -38,8 +38,6 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/bind.hpp>
 
-using namespace std;
-
 #include <ori/version.h>
 #include <oriutil/debug.h>
 #include <oriutil/runtimeexception.h>
@@ -55,12 +53,14 @@ using namespace std;
 #include <ori/sshrepo.h>
 #include <ori/remoterepo.h>
 
+using namespace std;
+
 #define ORI_DIR_MASK        0755
 #define ORI_FILE_MASK       0644
 #define ORI_ID_FILE_MASK    0444
 
 int
-LocalRepo_Init(const std::string &rootPath, bool bareRepo)
+LocalRepo_Init(const string &rootPath, bool bareRepo, const string &uuid)
 {
     string oriPath;
     string tmpDir;
@@ -150,7 +150,7 @@ LocalRepo_Init(const std::string &rootPath, bool bareRepo)
         return 1;
     }
 
-    std::string generated_uuid = Util_NewUUID();
+    string generated_uuid = (uuid == "") ? Util_NewUUID() : uuid;
     write(fd, generated_uuid.data(), generated_uuid.length());
     close(fd);
     chmod(uuidFile.c_str(), ORI_ID_FILE_MASK);

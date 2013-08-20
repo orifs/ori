@@ -1189,20 +1189,19 @@ main(int argc, char *argv[])
         config.repoPath = OriFile_RealPath(config.repoPath);
 
         printf("Creating new repository %s\n", config.repoPath.c_str());
-        if (LocalRepo_Init(config.repoPath, /* bareRepo */true) != 0) {
+        if (!remoteRepo.connect(config.clonePath)) {
+            printf("Failed to connect to remote repository: %s\n",
+                   config.clonePath.c_str());
+            return 1;
+        }
+
+        if (LocalRepo_Init(config.repoPath, /* bareRepo */true,
+                           remoteRepo->getUUID()) != 0) {
             printf("Repository does not exist and failed to create one.\n");
             return 1;
         }
 
-        if (config.clonePath != "") {
-            if (!remoteRepo.connect(config.clonePath)) {
-                printf("Failed to connect to remote repository: %s\n",
-                       config.clonePath.c_str());
-                return 1;
-            }
-
-            FUSE_LOG("InstaClone: Enabled!");
-        }
+        FUSE_LOG("InstaClone: Enabled!");
     }
     config.repoPath = OriFile_RealPath(config.repoPath);
 

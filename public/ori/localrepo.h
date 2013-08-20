@@ -53,7 +53,8 @@
 #define ORI_PATH_LOCK "/lock"
 #define ORI_PATH_BACKUP_CONF "/backup.conf"
 
-int LocalRepo_Init(const std::string &path, bool barerepo);
+int LocalRepo_Init(const std::string &path, bool barerepo,
+                   const std::string &uuid = "");
 
 class HistoryCB
 {

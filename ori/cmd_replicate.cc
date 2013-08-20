@@ -123,16 +123,19 @@ cmd_replicate(int argc, char * const argv[])
         newRoot = RepoStore_GetRepoPath(newRoot);
     }
 
+    printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
+
+    RemoteRepo srcRepo;
+    srcRepo.connect(srcRoot);
+
     if (!OriFile_Exists(newRoot)) {
         mkdir(newRoot.c_str(), 0755);
     }
-    status = LocalRepo_Init(newRoot, bareRepo);
+    status = LocalRepo_Init(newRoot, bareRepo, srcRepo->getUUID());
     if (status != 0) {
         printf("Failed to construct an empty repository!\n");
         return 1;
     }
-
-    printf("Cloning from %s to %s\n", srcRoot.c_str(), newRoot.c_str());
 
     LocalRepo dstRepo;
     dstRepo.open(newRoot);
@@ -147,19 +150,14 @@ cmd_replicate(int argc, char * const argv[])
         dstRepo.setInstaClone("origin", true);
     }
 
-    {
-        RemoteRepo srcRepo;
-        srcRepo.connect(srcRoot);
+    ObjectHash head = srcRepo->getHead();
 
-        ObjectHash head = srcRepo->getHead();
-
-        if (clone_mode != 2) {
-            dstRepo.pull(srcRepo.get());
-        }
-
-        if (!head.isEmpty())
-            dstRepo.updateHead(head);
+    if (clone_mode != 2) {
+        dstRepo.pull(srcRepo.get());
     }
+
+    if (!head.isEmpty())
+        dstRepo.updateHead(head);
 
     RefcountMap refs = dstRepo.recomputeRefCounts();
     if (!dstRepo.rewriteRefCounts(refs))
