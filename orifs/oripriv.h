@@ -188,6 +188,11 @@ public:
     void journal(const std::string &event, const std::string &arg);
     // Debugging
     void fsck(bool fromCmd = false);
+
+    // Locks
+    RWLock ioLock; // File I/O lock to allow atomic commits
+    RWLock nsLock; // Namespace lock
+    RWLock cmdLock; // Control device lock
 private:
     OriPrivId nextId;
     uint64_t nextFH;
@@ -205,11 +210,6 @@ private:
     ObjectHash head;
     Commit headCommit;
     std::string tmpDir;
-
-    // Locks
-    RWLock ioLock; // File I/O lock to allow atomic commits
-    RWLock nsLock; // Namespace lock
-    RWLock cmdLock; // Control device lock
 
     friend class OriCommand;
 };

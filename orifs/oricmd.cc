@@ -229,7 +229,7 @@ OriCommand::cmd_snapshots(int argc, const char *argv[])
 
     for (it = snapshots.begin(); it != snapshots.end(); it++)
     {
-        printf("%s\n", (*it).first);
+        printf("%s\n", (*it).first.c_str());
     }
 
     return 0;

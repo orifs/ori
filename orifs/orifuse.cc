@@ -121,6 +121,7 @@ ori_unlink(const char *path)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         OriDir *parentDir = priv->getDir(parentPath);
         OriFileInfo *info = priv->getFileInfo(path);
@@ -172,6 +173,7 @@ ori_symlink(const char *target_path, const char *link_path)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         parentDir = priv->getDir(parentPath);
     } catch (SystemException e) {
@@ -200,6 +202,7 @@ ori_readlink(const char *path, char *buf, size_t size)
 
     FUSE_LOG("FUSE ori_readlink(path\"%s\", size=%ld)", path, size);
 
+    RWKey::sp lock = priv->nsLock.readLock();
     try {
         info = priv->getFileInfo(path);
     } catch (SystemException e) {
@@ -242,6 +245,7 @@ ori_rename(const char *from_path, const char *to_path)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         OriDir *fromDir = priv->getDir(fromParent);
         OriDir *toDir = priv->getDir(toParent);
@@ -323,6 +327,7 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         parentDir = priv->getDir(parentPath);
     } catch (SystemException e) {
@@ -369,6 +374,7 @@ ori_open(const char *path, struct fuse_file_info *fi)
         return writing ? -EPERM : 0;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
@@ -441,6 +447,7 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
         return status;
     }
 
+    RWKey::sp lock = priv->nsLock.readLock();
     info = priv->getFileInfo(fi->fh);
     if (info->fd != -1) {
         // File in temporary directory
@@ -474,6 +481,7 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
         return -EIO;
     }
 
+    RWKey::sp lock = priv->nsLock.readLock();
     info = priv->getFileInfo(fi->fh);
     status = pwrite(info->fd, buf, size, offset);
     if (status < 0)
@@ -505,6 +513,7 @@ ori_truncate(const char *path, off_t length)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     info = priv->getFileInfo(path);
     if (info->type == FILETYPE_TEMPORARY) {
         int status;
@@ -543,6 +552,7 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
         return -EIO;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     info = priv->getFileInfo(fi->fh);
     if (info->type == FILETYPE_TEMPORARY) {
         int status;
@@ -578,6 +588,7 @@ ori_release(const char *path, struct fuse_file_info *fi)
         return 0;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     // Decrement reference count (deletes temporary file for unlink)
     return priv->closeFH(fi->fh);
 }
@@ -608,6 +619,7 @@ ori_mkdir(const char *path, mode_t mode)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         parentDir = priv->getDir(parentPath);
         parentInfo = priv->getFileInfo(parentPath);
@@ -648,6 +660,7 @@ ori_rmdir(const char *path)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         OriDir *parentDir = priv->getDir(parentPath);
         OriFileInfo *parentInfo = priv->getFileInfo(parentPath);
@@ -742,6 +755,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
         return 0;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         dir = priv->getDir(path);
     } catch (SystemException e) {
@@ -858,6 +872,7 @@ ori_getattr(const char *path, struct stat *stbuf)
         return 0;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         OriFileInfo *info = priv->getFileInfo(path);
         *stbuf = info->statInfo;
@@ -888,6 +903,7 @@ ori_chmod(const char *path, mode_t mode)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         OriFileInfo *info = priv->getFileInfo(path);
 
@@ -922,6 +938,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         OriFileInfo *info = priv->getFileInfo(path);
 
@@ -957,6 +974,7 @@ ori_utimens(const char *path, const struct timespec tv[2])
         return -EACCES;
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         OriFileInfo *info = priv->getFileInfo(path);
 
@@ -985,6 +1003,7 @@ ori_fsync(const char *path, int isdatasync, struct fuse_file_info *fi)
         return -EBADF;
     }
 
+    RWKey::sp lock = priv->nsLock.readLock();
     try {
         info = priv->getFileInfo(fi->fh);
         if (info->fd == -1)
