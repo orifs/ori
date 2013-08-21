@@ -1224,8 +1224,7 @@ LocalRepo::addTreeBackrefs(const Tree &t, MdTransaction::sp tr)
             if (te.type == TreeEntry::Tree) {
                 Tree subtree = getTree(te.hash);
                 addTreeBackrefs(subtree, tr);
-            }
-            else if (te.type == TreeEntry::LargeBlob) {
+            } else if (te.type == TreeEntry::LargeBlob) {
                 LargeBlob lb(this);
                 lb.fromBlob(getPayload(te.hash));
                 addLargeBlobBackrefs(lb, tr);

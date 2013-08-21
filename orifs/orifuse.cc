@@ -75,6 +75,8 @@ ori_init(struct fuse_conn_info *conn)
 {
     FUSE_LOG("Ori Filesystem starting ...");
 
+    chdir(config.repoPath.c_str());
+
     return priv;
 }
 

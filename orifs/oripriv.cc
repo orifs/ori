@@ -639,7 +639,7 @@ OriPriv::commitTreeHelper(const string &path)
 {
     ObjectHash hash = ObjectHash();
     OriDir *dir = getDir(path == "" ? "/" : path);
-    Tree oldTree;
+    Tree oldTree = Tree();
     Tree newTree;
     bool dirty = false;
 
@@ -754,8 +754,14 @@ OriPriv::commitTreeHelper(const string &path)
 
                 // Save new hash
                 newTree.tree[it->first].hash = subdir;
+            } else {
+                Tree::iterator oldEntry = oldTree.find(it->first);
+                ASSERT(oldEntry != oldTree.end());
+                newTree.tree[it->first].hash = oldEntry->second.hash;
             }
         }
+
+        ASSERT(!newTree.tree[it->first].hash.isEmpty());
     }
 
     if (dirty) {
