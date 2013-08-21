@@ -47,6 +47,9 @@ DirIterate(const std::string &path,
         dir = opendir(path.c_str());
     }
 
+    if (dir == NULL)
+        return 1;
+
     while ((entry = readdir(dir)) != NULL) {
         if (path != "") {
             fullpath = path + "/";
