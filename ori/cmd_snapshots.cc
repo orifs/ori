@@ -25,6 +25,8 @@
 
 #include <ori/localrepo.h>
 
+#include "fuse_cmd.h"
+
 using namespace std;
 
 extern LocalRepo repository;
@@ -32,8 +34,13 @@ extern LocalRepo repository;
 int
 cmd_snapshots(int argc, char * const argv[])
 {
-    map<string, ObjectHash> snapshots = repository.listSnapshots();
+    map<string, ObjectHash> snapshots;
     map<string, ObjectHash>::iterator it;
+
+    if (OF_RunCommand("snapshots"))
+        return 0;
+
+    snapshots = repository.listSnapshots();
 
     for (it = snapshots.begin(); it != snapshots.end(); it++)
     {

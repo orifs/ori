@@ -94,14 +94,16 @@ OriCommand::write(const char *buf, size_t size, size_t offset)
     // XXX: Support arguments
     cmd.assign(buf, size);
 
-    if (strncmp(buf, "snapshot", size) == 0)
-        status = cmd_commit(argc, (const char **)argv);
     if (strncmp(buf, "fsck", size) == 0)
         status = cmd_fsck(argc, (const char **)argv);
     if (strncmp(buf, "log", size) == 0)
         status = cmd_log(argc, (const char **)argv);
     if (strncmp(buf, "show", size) == 0)
         status = cmd_show(argc, (const char **)argv);
+    if (strncmp(buf, "snapshot", size) == 0)
+        status = cmd_snapshot(argc, (const char **)argv);
+    if (strncmp(buf, "snapshots", size) == 0)
+        status = cmd_snapshots(argc, (const char **)argv);
     if (strncmp(buf, "status", size) == 0)
         status = cmd_status(argc, (const char **)argv);
     if (strncmp(buf, "tip", size) == 0)
@@ -135,29 +137,6 @@ OriCommand::cmd_fsck(int argc, const char *argv[])
     FUSE_LOG("Command: fsck");
 
     priv->fsck(true);
-
-    return 0;
-}
-
-int
-OriCommand::cmd_commit(int argc, const char *argv[])
-{
-#if defined(DEBUG) || defined(ORI_PERF)
-    Stopwatch sw = Stopwatch();
-    sw.start();
-#endif /* DEBUG */
-
-    FUSE_PLOG("Command: commit");
-
-    string msg = priv->commit("FUSE commit from user");
-
-    printf("%s\n", msg.c_str());
-
-#if defined(DEBUG) || defined(ORI_PERF)
-    sw.stop();
-    FUSE_PLOG("commit result: %s", msg.c_str());
-    FUSE_PLOG("commit elapsed %ldus", sw.getElapsedTime());
-#endif /* DEBUG */
 
     return 0;
 }
@@ -217,7 +196,44 @@ OriCommand::cmd_show(int argc, const char *argv[])
     return 0;
 }
 
+int
+OriCommand::cmd_snapshot(int argc, const char *argv[])
+{
+#if defined(DEBUG) || defined(ORI_PERF)
+    Stopwatch sw = Stopwatch();
+    sw.start();
+#endif /* DEBUG */
 
+    FUSE_PLOG("Command: snapshot");
+
+    string msg = priv->commit("FUSE commit from user");
+
+    printf("%s\n", msg.c_str());
+
+#if defined(DEBUG) || defined(ORI_PERF)
+    sw.stop();
+    FUSE_PLOG("commit result: %s", msg.c_str());
+    FUSE_PLOG("commit elapsed %ldus", sw.getElapsedTime());
+#endif /* DEBUG */
+
+    return 0;
+}
+
+int
+OriCommand::cmd_snapshots(int argc, const char *argv[])
+{
+    FUSE_LOG("Command: snapshots");
+
+    map<string, ObjectHash> snapshots = priv->repo->listSnapshots();
+    map<string, ObjectHash>::iterator it;
+
+    for (it = snapshots.begin(); it != snapshots.end(); it++)
+    {
+        printf("%s\n", (*it).first);
+    }
+
+    return 0;
+}
 
 int
 OriCommand::cmd_status(int argc, const char *argv[])

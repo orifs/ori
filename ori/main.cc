@@ -313,7 +313,7 @@ static Cmd commands[] = {
         "List all snapshots available in the repository",
         cmd_snapshots,
         NULL,
-        CMD_NEED_REPO,
+        CMD_NEED_REPO | CMD_FUSE_ENABLED,
     },
     {
         "status",
