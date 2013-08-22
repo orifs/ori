@@ -475,6 +475,7 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
     // FUSE_LOG("FUSE ori_write(path=\"%s\", length=%ld)", path, size);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        RWKey::sp lock = priv->nsLock.writeLock();
         return priv->cmd.write(buf, size, offset);
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
@@ -1071,6 +1072,7 @@ usage()
     printf("    --journal-none                  Disable recovery journal\n");
     printf("    --journal-async                 Asynchronous recovery journal\n");
     printf("    --journal-sync                  Synchronous recovery journal\n");
+    printf("    --no-threads                    Disable threading\n");
     printf("    --debug                         Enable FUSE debug mode\n");
     printf("    --help                          Print this message\n");
 
@@ -1089,6 +1091,7 @@ main(int argc, char *argv[])
     config.shallow = 0;
     config.nocache = 0;
     config.journal = 0;
+    config.single = 0;
     config.debug = 0;
     config.repoPath = "";
     config.clonePath = "";
@@ -1102,6 +1105,7 @@ main(int argc, char *argv[])
         { "journal-none",   no_argument,        NULL,   'x' },
         { "journal-async",  no_argument,        NULL,   'y' },
         { "journal-sync",   no_argument,        NULL,   'z' },
+        { "no-threads",     no_argument,        NULL,   't' },
         { "debug",          no_argument,        NULL,   'd' },
         { "help",           no_argument,        NULL,   'h' },
         { NULL,             0,                  NULL,   0   }
@@ -1132,6 +1136,8 @@ main(int argc, char *argv[])
             case 'z':
                 config.journal = 3;
                 break;
+            case 't':
+                config.single = 1;
             case 'd':
                 config.debug = 1;
                 break;
@@ -1273,8 +1279,8 @@ main(int argc, char *argv[])
     char fuse_single[] = "-s";
     char fuse_debug[] = "-d";
     char fuse_mntpt[512];
-    int fuse_argc = 0;
-    char *fuse_argv[4] = { fuse_cmd, fuse_single };
+    int fuse_argc = 1;
+    char *fuse_argv[4] = { fuse_cmd };
 
     if (config.debug == 1) {
         cout << "Repo Path:     " << config.repoPath << endl;
@@ -1283,15 +1289,21 @@ main(int argc, char *argv[])
     }
 
     strncpy(fuse_mntpt, config.mountPoint.c_str(), 512);
+
+    if (config.single == 1)
+    {
+        fuse_argv[fuse_argc] = fuse_single;
+        fuse_argc++;
+    }
+
     if (config.debug == 1)
     {
-        fuse_argv[2] = fuse_debug;
-        fuse_argv[3] = fuse_mntpt;
-        fuse_argc = 4;
-    } else {
-        fuse_argv[2] = fuse_mntpt;
-        fuse_argc = 3;
+        fuse_argv[fuse_argc] = fuse_debug;
+        fuse_argc++;
     }
+
+    fuse_argv[fuse_argc] = fuse_mntpt;
+    fuse_argc++;
 
     int status = fuse_main(fuse_argc, fuse_argv, &ori_oper, NULL);
     if (status != 0) {

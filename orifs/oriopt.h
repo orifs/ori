@@ -23,6 +23,7 @@ struct mount_ori_config {
     int shallow;
     int nocache;
     int journal;
+    int single;
     int debug;
     std::string repoPath;
     std::string clonePath;

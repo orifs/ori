@@ -754,7 +754,7 @@ OriPriv::commitTreeHelper(const string &path)
 
                 // Save new hash
                 newTree.tree[it->first].hash = subdir;
-            } else {
+            } else if (newTree.tree[it->first].hash.isEmpty()) {
                 Tree::iterator oldEntry = oldTree.find(it->first);
                 ASSERT(oldEntry != oldTree.end());
                 newTree.tree[it->first].hash = oldEntry->second.hash;
@@ -971,8 +971,15 @@ OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
 void
 OriPriv::fsck(bool fromCmd)
 {
+    RWKey::sp lock;
     map<string, OriFileInfo *>::iterator it;
-    OriDir *dir = getDir("/");
+    OriDir *dir;
+
+    // Lock if this isn't from the command line
+    if (!fromCmd)
+        lock = nsLock.writeLock();
+
+    dir = getDir("/");
 
     OriPrivCheckDir(this, fromCmd, "", dir);
 
