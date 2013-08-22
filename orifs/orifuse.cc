@@ -1072,8 +1072,8 @@ usage()
     printf("    --journal-none                  Disable recovery journal\n");
     printf("    --journal-async                 Asynchronous recovery journal\n");
     printf("    --journal-sync                  Synchronous recovery journal\n");
-    printf("    --no-threads                    Disable threading\n");
-    printf("    --debug                         Enable FUSE debug mode\n");
+    printf("    --no-threads                    Disable threading (DEBUG)\n");
+    printf("    --debug                         Enable FUSE debug mode (DEBUG)\n");
     printf("    --help                          Print this message\n");
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
