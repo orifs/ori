@@ -71,7 +71,7 @@ void basestream::setErrno(const char *msg) {
     last_error.assign(buf);
     last_errnum = errno;
 #if DEBUG
-    fprintf(stderr, "Stream error: %s\n", buf);
+    LOG("Stream error: %s", buf);
 #endif
 }
 

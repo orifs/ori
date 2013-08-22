@@ -83,36 +83,50 @@ PfTransaction::addPayload(ObjectInfo info, const string &payload)
     }
 #endif
 
-#ifdef ENABLE_COMPRESSION
-    zipstream ls(new strstream(payload), COMPRESS);
-    uint8_t buf[COMPCHECK_BYTES];
-    size_t compSize = 0;
-    bool compress = false;
-
-    if (payload.size() > ZIP_MINIMUM_SIZE) {
-        compSize = ls.read(buf, COMPCHECK_BYTES);
-        float ratio = (float)compSize / (float)ls.inputConsumed();
-
-        if (ratio <= COMPCHECK_RATIO) {
-            compress = true;
+    ObjectInfo::ZipAlgo defaultAlgo = ObjectInfo::ZIPALGO_FASTLZ;
+    switch (defaultAlgo) {
+        case ObjectInfo::ZIPALGO_NONE:
+        {
+            info.setAlgo(defaultAlgo);
+            payloads.push_back(payload);
+            totalSize += payload.size();
+            break;
         }
-    }
+        case ObjectInfo::ZIPALGO_FASTLZ:
+        {
+            zipstream ls(new strstream(payload), COMPRESS);
+            uint8_t buf[COMPCHECK_BYTES];
+            size_t compSize = 0;
+            bool compress = false;
 
-    if (compress) {
-        // Okay to compress
-        info.flags |= ORI_FLAG_COMPRESSED;
-        // Reuse compression test data
-        strwstream ss(string((char*)buf, compSize));
-        ss.copyFrom(&ls);
-        
-        payloads.push_back(ss.str());
-        totalSize += ss.str().size();
-    }
-    else
-#endif
-    {
-        payloads.push_back(payload);
-        totalSize += payload.size();
+            if (payload.size() > ZIP_MINIMUM_SIZE) {
+                compSize = ls.read(buf, COMPCHECK_BYTES);
+                float ratio = (float)compSize / (float)ls.inputConsumed();
+
+                if (ratio <= COMPCHECK_RATIO) {
+                    compress = true;
+                }
+            }
+
+            if (compress) {
+                // Okay to compress
+                info.setAlgo(defaultAlgo);
+                // Reuse compression test data
+                strwstream ss(string((char*)buf, compSize));
+                ss.copyFrom(&ls);
+
+                payloads.push_back(ss.str());
+                totalSize += ss.str().size();
+            } else {
+                info.setAlgo(ObjectInfo::ZIPALGO_NONE);
+                payloads.push_back(payload);
+                totalSize += payload.size();
+            }
+            break;
+        }
+        case ObjectInfo::ZIPALGO_LZMA:
+        case ObjectInfo::ZIPALGO_UNKNOWN:
+            NOT_IMPLEMENTED(false);
     }
 
     infos.push_back(info);
@@ -224,15 +238,16 @@ bytestream *Packfile::getPayload(const IndexEntry &entry)
 {
     ASSERT(entry.packfile == packid);
     bytestream *stored = new fdstream(fd, entry.offset, entry.packed_size);
-#ifndef ENABLE_COMPRESSION
-    assert(!entry.info.getCompressed());
-    return stored;
-#else
-    if (!entry.info.getCompressed()) {
-        return stored;
+   
+    switch (entry.info.getAlgo()) {
+        case ObjectInfo::ZIPALGO_NONE:
+            return stored;
+        case ObjectInfo::ZIPALGO_FASTLZ:
+            return new zipstream(stored, DECOMPRESS, entry.info.payload_size);
+        case ObjectInfo::ZIPALGO_LZMA:
+        case ObjectInfo::ZIPALGO_UNKNOWN:
+            NOT_IMPLEMENTED(false);
     }
-    return new zipstream(stored, DECOMPRESS, entry.info.payload_size);
-#endif
 }
 
 bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)

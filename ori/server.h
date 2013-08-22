@@ -16,6 +16,7 @@ public:
     void cmd_readObjs();
     void cmd_getObjInfo();
     void cmd_getHead();
+    void cmd_getFSID();
 
 private:
 };

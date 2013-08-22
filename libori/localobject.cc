@@ -72,16 +72,15 @@ bytestream *LocalObject::getPayloadStream() {
         return packfile->getPayload(entry);
     }
     if (transaction.get()) {
-#ifdef ENABLE_COMPRESSION
-        if (info.getCompressed()) {
-            return new zipstream(new strstream(transaction->payloads[ix_tr]),
-                        DECOMPRESS, info.payload_size);
-        }
-        else
-#endif
-        {
-            assert(!info.getCompressed());
-            return new strstream(transaction->payloads[ix_tr]);
+        switch(info.getAlgo()) {
+            case ObjectInfo::ZIPALGO_NONE:
+                return new strstream(transaction->payloads[ix_tr]);
+            case ObjectInfo::ZIPALGO_FASTLZ:
+                return new zipstream(new strstream(transaction->payloads[ix_tr]),
+                                     DECOMPRESS, info.payload_size);
+            case ObjectInfo::ZIPALGO_LZMA:
+            case ObjectInfo::ZIPALGO_UNKNOWN:
+                NOT_IMPLEMENTED(false);
         }
     }
     return NULL;

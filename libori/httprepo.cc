@@ -127,16 +127,17 @@ HttpRepo::getObject(const ObjectHash &id)
         num = bs->readUInt32();
         ASSERT(num == 0);
 
-#ifdef ENABLE_COMPRESSION
-        if (info.getCompressed()) {
-            payloads[info.hash] = zipstream(new strstream(payload), DECOMPRESS,
-                    info.payload_size).readAll();
-        }
-        else
-#endif
-        {
-            assert(!info.getCompressed());
-            payloads[info.hash] = payload;
+        switch (info.getAlgo()) {
+            case ObjectInfo::ZIPALGO_NONE:
+                payloads[info.hash] = payload;
+                break;
+            case ObjectInfo::ZIPALGO_FASTLZ:
+                payloads[info.hash] = zipstream(new strstream(payload),
+                                                DECOMPRESS,
+                                                info.payload_size).readAll();
+            case ObjectInfo::ZIPALGO_LZMA:
+            case ObjectInfo::ZIPALGO_UNKNOWN:
+                NOT_IMPLEMENTED(false);
         }
         return Object::sp(new HttpObject(this, info));
     }

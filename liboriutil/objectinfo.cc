@@ -41,12 +41,13 @@
 using namespace std;
 
 ObjectInfo::ObjectInfo()
-    : type(Null), flags(0), payload_size((uint32_t)-1)
+    : type(Null), flags(ORI_FLAG_DEFAULT), payload_size((uint32_t)-1)
 {
 }
 
 ObjectInfo::ObjectInfo(const ObjectHash &hash)
-    : type(Null), hash(hash), flags(0), payload_size((uint32_t)-1)
+    : type(Null), hash(hash), flags(ORI_FLAG_DEFAULT),
+      payload_size((uint32_t)-1)
 {
 }
 
@@ -98,8 +99,43 @@ ObjectInfo::hasAllFields() const
     return true;
 }
 
-bool ObjectInfo::getCompressed() const {
-    return flags & ORI_FLAG_COMPRESSED;
+bool
+ObjectInfo::isCompressed() const {
+    return flags & ORI_FLAG_ZIPMASK == ORI_FLAG_UNCOMPRESSED;
+}
+
+ObjectInfo::ZipAlgo
+ObjectInfo::getAlgo() const {
+    switch (flags & ORI_FLAG_ZIPMASK) {
+        case ORI_FLAG_UNCOMPRESSED:
+            return ZIPALGO_NONE;
+        case ORI_FLAG_FASTLZ:
+            return ZIPALGO_FASTLZ;
+        case ORI_FLAG_LZMA:
+            return ZIPALGO_LZMA;
+        default:
+            return ZIPALGO_UNKNOWN;
+    }
+}
+
+void
+ObjectInfo::setAlgo(ObjectInfo::ZipAlgo algo)
+{
+    switch (algo) {
+        case ZIPALGO_NONE:
+            flags |= ORI_FLAG_UNCOMPRESSED;
+            break;
+        case ZIPALGO_FASTLZ:
+            flags |= ORI_FLAG_FASTLZ;
+            break;
+        case ZIPALGO_LZMA:
+            flags |= ORI_FLAG_LZMA;
+            break;
+        case ZIPALGO_UNKNOWN:
+        default:
+            NOT_IMPLEMENTED(false);
+            break;
+    }
 }
 
 bool ObjectInfo::operator <(const ObjectInfo &other) const {

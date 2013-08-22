@@ -58,7 +58,11 @@ cmd_list(int argc, char * const argv[])
         string path, id;
 
         path = RepoStore_GetRepoPath(*it) + ORI_PATH_UUID;
-        id = OriFile_ReadFile(path);
+        try {
+            id = OriFile_ReadFile(path);
+        } catch (exception &e) {
+            id = "*Corrupt or Uninitialized*";
+        }
         
         cout << left << setw(32) << *it << id << endl;
     }

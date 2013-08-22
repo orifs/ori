@@ -99,11 +99,11 @@ else:
     sys.exit(-1)
 
 if env["COMPRESSION_ALGO"] == "LZMA":
-    env.Append(CPPFLAGS = [ "-DORI_USE_LZMA", "-DENABLE_COMPRESSION" ])
+    env.Append(CPPFLAGS = [ "-DORI_USE_LZMA" ])
 elif env["COMPRESSION_ALGO"] == "FASTLZ":
-    env.Append(CPPFLAGS = [ "-DORI_USE_FASTLZ", "-DENABLE_COMPRESSION" ])
+    env.Append(CPPFLAGS = [ "-DORI_USE_FASTLZ" ])
 elif env["COMPRESSION_ALGO"] == "SNAPPY":
-    env.Append(CPPFLAGS = [ "-DORI_USE_SNAPPY", "-DENABLE_COMPRESSION" ])
+    env.Append(CPPFLAGS = [ "-DORI_USE_SNAPPY" ])
 elif env["COMPRESSION_ALGO"] == "NONE":
     print "Building without compression"
 else:

@@ -88,6 +88,9 @@ void SshServer::serve() {
         else if (command == "get head") {
             cmd_getHead();
         }
+        else if (command == "get fsid") {
+            cmd_getFSID();
+        }
         else {
             printError("Unknown command");
         }
@@ -181,7 +184,13 @@ void SshServer::cmd_getHead()
     fs.writeHash(repository.getHead());
 }
 
-
+void SshServer::cmd_getFSID()
+{
+    DLOG("getFSID");
+    fdwstream fs(STDOUT_FILENO);
+    fs.writeUInt8(OK);
+    fs.writePStr(repository.getUUID());
+}
 
 void ae_flush() {
     fflush(stdout);
