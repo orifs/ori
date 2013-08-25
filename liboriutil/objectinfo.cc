@@ -101,7 +101,7 @@ ObjectInfo::hasAllFields() const
 
 bool
 ObjectInfo::isCompressed() const {
-    return flags & ORI_FLAG_ZIPMASK == ORI_FLAG_UNCOMPRESSED;
+    return (flags & ORI_FLAG_ZIPMASK) == ORI_FLAG_UNCOMPRESSED;
 }
 
 ObjectInfo::ZipAlgo
