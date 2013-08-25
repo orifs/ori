@@ -44,7 +44,10 @@ OriSyncConf::OriSyncConf()
 
     ASSERT(home != "");
 
-    rcFile = home + "/.orisyncrc";
+    if (!OriFile_Exists(home + "/.ori"))
+        OriFile_MkDir(home + "/.ori");
+
+    rcFile = home + "/.ori/orisyncrc";
     if (OriFile_Exists(rcFile)) {
         load();
     }
