@@ -118,6 +118,8 @@ int cmd_stripmetadata(int argc, char * const argv[]); // Debug
 int cmd_sshserver(int argc, char * const argv[]); // Internal
 int cmd_sshclient(int argc, char * const argv[]); // Debug
 int cmd_treediff(int argc, char * const argv[]);
+int cmd_udsclient(int argc, char * const argv[]); // Debug
+int cmd_udsserver(int argc, char * const argv[]); // Debug
 #if !defined(WITHOUT_MDNS)
 int cmd_mdnsserver(int argc, char * const argv[]); // Debug
 #endif
@@ -463,6 +465,20 @@ static Cmd commands[] = {
         cmd_sshclient,
         NULL,
         CMD_DEBUG,
+    },
+    {
+        "udsclient",
+        "Connect to a server via UDS (DEBUG)",
+        cmd_udsclient,
+        NULL,
+        CMD_DEBUG,
+    },
+    {
+        "udsserver",
+        "UDS test server (DEBUG)",
+        cmd_udsserver,
+        NULL,
+        CMD_NEED_REPO | CMD_DEBUG,
     },
     {
         "version",

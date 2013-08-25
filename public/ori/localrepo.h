@@ -51,6 +51,7 @@
 #define ORI_PATH_PRIVATEKEY "/private.pem"
 #define ORI_PATH_TRUSTED "/trusted/"
 #define ORI_PATH_LOCK "/lock"
+#define ORI_PATH_UDSSOCK "/uds"
 #define ORI_PATH_BACKUP_CONF "/backup.conf"
 
 int LocalRepo_Init(const std::string &path, bool barerepo,
@@ -199,6 +200,7 @@ public:
     std::string getRootPath();
     std::string getLogPath();
     std::string getTmpFile();
+    std::string getUDSPath();
     std::string getUUID();
     std::string getVersion();
 

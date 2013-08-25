@@ -127,7 +127,7 @@ int SshClient::connect()
 
     // Sync by waiting for message from server
     if (!respIsOK()) {
-        WARNING("Couldn't connect to SSH server!\n");
+        WARNING("Couldn't connect to SSH server!");
         return -1;
     }
 
@@ -187,7 +187,7 @@ bool SshClient::respIsOK() {
         std::string errStr;
         fdstream fs(fdFromChild, -1);
         fs.readPStr(errStr);
-        WARNING("SSH error (%d): %s\n", (int)resp, errStr.c_str());
+        WARNING("SSH error (%d): %s", (int)resp, errStr.c_str());
         return false;
     }
 }

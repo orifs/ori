@@ -9,6 +9,7 @@ src = [
     "oricmd.cc",
     "orifuse.cc",
     "oripriv.cc",
+    "server.cc",
 ]
 
 libs = [

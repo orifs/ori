@@ -60,6 +60,7 @@ RemoteRepo::connect(const string &url)
             return (sc->connect() == 0);
         }
     } else {
+        // TODO: Check if FUSE mounted and use FDSRepo
         LocalRepo *lr = new LocalRepo(url);
         r = lr;
         lr->open(url);

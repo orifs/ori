@@ -26,6 +26,9 @@ src = [
     "tempdir.cc",
     "tree.cc",
     "treediff.cc",
+    "udsclient.cc",
+    "udsrepo.cc",
+    "udsserver.cc",
 ]
 
 env.StaticLibrary("ori", src)

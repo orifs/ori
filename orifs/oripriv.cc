@@ -1026,6 +1026,12 @@ OriPriv::fsck(bool fromCmd)
     }
 }
 
+LocalRepo *
+OriPriv::getRepo()
+{
+    return repo;
+}
+
 OriPriv *
 GetOriPriv()
 {

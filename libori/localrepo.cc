@@ -2262,6 +2262,14 @@ LocalRepo::getLogPath()
 }
 
 string
+LocalRepo::getUDSPath()
+{
+    if (rootPath.compare("") == 0)
+        return rootPath;
+    return rootPath + ORI_PATH_UDSSOCK;
+}
+
+string
 LocalRepo::getTmpFile()
 {
     string tmpFile;

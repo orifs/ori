@@ -193,6 +193,8 @@ public:
     RWLock ioLock; // File I/O lock to allow atomic commits
     RWLock nsLock; // Namespace lock
     RWLock cmdLock; // Control device lock
+
+    LocalRepo *getRepo();
 private:
     OriPrivId nextId;
     uint64_t nextFH;
