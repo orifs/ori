@@ -47,6 +47,7 @@
 #include "oricmd.h"
 #include "oripriv.h"
 #include "oriopt.h"
+#include "server.h"
 
 using namespace std;
 using namespace std::tr1;
@@ -156,6 +157,12 @@ OriPriv::reset()
         throw SystemException(errno);
 }
 
+void
+OriPriv::init()
+{
+    UDSServerStart(repo);
+}
+
 int
 cleanupHelper(OriPriv *priv, const string &path)
 {
@@ -173,6 +180,8 @@ OriPriv::cleanup()
     // and committed files.  This would allow us to reclaim temporary space 
     // after a commit.
     DirIterate(tmpDir, this, cleanupHelper);
+
+    UDSServerStop();
 }
 
 pair<string, int>

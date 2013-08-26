@@ -151,6 +151,7 @@ public:
     ~OriPriv();
     // Repository Operations
     void reset();
+    void init();
     void cleanup();
     std::pair<std::string, int> getTemp();
     // Current Change Operations

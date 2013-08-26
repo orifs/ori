@@ -14,50 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cstring>
-#include <stdint.h>
+#ifndef __ORIFS_SERVER_H__
+#define __ORIFS_SERVER_H__
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/stat.h> // Needed for OriPriv
-#include <errno.h>
+void UDSServerStart(LocalRepo *repo);
+void UDSServerStop();
 
-#include <sys/un.h>
-
-#include <string>
-#include <map>
-
-#include <oriutil/debug.h>
-#include <oriutil/oriutil.h>
-#include <oriutil/systemexception.h>
-#include <ori/repostore.h>
-#include <ori/localrepo.h>
-#include <ori/udsserver.h>
-
-#include "oricmd.h"
-#include "oripriv.h"
-
-using namespace std;
-
-extern OriPriv *priv;
-static UDSServer *server;
-
-void
-UDSServerStart(LocalRepo *repo)
-{
-    LOG("Starting Unix domain socket server");
-
-    server = new UDSServer(repo);
-    server->start();
-
-    return;
-}
-
-void
-UDSServerStop()
-{
-    server->shutdown();
-    delete server;
-}
+#endif /* __ORIFS_SERVER_H__ */
 

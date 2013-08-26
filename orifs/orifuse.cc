@@ -77,6 +77,8 @@ ori_init(struct fuse_conn_info *conn)
 
     chdir(config.repoPath.c_str());
 
+    priv->init();
+
     return priv;
 }
 
