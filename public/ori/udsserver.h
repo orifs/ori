@@ -17,7 +17,11 @@
 #ifndef __SERVER_H__
 #define __SERVER_H__
 
+#include <oriutil/mutex.h>
+
 #define ORI_UDS_PROTO_VERSION "1.0"
+
+class UDSSession;
 
 class UDSServer : public Thread
 {
@@ -25,17 +29,24 @@ public:
     UDSServer(LocalRepo *repo);
     ~UDSServer();
     virtual void run();
+    void shutdown();
+    void add(UDSSession *session);
+    void remove(UDSSession *session);
 private:
     int listenFd;
     LocalRepo *repo;
+    std::set<UDSSession *> sessions;
+    Mutex sessionLock;
 };
 
-class UDSSession
+class UDSSession : public Thread
 {
 public:
-    UDSSession(int fd, LocalRepo *repo);
+    UDSSession(UDSServer *uds, int fd, LocalRepo *repo);
     ~UDSSession();
 
+    virtual void run();
+    void forceExit();
     void serve();
     
     void printError(const std::string &what);
@@ -47,6 +58,7 @@ public:
     void cmd_getHead();
     void cmd_getFSID();
 private:
+    UDSServer *uds;
     int fd;
     LocalRepo *repo;
 };

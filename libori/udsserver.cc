@@ -38,7 +38,7 @@
 using namespace std;
 
 UDSServer::UDSServer(LocalRepo *repo)
-    : listenFd(-1), repo(repo)
+    : listenFd(-1), repo(repo), sessions(), sessionLock()
 {
     int status, sock, len;
     string fuseSock;
@@ -82,6 +82,9 @@ UDSServer::run()
     UDSSession *session;
 
     while (1) {
+        if (interruptionRequested())
+            return;
+
         len = sizeof(sockaddr_un);
         client = accept(listenFd, (struct sockaddr *)&remote, &len);
         if (client < 0) {
@@ -90,21 +93,85 @@ UDSServer::run()
         }
 
         LOG("UDSSession accepted!");
-        session = new UDSSession(client, repo);
-        session->serve();
-        delete session;
-        // Add session and call
+        session = new UDSSession(this, client, repo);
+        add(session);
+        session->start();
     }
 }
 
-UDSSession::UDSSession(int fd, LocalRepo *repo)
-    : fd(fd), repo(repo)
+void
+UDSServer::add(UDSSession *session)
+{
+    sessionLock.lock();
+    sessions.insert(session);
+    sessionLock.unlock();
+}
+
+void
+UDSServer::remove(UDSSession *session)
+{
+    sessionLock.lock();
+    sessions.erase(session);
+    sessionLock.unlock();
+}
+
+void
+UDSServer::shutdown()
+{
+    set<UDSSession *>::iterator it;
+
+    ::shutdown(listenFd, SHUT_RDWR);
+
+    sessionLock.lock();
+    for (it = sessions.begin(); it != sessions.end(); it++) {
+        (*it)->forceExit();
+    }
+    sessionLock.unlock();
+
+    // Wait for all to close up to 30 seconds
+    for (int i = 0; i < 30; i++)
+    {
+        sessionLock.lock();
+        if (sessions.size() == 0) {
+            sessionLock.unlock();
+            return;
+        }
+        sessionLock.unlock();
+
+        sleep(1);
+    }
+
+    WARNING("UDSSession threads have not exited yet!");
+
+    ASSERT(false);
+}
+
+UDSSession::UDSSession(UDSServer *uds, int fd, LocalRepo *repo)
+    : uds(uds), fd(fd), repo(repo)
 {
 }
 
 UDSSession::~UDSSession()
 {
     close(fd);
+}
+
+void
+UDSSession::run()
+{
+    serve();
+
+    uds->remove(this);
+    // This is safe since the start() and start callback paths there are
+    // no other references to the thread.
+    delete this;
+}
+
+void
+UDSSession::forceExit()
+{
+    shutdown(fd, SHUT_RDWR);
+    interrupt();
 }
 
 #define OK 0
@@ -119,19 +186,20 @@ UDSSession::printError(const std::string &what)
     fs.writePStr(what);
 }
 
-void UDSSession::serve() {
+void
+UDSSession::serve() {
     fdstream fs(fd, -1);
-
-    LocalRepoLock::sp lock(repo->lock());
-    if (!lock.get()) {
-        printError("Couldn't lock repo");
-        exit(1);
-    }
 
     uint8_t respOK = OK;
     write(fd, &respOK, 1);
 
+    // XXX: Catch exception when exit is forced
     while (true) {
+        if (interruptionRequested()) {
+            close(fd);
+            return;
+        }
+
         // Get command
         std::string command;
         if (fs.readPStr(command) == 0)

@@ -41,6 +41,7 @@ void EntryWrapper(Thread *t);
 
 Thread::Thread()
 {
+    interrupted = false;
     cstate = Running;
     tname = "";
     tid = pthread_self(); // How do i fix this for the current thread
@@ -49,6 +50,7 @@ Thread::Thread()
 
 Thread::Thread(const string &name)
 {
+    interrupted = false;
     cstate = Running;
     tname = name;
     tid = pthread_self();
@@ -131,6 +133,17 @@ void EntryWrapper(Thread *t)
     t->run();
 }
 
+void
+Thread::interrupt()
+{
+    interrupted = true;
+}
+
+bool
+Thread::interruptionRequested()
+{
+    return interrupted;
+}
 
 threadid_t Thread::getID() {
 #if defined(__APPLE__)

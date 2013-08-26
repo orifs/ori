@@ -81,6 +81,9 @@ public:
     int terminate();
     bool wait(unsigned long time = 0xFFFFFFFF); // ULONG_MAX = wait forever
 
+    void interrupt();
+    bool interruptionRequested();
+
     static threadid_t getID();
 protected:
     static void exit(void *retval);
@@ -88,6 +91,7 @@ protected:
     void usleep(unsigned long usecs);
     void yield();
 private:
+    bool interrupted;
     ThreadState cstate;
     std::string tname;
 #if defined(__APPLE__) || defined(__linux__) || defined(__FreeBSD__) \
