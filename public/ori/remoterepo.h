@@ -23,6 +23,7 @@
 #include "repo.h"
 #include "httpclient.h"
 #include "sshclient.h"
+#include "udsclient.h"
 
 class RemoteRepo
 {
@@ -43,6 +44,7 @@ private:
     Repo *r;
     std::tr1::shared_ptr<HttpClient> hc;
     std::tr1::shared_ptr<SshClient> sc;
+    std::tr1::shared_ptr<UDSClient> uc;
     std::string url;
 };
 

@@ -22,12 +22,15 @@
 #include <boost/tr1/memory.hpp>
 
 #include <oriutil/oriutil.h>
+#include <oriutil/systemexception.h>
 #include <ori/repo.h>
 #include <ori/localrepo.h>
 #include <ori/sshrepo.h>
 #include <ori/sshclient.h>
 #include <ori/httprepo.h>
 #include <ori/httpclient.h>
+#include <ori/udsrepo.h>
+#include <ori/udsclient.h>
 #include <ori/remoterepo.h>
 
 using namespace std;
@@ -60,7 +63,16 @@ RemoteRepo::connect(const string &url)
             return (sc->connect() == 0);
         }
     } else {
-        // TODO: Check if FUSE mounted and use FDSRepo
+        UDSClient *udsClient;
+        try {
+            udsClient = new UDSClient(url);
+            int status = udsClient->connect();
+            uc.reset(udsClient);
+            r = new UDSRepo(uc.get());
+            return (status == 0);
+        } catch (SystemException e) {
+            delete udsClient;
+        }
         LocalRepo *lr = new LocalRepo(url);
         r = lr;
         lr->open(url);
@@ -77,6 +89,8 @@ RemoteRepo::disconnect()
         hc->disconnect();
     if (sc)
         sc->disconnect();
+    if (uc)
+        uc->disconnect();
     if (r)
         delete r;
 }
