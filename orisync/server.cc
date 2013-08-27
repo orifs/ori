@@ -61,12 +61,14 @@ using namespace std;
 #define ORISYNC_ADVSKEW         5
 // Repository check interval
 #define ORISYNC_MONINTERVAL     10
+// Sync interval
+#define ORISYNC_SYNCINTERVAL    5
 
 OriSyncConf rc;
 
 HostInfo myInfo;
 RWLock infoLock;
-map<string, HostInfo> hosts;
+map<string, HostInfo *> hosts;
 RWLock hostsLock;
 
 class Announcer : public Thread
@@ -127,6 +129,8 @@ public:
 
             sleep(ORISYNC_ADVINTERVAL);
         }
+
+        DLOG("Announcer exited!");
     }
 private:
     int fd;
@@ -180,17 +184,17 @@ public:
     }
     void updateHost(KVSerializer &kv) {
         RWKey::sp key = hostsLock.writeLock();
-        map<string, HostInfo>::iterator it;
+        map<string, HostInfo *>::iterator it;
         string hostId = kv.getStr("hostId");
-
+ 
         // Update
         it = hosts.find(hostId);
         if (it == hosts.end()) {
-            hosts[hostId] = HostInfo(hostId, kv.getStr("cluster"));
+            hosts[hostId] = new HostInfo(hostId, kv.getStr("cluster"));
         }
-        hosts[hostId].update(kv);
+        hosts[hostId]->update(kv);
     }
-    void parse(const char *buf, int len) {
+    void parse(const char *buf, int len, sockaddr_in *source) {
         string ctxt;
         string ptxt;
         KVSerializer kv;
@@ -234,11 +238,11 @@ public:
     }
     void dumpHosts() {
         RWKey::sp key = hostsLock.readLock();
-        map<string, HostInfo>::iterator it;
+        map<string, HostInfo *>::iterator it;
 
         cout << "=== Begin Hosts ===" << endl;
         for (it = hosts.begin(); it != hosts.end(); it++) {
-            cout << it->second.getHost() << endl;
+            cout << it->second->getHost() << endl;
         }
         cout << "==== End Hosts ====" << endl << endl;
     }
@@ -256,10 +260,12 @@ public:
                 perror("recvfrom");
                 continue;
             }
-            parse(buf, len);
+            parse(buf, len, &srcAddr);
 
             dumpHosts();
         }
+
+        DLOG("Listener exited!");
     }
 private:
     int fd;
@@ -309,12 +315,83 @@ public:
 
             sleep(ORISYNC_MONINTERVAL);
         }
+
+        DLOG("Monitor exited!");
+    }
+};
+
+class Syncer : public Thread
+{
+public:
+    Syncer() : Thread()
+    {
+    }
+    void pullRepo(HostInfo &localHost,
+                  HostInfo &remoteHost,
+                  const std::string &uuid)
+    {
+        RepoInfo local = localHost.getRepo(uuid);
+        RepoInfo remote = remoteHost.getRepo(uuid);
+        RepoControl repo = RepoControl(local.getPath());
+
+        DLOG("Local and Remote heads mismatch on repo %s", uuid.c_str());
+
+        repo.open();
+        if (!repo.hasCommit(local.getHead())) {
+            LOG("Pulling from %s:%s",
+                remoteHost.getHost().c_str(),
+                remote.getPath().c_str());
+            repo.pull(remoteHost.getHost(), remote.getPath());
+        }
+        repo.close();
+    }
+    void checkRepo(HostInfo &infoSnapshot, const std::string &uuid)
+    {
+        map<string, HostInfo *> hostSnapshot;
+        map<string, HostInfo *>::iterator it;
+        RepoInfo localInfo = infoSnapshot.getRepo(uuid);
+
+        hostSnapshot = hosts;
+
+        for (it = hostSnapshot.begin(); it != hostSnapshot.end(); it++) {
+            list<string> repos = it->second->listRepos();
+            list<string>::iterator rIt;
+
+            for (rIt = repos.begin(); rIt != repos.end(); rIt++) {
+                RepoInfo info = it->second->getRepo(uuid);
+
+                if (info.getHead() != localInfo.getHead()) {
+                    pullRepo(infoSnapshot, *(it->second), uuid);
+                }
+            }
+        }
+    }
+    void run() {
+        while (!interruptionRequested())
+        {
+            HostInfo infoSnapshot;
+            list<string> repos;
+            list<string>::iterator it;
+
+            infoSnapshot = myInfo;
+            repos = infoSnapshot.listRepos();
+
+            for (it = repos.begin(); it != repos.end(); it++) {
+                LOG("Syncer checking %s", (*it).c_str());
+                checkRepo(infoSnapshot, *it);
+            }
+
+            sleep(ORISYNC_SYNCINTERVAL);
+        }
+
+        DLOG("Syncer exited!");
     }
 };
 
 Announcer *announcer;
 Listener *listener;
 Monitor *monitor;
+Syncer *syncer;
 
 void
 Httpd_getRoot(struct evhttp_request *req, void *arg)
@@ -340,6 +417,7 @@ start_server()
     announcer = new Announcer();
     listener = new Listener();
     monitor = new Monitor();
+    syncer = new Syncer();
 
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
     // XXX: Update addresses periodically
@@ -348,6 +426,7 @@ start_server()
     announcer->start();
     listener->start();
     monitor->start();
+    syncer->start();
 
     struct event_base *base = event_base_new();
     struct evhttp *httpd = evhttp_new(base);

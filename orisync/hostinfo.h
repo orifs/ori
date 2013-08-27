@@ -46,6 +46,8 @@ public:
 
             RepoInfo info = RepoInfo();
             info.getKV(kv, prefix);
+
+            repos[info.getRepoId()] = info;
         }
     }
     std::string getBlob() const {
