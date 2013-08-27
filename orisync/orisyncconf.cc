@@ -116,6 +116,28 @@ OriSyncConf::getRepos() const
 }
 
 void
+OriSyncConf::addHost(const string &host)
+{
+    hosts.push_back(host);
+
+    save();
+}
+
+void
+OriSyncConf::removeHost(const string &host)
+{
+    hosts.remove(host);
+
+    save();
+}
+
+list<string>
+OriSyncConf::getHosts() const
+{
+    return hosts;
+}
+
+void
 OriSyncConf::save() const
 {
     if (rcFile != "") {
@@ -144,6 +166,12 @@ OriSyncConf::getBlob() const
     blob += "cluster-key " + key + "\n";
     blob += "machine-id " + machineid + "\n";
 
+    blob += "\n# Hosts\n";
+    for (list<string>::const_iterator it = hosts.begin(); it != hosts.end(); it++)
+    {
+        blob += "host " + *it + "\n";
+    }
+
     blob += "\n# Repositories\n";
     for (list<string>::const_iterator it = repos.begin(); it != repos.end(); it++)
     {
@@ -168,6 +196,8 @@ OriSyncConf::fromBlob(const string &blob)
             key = line.substr(12);
         } else if (line.substr(0, 11) == "machine-id ") {
             machineid = line.substr(11);
+        } else if (line.substr(0, 5) == "host ") {
+            hosts.push_back(line.substr(5));
         } else if (line.substr(0, 5) == "repo ") {
             repos.push_back(line.substr(5));
         } else {

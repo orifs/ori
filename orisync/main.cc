@@ -56,6 +56,9 @@ int cmd_init(int argc, const char *argv[]);
 int cmd_add(int argc, const char *argv[]);
 int cmd_remove(int argc, const char *argv[]);
 int cmd_list(int argc, const char *argv[]);
+int cmd_hostadd(int argc, const char *argv[]);
+int cmd_hostremove(int argc, const char *argv[]);
+int cmd_hosts(int argc, const char *argv[]);
 static int cmd_help(int argc, const char *argv[]);
 // Debug Operations
 
@@ -85,6 +88,27 @@ static Cmd commands[] = {
         "list",
         "List registered repositories",
         cmd_list,
+        NULL,
+        0,
+    },
+    {
+        "hostadd",
+        "Add static host",
+        cmd_hostadd,
+        NULL,
+        0,
+    },
+    {
+        "hostremove",
+        "Remove static host",
+        cmd_hostremove,
+        NULL,
+        0,
+    },
+    {
+        "hosts",
+        "List static hosts",
+        cmd_hosts,
         NULL,
         0,
     },
