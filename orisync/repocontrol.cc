@@ -18,15 +18,17 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/systemexception.h>
-
+#include <ori/repo.h>
 #include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 #include "repocontrol.h"
 
 using namespace std;
 
 RepoControl::RepoControl(const string &path)
-    : path(path), uuid(""), repo(path)
+    : path(path), uuid(""), udsClient(0), repo(0)
 {
 }
 
@@ -37,15 +39,37 @@ RepoControl::~RepoControl()
 void
 RepoControl::open()
 {
-    repo.open();
-    path = repo.getRootPath();
-    uuid = repo.getUUID();
+    try {
+        udsClient = new UDSClient(path);
+        udsClient->connect();
+        repo = new UDSRepo(udsClient);
+    } catch (SystemException e) {
+        if (repo)
+            delete repo;
+    }
+
+    LocalRepo *lrepo = new LocalRepo();
+    lrepo->open(path);
+    repo = lrepo;
+
+    uuid = repo->getUUID();
 }
 
 void
 RepoControl::close()
 {
-    repo.close();
+    if (udsClient) {
+        delete udsClient;
+    } else if (repo) { // LocalRepo
+        LocalRepo *lrepo = (LocalRepo *)repo;
+        lrepo->close();
+    }
+
+    if (repo)
+        delete repo;
+
+    repo = NULL;
+    udsClient = NULL;
 }
 
 string
@@ -64,7 +88,7 @@ RepoControl::getUUID()
 string
 RepoControl::getHead()
 {
-    return repo.getHead().hex();
+    return repo->getHead().hex();
 }
 
 string

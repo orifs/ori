@@ -17,6 +17,9 @@
 #ifndef __REPOCONTROL_H__
 #define __REPOCONTROL_H__
 
+#include <ori/repo.h>
+#include <ori/udsclient.h>
+
 class RepoControl {
 public:
     RepoControl(const std::string &path);
@@ -31,7 +34,8 @@ public:
 private:
     std::string path;
     std::string uuid;
-    LocalRepo repo;
+    UDSClient *udsClient;
+    Repo *repo;
 };
 
 #endif /* __REPOCONTROL_H__ */

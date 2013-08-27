@@ -60,7 +60,7 @@ using namespace std;
 // Reject advertisements with large time skew
 #define ORISYNC_ADVSKEW         5
 // Repository check interval
-#define ORISYNC_MONINTERVAL     300
+#define ORISYNC_MONINTERVAL     10
 
 OriSyncConf rc;
 
