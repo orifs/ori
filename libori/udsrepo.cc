@@ -150,7 +150,7 @@ UDSRepo::getObjects(const ObjectHashVec &objs)
         ss.writeHash(objs[i]);
     }
     client->sendData(ss.str());
-    DLOG("Requesting %lu objects\n", objs.size());
+    DLOG("Requesting %lu objects", objs.size());
 
     bool ok = client->respIsOK();
     bytestream::ap bs(client->getStream());
