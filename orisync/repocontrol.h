@@ -29,8 +29,9 @@ public:
     std::string getPath();
     std::string getUUID();
     std::string getHead();
-    std::string push(const std::string &host, const std::string &token);
-    std::string pull(const std::string &host, const std::string &token);
+    bool hasCommit(const std::string &objId);
+    std::string push(const std::string &host, const std::string &path);
+    std::string pull(const std::string &host, const std::string &path);
 private:
     std::string path;
     std::string uuid;

@@ -91,6 +91,13 @@ RepoControl::getHead()
     return repo->getHead().hex();
 }
 
+bool
+RepoControl::hasCommit(const string &objId)
+{
+    ObjectHash hash = ObjectHash::fromHex(objId);
+    return repo->hasObject(hash);
+}
+
 string
 RepoControl::push(const string &host, const string &token)
 {
