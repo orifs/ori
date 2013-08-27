@@ -243,7 +243,46 @@ std::vector<Commit> UDSRepo::listCommits()
     return rval;
 }
 
+void
+UDSRepo::transmit(bytewstream *out, const ObjectHashVec &objs)
+{
+    numobjs_t num;
+    bytestream *in = getObjects(objs);
+    vector<size_t> objSizes;
+    string data;
 
+    num = in->readUInt32();
+    out->writeUInt32(num);
+    while (num != 0) {
+        objSizes.resize(num);
+
+        for (numobjs_t i = 0; i < num; i++) {
+            uint32_t objSize;
+            string infoStr(ObjectInfo::SIZE, '\0');
+
+            // Object info
+            in->readExact((uint8_t *)&infoStr[0], ObjectInfo::SIZE);
+            out->write((uint8_t *)&infoStr[0], ObjectInfo::SIZE);
+
+            // Object size
+            objSize = in->readUInt32();
+            out->writeUInt32(objSize);
+            objSizes[i] = objSize;
+        }
+
+        for (numobjs_t i = 0; i < num; i++) {
+            uint32_t objSize = objSizes[i];
+            data.resize(objSize);
+            in->readExact((uint8_t *)&data[0], objSize);
+            out->write((uint8_t *)&data[0], objSize);
+        }
+
+        num = in->readUInt32();
+        out->writeUInt32(num);
+    }
+
+    return;
+}
 
 std::string &UDSRepo::_payload(const ObjectHash &id)
 {

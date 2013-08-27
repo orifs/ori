@@ -84,6 +84,10 @@ public:
     virtual Commit getCommit(const ObjectHash &commitId);
     virtual LargeBlob getLargeBlob(const ObjectHash &objId);
 
+    // Transport
+    virtual void transmit(bytewstream *bs, const ObjectHashVec &objs);
+    virtual void receive(bytestream *bs);
+
     // High level operations
     virtual void copyFrom(
             Object *other

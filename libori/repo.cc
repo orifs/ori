@@ -239,3 +239,15 @@ Repo::getCommitDag()
     return cDag;
 }
 
+void
+Repo::transmit(bytewstream *bs, const ObjectHashVec &objs)
+{
+    NOT_IMPLEMENTED(false);
+}
+
+void
+Repo::receive(bytestream *bs)
+{
+    NOT_IMPLEMENTED(false);
+}
+

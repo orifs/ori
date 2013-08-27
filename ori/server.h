@@ -7,6 +7,10 @@ class SshServer
 {
 public:
     SshServer();
+    ~SshServer();
+
+    void open(const std::string &path);
+    void close();
 
     void serve();
     
@@ -17,8 +21,9 @@ public:
     void cmd_getObjInfo();
     void cmd_getHead();
     void cmd_getFSID();
-
 private:
+    UDSClient *udsClient;
+    Repo *repo;
 };
 
 #endif

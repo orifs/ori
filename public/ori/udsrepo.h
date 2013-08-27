@@ -45,6 +45,8 @@ public:
             const std::string &payload);
     std::vector<Commit> listCommits();
 
+    // Transport
+    virtual void transmit(bytewstream *out, const ObjectHashVec &objs);
 private:
     UDSClient *client;
     

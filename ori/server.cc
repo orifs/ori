@@ -26,15 +26,21 @@
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
-#include <ori/server.h>
+#include <oriutil/systemexception.h>
 #include <ori/repostore.h>
 #include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
+
+#include "server.h"
 
 using namespace std;
 
-extern LocalRepo repository;
-
 SshServer::SshServer()
+{
+}
+
+SshServer::~SshServer()
 {
 }
 
@@ -49,14 +55,56 @@ void printError(const std::string &what)
     fflush(stdout);
 }
 
-void SshServer::serve() {
-    fdstream fs(STDIN_FILENO, -1);
+void
+SshServer::open(const string &path)
+{
+    // Try to connect through UDS
+    try {
+        udsClient = new UDSClient(path);
+        udsClient->connect();
+        repo = new UDSRepo(udsClient);
+        return;
+    } catch (SystemException e) {
+        // XXX: fall through
+    }
 
-    LocalRepoLock::sp lock(repository.lock());
+    LocalRepo *lrepo;
+
+    try {
+        lrepo->open(path);
+    } catch (std::exception &e) {
+        printError(e.what());
+        exit(101);
+    }
+
+    // XXX: Fix repo locking here
+    /*LocalRepoLock::sp lock(lrepo->lock());
     if (!lock.get()) {
         printError("Couldn't lock repo");
         exit(1);
+    }*/
+
+    if (ori_open_log(lrepo->getLogPath()) < 0) {
+        printError("Couldn't open log");
+        exit(1);
     }
+
+    repo = lrepo;
+}
+
+void
+SshServer::close()
+{
+    if (udsClient) {
+        udsClient->disconnect();
+        delete udsClient;
+    }
+    delete repo;
+}
+
+void
+SshServer::serve() {
+    fdstream fs(STDIN_FILENO, -1);
 
     uint8_t respOK = OK;
     write(STDOUT_FILENO, &respOK, 1);
@@ -103,7 +151,8 @@ void SshServer::serve() {
     fsync(STDOUT_FILENO);
 }
 
-void SshServer::cmd_hello()
+void
+SshServer::cmd_hello()
 {
     DLOG("hello");
     fdwstream fs(STDOUT_FILENO);
@@ -111,13 +160,14 @@ void SshServer::cmd_hello()
     fs.writePStr(ORI_PROTO_VERSION);
 }
 
-void SshServer::cmd_listObjs()
+void
+SshServer::cmd_listObjs()
 {
     DLOG("listObjs");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
 
-    std::set<ObjectInfo> objects = repository.listObjects();
+    std::set<ObjectInfo> objects = repo->listObjects();
     fs.writeUInt64(objects.size());
     for (std::set<ObjectInfo>::iterator it = objects.begin();
             it != objects.end();
@@ -126,13 +176,14 @@ void SshServer::cmd_listObjs()
     }
 }
 
-void SshServer::cmd_listCommits()
+void
+SshServer::cmd_listCommits()
 {
     DLOG("listCommits");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
 
-    const std::vector<Commit> &commits = repository.listCommits();
+    const std::vector<Commit> &commits = repo->listCommits();
     fs.writeUInt32(commits.size());
     for (size_t i = 0; i < commits.size(); i++) {
         std::string blob = commits[i].getBlob();
@@ -140,7 +191,8 @@ void SshServer::cmd_listCommits()
     }
 }
 
-void SshServer::cmd_readObjs()
+void
+SshServer::cmd_readObjs()
 {
     // Read object ids
     fdstream in(STDIN_FILENO, -1);
@@ -156,10 +208,11 @@ void SshServer::cmd_readObjs()
 
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
-    repository.transmit(&fs, objs);
+    repo->transmit(&fs, objs);
 }
 
-void SshServer::cmd_getObjInfo()
+void
+SshServer::cmd_getObjInfo()
 {
     fdstream in(STDIN_FILENO, -1);
     ObjectHash hash;
@@ -167,7 +220,7 @@ void SshServer::cmd_getObjInfo()
 
     in.readHash(hash);
     fdwstream fs(STDOUT_FILENO);
-    info = repository.getObjectInfo(hash);
+    info = repo->getObjectInfo(hash);
     if (info.type == ObjectInfo::Null) {
         fs.writeUInt8(ERROR);
         return;
@@ -176,28 +229,32 @@ void SshServer::cmd_getObjInfo()
     fs.writeInfo(info);
 }
 
-void SshServer::cmd_getHead()
+void
+SshServer::cmd_getHead()
 {
     DLOG("getHead");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
-    fs.writeHash(repository.getHead());
+    fs.writeHash(repo->getHead());
 }
 
-void SshServer::cmd_getFSID()
+void
+SshServer::cmd_getFSID()
 {
     DLOG("getFSID");
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
-    fs.writePStr(repository.getUUID());
+    fs.writePStr(repo->getUUID());
 }
 
-void ae_flush() {
+void
+ae_flush() {
     fflush(stdout);
     fsync(STDOUT_FILENO);
 }
 
-int cmd_sshserver(int argc, char * const argv[])
+int
+cmd_sshserver(int argc, char * const argv[])
 {
     string repoPath;
 
@@ -214,26 +271,19 @@ int cmd_sshserver(int argc, char * const argv[])
 #endif /* __APPLE__ */
 
     if (argc < 2) {
-        printError("Need repository name");
+        printError("Need repo->name");
         exit(1);
     }
 
     repoPath = RepoStore_FindRepo(argv[1]);
-    try {
-        repository.open(repoPath);
-    } catch (std::exception &e) {
-        printError(e.what());
-        exit(101);
-    }
-
-    if (ori_open_log(repository.getLogPath()) < 0) {
-        printError("Couldn't open log");
-        exit(1);
-    }
-
-    LOG("Starting SSH server");
 
     SshServer server;
+    server.open(repoPath);
+
+    LOG("Starting SSH server");
     server.serve();
+    server.close();
+
     return 0;
 }
+
