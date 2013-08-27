@@ -28,7 +28,7 @@
 using namespace std;
 
 RepoControl::RepoControl(const string &path)
-    : path(path), uuid(""), udsClient(0), repo(0)
+    : path(path), uuid(""), udsClient(0), udsRepo(0), localRepo(0)
 {
 }
 
@@ -42,34 +42,37 @@ RepoControl::open()
     try {
         udsClient = new UDSClient(path);
         udsClient->connect();
-        repo = new UDSRepo(udsClient);
+        udsRepo = new UDSRepo(udsClient);
     } catch (SystemException e) {
-        if (repo)
-            delete repo;
+        if (udsRepo)
+            delete udsRepo;
+        udsRepo = NULL;
     }
 
-    LocalRepo *lrepo = new LocalRepo();
-    lrepo->open(path);
-    repo = lrepo;
+    localRepo = new LocalRepo();
+    localRepo->open(path);
 
-    uuid = repo->getUUID();
+    if (udsRepo)
+        uuid = udsRepo->getUUID();
+    else
+        uuid = localRepo->getUUID();
 }
 
 void
 RepoControl::close()
 {
     if (udsClient) {
+        delete udsRepo;
         delete udsClient;
-    } else if (repo) { // LocalRepo
-        LocalRepo *lrepo = (LocalRepo *)repo;
-        lrepo->close();
+    }
+    if (localRepo) {
+        localRepo->close();
+        delete localRepo;
     }
 
-    if (repo)
-        delete repo;
-
-    repo = NULL;
     udsClient = NULL;
+    udsRepo = NULL;
+    localRepo = NULL;
 }
 
 string
@@ -88,23 +91,47 @@ RepoControl::getUUID()
 string
 RepoControl::getHead()
 {
-    return repo->getHead().hex();
+    if (udsRepo)
+        return udsRepo->getHead().hex();
+    return localRepo->getHead().hex();
 }
 
 bool
 RepoControl::hasCommit(const string &objId)
 {
     ObjectHash hash = ObjectHash::fromHex(objId);
-    return repo->hasObject(hash);
+    if (udsRepo)
+        return udsRepo->hasObject(hash);
+    return localRepo->hasObject(hash);
 }
 
 string
-RepoControl::push(const string &host, const string &token)
+RepoControl::pull(const string &host, const string &path)
 {
+    if (udsRepo) {
+        LOG("RepoControl::pull: Not supported on a mounted file system");
+        return "";
+    }
+    RemoteRepo::sp srcRepo(new RemoteRepo());
+    if (!srcRepo->connect(host + ":" + path)) {
+        LOG("RepoControl::pull: Failed to connect to source %s", host.c_str());
+        return  "";
+    }
+
+    ObjectHash newHead = srcRepo->get()->getHead();
+    localRepo->pull(srcRepo->get());
+    localRepo->updateHead(newHead);
+
+    LOG("RepoControl::pull: Update succeeded");
+
+    return newHead.hex();
 }
 
 string
-RepoControl::pull(const string &host, const string &token)
+RepoControl::push(const string &host, const string &path)
 {
+    NOT_IMPLEMENTED(false);
+
+    return "";
 }
 

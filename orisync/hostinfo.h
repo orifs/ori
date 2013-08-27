@@ -106,7 +106,14 @@ public:
 
         return val;
     }
+    void setPreferredIp(const std::string &ip) {
+        preferredIp = ip;
+    }
+    std::string getPreferredIp() const {
+        return preferredIp;
+    }
 private:
+    std::string preferredIp;
     std::string host;
     std::string hostId;
     std::string cluster;

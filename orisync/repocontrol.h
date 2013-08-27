@@ -18,7 +18,9 @@
 #define __REPOCONTROL_H__
 
 #include <ori/repo.h>
+#include <ori/localrepo.h>
 #include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 class RepoControl {
 public:
@@ -30,13 +32,14 @@ public:
     std::string getUUID();
     std::string getHead();
     bool hasCommit(const std::string &objId);
-    std::string push(const std::string &host, const std::string &path);
     std::string pull(const std::string &host, const std::string &path);
+    std::string push(const std::string &host, const std::string &path);
 private:
     std::string path;
     std::string uuid;
     UDSClient *udsClient;
-    Repo *repo;
+    UDSRepo *udsRepo;
+    LocalRepo *localRepo;
 };
 
 #endif /* __REPOCONTROL_H__ */

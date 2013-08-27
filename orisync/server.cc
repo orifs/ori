@@ -112,7 +112,7 @@ public:
         return msg;
     }
     void run() {
-        while (1) {
+        while (!interruptionRequested()) {
             int status;
             string msg;
             size_t len;
@@ -182,7 +182,7 @@ public:
     ~Listener() {
         close(fd);
     }
-    void updateHost(KVSerializer &kv) {
+    void updateHost(KVSerializer &kv, const string &srcIp) {
         RWKey::sp key = hostsLock.writeLock();
         map<string, HostInfo *>::iterator it;
         string hostId = kv.getStr("hostId");
@@ -193,11 +193,13 @@ public:
             hosts[hostId] = new HostInfo(hostId, kv.getStr("cluster"));
         }
         hosts[hostId]->update(kv);
+        hosts[hostId]->setPreferredIp(srcIp);
     }
     void parse(const char *buf, int len, sockaddr_in *source) {
         string ctxt;
         string ptxt;
         KVSerializer kv;
+        char srcip[INET_ADDRSTRLEN];
 
         // Message too small
         if (len < 32)
@@ -229,8 +231,14 @@ public:
             if (kv.getStr("cluster") != rc.getCluster())
                 return;
 
+            if (!inet_ntop(AF_INET, &(source->sin_addr),
+                           srcip, INET_ADDRSTRLEN)) {
+                LOG("Error parsing source ip");
+                return;
+            }
+
             // Add or update hostinfo
-            updateHost(kv);
+            updateHost(kv, srcip);
         } catch(SerializationException e) {
             LOG("Error encountered parsing announcement: %s", e.what());
             return;
@@ -247,7 +255,7 @@ public:
         cout << "==== End Hosts ====" << endl << endl;
     }
     void run() {
-        while (1) {
+        while (!interruptionRequested()) {
             char buf[1500];
             int len = 1500;
             struct sockaddr_in srcAddr;
@@ -308,7 +316,7 @@ public:
         list<string> repos = rc.getRepos();
         list<string>::iterator it;
 
-        while (1) {
+        while (!interruptionRequested()) {
             for (it = repos.begin(); it != repos.end(); it++) {
                 updateRepo(*it);
             }
@@ -337,11 +345,11 @@ public:
         DLOG("Local and Remote heads mismatch on repo %s", uuid.c_str());
 
         repo.open();
-        if (!repo.hasCommit(local.getHead())) {
+        if (!repo.hasCommit(remote.getHead())) {
             LOG("Pulling from %s:%s",
-                remoteHost.getHost().c_str(),
+                remoteHost.getPreferredIp().c_str(),
                 remote.getPath().c_str());
-            repo.pull(remoteHost.getHost(), remote.getPath());
+            repo.pull(remoteHost.getPreferredIp(), remote.getPath());
         }
         repo.close();
     }
@@ -367,8 +375,7 @@ public:
         }
     }
     void run() {
-        while (!interruptionRequested())
-        {
+        while (!interruptionRequested()) {
             HostInfo infoSnapshot;
             list<string> repos;
             list<string>::iterator it;
