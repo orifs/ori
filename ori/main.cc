@@ -64,16 +64,12 @@ int cmd_addkey(int argc, char * const argv[]);
 int cmd_branches(int argc, char * const argv[]);
 int cmd_branch(int argc, char * const argv[]);
 int cmd_checkout(int argc, char * const argv[]);
-void usage_commit(void);
-int cmd_commit(int argc, char * const argv[]);
 int cmd_diff(int argc, char * const argv[]);
 int cmd_filelog(int argc, char * const argv[]);
 int cmd_findheads(int argc, char * const argv[]);
 int cmd_gc(int argc, char * const argv[]);
 void usage_graft(void);
 int cmd_graft(int argc, char * const argv[]);
-void usage_init(void);
-int cmd_init(int argc, char * const argv[]);
 void usage_list();
 int cmd_list(int argc, char * const argv[]);
 int cmd_listkeys(int argc, char * const argv[]);
@@ -97,31 +93,11 @@ int cmd_snapshot(int argc, char * const argv[]);
 int cmd_snapshots(int argc, char * const argv[]);
 int cmd_status(int argc, char * const argv[]);
 int cmd_tip(int argc, char * const argv[]);
-int cmd_verify(int argc, char * const argv[]);
 
 // Debug Operations
-int cmd_catobj(int argc, char * const argv[]); // Debug
-int cmd_dumpindex(int argc, char * const argv[]); // Debug
-int cmd_dumpmeta(int argc, char * const argv[]); // Debug
-int cmd_dumpobj(int argc, char * const argv[]); // Debug
-int cmd_dumppackfile(int argc, char * const argv[]); // Debug
-int cmd_dumprefs(int argc, char * const argv[]); // Debug
 int cmd_fsck(int argc, char * const argv[]);
-int cmd_listobj(int argc, char * const argv[]); // Debug
-int cmd_refcount(int argc, char * const argv[]); // Debug
-int cmd_stats(int argc, char * const argv[]); // Debug
-int cmd_purgeobj(int argc, char * const argv[]); // Debug
 int cmd_purgesnapshot(int argc, char * const argv[]);
-int cmd_stripmetadata(int argc, char * const argv[]); // Debug
 int cmd_sshserver(int argc, char * const argv[]); // Internal
-int cmd_sshclient(int argc, char * const argv[]); // Debug
-int cmd_treediff(int argc, char * const argv[]);
-int cmd_udsclient(int argc, char * const argv[]); // Debug
-int cmd_udsserver(int argc, char * const argv[]); // Debug
-#if !defined(WITHOUT_MDNS)
-int cmd_mdnsserver(int argc, char * const argv[]); // Debug
-#endif
-int cmd_httpclient(int argc, char * const argv[]); // Debug
 static int cmd_help(int argc, char * const argv[]);
 static int cmd_version(int argc, char * const argv[]);
 
@@ -153,13 +129,6 @@ static Cmd commands[] = {
         cmd_checkout,
         NULL,
         CMD_DEBUG,
-    },
-    { // Deprecated
-        "commit",
-        "Commit changes into the repository (DEPRECATED)",
-        cmd_commit,
-        usage_commit,
-        CMD_NEED_FUSE | CMD_DEBUG,
     },
     {
         "diff",
@@ -202,13 +171,6 @@ static Cmd commands[] = {
         cmd_help,
         NULL,
         0,
-    },
-    {
-        "init",
-        "Initialize the repository (EXPERIMENTAL)",
-        cmd_init,
-        usage_init,
-        CMD_DEBUG,
     },
     {
         "list",
@@ -329,13 +291,6 @@ static Cmd commands[] = {
         NULL,
         CMD_NEED_FUSE,
     },
-    {
-        "verify",
-        "Verify the repository",
-        cmd_verify,
-        NULL,
-        0,
-    },
     /* Internal (always hidden) */
     {
         "sshserver",
@@ -346,137 +301,11 @@ static Cmd commands[] = {
     },
     /* Debugging */
     {
-        "catobj",
-        "Print an object from the repository (DEBUG)",
-        cmd_catobj,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "dumpindex",
-        "Dump the repository index (DEBUG)",
-        cmd_dumpindex,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "dumpmeta",
-        "Print the repository metadata (DEBUG)",
-        cmd_dumpmeta,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "dumpobj",
-        "Print the structured representation of an object (DEBUG)",
-        cmd_dumpobj,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "dumppackfile",
-        "Dump the contents of a packfile (DEBUG)",
-        cmd_dumppackfile,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "dumprefs",
-        "Print the repository reference counts (DEBUG)",
-        cmd_dumprefs,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
         "fsck",
         "Check internal state of FUSE file system (DEBUG).",
         cmd_fsck,
         NULL,
         CMD_NEED_FUSE | CMD_DEBUG,
-    },
-    {
-        "listobj",
-        "List objects (DEBUG)",
-        cmd_listobj,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "rebuildindex",
-        "Rebuild index (DEBUG)",
-        cmd_rebuildindex,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "rebuildrefs",
-        "Rebuild references (DEBUG)",
-        cmd_rebuildrefs,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "refcount",
-        "Print the reference count for all objects (DEBUG)",
-        cmd_refcount,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "stats",
-        "Print repository statistics (DEBUG)",
-        cmd_stats,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "purgeobj",
-        "Purge object (DEBUG)",
-        cmd_purgeobj,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "stripmetadata",
-        "Strip all object metadata including backreferences (DEBUG)",
-        cmd_stripmetadata,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "treediff",
-        "Compare two commits (DEBUG)",
-        cmd_treediff,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "httpclient",
-        "Connect to a server via HTTP (DEBUG)",
-        cmd_httpclient,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "sshclient",
-        "Connect to a server via SSH (DEBUG)",
-        cmd_sshclient,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "udsclient",
-        "Connect to a server via UDS (DEBUG)",
-        cmd_udsclient,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "udsserver",
-        "UDS test server (DEBUG)",
-        cmd_udsserver,
-        NULL,
-        CMD_DEBUG,
     },
     {
         "version",
@@ -485,15 +314,6 @@ static Cmd commands[] = {
         NULL,
         CMD_DEBUG,
     },
-#if !defined(WITHOUT_MDNS)
-    {
-        "mdnsserver",
-        "Run the mDNS server (DEBUG)",
-        cmd_mdnsserver,
-        NULL,
-        CMD_DEBUG,
-    },
-#endif
     { NULL, NULL, NULL, NULL }
 };
 
