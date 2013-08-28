@@ -80,8 +80,6 @@ int cmd_merge(int argc, char * const argv[]);
 void usage_newfs();
 int cmd_newfs(int argc, char * const argv[]);
 int cmd_pull(int argc, char * const argv[]);
-int cmd_rebuildindex(int argc, char * const argv[]);
-int cmd_rebuildrefs(int argc, char * const argv[]);
 int cmd_remote(int argc, char * const argv[]);
 void usage_removefs();
 int cmd_removefs(int argc, char * const argv[]);
@@ -95,30 +93,11 @@ int cmd_snapshot(int argc, char * const argv[]);
 int cmd_snapshots(int argc, char * const argv[]);
 int cmd_status(int argc, char * const argv[]);
 int cmd_tip(int argc, char * const argv[]);
-int cmd_verify(int argc, char * const argv[]);
 
 // Debug Operations
-int cmd_catobj(int argc, char * const argv[]); // Debug
-int cmd_dumpindex(int argc, char * const argv[]); // Debug
-int cmd_dumpmeta(int argc, char * const argv[]); // Debug
-int cmd_dumpobj(int argc, char * const argv[]); // Debug
-int cmd_dumppackfile(int argc, char * const argv[]); // Debug
-int cmd_dumprefs(int argc, char * const argv[]); // Debug
-int cmd_listobj(int argc, char * const argv[]); // Debug
-int cmd_refcount(int argc, char * const argv[]); // Debug
-int cmd_stats(int argc, char * const argv[]); // Debug
-int cmd_purgeobj(int argc, char * const argv[]); // Debug
 int cmd_purgesnapshot(int argc, char * const argv[]);
-int cmd_stripmetadata(int argc, char * const argv[]); // Debug
 int cmd_sshserver(int argc, char * const argv[]); // Internal
-int cmd_sshclient(int argc, char * const argv[]); // Debug
 int cmd_treediff(int argc, char * const argv[]);
-int cmd_udsclient(int argc, char * const argv[]); // Debug
-int cmd_udsserver(int argc, char * const argv[]); // Debug
-#if !defined(WITHOUT_MDNS)
-int cmd_mdnsserver(int argc, char * const argv[]); // Debug
-#endif
-int cmd_httpclient(int argc, char * const argv[]); // Debug
 static int cmd_help(int argc, char * const argv[]);
 static int cmd_version(int argc, char * const argv[]);
 
@@ -326,13 +305,6 @@ static Cmd commands[] = {
         NULL,
         CMD_NEED_REPO,
     },
-    {
-        "verify",
-        "Verify the repository",
-        cmd_verify,
-        NULL,
-        CMD_NEED_REPO,
-    },
     /* Internal (always hidden) */
     {
         "sshserver",
@@ -343,128 +315,9 @@ static Cmd commands[] = {
     },
     /* Debugging */
     {
-        "catobj",
-        "Print an object from the repository (DEBUG)",
-        cmd_catobj,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "dumpindex",
-        "Dump the repository index (DEBUG)",
-        cmd_dumpindex,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "dumpmeta",
-        "Print the repository metadata (DEBUG)",
-        cmd_dumpmeta,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "dumpobj",
-        "Print the structured representation of an object (DEBUG)",
-        cmd_dumpobj,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "dumppackfile",
-        "Dump the contents of a packfile (DEBUG)",
-        cmd_dumppackfile,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "dumprefs",
-        "Print the repository reference counts (DEBUG)",
-        cmd_dumprefs,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "listobj",
-        "List objects (DEBUG)",
-        cmd_listobj,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "rebuildindex",
-        "Rebuild index (DEBUG)",
-        cmd_rebuildindex,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "rebuildrefs",
-        "Rebuild references (DEBUG)",
-        cmd_rebuildrefs,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "refcount",
-        "Print the reference count for all objects (DEBUG)",
-        cmd_refcount,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "stats",
-        "Print repository statistics (DEBUG)",
-        cmd_stats,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "purgeobj",
-        "Purge object (DEBUG)",
-        cmd_purgeobj,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "stripmetadata",
-        "Strip all object metadata including backreferences (DEBUG)",
-        cmd_stripmetadata,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
         "treediff",
         "Compare two commits (DEBUG)",
         cmd_treediff,
-        NULL,
-        CMD_NEED_REPO | CMD_DEBUG,
-    },
-    {
-        "httpclient",
-        "Connect to a server via HTTP (DEBUG)",
-        cmd_httpclient,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "sshclient",
-        "Connect to a server via SSH (DEBUG)",
-        cmd_sshclient,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "udsclient",
-        "Connect to a server via UDS (DEBUG)",
-        cmd_udsclient,
-        NULL,
-        CMD_DEBUG,
-    },
-    {
-        "udsserver",
-        "UDS test server (DEBUG)",
-        cmd_udsserver,
         NULL,
         CMD_NEED_REPO | CMD_DEBUG,
     },
@@ -475,15 +328,6 @@ static Cmd commands[] = {
         NULL,
         CMD_DEBUG,
     },
-#if !defined(WITHOUT_MDNS)
-    {
-        "mdnsserver",
-        "Run the mDNS server (DEBUG)",
-        cmd_mdnsserver,
-        NULL,
-        CMD_DEBUG,
-    },
-#endif
     { NULL, NULL, NULL, NULL }
 };
 
