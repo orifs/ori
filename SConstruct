@@ -359,6 +359,7 @@ SConscript('liboriutil/SConscript', variant_dir='build/liboriutil')
 # Ori Utilities
 if env["BUILD_BINARIES"] == "1":
     SConscript('ori/SConscript', variant_dir='build/ori')
+    SConscript('oridbg/SConscript', variant_dir='build/oridbg')
     SConscript('orisync/SConscript', variant_dir='build/orisync')
     if env["WITH_LIBS3"] == "1":
         SConscript('oris3/SConscript', variant_dir='build/oris3')
@@ -373,6 +374,7 @@ if env["BUILD_BINARIES"] == "1":
 if env["WITH_FUSE"] == "1":
     env.Install('$PREFIX/bin','build/orifs/orifs')
 env.Install('$PREFIX/bin','build/ori/ori')
+env.Install('$PREFIX/bin','build/oridbg/oridbg')
 env.Install('$PREFIX/bin','build/orisync/orisync')
 if env["WITH_LIBS3"] == "1":
     env.Install('$PREFIX/bin','build/ori/oris3')

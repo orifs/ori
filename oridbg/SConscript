@@ -1,0 +1,59 @@
+import sys
+
+Import('env')
+
+ori_env = env.Clone()
+
+src = [
+    "cmd_addkey.cc",
+    "cmd_branches.cc",
+    "cmd_catobj.cc",
+    "cmd_dumpindex.cc",
+    "cmd_dumpmeta.cc",
+    "cmd_dumpobj.cc",
+    "cmd_dumppackfile.cc",
+    "cmd_dumprefs.cc",
+    "cmd_filelog.cc",
+    "cmd_findheads.cc",
+    "cmd_gc.cc",
+    "cmd_listkeys.cc",
+    "cmd_listobj.cc",
+    "cmd_log.cc",
+    "cmd_purgeobj.cc",
+    "cmd_purgesnapshot.cc",
+    "cmd_rebuildindex.cc",
+    "cmd_rebuildrefs.cc",
+    "cmd_refcount.cc",
+    "cmd_remote.cc",
+    "cmd_removekey.cc",
+    "cmd_setkey.cc",
+    "cmd_show.cc",
+    "cmd_snapshots.cc",
+    "cmd_stats.cc",
+    "cmd_stripmetadata.cc",
+    "cmd_tip.cc",
+    "cmd_treediff.cc",
+    "cmd_udsserver.cc",
+    "cmd_verify.cc",
+    "main.cc",
+]
+
+libs = [
+	"crypto",
+	"stdc++",
+	"event_core",
+	"event_extra",
+]
+
+if sys.platform != "darwin":
+    libs += ['rt']
+    if env["WITH_MDNS"] == "1":
+        libs += ['dns_sd']
+
+if sys.platform == "linux2":
+    libs += ['uuid', 'resolv']
+
+ori_env.Append(LIBS = libs)
+
+ori_env.Program("oridbg", src)
+
