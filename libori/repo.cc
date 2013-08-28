@@ -251,3 +251,25 @@ Repo::receive(bytestream *bs)
     NOT_IMPLEMENTED(false);
 }
 
+set<string>
+Repo::listExt()
+{
+    set<string> val;
+
+    return val;
+}
+
+bool
+Repo::hasExt(const string &ext)
+{
+    set<string> exts = listExt();
+
+    return exts.count(ext) != 0;
+}
+
+string
+Repo::callExt(const string &ext, const string &data)
+{
+    NOT_IMPLEMENTED(false);
+}
+

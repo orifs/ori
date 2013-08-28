@@ -88,6 +88,12 @@ public:
     virtual void transmit(bytewstream *bs, const ObjectHashVec &objs);
     virtual void receive(bytestream *bs);
 
+    // Extensions
+    virtual std::set<std::string> listExt();
+    virtual bool hasExt(const std::string &ext);
+    virtual std::string callExt(const std::string &ext,
+                                const std::string &data);
+
     // High level operations
     virtual void copyFrom(
             Object *other

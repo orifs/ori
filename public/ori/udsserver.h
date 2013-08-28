@@ -23,6 +23,8 @@
 
 class UDSSession;
 
+typedef std::string (*UDSExtCB)(LocalRepo *repo, const std::string &data);
+
 class UDSServer : public Thread
 {
 public:
@@ -32,11 +34,17 @@ public:
     void shutdown();
     void add(UDSSession *session);
     void remove(UDSSession *session);
+    // Extensions
+    std::set<std::string> listExt();
+    bool hasExt(const std::string &ext);
+    std::string callExt(const std::string &ext, const std::string &data);
+    void registerExt(const std::string &ext, UDSExtCB cb);
 private:
     int listenFd;
     LocalRepo *repo;
     std::set<UDSSession *> sessions;
     Mutex sessionLock;
+    std::map<std::string, UDSExtCB> extensions;
 };
 
 class UDSSession : public Thread
@@ -57,6 +65,8 @@ public:
     void cmd_getObjInfo();
     void cmd_getHead();
     void cmd_getFSID();
+    void cmd_listExt();
+    void cmd_callExt();
 private:
     UDSServer *uds;
     int fd;

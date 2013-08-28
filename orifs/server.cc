@@ -43,12 +43,18 @@ using namespace std;
 extern OriPriv *priv;
 static UDSServer *server;
 
+string
+UDSExtensionCB(LocalRepo *repo, const string &data)
+{
+}
+
 void
 UDSServerStart(LocalRepo *repo)
 {
     LOG("Starting Unix domain socket server");
 
     server = new UDSServer(repo);
+    server->registerExt("FUSE", UDSExtensionCB);
     server->start();
 
     return;

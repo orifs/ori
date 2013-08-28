@@ -146,6 +146,40 @@ UDSServer::shutdown()
     ASSERT(false);
 }
 
+set<string>
+UDSServer::listExt()
+{
+    map<string, UDSExtCB>::iterator it;
+    set<string> exts;
+
+    for (it = extensions.begin(); it != extensions.end(); it++)
+    {
+        exts.insert(it->first);
+    }
+
+    return exts;
+}
+
+bool
+UDSServer::hasExt(const string &ext)
+{
+    map<string, UDSExtCB>::iterator it = extensions.find(ext);
+
+    return it != extensions.end();
+}
+
+string
+UDSServer::callExt(const string &ext, const string &data)
+{
+    return extensions[ext](repo, data);
+}
+
+void
+UDSServer::registerExt(const string &ext, UDSExtCB cb)
+{
+    extensions[ext] = cb;
+}
+
 UDSSession::UDSSession(UDSServer *uds, int fd, LocalRepo *repo)
     : uds(uds), fd(fd), repo(repo)
 {
@@ -225,6 +259,12 @@ UDSSession::serve() {
         }
         else if (command == "get fsid") {
             cmd_getFSID();
+        }
+        else if (command == "ext list") {
+            cmd_listExt();
+        }
+        else if (command == "ext call") {
+            cmd_callExt();
         }
         else {
             printError("Unknown command");
@@ -326,5 +366,39 @@ void UDSSession::cmd_getFSID()
 
     fs.writeUInt8(OK);
     fs.writePStr(repo->getUUID());
+}
+
+void UDSSession::cmd_listExt()
+{
+    set<string> exts = uds->listExt();
+    set<string>::iterator it;
+    DLOG("listExt");
+    fdwstream fs(fd);
+
+    fs.writeUInt8(OK);
+    fs.writeUInt8(exts.size());
+    for (it = exts.begin(); it != exts.end(); it++) {
+        fs.writePStr(*it);
+    }
+}
+
+void UDSSession::cmd_callExt()
+{
+    fdstream in(fd, -1);
+    string ext;
+    string data;
+
+    in.readPStr(ext);
+    in.readLPStr(data);
+
+    DLOG("callExt %s", ext.c_str());
+    fdwstream fs(fd);
+    if (!uds->hasExt(ext)) {
+        fs.writeUInt8(ERROR);
+    }
+
+    string result = uds->callExt(ext, data);
+    fs.writeUInt8(OK);
+    fs.writeLPStr(result);
 }
 

@@ -36,13 +36,15 @@
 #include <ori/udsclient.h>
 #include <ori/udsrepo.h>
 
+using namespace std;
+
 #define D_READ 0
 #define D_WRITE 1
 
 /*
  * UDSClient
  */
-UDSClient::UDSClient(const std::string &repoPath)
+UDSClient::UDSClient(const string &repoPath)
     : fd(-1)
 {
     udsPath = repoPath + ORI_PATH_UDSSOCK;
@@ -93,12 +95,12 @@ bool UDSClient::connected() {
     return fd != -1;
 }
 
-void UDSClient::sendCommand(const std::string &command) {
+void UDSClient::sendCommand(const string &command) {
     ASSERT(connected());
     streamToChild->writePStr(command);
 }
 
-void UDSClient::sendData(const std::string &data) {
+void UDSClient::sendData(const string &data) {
     ASSERT(connected());
     size_t len = data.size();
     size_t off = 0;
@@ -122,7 +124,7 @@ bool UDSClient::respIsOK() {
     int status = read(fd, &resp, 1);
     if (status == 1 && resp == 0) return true;
     else {
-        std::string errStr;
+        string errStr;
         fdstream fs(fd, -1);
         fs.readPStr(errStr);
         WARNING("UDS error (%d): %s", (int)resp, errStr.c_str());
@@ -140,7 +142,7 @@ int cmd_udsclient(int argc, char * const argv[]) {
         exit(1);
     }
 
-    std::string remotePath = argv[1];
+    string remotePath = argv[1];
     UDSClient client(remotePath);
     if (client.connect() < 0) {
         printf("Error connecting to %s\n", argv[1]);
@@ -150,9 +152,9 @@ int cmd_udsclient(int argc, char * const argv[]) {
     printf("Connected\n");
 
     UDSRepo repo(&client);
-    std::set<ObjectInfo> objs = repo.listObjects();
-    std::vector<ObjectHash> hashes;
-    for (std::set<ObjectInfo>::iterator it = objs.begin();
+    set<ObjectInfo> objs = repo.listObjects();
+    vector<ObjectHash> hashes;
+    for (set<ObjectInfo>::iterator it = objs.begin();
             it != objs.end();
             it++) {
         hashes.push_back((*it).hash);
@@ -168,13 +170,21 @@ int cmd_udsclient(int argc, char * const argv[]) {
         return 1;
     }
     bytestream *bs = obj->getPayloadStream();
-    std::string payload = bs->readAll();
+    string payload = bs->readAll();
     printf("Got payload (%lu)\n%s\n", payload.size(), payload.c_str());
     if (bs->error()) {
         fprintf(stderr, "Stream error: %s\n", bs->error());
     }
     printf("Object info:\n");
     obj->getInfo().print();
+
+    set<string> exts = repo.listExt();
+    set<string>::iterator extIt;
+    printf("\nExtensions:\n");
+    for (extIt = exts.begin(); extIt != exts.end(); extIt++)
+    {
+        printf("%s\n", (*extIt).c_str());
+    }
 
     sleep(1);
 

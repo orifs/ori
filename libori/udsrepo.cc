@@ -284,6 +284,46 @@ UDSRepo::transmit(bytewstream *out, const ObjectHashVec &objs)
     return;
 }
 
+set<string>
+UDSRepo::listExt()
+{
+    set<string> exts;
+    client->sendCommand("ext list");
+
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    if (ok) {
+        uint8_t numExts = bs->readUInt8();
+        for (uint8_t i = 0; i < numExts; i++) {
+            string ext;
+            bs->readPStr(ext);
+            exts.insert(ext);
+        }
+    }
+
+    return exts;
+}
+
+string
+UDSRepo::callExt(const string &ext, const string &data)
+{
+    client->sendCommand("ext call");
+
+    strwstream ss;
+    ss.writePStr(ext);
+    ss.writeLPStr(data);
+    client->sendData(ss.str());
+
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    if (ok) {
+        string result;
+        bs->readLPStr(result);
+    }
+
+    return "";
+}
+
 std::string &UDSRepo::_payload(const ObjectHash &id)
 {
     return payloads[id];
