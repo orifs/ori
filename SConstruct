@@ -37,6 +37,7 @@ opts.AddVariables(
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto).", "0"),
     ("WITH_FUSE", "Include FUSE file system (0 or 1).", "1"),
     ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "1"),
+    ("WITH_ORILOCAL", "Include Ori checkout CLI (0 or 1).", "0"),
     ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "0"),
     ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
     ("WITH_GOOGLEHEAP", "Link to Google Heap Cheker.", "0"),
@@ -365,6 +366,8 @@ if env["BUILD_BINARIES"] == "1":
         SConscript('orifs/SConscript', variant_dir='build/orifs')
     if env["WITH_HTTPD"] == "1":
         SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
+    if env["WITH_ORILOCAL"] == "1":
+        SConscript('orilocal/SConscript', variant_dir='build/orilocal')
 
 # Install Targets
 if env["WITH_FUSE"] == "1":
@@ -375,6 +378,8 @@ if env["WITH_LIBS3"] == "1":
     env.Install('$PREFIX/bin','build/ori/oris3')
 if env["WITH_HTTPD"] == "1":
     env.Install('$PREFIX/bin','build/ori_httpd/ori_httpd')
+if env["WITH_ORILOCAL"] == "1":
+    env.Install('$PREFIX/bin','build/orilocal/orilocal')
 env.Install('$PREFIX/share/man/man1','docs/ori.1')
 env.Install('$PREFIX/share/man/man1','docs/orifs.1')
 env.Alias('install','$PREFIX')
