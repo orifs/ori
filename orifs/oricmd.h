@@ -30,6 +30,7 @@ private:
     std::string cmd_snapshot(strstream &str);
     std::string cmd_snapshots(strstream &str);
     std::string cmd_status(strstream &str);
+    std::string cmd_pull(strstream &str);
     OriPriv *priv;
 };
 

@@ -27,18 +27,20 @@
 #include <string>
 #include <iostream>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 #include <ori/remoterepo.h>
 #include <ori/treediff.h>
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_pull(int argc, char * const argv[])
 {
-    string srcRoot;
+    string srcRoot = "";
+    strwstream req;
 
     if (argc > 2) {
         printf("Specify a repository to pull.\n");
@@ -48,17 +50,12 @@ cmd_pull(int argc, char * const argv[])
 
     if (argc == 2) {
         srcRoot = argv[1];
-    } else {
-        map<string, Peer> peers = repository.getPeers();
-        map<string, Peer>::iterator it = peers.find("origin");
-
-        if (it == peers.end()) {
-            printf("No default repository to pull from.\n");
-            return 1;
-        }
-        srcRoot = (*it).second.getUrl();
     }
 
+    req.writePStr("pull");
+    req.writePStr(srcRoot);
+
+    /*
     {
         RemoteRepo::sp srcRepo(new RemoteRepo());
         if (!srcRepo->connect(srcRoot)) {
@@ -78,6 +75,33 @@ cmd_pull(int argc, char * const argv[])
     RefcountMap refs = repository.recomputeRefCounts();
     if (!repository.rewriteRefCounts(refs))
         return 1;
+    */
+
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "pull failed with an unknown error!" << endl;
+        return 1;
+    }
+
+    switch (resp.readUInt8())
+    {
+        case 0:
+        {
+            string error;
+            resp.readPStr(error);
+            cout << "Pull failed: " << error << endl;
+            return 0;
+        }
+        case 1:
+        {
+            ObjectHash remoteHead;
+            resp.readHash(remoteHead);
+            cout << "Pulled up to " << remoteHead.hex() << endl;
+            return 0;
+        }
+        default:
+            NOT_IMPLEMENTED(false);
+    }
 
     return 0;
 }

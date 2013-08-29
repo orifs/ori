@@ -73,6 +73,8 @@ OriCommand::process(const string &data)
         return cmd_snapshots(str);
     if (cmd == "status")
         return cmd_status(str);
+    if (cmd == "pull")
+        return cmd_pull(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -117,6 +119,7 @@ OriCommand::cmd_snapshot(strstream &str)
 
     RWKey::sp lock = priv->nsLock.writeLock();
     ObjectHash hash = priv->commit(c);
+    lock.reset();
     if (hash.isEmpty()) {
         resp.writeUInt8(0);
     } else {
@@ -161,9 +164,13 @@ OriCommand::cmd_status(strstream &str)
 
     FUSE_PLOG("Command: status");
 
-    map<string, OriFileState::StateType> diff = priv->getDiff();
+    map<string, OriFileState::StateType> diff;
     map<string, OriFileState::StateType>::iterator it;
     strwstream resp;
+
+    RWKey::sp lock = priv->nsLock.writeLock();
+    diff = priv->getDiff();
+    lock.reset();
 
     resp.writeUInt32(diff.size());
     for (it = diff.begin(); it != diff.end(); it++) {
@@ -185,6 +192,73 @@ OriCommand::cmd_status(strstream &str)
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_PLOG("status elapsed %ldus", sw.getElapsedTime());
+#endif /* DEBUG */
+
+    return resp.str();
+}
+
+string
+OriCommand::cmd_pull(strstream &str)
+{
+#if defined(DEBUG) || defined(ORI_PERF)
+    Stopwatch sw = Stopwatch();
+    sw.start();
+#endif /* DEBUG */
+
+    FUSE_PLOG("Command: pull");
+
+    bool success;
+    string srcPath;
+    string error;
+    ObjectHash hash;
+    RemoteRepo srcRepo = RemoteRepo();
+    strwstream resp;
+
+    // Parse Command
+    str.readPStr(srcPath);
+
+    if (srcPath == "") {
+        map<string, Peer> peers = priv->getRepo()->getPeers();
+        map<string, Peer>::iterator it = peers.find("origin");
+
+        if (it == peers.end()) {
+            error = "No default repository to pull from.";
+            goto error;
+        }
+        srcPath = (*it).second.getUrl();
+    }
+
+    try {
+        success = srcRepo.connect(srcPath);
+    } catch (exception &e) {
+        error = e.what();
+        goto error;
+    }
+    if (success) {
+        hash = srcRepo->getHead();
+
+        // XXX: Change to a repo lock
+        RWKey::sp lock = priv->nsLock.writeLock();
+        priv->getRepo()->pull(srcRepo.get());
+        // XXX: Refcounts need to be done incrementally or rebuilt after
+        lock.reset();
+    } else {
+        error = "Connection failed!";
+    }
+
+error:
+    if (hash.isEmpty()) {
+        resp.writeUInt8(0);
+        resp.writePStr(error);
+    } else {
+        resp.writeUInt8(1);
+        resp.writeHash(hash);
+    }
+
+#if defined(DEBUG) || defined(ORI_PERF)
+    sw.stop();
+    FUSE_PLOG("pull up to: %s", hash.hex().c_str());
+    FUSE_PLOG("pull elapsed %ldus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();

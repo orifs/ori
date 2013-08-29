@@ -211,10 +211,10 @@ static Cmd commands[] = {
     },
     {
         "pull",
-        "Pull changes from a repository (NS)",
+        "Pull changes from a repository",
         cmd_pull,
         NULL,
-        0,
+        CMD_NEED_FUSE,
     },
     {
         "purgesnapshot",
