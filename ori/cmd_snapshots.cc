@@ -23,28 +23,34 @@
 #include <string>
 #include <iostream>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 #include "fuse_cmd.h"
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_snapshots(int argc, char * const argv[])
 {
-    map<string, ObjectHash> snapshots;
-    map<string, ObjectHash>::iterator it;
+    uint32_t len;
+    strwstream req;
 
-    //if (OF_RunCommand("snapshots"))
-    //    return 0;
+    req.writePStr("snapshots");
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "snapshots failed with an unknown error!" << endl;
+        return 1;
+    }
 
-    snapshots = repository.listSnapshots();
-
-    for (it = snapshots.begin(); it != snapshots.end(); it++)
+    len = resp.readUInt8();
+    for (uint32_t i = 0; i < len; i++)
     {
-        cout << (*it).first << endl;
+        string name;
+        resp.readPStr(name);
+        cout << name << endl;
     }
 
     return 0;

@@ -145,13 +145,15 @@ OriCommand::cmd_snapshots(strstream &str)
 
     map<string, ObjectHash> snapshots = priv->repo->listSnapshots();
     map<string, ObjectHash>::iterator it;
+    strwstream resp;
 
+    resp.writeUInt32(snapshots.size());
     for (it = snapshots.begin(); it != snapshots.end(); it++)
     {
-        //printf("%s\n", (*it).first.c_str());
+        resp.writePStr((*it).first.c_str());
     }
 
-    return 0;
+    return resp.str();;
 }
 
 string
