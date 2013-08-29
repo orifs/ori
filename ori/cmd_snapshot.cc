@@ -55,10 +55,6 @@ cmd_snapshot(int argc, char * const argv[])
     string msg;
     string name;
 
-    return 1;
-    //if (OF_RunCommand("snapshot"))
-    //    return 0;
-
     struct option longopts[] = {
         { "message",    required_argument,  NULL,   'm' },
         { NULL,         0,                  NULL,   0   }
@@ -89,34 +85,37 @@ cmd_snapshot(int argc, char * const argv[])
         name = argv[0];
     }
 
-    Commit c;
-    Tree tip_tree;
-    ObjectHash tip = repository.getHead();
-    if (tip != EMPTY_COMMIT) {
-        c = repository.getCommit(tip);
-        tip_tree = repository.getTree(c.getTree());
+    if (hasName && !hasMsg) {
+        msg = "Created snapshot '" + name + "'";
+        hasMsg = true;
     }
 
-    TreeDiff diff;
-    diff.diffToDir(c, repository.getRootPath(), &repository);
-    if (diff.entries.size() == 0) {
-        cout << "Note: nothing to commit" << endl;
-    }
+    strwstream req;
 
-    Tree new_tree = diff.applyTo(tip_tree.flattened(&repository),
-            &repository);
-
-    Commit newCommit;
-
+    req.writePStr("snapshot");
+    req.writeUInt8(hasMsg ? 1 : 0);
+    req.writeUInt8(hasName ? 1 : 0);
     if (hasMsg)
-        newCommit.setMessage(msg);
-    if (hasName) {
-        newCommit.setSnapshot(name);
-        if (!hasMsg)
-            newCommit.setMessage("Created snapshot '" + name + "'");
-    }
+        req.writeLPStr(msg);
+    if (hasName)
+        req.writeLPStr(name);
 
-    repository.commitFromTree(new_tree.hash(), newCommit);
+    strstream resp = repository.callExt("FUSE", req.str());
+    switch (resp.readUInt8())
+    {
+        case 0:
+            cout << "No changes" << endl;
+            return 0;
+        case 1:
+        {
+            ObjectHash hash;
+            resp.readHash(hash);
+            cout << "Committed " << hash.hex() << endl;
+            return 0;
+        }
+        default:
+            NOT_IMPLEMENTED(false);
+    }
 
     return 0;
 }

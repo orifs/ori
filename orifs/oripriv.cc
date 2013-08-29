@@ -780,17 +780,18 @@ OriPriv::commitTreeHelper(const string &path)
     return hash;
 }
 
-std::string
-OriPriv::commit(const string &msg, bool temporary)
+ObjectHash
+OriPriv::commit(const Commit &cTemplate, bool temporary)
 {
     Commit c;
     ObjectHash root = commitTreeHelper("");
     ObjectHash commitHash = ObjectHash();
 
     if (root.isEmpty() || root == headCommit.getTree())
-        return "No changes.";
+        return commitHash;
 
-    c.setMessage(msg);
+    c.setMessage(cTemplate.getMessage());
+    c.setSnapshot(cTemplate.getSnapshot());
     commitHash = repo->commitFromTree(root, c);
 
     head = repo->getHead();
@@ -800,7 +801,7 @@ OriPriv::commit(const string &msg, bool temporary)
 
     journal("snapshot", commitHash.hex());
 
-    return "Commit Hash: " + commitHash.hex();
+    return commitHash;
 }
 
 /*

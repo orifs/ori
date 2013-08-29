@@ -86,7 +86,9 @@ static void
 ori_destroy(void *userdata)
 {
     OriPriv *priv = GetOriPriv();
-    priv->commit("FUSE commit on unmount");
+    Commit c;
+    c.setMessage("FUSE snapshot on unmount");
+    priv->commit(c);
     priv->cleanup();
     delete priv;
 

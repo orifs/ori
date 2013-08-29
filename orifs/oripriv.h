@@ -181,7 +181,7 @@ private:
     void getDiffHelper(const std::string &path,
                        std::map<std::string, OriFileState::StateType> *diff);
 public:
-    std::string commit(const std::string &msg, bool temporary = false);
+    ObjectHash commit(const Commit &cTemplate, bool temporary = false);
     std::map<std::string, OriFileState::StateType> getDiff();
     void setJournalMode(OriJournalMode::JournalMode mode);
     void journal(const std::string &event, const std::string &arg);

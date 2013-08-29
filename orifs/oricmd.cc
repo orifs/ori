@@ -74,7 +74,8 @@ OriCommand::process(const string &data)
     if (cmd == "status")
         return cmd_status(str);
 
-    return "";
+    // Makes debugging easier when a bad request comes in
+    return "UNSUPPORTED REQUEST";
 }
 
 string
@@ -97,17 +98,40 @@ OriCommand::cmd_snapshot(strstream &str)
 
     FUSE_PLOG("Command: snapshot");
 
-    string msg = priv->commit("FUSE commit from user");
+    uint8_t hasMsg, hasName;
+    string msg, name;
+    Commit c;
+    strwstream resp;
 
-    //printf("%s\n", msg.c_str());
+    // Parse Command
+    hasMsg = str.readUInt8();
+    hasName = str.readUInt8();
+    if (hasMsg) {
+        str.readLPStr(msg);
+        c.setMessage(msg);
+    }
+    if (hasName) {
+        str.readLPStr(name);
+        c.setSnapshot(name);
+    }
+
+    ObjectHash hash = priv->commit(c);
+    if (hash.isEmpty()) {
+        resp.writeUInt8(0);
+    } else {
+        resp.writeUInt8(1);
+        resp.writeHash(hash);
+    }
 
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
-    FUSE_PLOG("commit result: %s", msg.c_str());
-    FUSE_PLOG("commit elapsed %ldus", sw.getElapsedTime());
+    if (hash.isEmpty())
+        FUSE_PLOG("snapshot not taken");
+    FUSE_PLOG("snapshot result: %s", hash.hex().c_str());
+    FUSE_PLOG("snapshot elapsed %ldus", sw.getElapsedTime());
 #endif /* DEBUG */
 
-    return 0;
+    return resp.str();
 }
 
 string

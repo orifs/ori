@@ -337,6 +337,7 @@ UDSRepo::callExt(const string &ext, const string &data)
     if (ok) {
         string result;
         bs->readLPStr(result);
+        return result;
     }
 
     return "";
