@@ -38,8 +38,9 @@ int *text_diff(Blob *pA_Blob, Blob *pB_Blob, Blob *pOut, uint64_t diffFlags);
 int
 cmd_diff(int argc, char * const argv[])
 {
-    if (OF_RunCommand("diff"))
-        return 0;
+    return 0;
+    //if (OF_RunCommand("diff"))
+    //    return 0;
 
     Commit c;
     ObjectHash tip = repository.getHead();

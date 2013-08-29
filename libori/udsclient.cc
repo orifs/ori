@@ -44,6 +44,11 @@ using namespace std;
 /*
  * UDSClient
  */
+
+UDSClient::UDSClient()
+{
+}
+
 UDSClient::UDSClient(const string &repoPath)
     : fd(-1)
 {

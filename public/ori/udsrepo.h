@@ -29,10 +29,12 @@ class UDSRepo : public Repo
 {
 public:
     friend class UDSObject;
+    UDSRepo();
     UDSRepo(UDSClient *client);
     ~UDSRepo();
 
     std::string getUUID();
+    std::string getVersion();
     ObjectHash getHead();
     int distance();
 

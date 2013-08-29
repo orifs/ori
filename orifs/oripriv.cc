@@ -56,7 +56,6 @@ using namespace std::tr1;
 extern mount_ori_config config;
 
 OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remoteRepo)
-    : cmd(this)
 {
     repo = new LocalRepo(repoPath);
     nextId = ORIPRIVID_INVALID + 1;
@@ -88,7 +87,6 @@ OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remote
     RWLock::LockOrderVector order;
     order.push_back(ioLock.lockNum);
     order.push_back(nsLock.lockNum);
-    order.push_back(cmdLock.lockNum);
     RWLock::setLockOrder(order);
 
     reset();
@@ -805,6 +803,19 @@ OriPriv::commit(const string &msg, bool temporary)
     return "Commit Hash: " + commitHash.hex();
 }
 
+/*
+std::string
+OriPriv::merge(const string &p2)
+{
+    ObjectHash p1 = repository.getHead();
+    ObjectHash p2 = ObjectHash::fromHex(p2);
+    DAG<ObjectHash, Commit> cDag = repository.getCommitDag();
+    ObjectHash lca;
+
+    lca = cDag.findLCA(p1, p2);
+}
+*/
+
 void
 OriPriv::getDiffHelper(const string &path,
                        map<string, OriFileState::StateType> *diff)
@@ -896,7 +907,7 @@ OriPriv::journal(const string &event, const string &arg)
  */
 
 void
-OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
+OriPrivCheckDir(OriPriv *priv, const string &path, OriDir *dir)
 {
     OriDir::iterator it;
 
@@ -909,10 +920,6 @@ OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
         } catch (SystemException e) {
             FUSE_LOG("fsck: getFileInfo(%s) had %s",
                      objPath.c_str(), e.what());
-            if (fromCmd) {
-                priv->cmd.printf("fsck: getFileInfo(%s) had %s\n",
-                                 objPath.c_str(), e.what());
-            }
         }
 
         if (info && info->isDir() && info->dirLoaded) {
@@ -922,14 +929,10 @@ OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
 
             try {
                 dir = priv->getDir(objPath);
-                OriPrivCheckDir(priv, fromCmd, objPath, dir);
+                OriPrivCheckDir(priv, objPath, dir);
             } catch (SystemException e) {
                 FUSE_LOG("fsck: getDir(%s) encountered %s",
                          objPath.c_str(), e.what());
-                if (fromCmd) {
-                    priv->cmd.printf("fsck: getDir(%s) encountered %s\n",
-                                     objPath.c_str(), e.what());
-                }
             }
         }
 
@@ -940,13 +943,6 @@ OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
                          info->isSymlink() ? "Sym" : "",
                          info->isReg() ? "Reg" : "",
                          info->isDir() ? "Dir" : "");
-                if (fromCmd) {
-                    priv->cmd.printf("fsck: %s is marked as %s%s%s\n",
-                                     objPath.c_str(),
-                                     info->isSymlink() ? "Sym" : "",
-                                     info->isReg() ? "Reg" : "",
-                                     info->isDir() ? "Dir" : "");
-                }
             }
         }
 
@@ -957,40 +953,27 @@ OriPrivCheckDir(OriPriv *priv, bool fromCmd, const string &path, OriDir *dir)
                          info->isSymlink() ? "Sym" : "",
                          info->isReg() ? "Reg" : "",
                          info->isDir() ? "Dir" : "");
-                if (fromCmd) {
-                    priv->cmd.printf("fsck: %s is marked as %s%s%s\n",
-                                     objPath.c_str(),
-                                     info->isSymlink() ? "Sym" : "",
-                                     info->isReg() ? "Reg" : "",
-                                     info->isDir() ? "Dir" : "");
-                }
             }
         }
 
         if (info && info->id != it->second) {
             FUSE_LOG("fsck: %s object Id mismatch!", objPath.c_str());
-            if (fromCmd) {
-                priv->cmd.printf("fsck: %s object Id mismatch!\n",
-                                 objPath.c_str());
-            }
         }
     }
 }
 
 void
-OriPriv::fsck(bool fromCmd)
+OriPriv::fsck()
 {
     RWKey::sp lock;
     map<string, OriFileInfo *>::iterator it;
     OriDir *dir;
 
-    // Lock if this isn't from the command line
-    if (!fromCmd)
-        lock = nsLock.writeLock();
+    lock = nsLock.writeLock();
 
     dir = getDir("/");
 
-    OriPrivCheckDir(this, fromCmd, "", dir);
+    OriPrivCheckDir(this, "", dir);
 
     for (it = paths.begin(); it != paths.end(); it++) {
         string basename = OriFile_Basename(it->first);
@@ -1008,10 +991,6 @@ OriPriv::fsck(bool fromCmd)
         } catch (SystemException e) {
             FUSE_LOG("fsck: %s path encountered an error %s",
                      it->first.c_str(), e.what());
-            if (fromCmd) {
-                cmd.printf("fsck: %s path encountered an error %s\n",
-                           it->first.c_str(), e.what());
-            }
         }
 
         if (dir) {
@@ -1020,16 +999,8 @@ OriPriv::fsck(bool fromCmd)
             if (dirIt == dir->end()) {
                 FUSE_LOG("fsck: %s not present in directory!",
                          it->first.c_str());
-                if (fromCmd) {
-                    cmd.printf("fsck: %s not present in directory!\n",
-                               it->first.c_str());
-                }
             } else if (dirIt->second != it->second->id) {
                 FUSE_LOG("fsck: %s object Id mismatch!", it->first.c_str());
-                if (fromCmd) {
-                    cmd.printf("fsck: %s object Id mismatch!\n",
-                               it->first.c_str());
-                }
             }
         }
     }

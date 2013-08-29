@@ -20,21 +20,19 @@
 #include <string>
 #include <iostream>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 #include "fuse_cmd.h"
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_show(int argc, char * const argv[])
 {
-    if (OF_RunCommand("show"))
-        return 0;
-
-    string rootPath = LocalRepo::findRootPath();
+    string rootPath = OF_RepoPath();
 
     if (rootPath == "") {
         cout << "No repository found!" << endl;

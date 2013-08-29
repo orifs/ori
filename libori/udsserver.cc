@@ -260,6 +260,9 @@ UDSSession::serve() {
         else if (command == "get fsid") {
             cmd_getFSID();
         }
+        else if (command == "get version") {
+            cmd_getVersion();
+        }
         else if (command == "ext list") {
             cmd_listExt();
         }
@@ -366,6 +369,15 @@ void UDSSession::cmd_getFSID()
 
     fs.writeUInt8(OK);
     fs.writePStr(repo->getUUID());
+}
+
+void UDSSession::cmd_getVersion()
+{
+    DLOG("getVersion");
+
+    fdwstream fs(fd);
+    fs.writeUInt8(OK);
+    fs.writePStr(repo->getVersion());
 }
 
 void UDSSession::cmd_listExt()

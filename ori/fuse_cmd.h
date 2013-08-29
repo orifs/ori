@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,7 +21,7 @@
 
 bool OF_HasFuse();
 std::string OF_ControlPath();
-bool OF_RunCommand(const char *cmd);
+std::string OF_RepoPath();
 
 #endif /* __FUSE_CMD_H__ */
 

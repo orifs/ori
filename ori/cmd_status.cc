@@ -31,8 +31,9 @@ extern LocalRepo repository;
 int
 cmd_status(int argc, char * const argv[])
 {
-    if (OF_RunCommand("status"))
-        return 0;
+    return 1;
+    //if (OF_RunCommand("status"))
+    //    return 0;
 
     Commit c;
     ObjectHash tip = repository.getHead();

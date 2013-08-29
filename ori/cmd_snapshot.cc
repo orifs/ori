@@ -55,8 +55,9 @@ cmd_snapshot(int argc, char * const argv[])
     string msg;
     string name;
 
-    if (OF_RunCommand("snapshot"))
-        return 0;
+    return 1;
+    //if (OF_RunCommand("snapshot"))
+    //    return 0;
 
     struct option longopts[] = {
         { "message",    required_argument,  NULL,   'm' },

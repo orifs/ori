@@ -33,12 +33,14 @@ using namespace std;
 #include <ori/version.h>
 #include <oriutil/debug.h>
 #include <ori/repo.h>
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 #include <ori/server.h>
 
 #include "fuse_cmd.h"
 
-LocalRepo repository;
+UDSClient *client;
+UDSRepo repository;
 
 /********************************************************************
  *
@@ -174,7 +176,7 @@ static Cmd commands[] = {
     },
     {
         "list",
-        "List local file systems (NS)",
+        "List local file systems",
         cmd_list,
         usage_list,
         0,
@@ -391,7 +393,6 @@ cmd_version(int argc, char * const argv[])
 int
 main(int argc, char *argv[])
 {
-    bool has_repo = false;
     int idx;
 
     if (argc == 1) {
@@ -405,29 +406,36 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    // Open the repository for all command except the following
-    if (commands[idx].flags & 0)
-    {
-        try {
-            repository.open();
-            if (ori_open_log(repository.getLogPath()) < 0) {
-                printf("Couldn't open log!\n");
-                exit(1);
-            }
-            has_repo = true;
-        } catch (std::exception &e) {
-            // Fall through
-        }
-    }
-
+    client = NULL;
     if (commands[idx].flags & CMD_NEED_FUSE) {
+        string repoPath;
+
         if (!OF_HasFuse()) {
             printf("This command must be run on a mounted file system!\n");
             exit(1);
         }
+
+        repoPath = OF_RepoPath();
+        if (repoPath == "") {
+            printf("Cannot find repository path!\n");
+            exit(1);
+        }
+
+        client = new UDSClient(repoPath);
+        if (client->connect() < 0) {
+            printf("Failed to connect to UDS Repository!\n");
+            exit(1);
+        }
+
+        repository = UDSRepo(client);
     }
 
     DLOG("Executing '%s'", argv[1]);
-    return commands[idx].cmd(argc-1, (char * const*)argv+1);
+    int status = commands[idx].cmd(argc-1, (char * const*)argv+1);
+
+    if (client)
+        delete client;
+
+    return status;
 }
 

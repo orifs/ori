@@ -46,6 +46,9 @@ static UDSServer *server;
 string
 UDSExtensionCB(LocalRepo *repo, const string &data)
 {
+    OriCommand cmd = OriCommand(priv);
+
+    return cmd.process(data);
 }
 
 void

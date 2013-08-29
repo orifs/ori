@@ -37,8 +37,8 @@ cmd_snapshots(int argc, char * const argv[])
     map<string, ObjectHash> snapshots;
     map<string, ObjectHash>::iterator it;
 
-    if (OF_RunCommand("snapshots"))
-        return 0;
+    //if (OF_RunCommand("snapshots"))
+    //    return 0;
 
     snapshots = repository.listSnapshots();
 

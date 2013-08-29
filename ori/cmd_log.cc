@@ -15,25 +15,24 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include <string>
 #include <iostream>
 #include <iomanip>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 #include "fuse_cmd.h"
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_log(int argc, char * const argv[])
 {
-    if (OF_RunCommand("log"))
-        return 0;
-
     ObjectHash commit;
     if (argc >= 2) {
         commit = ObjectHash::fromHex(argv[1]);
@@ -59,6 +58,7 @@ cmd_log(int argc, char * const argv[])
         cout << "Author:    " << c.getUser() << endl;
         cout << "Date:      " << timeStr;
         if (c.hasSignature()) {
+            /*
             map<string, PublicKey> keys = repository.getPublicKeys();
             map<string, PublicKey>::iterator it;
 
@@ -69,10 +69,11 @@ cmd_log(int argc, char * const argv[])
                 }
             }
             cout << "Signature: Unverified" << endl;
+            */
+            cout << "Signature: UNSUPPORTED" << endl;
         }
-foundKey:
-        cout << "Status:    " << repository.getMetadata().getMeta(commit,
-                "status") << endl;
+        //cout << "Status:    " << repository.getMetadata().getMeta(commit,
+        //        "status") << endl;
         if (!c.getGraftCommit().isEmpty()) {
             cout << "Graft:   from " << c.getGraftRepo().first << ":"
                                      << c.getGraftRepo().second << endl;

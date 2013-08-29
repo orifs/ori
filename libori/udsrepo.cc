@@ -42,6 +42,11 @@ using namespace std::tr1;
  * UDSRepo
  */
 
+UDSRepo::UDSRepo()
+    : client(NULL), containedObjs(NULL)
+{
+}
+
 UDSRepo::UDSRepo(UDSClient *client)
     : client(client), containedObjs(NULL)
 {
@@ -65,6 +70,19 @@ std::string UDSRepo::getUUID()
         bs->readPStr(fsid);
     }
     return fsid;
+}
+
+std::string UDSRepo::getVersion()
+{
+    client->sendCommand("get version");
+    string version = "";
+
+    bool ok = client->respIsOK();
+    bytestream::ap bs(client->getStream());
+    if (ok) {
+        bs->readPStr(version);
+    }
+    return version;
 }
 
 ObjectHash UDSRepo::getHead()

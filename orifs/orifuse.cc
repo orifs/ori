@@ -411,7 +411,12 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
     //          path, size, offset);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        return priv->cmd.read(buf, size, offset);
+        string repoPath = priv->getRepo()->getRootPath();
+        int len = (size < repoPath.size()) ? size : repoPath.size();
+        if (offset != 0 || size < repoPath.size())
+            return -EIO;
+        memcpy(buf, repoPath.data(), len);
+        return len;
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
@@ -477,8 +482,7 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
     // FUSE_LOG("FUSE ori_write(path=\"%s\", length=%ld)", path, size);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        RWKey::sp lock = priv->nsLock.writeLock();
-        return priv->cmd.write(buf, size, offset);
+        return -EIO;
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
@@ -510,8 +514,7 @@ ori_truncate(const char *path, off_t length)
     FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%ld)", path, length);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        // XXX: Not implemented
-        return 0;
+        return -EACCES;
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
@@ -548,8 +551,7 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
     FUSE_LOG("FUSE ori_ftruncate(path=\"%s\", length=%ld)", path, length);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
-        // XXX: Not implemented
-        return 0;
+        return -EACCES;
     } else if (strncmp(path,
                        ORI_SNAPSHOT_DIRPATH,
                        strlen(ORI_SNAPSHOT_DIRPATH)) == 0) {
@@ -795,11 +797,12 @@ ori_getattr(const char *path, struct stat *stbuf)
     memset(stbuf, 0, sizeof(struct stat));
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
+        string repoPath = priv->getRepo()->getRootPath();
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
         stbuf->st_mode = 0600 | S_IFREG;
         stbuf->st_nlink = 1;
-        stbuf->st_size = priv->cmd.readSize();
+        stbuf->st_size = repoPath.size();
         stbuf->st_blksize = 4096;
         stbuf->st_blocks = (stbuf->st_size + 511) / 512;
         return 0;

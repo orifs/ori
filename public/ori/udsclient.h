@@ -25,6 +25,7 @@
 class UDSClient
 {
 public:
+    UDSClient();
     UDSClient(const std::string &remotePath);
     ~UDSClient();
 

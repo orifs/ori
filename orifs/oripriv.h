@@ -175,8 +175,6 @@ public:
     std::map<std::string, ObjectHash> listSnapshots();
     Commit lookupSnapshot(const std::string &name);
     Tree getTree(const Commit &c, const std::string &path);
-    // Command Operations
-    OriCommand cmd;
     ObjectHash getTip();
 private:
     ObjectHash commitTreeHelper(const std::string &path);
@@ -188,12 +186,11 @@ public:
     void setJournalMode(OriJournalMode::JournalMode mode);
     void journal(const std::string &event, const std::string &arg);
     // Debugging
-    void fsck(bool fromCmd = false);
+    void fsck();
 
     // Locks
     RWLock ioLock; // File I/O lock to allow atomic commits
     RWLock nsLock; // Namespace lock
-    RWLock cmdLock; // Control device lock
 
     LocalRepo *getRepo();
 private:

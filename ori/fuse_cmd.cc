@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -28,19 +28,21 @@
 
 #include "fuse_cmd.h"
 
+using namespace std;
+
 bool OF_HasFuse()
 {
     return OF_ControlPath() != "";
 }
 
-std::string OF_ControlPath()
+string OF_ControlPath()
 {
     char *cwdbuf = getcwd(NULL, 0);
-    std::string path = cwdbuf;
+    string path = cwdbuf;
     free(cwdbuf);
 
     while (path.size() > 0) {
-        std::string control_path = path + "/" + ORI_CONTROL_FILENAME;
+        string control_path = path + "/" + ORI_CONTROL_FILENAME;
         if (OriFile_Exists(control_path)) {
             return control_path;
         }
@@ -50,46 +52,37 @@ std::string OF_ControlPath()
     return "";
 }
 
-bool OF_RunCommand(const char *cmd)
+string OF_RepoPath()
 {
-    std::string controlPath = OF_ControlPath();
+    int status;
+    string controlPath = OF_ControlPath();
+    int fd;
+    struct stat sb;
+    char buf[1024];
 
     if (controlPath.size() == 0)
-        return false;
+        return "";
 
-    int fd = open(controlPath.c_str(), O_RDWR | O_TRUNC);
+    fd = open(controlPath.c_str(), O_RDONLY);
     if (fd < 0) {
-        perror("OF_RunCommand open");
-        return false;
+        perror("OF_RepoPath: open");
+        return "";
     }
 
-    int status = write(fd, cmd, strlen(cmd));
+    status = fstat(fd, &sb);
     if (status < 0) {
-        perror("Failed to write control node");
-        return false;
-    }
-    fsync(fd);
-    lseek(fd, 0, SEEK_SET);
-
-    // Read output
-    struct stat sb;
-    fstat(fd, &sb);
-    size_t left = sb.st_size;
-    while (left > 0) {
-        size_t to_read = left;
-        if (to_read > 1024)
-            to_read = 1024;
-
-        char buf[1024];
-        int bytes_read = read(fd, buf, to_read);
-        if (bytes_read == -1) {
-            perror("Failed to read control node");
-            return false;
-        }
-        fwrite(buf, bytes_read, 1, stdout);
-        left -= bytes_read;
+        perror("OF_RepoPath: fstat");
+        return "";
     }
 
-    return true;
+    status = read(fd, buf, sb.st_size);
+    if (status < 0) {
+        perror("OF_RepoPath: read");
+        return "";
+    }
+
+    buf[status] = '\0';
+
+    return string(buf);
 }
 
