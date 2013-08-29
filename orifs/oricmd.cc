@@ -162,7 +162,9 @@ OriCommand::cmd_status(strstream &str)
 
     map<string, OriFileState::StateType> diff = priv->getDiff();
     map<string, OriFileState::StateType>::iterator it;
+    strwstream resp;
 
+    resp.writeUInt32(diff.size());
     for (it = diff.begin(); it != diff.end(); it++) {
         char type = '!';
 
@@ -175,7 +177,8 @@ OriCommand::cmd_status(strstream &str)
         else
             ASSERT(false);
 
-        //printf("%c   %s\n", type, it->first.c_str());
+        resp.writeUInt8(type);
+        resp.writeLPStr(it->first);
     }
 
 #if defined(DEBUG) || defined(ORI_PERF)
@@ -183,6 +186,6 @@ OriCommand::cmd_status(strstream &str)
     FUSE_PLOG("status elapsed %ldus", sw.getElapsedTime());
 #endif /* DEBUG */
 
-    return 0;
+    return resp.str();
 }
 

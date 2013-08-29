@@ -20,34 +20,36 @@
 #include <iostream>
 #include <iomanip>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 #include "fuse_cmd.h"
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_status(int argc, char * const argv[])
 {
-    return 1;
-    //if (OF_RunCommand("status"))
-    //    return 0;
+    strwstream req;
 
-    Commit c;
-    ObjectHash tip = repository.getHead();
-    if (tip != EMPTY_COMMIT) {
-        c = repository.getCommit(tip);
+    req.writePStr("status");
+
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "status failed with an unknown error!" << endl;
+        return 1;
     }
 
-    TreeDiff td;
-    td.diffToDir(c, repository.getRootPath(), &repository);
+    uint32_t len = resp.readUInt32();
+    for (size_t i = 0; i < len; i++) {
+        char type = resp.readUInt8();
+        string path;
 
-    for (size_t i = 0; i < td.entries.size(); i++) {
-        printf("%c   %s\n",
-                td.entries[i].type,
-                td.entries[i].filepath.c_str());
+        resp.readLPStr(path);
+
+        printf("%c   %s\n", type, path.c_str());
     }
 
     return 0;

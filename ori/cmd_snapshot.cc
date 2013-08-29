@@ -24,13 +24,14 @@
 #include <string>
 #include <iostream>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 #include "fuse_cmd.h"
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 void
 usage_snapshot(void)
@@ -101,6 +102,11 @@ cmd_snapshot(int argc, char * const argv[])
         req.writeLPStr(name);
 
     strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "status failed with an unknown error!" << endl;
+        return 1;
+    }
+
     switch (resp.readUInt8())
     {
         case 0:
