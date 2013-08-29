@@ -27,8 +27,7 @@ typedef enum OriFileType
 {
     FILETYPE_NULL,
     FILETYPE_COMMITTED,
-    FILETYPE_TEMPORARY,
-    FILETYPE_REMOTE,
+    FILETYPE_DIRTY,
 } OriFileType;
 
 #define ORIPRIVID_INVALID 0
@@ -85,7 +84,8 @@ public:
     ObjectHash largeHash;
     OriFileType type;
     OriPrivId id;
-    std::string path; // link target or temporary file
+    std::string path; // temporary file
+    std::string link; // link target
     int fd;
     int refCount;
     int openCount;

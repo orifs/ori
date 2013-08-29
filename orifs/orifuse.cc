@@ -136,10 +136,12 @@ ori_unlink(const char *path)
             return -EPERM;
 
         parentDir->remove(OriFile_Basename(path));
-        if (info->isSymlink() || info->isReg()) {
-            if (info->type == FILETYPE_TEMPORARY)
+        if (info->isReg()) {
+            if (info->path != "")
                 unlink(info->path.c_str());
 
+            priv->unlink(path);
+        } else if (info->isSymlink()) {
             priv->unlink(path);
         } else {
             // XXX: Support files
@@ -188,8 +190,9 @@ ori_symlink(const char *target_path, const char *link_path)
 
     OriFileInfo *info = priv->addSymlink(link_path);
     info->statInfo.st_mode |= 0755;
-    info->path = target_path;
+    info->link = target_path;
     info->statInfo.st_size = info->path.length();
+    info->type = FILETYPE_DIRTY;
 
     parentDir->add(OriFile_Basename(link_path), info->id);
 
@@ -215,7 +218,7 @@ ori_readlink(const char *path, char *buf, size_t size)
         return -e.getErrno();
     }
 
-    memcpy(buf, info->path.c_str(), MIN(info->path.length() + 1, size));
+    memcpy(buf, info->link.c_str(), MIN(info->link.length() + 1, size));
 
     return 0;
 }
@@ -342,6 +345,7 @@ ori_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
     pair<OriFileInfo *, uint64_t> info = priv->addFile(path);
     info.first->statInfo.st_mode |= mode;
+    info.first->type = FILETYPE_DIRTY;
 
     parentDir->add(OriFile_Basename(path), info.first->id);
 
@@ -494,6 +498,7 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
 
     RWKey::sp lock = priv->nsLock.readLock();
     info = priv->getFileInfo(fi->fh);
+    info->type = FILETYPE_DIRTY;
     status = pwrite(info->fd, buf, size, offset);
     if (status < 0)
         return -errno;
@@ -525,7 +530,7 @@ ori_truncate(const char *path, off_t length)
 
     RWKey::sp lock = priv->nsLock.writeLock();
     info = priv->getFileInfo(path);
-    if (info->type == FILETYPE_TEMPORARY) {
+    if (info->type == FILETYPE_DIRTY) {
         int status;
 
         status = truncate(info->path.c_str(), length);
@@ -563,7 +568,7 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
 
     RWKey::sp lock = priv->nsLock.writeLock();
     info = priv->getFileInfo(fi->fh);
-    if (info->type == FILETYPE_TEMPORARY) {
+    if (info->type == FILETYPE_DIRTY) {
         int status;
 
         status = ftruncate(info->fd, length);
@@ -688,6 +693,7 @@ ori_rmdir(const char *path)
 
         parentDir->remove(OriFile_Basename(path));
         parentInfo->statInfo.st_nlink--;
+        parentInfo->type = FILETYPE_DIRTY;
         priv->rmDir(path);
 
         ASSERT(parentInfo->statInfo.st_nlink >= 2);
@@ -918,6 +924,7 @@ ori_chmod(const char *path, mode_t mode)
         OriFileInfo *info = priv->getFileInfo(path);
 
         info->statInfo.st_mode = mode;
+        info->type = FILETYPE_DIRTY;
 
         OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
@@ -954,6 +961,7 @@ ori_chown(const char *path, uid_t uid, gid_t gid)
 
         info->statInfo.st_uid = uid;
         info->statInfo.st_gid = gid;
+        info->type = FILETYPE_DIRTY;
 
         OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();
@@ -990,6 +998,7 @@ ori_utimens(const char *path, const struct timespec tv[2])
 
         // Ignore access times
         info->statInfo.st_mtime = tv[1].tv_sec;
+        info->type = FILETYPE_DIRTY;
 
         OriDir *dir = priv->getDir(parentPath);
         dir->setDirty();

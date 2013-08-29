@@ -105,7 +105,7 @@ OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remote
         time_t now = time(NULL);
         dirInfo->statInfo.st_mtime = now;
         dirInfo->statInfo.st_ctime = now;
-        dirInfo->type = FILETYPE_TEMPORARY;
+        dirInfo->type = FILETYPE_DIRTY;
         dirInfo->dirLoaded = true;
         dirs[dirInfo->id] = new OriDir();
     } else {
@@ -294,7 +294,7 @@ OriPriv::createInfo()
     info->statInfo.st_atime = 0;
     info->statInfo.st_mtime = now; // XXX: NOW
     info->statInfo.st_ctime = now;
-    info->type = FILETYPE_TEMPORARY;
+    info->type = FILETYPE_DIRTY;
     info->id = generateId();
     info->fd = -1;
 
@@ -331,7 +331,7 @@ OriPriv::addFile(const string &path)
     map<string, OriFileInfo*>::iterator it = paths.find(path);
     if (it != paths.end()) {
         ASSERT(!it->second->isDir());
-        if (it->second->type == FILETYPE_TEMPORARY)
+        if (it->second->type == FILETYPE_DIRTY)
             unlink(it->second->path.c_str());
         it->second->release();
     }
@@ -358,7 +358,7 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
     handles[handle] = info;
 
     // Open temporary file if necessary
-    if (info->type == FILETYPE_TEMPORARY) {
+    if (info->type == FILETYPE_DIRTY) {
         if (info->fd != -1) {
             // File is already open just return a new handle
             return make_pair(info, handle);
@@ -380,7 +380,7 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
 
             info->statInfo.st_size = 0;
             info->statInfo.st_blocks = 0;
-            info->type = FILETYPE_TEMPORARY;
+            info->type = FILETYPE_DIRTY;
             info->path = temp.first;
             info->fd = temp.second;
         } else if (writing) {
@@ -400,7 +400,7 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
                 throw SystemException(errno);
             }
 
-            info->type = FILETYPE_TEMPORARY;
+            info->type = FILETYPE_DIRTY;
             info->path = temp.first;
             info->fd = status;
         } else {
@@ -458,7 +458,7 @@ OriPriv::unlink(const string &path)
 {
     OriFileInfo *info = getFileInfo(path);
 
-    ASSERT(info->isSymlink() | info->isReg());
+    ASSERT(info->isSymlink() || info->isReg());
 
     paths.erase(path);
 
@@ -495,7 +495,7 @@ OriPriv::addDir(const string &path)
     info->statInfo.st_atime = 0;
     info->statInfo.st_mtime = now;
     info->statInfo.st_ctime = now;
-    info->type = FILETYPE_TEMPORARY;
+    info->type = FILETYPE_DIRTY;
     info->id = generateId();
     info->dirLoaded = true;
 
@@ -587,7 +587,7 @@ loadDir:
             info->largeHash = it->second.largeHash;
             if (isSymlink) {
                 ASSERT(info->largeHash.isEmpty());
-                info->path = repo->getPayload(info->hash);
+                info->link = repo->getPayload(info->hash);
             }
 
             dir->add(it->first, info->id);
@@ -674,24 +674,29 @@ OriPriv::commitTreeHelper(const string &path)
         string objPath = path + "/" + it->first;
         OriFileInfo *info = getFileInfo(objPath);
 
-        if (info->type == FILETYPE_TEMPORARY) {
+        if (info->type == FILETYPE_DIRTY) {
             dirty = true;
         
             // Created or modified
             TreeEntry e;
 
             if (info->isSymlink()) {
-                ObjectHash hash;
-                hash = repo->addBlob(ObjectInfo::Blob, info->path);
+                ObjectHash hash = repo->addBlob(ObjectInfo::Blob, info->link);
+
+                // Copy hash back to info stgructure
+                info->hash = hash;
+
                 e = TreeEntry(hash, ObjectHash());
             } else {
                 if (info->path != "") {
                     pair<ObjectHash, ObjectHash> hashes;
                     hashes = repo->addFile(info->path);
-                    e = TreeEntry(hashes.first, hashes.second);
-                } else {
-                    e = TreeEntry(info->hash, info->largeHash);
+
+                    // Copy hashes back to info stgructure
+                    info->hash = hashes.first;
+                    info->largeHash = hashes.second;
                 }
+                e = TreeEntry(info->hash, info->largeHash);
             }
 
             struct passwd *pw = getpwuid(info->statInfo.st_uid);
@@ -729,11 +734,14 @@ OriPriv::commitTreeHelper(const string &path)
             ASSERT(e.hasBasicAttrs());
 
             newTree.tree[it->first] = e;
+
+            info->type = FILETYPE_COMMITTED;
         } else {
             Tree::iterator oldEntry = oldTree.find(it->first);
 
             ASSERT(oldEntry != oldTree.end());
             ASSERT(oldEntry->second.hasBasicAttrs());
+            ASSERT(!oldEntry->second.hash.isEmpty());
 
             // Copy old entry
             newTree.tree[it->first] = oldEntry->second;
@@ -842,7 +850,7 @@ OriPriv::getDiffHelper(const string &path,
         string objPath = path + "/" + it->first;
         OriFileInfo *info = getFileInfo(objPath);
 
-        if (info->type == FILETYPE_TEMPORARY) {
+        if (info->type == FILETYPE_DIRTY) {
             if (t.find(it->first) == t.end())
                 diff->insert(make_pair(objPath, OriFileState::Created));
             else

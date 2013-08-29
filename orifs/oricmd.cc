@@ -115,6 +115,7 @@ OriCommand::cmd_snapshot(strstream &str)
         c.setSnapshot(name);
     }
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     ObjectHash hash = priv->commit(c);
     if (hash.isEmpty()) {
         resp.writeUInt8(0);
