@@ -75,6 +75,8 @@ OriCommand::process(const string &data)
         return cmd_status(str);
     if (cmd == "pull")
         return cmd_pull(str);
+    if (cmd == "checkout")
+        return cmd_checkout(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -261,6 +263,46 @@ error:
     sw.stop();
     FUSE_PLOG("pull up to: %s", hash.hex().c_str());
     FUSE_PLOG("pull elapsed %ldus", sw.getElapsedTime());
+#endif /* DEBUG */
+
+    return resp.str();
+}
+
+string
+OriCommand::cmd_checkout(strstream &str)
+{
+#if defined(DEBUG) || defined(ORI_PERF)
+    Stopwatch sw = Stopwatch();
+    sw.start();
+#endif /* DEBUG */
+
+    FUSE_PLOG("Command: checkout");
+
+    string error;
+    uint8_t force;
+    ObjectHash hash;
+    strwstream resp;
+
+    // Parse Command
+    str.readHash(hash);
+    force = str.readUInt8();
+
+    RWKey::sp lock = priv->nsLock.writeLock();
+    error = priv->checkout(hash, force);
+    lock.reset();
+
+error:
+    if (error != "") {
+        resp.writeUInt8(0);
+        resp.writePStr(error);
+    } else {
+        resp.writeUInt8(1);
+    }
+
+#if defined(DEBUG) || defined(ORI_PERF)
+    sw.stop();
+    FUSE_PLOG("checkout up to: %s", hash.hex().c_str());
+    FUSE_PLOG("checkout elapsed %ldus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();

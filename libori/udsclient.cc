@@ -70,9 +70,10 @@ int UDSClient::connect()
     if (sock < 0)
         throw SystemException();
 
+    memset(&remote, 0, sizeof(remote));
     remote.sun_family = AF_UNIX;
     strcpy(remote.sun_path, udsPath.c_str());
-    len = udsPath.size() + sizeof(remote.sun_family);
+    len = SUN_LEN(&remote);
     status = ::connect(sock, (struct sockaddr *)&remote, len);
     if (status < 0)
         throw SystemException();

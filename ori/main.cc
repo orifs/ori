@@ -127,10 +127,10 @@ static Cmd commands[] = {
     },
     {
         "checkout",
-        "Checkout a revision of the repository (DEBUG) (NS)",
+        "Checkout a revision of the repository (DEBUG)",
         cmd_checkout,
         NULL,
-        CMD_DEBUG,
+        CMD_DEBUG | CMD_NEED_FUSE,
     },
     {
         "diff",
@@ -406,6 +406,11 @@ main(int argc, char *argv[])
         return 1;
     }
 
+#if defined(DEBUG) || defined(ORI_PERF)
+    string logPath = Util_GetHome() + "/.ori/oricli.log";
+    ori_open_log(logPath);
+#endif
+
     client = NULL;
     if (commands[idx].flags & CMD_NEED_FUSE) {
         string repoPath;
@@ -421,13 +426,18 @@ main(int argc, char *argv[])
             exit(1);
         }
 
-        client = new UDSClient(repoPath);
-        if (client->connect() < 0) {
-            printf("Failed to connect to UDS Repository!\n");
+        try {
+            client = new UDSClient(repoPath);
+            if (client->connect() < 0) {
+                printf("Failed to connect to UDS Repository!\n");
+                exit(1);
+            }
+
+            repository = UDSRepo(client);
+        } catch (exception &e) {
+            printf("Failed to connect to FUSE: %s\n", e.what());
             exit(1);
         }
-
-        repository = UDSRepo(client);
     }
 
     DLOG("Executing '%s'", argv[1]);

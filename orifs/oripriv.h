@@ -179,10 +179,14 @@ public:
 private:
     ObjectHash commitTreeHelper(const std::string &path);
     void getDiffHelper(const std::string &path,
-                       std::map<std::string, OriFileState::StateType> *diff);
+                    std::map<std::string, OriFileState::StateType> *diff);
+    void getCheckoutHelper(const std::string &path,
+                    std::map<std::string, OriFileInfo *> *diffInfo,
+                    std::map<std::string, OriFileState::StateType> *diffState);
 public:
     ObjectHash commit(const Commit &cTemplate, bool temporary = false);
     std::map<std::string, OriFileState::StateType> getDiff();
+    std::string checkout(ObjectHash hash, bool force);
     void setJournalMode(OriJournalMode::JournalMode mode);
     void journal(const std::string &event, const std::string &arg);
     // Debugging

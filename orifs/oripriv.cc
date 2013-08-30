@@ -886,6 +886,124 @@ OriPriv::getDiff()
 }
 
 void
+OriPriv::getCheckoutHelper(const string &path,
+                           map<string, OriFileInfo *> *diffInfo,
+                           map<string, OriFileState::StateType> *diffState)
+{
+    OriDir *dir = getDir(path == "" ? "/" : path);
+    Tree t;
+
+    // Load repo directory
+    // XXX: This function needs to return all new objects in current diff
+    try {
+        ObjectHash treeHash = repo->lookup(headCommit,
+                                           path == "" ? "/" : path);
+        if (treeHash.isEmpty())
+            return;
+
+        t = repo->getTree(treeHash);
+    } catch (runtime_error &e) {
+        // Directory does not exist
+        return;
+    }
+
+    // Check this directory
+    for (OriDir::iterator it = dir->begin(); it != dir->end(); it++) {
+        string objPath = path + "/" + it->first;
+        OriFileInfo *info = getFileInfo(objPath);
+
+        if (info->type == FILETYPE_DIRTY) {
+            if (t.find(it->first) == t.end()) {
+                diffState->insert(make_pair(objPath, OriFileState::Created));
+                info->retain();
+                diffInfo->insert(make_pair(objPath, info));
+            } else {
+                diffState->insert(make_pair(objPath, OriFileState::Modified));
+                info->retain();
+                diffInfo->insert(make_pair(objPath, info));
+            }
+        }
+    }
+    for (Tree::iterator it = t.begin(); it != t.end(); it++) {
+        string objPath = path + "/" + it->first;
+
+        if (dir->find(it->first) == dir->end()) {
+            diffState->insert(make_pair(objPath, OriFileState::Deleted));
+        }
+    }
+
+    // Check subdirectories
+    for (OriDir::iterator it = dir->begin(); it != dir->end(); it++) {
+        string objPath = path + "/" + it->first;
+        OriFileInfo *info = getFileInfo(objPath);
+
+        if (info->isDir() && info->dirLoaded) {
+            getCheckoutHelper(objPath, diffInfo, diffState);
+        }
+    }
+}
+
+string
+OriPriv::checkout(ObjectHash hash, bool force)
+{
+    Commit c = repo->getCommit(hash);
+    map<string, OriFileInfo *> diffInfo;
+    map<string, OriFileState::StateType> diffState;
+
+    getCheckoutHelper("", &diffInfo, &diffState);
+
+    // Store a set of directories containing changes
+    map<string, OriFileState::StateType>::iterator it;
+    set<string> modifiedDirs;
+    for (it = diffState.begin(); it != diffState.end(); it++) {
+        string base = OriFile_Dirname(it->first);
+
+        if (base == "")
+            base = "/";
+
+        modifiedDirs.insert(base);
+    }
+
+    // Reset
+    map<string, OriFileInfo*>::iterator pit;
+    map<OriPrivId, OriDir*>::iterator dit;
+    for (pit = paths.begin(); pit != paths.end(); pit++)
+    {
+        if (pit->first == "/") {
+            if (pit->second->dirLoaded)
+                dirs.erase(pit->second->id);
+            pit->second->statInfo.st_nlink = 2;
+            pit->second->dirLoaded = false;
+            continue;
+        }
+
+        if (pit->second->isDir() && pit->second->dirLoaded) {
+            delete dirs[pit->second->id];
+            dirs.erase(pit->second->id);
+        }
+        pit->second->release();
+        paths.erase(pit);
+    }
+
+    OriFileInfo *rootInfo = paths["/"];
+    rootInfo->statInfo.st_mtime = c.getTime();
+    rootInfo->statInfo.st_ctime = c.getTime();
+
+    head = hash;
+    headCommit = c;
+
+    if (force) {
+        return "";
+    }
+
+    // getDir for current dirs
+
+    // Merge files (unless force specified)
+
+    return "";
+}
+
+void
 OriPriv::setJournalMode(OriJournalMode::JournalMode mode)
 {
     journalMode = mode;

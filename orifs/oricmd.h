@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,6 +31,7 @@ private:
     std::string cmd_snapshots(strstream &str);
     std::string cmd_status(strstream &str);
     std::string cmd_pull(strstream &str);
+    std::string cmd_checkout(strstream &str);
     OriPriv *priv;
 };
 

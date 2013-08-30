@@ -20,6 +20,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <getopt.h>
+
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -29,130 +31,84 @@
 #include <oriutil/orifile.h>
 #include <oriutil/oricrypt.h>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
-int
-StatusDirectoryCB(map<string, ObjectHash> *dirState, const string &path)
+void
+usage_checkout()
 {
-    string repoRoot = LocalRepo::findRootPath();
-    string objPath = path;
-    ObjectHash objHash;
-
-    if (!OriFile_IsDirectory(objPath)) {
-        objHash = OriCrypt_HashFile(objPath);
-        ASSERT(!objHash.isEmpty());
-        objPath = objPath.substr(repoRoot.size());
-    } else {
-        objPath = objPath.substr(repoRoot.size());
-    }
-
-    // TODO: empty hash means dir
-    dirState->insert(make_pair(objPath, objHash));
-
-    return 0;
+    cout << "ori checkout [OPTIONS] [COMMITID]" << endl;
+    cout << endl;
+    cout << "Checkout a file system snapshot, the force checkout flag" << endl;
+    cout << "will cause the current changes to be lost.  If the" << endl;
+    cout << "COMMITID is omitted this can be used with the force flag" << endl;
+    cout << "to discard any changes." << endl;
+    cout << endl;
+    cout << "Options:" << endl;
+    cout << "    --force        Force checkout" << endl;
 }
-
-/*int
-StatusTreeIter(map<string, pair<string, string> > *tipState,
-               const string &path,
-               const string &treeId)
-{
-    Tree tree;
-    map<string, TreeEntry>::iterator it;
-
-    // XXX: Error handling
-    tree = repository.getTree(treeId);
-
-    for (it = tree.tree.begin(); it != tree.tree.end(); it++) {
-        if ((*it).second.type == TreeEntry::Tree) {
-            tipState->insert(make_pair(path + "/" + (*it).first,
-                                       make_pair("DIR", (*it).second.hash)));
-            StatusTreeIter(tipState,
-                           path + "/" + (*it).first,
-                           (*it).second.hash);
-        } else {
-            string filePath = path + "/" + (*it).first;
-            string fileHash = (*it).second.largeHash == "" ?
-                          (*it).second.hash : (*it).second.largeHash;
-            string objHash = (*it).second.hash;
-
-            tipState->insert(make_pair(filePath,
-                                       make_pair(fileHash, objHash)));
-        }
-    }
-
-    return 0;
-}*/
 
 int
 cmd_checkout(int argc, char * const argv[])
 {
+    int ch;
+    bool force = false;
     Commit c;
     ObjectHash tip = repository.getHead();
-    Tree::Flat tipTree;
 
-    if (argc == 2) {
-        tip = ObjectHash::fromHex(argv[1]);
+    struct option longopts[] = {
+        { "force",      no_argument,    NULL,   'f' },
+        { NULL,         0,              NULL,   0   }
+    };
 
-        // Set the head if the user specified a revision
-        repository.setHead(tip);
+    while ((ch = getopt_long(argc, argv, "f", longopts, NULL)) != -1) {
+        switch (ch) {
+            case 'f':
+                force = true;
+                break;
+            default:
+                printf("Usage: ori checkout [OPTIONS] COMMITID\n");
+                return 1;
+        }
+    }
+    argc -= optind;
+    argv += optind;
+
+    if (argc == 1) {
+        tip = ObjectHash::fromHex(argv[0]);
     }
 
     if (tip != EMPTY_COMMIT) {
         c = repository.getCommit(tip);
-        tipTree = repository.getTree(c.getTree()).flattened(&repository);
     }
 
-    map<string, ObjectHash> dirState;
-    DirTraverse(LocalRepo::findRootPath().c_str(),
-                &dirState,
-                StatusDirectoryCB);
+    strwstream req;
 
-    map<string, ObjectHash>::iterator it;
-    for (it = dirState.begin(); it != dirState.end(); it++) {
-        Tree::Flat::iterator tipIt = tipTree.find((*it).first);
+    req.writePStr("checkout");
+    req.writeHash(tip);
+    req.writeUInt8(force ? 1 : 0);
 
-        if (tipIt == tipTree.end()) {
-            printf("A   %s\n", (*it).first.c_str());
-        } else {
-            const TreeEntry &te = (*tipIt).second;
-            ObjectHash totalHash = (te.type == TreeEntry::LargeBlob) ?
-                    te.largeHash : te.hash;
 
-            // TODO: dirs
-            if (totalHash != (*it).second && !(*it).second.isEmpty()) {
-                printf("M       %s\n", (*it).first.c_str());
-                // XXX: Handle replace a file <-> directory with same name
-                repository.copyObject(te.hash,
-                                    LocalRepo::findRootPath()+(*tipIt).first);
-            }
-        }
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "checkout failed with an unknown error!" << endl;
+        return 1;
     }
 
-    for (Tree::Flat::iterator tipIt = tipTree.begin();
-            tipIt != tipTree.end();
-            tipIt++) {
-        it = dirState.find((*tipIt).first);
-        if (it == dirState.end()) {
-            string path = LocalRepo::findRootPath() + (*tipIt).first;
-            const TreeEntry &te = (*tipIt).second;
-            if (te.type == TreeEntry::Tree) {
-                printf("N       %s\n", (*tipIt).first.c_str());
-                mkdir(path.c_str(), 0755);
-            } else {
-                printf("U       %s\n", (*tipIt).first.c_str());
-                if (repository.getObjectType(te.hash)
-                        != ObjectInfo::Purged)
-                    repository.copyObject(te.hash, path);
-                else
-                    cout << "Object has been purged." << endl;
-            }
-        }
+    uint8_t result = resp.readUInt8();
+
+    if (result == 0) {
+        string error;
+        resp.readPStr(error);
+        cout << "Checkout failed: " << error << endl;
+        return 1;
     }
+
+    cout << "Checkout success!" << endl;
 
     return 0;
 }
