@@ -53,6 +53,7 @@ UDSServer::UDSServer(LocalRepo *repo)
 
     // XXX: Check that path doesn't exceed local.sun_path
 
+    memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, fuseSock.c_str());
     unlink(fuseSock.c_str());
