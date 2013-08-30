@@ -27,7 +27,7 @@
 FILE *logfd = NULL;
 
 void
-ori_fuse_log(const char *what, ...)
+ori_fuse_log_enable()
 {
     if (logfd == NULL) {
         logfd = fopen("fuse.log", "wb+");
@@ -36,7 +36,11 @@ ori_fuse_log(const char *what, ...)
             exit(1);
         } 
     }
+}
 
+void
+ori_fuse_log(const char *what, ...)
+{
     va_list vl;
     va_start(vl, what);
     vfprintf(logfd, what, vl);

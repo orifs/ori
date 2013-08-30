@@ -1123,6 +1123,7 @@ main(int argc, char *argv[])
         { "journal-sync",   no_argument,        NULL,   'z' },
         { "no-threads",     no_argument,        NULL,   't' },
         { "debug",          no_argument,        NULL,   'd' },
+        { "fuselog",        no_argument,        NULL,   'l' },
         { "help",           no_argument,        NULL,   'h' },
         { NULL,             0,                  NULL,   0   }
     };
@@ -1156,6 +1157,9 @@ main(int argc, char *argv[])
                 config.single = 1;
             case 'd':
                 config.debug = 1;
+                break;
+            case 'l':
+                ori_fuse_log_enable();
                 break;
             case 'h':
                 usage();
@@ -1203,6 +1207,10 @@ main(int argc, char *argv[])
     /*
      * Now we do the real work of replicating and mounting the file system.
      */
+
+#if defined(DEBUG) || defined(ORI_PERF)
+    ori_fuse_log_enable();
+#endif
 
     FUSE_PLOG("Ori FUSE Driver");
 

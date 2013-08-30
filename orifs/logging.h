@@ -17,6 +17,7 @@
 #ifndef __LOGGING_H__
 #define __LOGGING_H__
 
+void ori_fuse_log_enable();
 void ori_fuse_log(const char *what, ...)
     __attribute__((format(printf, 1, 2)));
 
