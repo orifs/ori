@@ -43,6 +43,11 @@ ori_fuse_log(const char *what, ...)
 {
     va_list vl;
     va_start(vl, what);
+
+    if (logfd == NULL) {
+        return;
+    }
+
     vfprintf(logfd, what, vl);
 
 #ifdef DEBUG
