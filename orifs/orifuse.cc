@@ -75,6 +75,7 @@ ori_init(struct fuse_conn_info *conn)
 {
     FUSE_LOG("Ori Filesystem starting ...");
 
+    // Change directories to place the orifs coredump in the repo root
     chdir(config.repoPath.c_str());
 
     priv->init();

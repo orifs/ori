@@ -181,8 +181,13 @@ main(int argc, char *argv[])
     int idx;
 
     if (argc == 1) {
-        if (!OriFile_Exists(Util_GetHome() + "/.ori"))
-            OriFile_MkDir(Util_GetHome() + "/.ori");
+        string oriHome = Util_GetHome() + "/.ori";
+
+        if (!OriFile_Exists(oriHome))
+            OriFile_MkDir(oriHome());
+
+        // Chdir so that coredumps are placed in ~/.ori
+        chdir(oriHome.c_str());
 
         ori_open_log(Util_GetHome() + ORISYNC_LOGFILE);
 
