@@ -57,7 +57,7 @@ UDSServer::UDSServer(LocalRepo *repo)
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, fuseSock.c_str());
     unlink(fuseSock.c_str());
-    len = fuseSock.size() + sizeof(addr.sun_family);
+    len = SUN_LEN(&addr);
     status = bind(sock, (struct sockaddr *)&addr, len);
     if (status < 0)
         throw SystemException();
