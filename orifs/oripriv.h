@@ -187,6 +187,7 @@ public:
     ObjectHash commit(const Commit &cTemplate, bool temporary = false);
     std::map<std::string, OriFileState::StateType> getDiff();
     std::string checkout(ObjectHash hash, bool force);
+    std::string merge(ObjectHash hash);
     void setJournalMode(OriJournalMode::JournalMode mode);
     void journal(const std::string &event, const std::string &arg);
     // Debugging

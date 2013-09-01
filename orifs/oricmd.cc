@@ -77,6 +77,8 @@ OriCommand::process(const string &data)
         return cmd_pull(str);
     if (cmd == "checkout")
         return cmd_checkout(str);
+    if (cmd == "merge")
+        return cmd_merge(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -306,4 +308,42 @@ OriCommand::cmd_checkout(strstream &str)
 
     return resp.str();
 }
+
+string
+OriCommand::cmd_merge(strstream &str)
+{
+#if defined(DEBUG) || defined(ORI_PERF)
+    Stopwatch sw = Stopwatch();
+    sw.start();
+#endif /* DEBUG */
+
+    FUSE_PLOG("Command: merge");
+
+    string error;
+    ObjectHash hash;
+    strwstream resp;
+
+    // Parse Command
+    str.readHash(hash);
+
+    RWKey::sp lock = priv->nsLock.writeLock();
+    error = priv->merge(hash);
+    lock.reset();
+
+    if (error != "") {
+        resp.writeUInt8(0);
+        resp.writePStr(error);
+    } else {
+        resp.writeUInt8(1);
+    }
+
+#if defined(DEBUG) || defined(ORI_PERF)
+    sw.stop();
+    FUSE_PLOG("merge with: %s", hash.hex().c_str());
+    FUSE_PLOG("merge elapsed %ldus", sw.getElapsedTime());
+#endif /* DEBUG */
+
+    return resp.str();
+}
+
 

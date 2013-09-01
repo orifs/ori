@@ -1157,6 +1157,12 @@ OriPriv::checkout(ObjectHash hash, bool force)
     return "";
 }
 
+string
+OriPriv::merge(ObjectHash hash)
+{
+    return "";
+}
+
 void
 OriPriv::setJournalMode(OriJournalMode::JournalMode mode)
 {

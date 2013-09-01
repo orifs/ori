@@ -38,26 +38,61 @@ extern "C" {
 int blob_merge(Blob *pPivot, Blob *pV1, Blob *pV2, Blob *pOut);
 };
 
+void
+usage_merge()
+{
+    cout << "ori merge [OPTIONS] [COMMITID]" << endl;
+    cout << endl;
+    cout << "Merge the current file system state with an existing" << endl;
+    cout << "change in the tree.  This is the preferred way of" << endl;
+    cout << "updating the tree with the new data.  Checkout can be" << endl;
+    cout << "used when you wish to revert to an older tree." << endl;
+}
+
 int
 cmd_merge(int argc, char * const argv[])
 {
     if (argc != 2) {
 	cout << "merge takes one arguments!" << endl;
-	cout << "usage: ori merge <commit 1>" << endl;
+	cout << "usage: ori merge [COMMITID]" << endl;
 	return 1;
     }
 
-    ObjectHash p1 = repository.getHead();
     ObjectHash p2 = ObjectHash::fromHex(argv[1]);
+#ifdef DEBUG
+    ObjectHash p1 = repository.getHead();
 
     // Find lowest common ancestor
     DAG<ObjectHash, Commit> cDag = repository.getCommitDag();
     ObjectHash lca;
 
     lca = cDag.findLCA(p1, p2);
-#ifdef DEBUG
     cout << "LCA: " << lca.hex() << endl;
 #endif /* DEBUG */
+
+    strwstream req;
+
+    req.writePStr("merge");
+    req.writeHash(p2);
+
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "merge failed with an unknown error!" << endl;
+        return 1;
+    }
+
+    uint8_t result = resp.readUInt8();
+
+    if (result == 0) {
+        string error;
+        resp.readPStr(error);
+        cout << "Merge failed: " << error << endl;
+        return 1;
+    }
+
+    cout << "Merge success!" << endl;
+
+#if 0
 
     // Construct tree diffs to ancestor to find conflicts
     TreeDiff td1, td2;
@@ -200,6 +235,8 @@ cmd_merge(int argc, char * const argv[])
         printf("Conflicts resolved automatically.\n");
         // XXX: Automatically commit if everything is resolved
     }
+
+#endif
 
     return 0;
 }

@@ -57,7 +57,6 @@ cmd_checkout(int argc, char * const argv[])
 {
     int ch;
     bool force = false;
-    Commit c;
     ObjectHash tip = repository.getHead();
 
     struct option longopts[] = {
@@ -82,16 +81,11 @@ cmd_checkout(int argc, char * const argv[])
         tip = ObjectHash::fromHex(argv[0]);
     }
 
-    if (tip != EMPTY_COMMIT) {
-        c = repository.getCommit(tip);
-    }
-
     strwstream req;
 
     req.writePStr("checkout");
     req.writeHash(tip);
     req.writeUInt8(force ? 1 : 0);
-
 
     strstream resp = repository.callExt("FUSE", req.str());
     if (resp.ended()) {
