@@ -184,7 +184,7 @@ main(int argc, char *argv[])
         string oriHome = Util_GetHome() + "/.ori";
 
         if (!OriFile_Exists(oriHome))
-            OriFile_MkDir(oriHome());
+            OriFile_MkDir(oriHome);
 
         // Chdir so that coredumps are placed in ~/.ori
         chdir(oriHome.c_str());

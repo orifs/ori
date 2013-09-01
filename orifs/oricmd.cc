@@ -291,7 +291,6 @@ OriCommand::cmd_checkout(strstream &str)
     error = priv->checkout(hash, force);
     lock.reset();
 
-error:
     if (error != "") {
         resp.writeUInt8(0);
         resp.writePStr(error);
