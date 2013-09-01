@@ -457,9 +457,18 @@ void
 OriPriv::unlink(const string &path)
 {
     OriFileInfo *info = getFileInfo(path);
+    string parentPath;
+    OriDir *parentDir;
+
+    parentPath = OriFile_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    parentDir = getDir(parentPath);
 
     ASSERT(info->isSymlink() || info->isReg());
 
+    parentDir->remove(OriFile_Basename(path));
     paths.erase(path);
 
     // Drop refcount only delete if zero (including temp file)
@@ -1084,10 +1093,14 @@ OriPriv::checkout(ObjectHash hash, bool force)
             }
             case OriFileState::Deleted:
             {
-                OriFileInfo *info = getFileInfo(it->first);
-                if (info != NULL)
-                    paths.erase(it->first);
-                info->release();
+                OriFileInfo *info = getFileInfo(filePath);
+                if (info != NULL) {
+                    if (info->isDir()) {
+                        rmDir(filePath);
+                    } else {
+                        unlink(filePath);
+                    }
+                }
                 break;
             }
             case OriFileState::Modified:
@@ -1097,10 +1110,13 @@ OriPriv::checkout(ObjectHash hash, bool force)
                 if (newInfo == NULL) {
                     // File was deleted
                     myInfo->release();
+                } else if (newInfo->hash != myInfo->hash) {
+                    // Conflict
+                } else {
+                    // No conflict
+                    paths[it->first] = myInfo;
+                    newInfo->release();
                 }
-                // XXX: Check for conflicts
-                paths[it->first]->release();
-                paths[it->first] = diffInfo[it->first];
             }
             default:
                 NOT_IMPLEMENTED(false);

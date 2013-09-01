@@ -108,17 +108,12 @@ static int
 ori_unlink(const char *path)
 {
     OriPriv *priv = GetOriPriv();
-    string parentPath;
 
 #ifdef FSCK_A_LOT
     priv->fsck();
 #endif /* FSCK_A_LOT */
 
     FUSE_LOG("FUSE ori_unlink(path=\"%s\")", path);
-
-    parentPath = OriFile_Dirname(path);
-    if (parentPath == "")
-        parentPath = "/";
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
@@ -130,19 +125,16 @@ ori_unlink(const char *path)
 
     RWKey::sp lock = priv->nsLock.writeLock();
     try {
-        OriDir *parentDir = priv->getDir(parentPath);
         OriFileInfo *info = priv->getFileInfo(path);
 
         if (info->isDir())
             return -EPERM;
 
-        parentDir->remove(OriFile_Basename(path));
-        if (info->isReg()) {
-            if (info->path != "")
-                unlink(info->path.c_str());
+        // Remove temporary file
+        if (info->path != "")
+            unlink(info->path.c_str());
 
-            priv->unlink(path);
-        } else if (info->isSymlink()) {
+        if (info->isReg() || info->isSymlink()) {
             priv->unlink(path);
         } else {
             // XXX: Support files
