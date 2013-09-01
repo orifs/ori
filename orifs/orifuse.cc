@@ -228,7 +228,6 @@ static int
 ori_rename(const char *from_path, const char *to_path)
 {
     OriPriv *priv = GetOriPriv();
-    string fromParent, toParent;
 
 #ifdef FSCK_A_LOT
     priv->fsck();
@@ -236,13 +235,6 @@ ori_rename(const char *from_path, const char *to_path)
 
     FUSE_LOG("FUSE ori_rename(from_path=\"%s\", to_path=\"%s\")",
              from_path, to_path);
-
-    fromParent = OriFile_Dirname(from_path);
-    if (fromParent == "")
-        fromParent = "/";
-    toParent = OriFile_Dirname(to_path);
-    if (toParent == "")
-        toParent = "/";
 
     if (strncmp(to_path,
                 ORI_SNAPSHOT_DIRPATH,
@@ -257,8 +249,6 @@ ori_rename(const char *from_path, const char *to_path)
 
     RWKey::sp lock = priv->nsLock.writeLock();
     try {
-        OriDir *fromDir = priv->getDir(fromParent);
-        OriDir *toDir = priv->getDir(toParent);
         OriFileInfo *info = priv->getFileInfo(from_path);
         OriFileInfo *toFile = NULL;
         OriDir *toFileDir = NULL;
@@ -288,19 +278,7 @@ ori_rename(const char *from_path, const char *to_path)
         }
 
         priv->rename(from_path, to_path);
-
-        string from = OriFile_Basename(from_path);
-        string to = OriFile_Basename(to_path);
-        FUSE_LOG("%s %s", from.c_str(), to.c_str());
-
-        fromDir->remove(from);
-        toDir->add(to, info->id);
-
-        // Delete previously present file
-        if (toFile != NULL) {
-            toFile->release();
-        }
-    } catch (SystemException e) {
+    } catch (SystemException &e) {
         return -e.getErrno();
     }
 
@@ -657,17 +635,12 @@ static int
 ori_rmdir(const char *path)
 {
     OriPriv *priv = GetOriPriv();
-    string parentPath;
 
 #ifdef FSCK_A_LOT
     priv->fsck();
 #endif /* FSCK_A_LOT */
 
     FUSE_LOG("FUSE ori_rmdir(path=\"%s\")", path);
-
-    parentPath = OriFile_Dirname(path);
-    if (parentPath == "")
-        parentPath = "/";
 
     if (strncmp(path,
                 ORI_SNAPSHOT_DIRPATH,
@@ -677,8 +650,6 @@ ori_rmdir(const char *path)
 
     RWKey::sp lock = priv->nsLock.writeLock();
     try {
-        OriDir *parentDir = priv->getDir(parentPath);
-        OriFileInfo *parentInfo = priv->getFileInfo(parentPath);
         OriDir *dir = priv->getDir(path);
 
         if (!dir->isEmpty()) {
@@ -692,13 +663,10 @@ ori_rmdir(const char *path)
             return -ENOTEMPTY;
         }
 
-        parentDir->remove(OriFile_Basename(path));
-        parentInfo->statInfo.st_nlink--;
-        parentInfo->type = FILETYPE_DIRTY;
         priv->rmDir(path);
 
-        ASSERT(parentInfo->statInfo.st_nlink >= 2);
-    } catch (SystemException e) {
+    } catch (SystemException &e) {
+        FUSE_LOG("ori_rmdir: Caught exception %s", e.what());
         return -e.getErrno();
     }
 

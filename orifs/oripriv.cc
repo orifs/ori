@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -150,7 +150,7 @@ OriPriv::reset()
     if (::mkdir(tmpDir.c_str(), 0700) < 0)
         throw SystemException(errno);
 
-    journalFd = ::creat(journalFile.c_str(), 0744);
+    journalFd = ::creat(journalFile.c_str(), 0644);
     if (journalFd < 0)
         throw SystemException(errno);
 }
@@ -469,13 +469,44 @@ OriPriv::unlink(const string &path)
 void
 OriPriv::rename(const string &fromPath, const string &toPath)
 {
+    string fromParent, toParent;
+    OriDir *fromDir;
+    OriDir *toDir;
     OriFileInfo *info = getFileInfo(fromPath);
+    OriFileInfo *toFile = NULL;
+
+    fromParent = OriFile_Dirname(fromPath);
+    if (fromParent == "")
+        fromParent = "/";
+    toParent = OriFile_Dirname(toPath);
+    if (toParent == "")
+        toParent = "/";
+
+    fromDir = getDir(fromParent);
+    toDir = getDir(toParent);
+
+    try {
+        toFile = getFileInfo(toPath);
+    } catch (SystemException &e) {
+        // Fall through
+    }
 
     // XXX: Need to rename all files under a directory
     ASSERT(!info->isDir());
 
     paths.erase(fromPath);
     paths[toPath] = info;
+
+    string from = OriFile_Basename(fromPath);
+    string to = OriFile_Basename(toPath);
+
+    fromDir->remove(from);
+    toDir->add(to, info->id);
+
+    // Delete previously present file
+    if (toFile != NULL) {
+        toFile->release();
+    }
 
     ASSERT(paths.find(fromPath) == paths.end());
     ASSERT(paths.find(toPath) != paths.end());
@@ -508,13 +539,31 @@ OriPriv::addDir(const string &path)
 void
 OriPriv::rmDir(const string &path)
 {
+    OriDir *dir = getDir(path);
     OriFileInfo *info = getFileInfo(path);
+    string parentPath;
+    OriDir *parentDir;
+    OriFileInfo *parentInfo;
+
+    parentPath = OriFile_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    parentDir = getDir(parentPath);
+    parentInfo = getFileInfo(parentPath);
 
     ASSERT(dirs[info->id]->isEmpty());
+
+    parentDir->remove(OriFile_Basename(path));
+    parentInfo->statInfo.st_nlink--;
+    parentInfo->type = FILETYPE_DIRTY;
+
+    ASSERT(parentInfo->statInfo.st_nlink >= 2);
 
     dirs.erase(info->id);
     paths.erase(path);
 
+    delete dir;
     info->release();
 }
 
@@ -989,16 +1038,79 @@ OriPriv::checkout(ObjectHash hash, bool force)
     rootInfo->statInfo.st_mtime = c.getTime();
     rootInfo->statInfo.st_ctime = c.getTime();
 
-    head = hash;
-    headCommit = c;
-
     if (force) {
+        // Drop reference counts
+        for (pit = diffInfo.begin(); pit != diffInfo.end(); pit++) {
+            pit->second->release();
+        }
+
+        // Update head
+        head = hash;
+        headCommit = c;
         return "";
     }
 
+    // Compute diff to detect conflicts
+
     // getDir for current dirs
+    set<string>::iterator mdit;
+    for (mdit = modifiedDirs.begin(); mdit != modifiedDirs.end(); mdit++) {
+        getDir(*mdit);
+    }
 
     // Merge files (unless force specified)
+    for (it = diffState.begin(); it != diffState.end(); it++) {
+        string filePath = it->first;
+        switch (it->second) {
+            case OriFileState::Invalid:
+                NOT_IMPLEMENTED(false);
+                break;
+            case OriFileState::Created:
+            {
+                OriFileInfo *info = diffInfo[filePath];
+
+                // Rename conflicting file if it exists
+                if (paths.find(filePath) != paths.end()) {
+                    rename(filePath, filePath + ":create_conflict");
+                }
+
+                // Create the new file
+                paths[it->first] = info;
+                // XXX: ADD TO DIRECTORY
+                if (info->isDir()) {
+                    dirs[info->id] = new OriDir();
+                }
+                break;
+            }
+            case OriFileState::Deleted:
+            {
+                OriFileInfo *info = getFileInfo(it->first);
+                if (info != NULL)
+                    paths.erase(it->first);
+                info->release();
+                break;
+            }
+            case OriFileState::Modified:
+            {
+                OriFileInfo *newInfo = getFileInfo(it->first);
+                OriFileInfo *myInfo = diffInfo[it->first];
+                if (newInfo == NULL) {
+                    // File was deleted
+                    myInfo->release();
+                }
+                // XXX: Check for conflicts
+                paths[it->first]->release();
+                paths[it->first] = diffInfo[it->first];
+            }
+            default:
+                NOT_IMPLEMENTED(false);
+                break;
+        }
+    }
+
+    // Update head
+    head = hash;
+    headCommit = c;
 
     return "";
 }
