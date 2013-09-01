@@ -1065,6 +1065,7 @@ OriPriv::checkout(ObjectHash hash, bool force)
         // Update head
         head = hash;
         headCommit = c;
+        repo->updateHead(head);
         return "";
     }
 
@@ -1151,6 +1152,7 @@ OriPriv::checkout(ObjectHash hash, bool force)
     // Update head
     head = hash;
     headCommit = c;
+    repo->updateHead(head);
 
     return "";
 }
