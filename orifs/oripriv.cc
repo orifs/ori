@@ -501,7 +501,10 @@ OriPriv::rename(const string &fromPath, const string &toPath)
     }
 
     // XXX: Need to rename all files under a directory
-    ASSERT(!info->isDir());
+    if (info->isDir()) {
+        // XXX: Handle refcount movement then we can rename empty directories
+        NOT_IMPLEMENTED(!info->dirLoaded);
+    }
 
     paths.erase(fromPath);
     paths[toPath] = info;
@@ -561,7 +564,13 @@ OriPriv::rmDir(const string &path)
     parentDir = getDir(parentPath);
     parentInfo = getFileInfo(parentPath);
 
-    ASSERT(dirs[info->id]->isEmpty());
+    /*
+     * XXX: We don't handle deleteing files inside the directory so either the 
+     * directory must be empty or not loaded.  While the function ori_rmdir 
+     * will prevent non-empty directories from being deleted, other uses inside 
+     * OriPriv need this functionality to be complete.
+     */
+    ASSERT(dirs[info->id]->isEmpty() || !info->dirLoaded);
 
     parentDir->remove(OriFile_Basename(path));
     parentInfo->statInfo.st_nlink--;
@@ -1070,6 +1079,11 @@ OriPriv::checkout(ObjectHash hash, bool force)
     // Merge files (unless force specified)
     for (it = diffState.begin(); it != diffState.end(); it++) {
         string filePath = it->first;
+        string parentPath = OriFile_Dirname(filePath);
+
+        if (parentPath == "")
+            parentPath = "/";
+
         switch (it->second) {
             case OriFileState::Invalid:
                 NOT_IMPLEMENTED(false);
@@ -1077,6 +1091,7 @@ OriPriv::checkout(ObjectHash hash, bool force)
             case OriFileState::Created:
             {
                 OriFileInfo *info = diffInfo[filePath];
+                OriDir *parentDir = getDir(parentPath);
 
                 // Rename conflicting file if it exists
                 if (paths.find(filePath) != paths.end()) {
@@ -1085,8 +1100,11 @@ OriPriv::checkout(ObjectHash hash, bool force)
 
                 // Create the new file
                 paths[it->first] = info;
-                // XXX: ADD TO DIRECTORY
+                parentDir->add(OriFile_Basename(filePath), info->id);
                 if (info->isDir()) {
+                    OriFileInfo *parentInfo = getFileInfo(parentPath);
+                    parentInfo->statInfo.st_nlink++;
+
                     dirs[info->id] = new OriDir();
                 }
                 break;
@@ -1105,18 +1123,24 @@ OriPriv::checkout(ObjectHash hash, bool force)
             }
             case OriFileState::Modified:
             {
-                OriFileInfo *newInfo = getFileInfo(it->first);
-                OriFileInfo *myInfo = diffInfo[it->first];
+                OriFileInfo *newInfo = getFileInfo(filePath);
+                OriFileInfo *myInfo = diffInfo[filePath];
+                OriDir *parentDir = getDir(parentPath);
+
                 if (newInfo == NULL) {
                     // File was deleted
                     myInfo->release();
                 } else if (newInfo->hash != myInfo->hash) {
                     // Conflict
+                    rename(filePath, filePath + ":conflict");
+                    parentDir->add(OriFile_Basename(filePath), myInfo->id);
                 } else {
                     // No conflict
                     paths[it->first] = myInfo;
+                    parentDir->add(OriFile_Basename(filePath), myInfo->id);
                     newInfo->release();
                 }
+                break;
             }
             default:
                 NOT_IMPLEMENTED(false);
@@ -1148,7 +1172,7 @@ OriPriv::journal(const string &event, const string &arg)
 
     buf = event + ":" + arg + "\n";
     len = write(journalFd, buf.c_str(), buf.size());
-    if (len < 0 || len != buf.size())
+    if (len < 0 || len != (int)buf.size())
         throw SystemException();
 
     if (journalMode == OriJournalMode::SyncJournal)
