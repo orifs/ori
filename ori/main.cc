@@ -197,10 +197,10 @@ static Cmd commands[] = {
     },
     {
         "merge",
-        "Merge two heads (NS)",
+        "Merge two heads",
         cmd_merge,
         NULL,
-        0,
+        CMD_NEED_FUSE,
     },
     {
         "newfs",

@@ -27,11 +27,12 @@
 #include <oriutil/orifile.h>
 #include <oriutil/dag.h>
 #include <oriutil/objecthash.h>
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 extern "C" {
 #include <libdiffmerge/blob.h>
@@ -59,7 +60,7 @@ cmd_merge(int argc, char * const argv[])
     }
 
     ObjectHash p2 = ObjectHash::fromHex(argv[1]);
-#ifdef DEBUG
+#if 0
     ObjectHash p1 = repository.getHead();
 
     // Find lowest common ancestor
@@ -68,7 +69,7 @@ cmd_merge(int argc, char * const argv[])
 
     lca = cDag.findLCA(p1, p2);
     cout << "LCA: " << lca.hex() << endl;
-#endif /* DEBUG */
+#endif
 
     strwstream req;
 

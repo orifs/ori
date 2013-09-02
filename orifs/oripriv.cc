@@ -42,6 +42,7 @@
 #include <oriutil/objecthash.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
+#include <ori/treediff.h>
 
 #include "logging.h"
 #include "oricmd.h"
@@ -879,19 +880,6 @@ OriPriv::commit(const Commit &cTemplate, bool temporary)
     return commitHash;
 }
 
-/*
-std::string
-OriPriv::merge(const string &p2)
-{
-    ObjectHash p1 = repository.getHead();
-    ObjectHash p2 = ObjectHash::fromHex(p2);
-    DAG<ObjectHash, Commit> cDag = repository.getCommitDag();
-    ObjectHash lca;
-
-    lca = cDag.findLCA(p1, p2);
-}
-*/
-
 void
 OriPriv::getDiffHelper(const string &path,
                        map<string, OriFileState::StateType> *diff)
@@ -1160,6 +1148,111 @@ OriPriv::checkout(ObjectHash hash, bool force)
 string
 OriPriv::merge(ObjectHash hash)
 {
+    ObjectHash p1 = head;
+    ObjectHash p2 = hash;
+    DAG<ObjectHash, Commit> cDag = repo->getCommitDag();
+    ObjectHash lca;
+
+    lca = cDag.findLCA(p1, p2);
+
+    Commit c1 = headCommit;
+    Commit c2 = repo->getCommit(p2);
+
+    Tree t1 = repo->getTree(c1.getTree());
+    Tree t2 = repo->getTree(c2.getTree());
+    Tree tc;
+
+    if (lca != EMPTY_COMMIT) {
+        Commit cc = repo->getCommit(lca);
+        tc = repo->getTree(cc.getTree());
+    }
+
+    TreeDiff td1, td2;
+    Tree::Flat t1Flat = t1.flattened(repo);
+    Tree::Flat t2Flat = t2.flattened(repo);
+    Tree::Flat tcFlat = tc.flattened(repo);
+
+    // XXX: Apply current changes
+
+    td1.diffTwoTrees(t1Flat, tcFlat);
+    td2.diffTwoTrees(t2Flat, tcFlat);
+
+    // XXX: Need to handle merging file attributes
+    TreeDiff mdiff;
+    mdiff.mergeTrees(td1, td2);
+
+    TreeDiff wdiff;
+    wdiff.mergeChanges(td1, mdiff);
+
+    MergeState state;
+    state.setParents(p1, p2);
+
+    DLOG("Applying merge:");
+    for (size_t i = 0; i < wdiff.entries.size(); i++) {
+        TreeDiffEntry e = wdiff.entries[i];
+
+        if (e.type == TreeDiffEntry::NewFile) {
+            DLOG("N       %s", e.filepath.c_str());
+            //repository.copyObject(e.hashes.first, path);
+        } else if (e.type == TreeDiffEntry::NewDir) {
+            DLOG("N       %s", e.filepath.c_str());
+            //mkdir(path.c_str(), 0755);
+        } else if (e.type == TreeDiffEntry::DeletedFile) {
+            DLOG("D       %s", e.filepath.c_str());
+            //OriFile_Delete(path);
+        } else if (e.type == TreeDiffEntry::DeletedDir) {
+            DLOG("D       %s", e.filepath.c_str());
+            //rmdir(path.c_str()); 
+        } else if (e.type == TreeDiffEntry::Modified) {
+            DLOG("U       %s", e.filepath.c_str());
+            //repository.copyObject(e.hashes.first, path);
+        } else if (e.type == TreeDiffEntry::MergeConflict) {
+            /*int status;
+            Blob pivot, a, b, out;
+            string path;
+            string pivotStr;
+            string aStr;
+            string bStr;
+            
+            path = repository.getRootPath() + mdiff.entries[i].filepath;
+           
+            if (mdiff.entries[i].hashBase.first == EMPTYFILE_HASH) {
+                pivotStr = "";
+            } else {
+                pivotStr = repository.getPayload(mdiff.entries[i].hashBase.first);
+            }
+            aStr = repository.getPayload(mdiff.entries[i].hashA.first);
+            bStr = repository.getPayload(mdiff.entries[i].hashB.first);
+
+            blob_init(&pivot, pivotStr.data(), pivotStr.size());
+            blob_init(&a, aStr.data(), aStr.size());
+            blob_init(&b, bStr.data(), bStr.size());
+            blob_zero(&out);
+            status = blob_merge(&pivot, &a, &b, &out);
+            if (status == 0) {
+                printf("U       %s (MERGED)\n", e.filepath.c_str());
+                blob_write_to_file(&out, path.c_str());
+            } else {
+                printf("X       %s (CONFLICT)\n", e.filepath.c_str());
+                repository.copyObject(mdiff.entries[i].hashBase.first,
+                                      path + ".base");
+                repository.copyObject(mdiff.entries[i].hashA.first,
+                                      path + ".yours");
+                repository.copyObject(mdiff.entries[i].hashB.first,
+                                      path + ".theirs");
+                conflictExists = true;
+                // XXX: Allow optional call to external diff tool
+            }*/
+            DLOG("X       %s (CONFLICT)", e.filepath.c_str());
+        } else if (e.type == TreeDiffEntry::FileDirConflict) {
+            DLOG("X       %s (DIR-FILE CONFLICT)", e.filepath.c_str());
+            NOT_IMPLEMENTED(false);
+        } else {
+            DLOG("Unsupported TreeDiffEntry type %c", e.type);
+            NOT_IMPLEMENTED(false);
+        }
+    }
+
     return "";
 }
 
