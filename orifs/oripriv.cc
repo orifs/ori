@@ -1209,6 +1209,49 @@ OriPriv::merge(ObjectHash hash)
 
     for (dsit = diffState.begin(); dsit != diffState.end(); dsit++) {
         // Update tree
+        switch (dsit->second) {
+            case OriFileState::Invalid:
+            {
+                NOT_IMPLEMENTED(false);
+                break;
+            }
+            case OriFileState::Created:
+            {
+                // XXX: Need to rewrite the flat tree and merge code, but
+                // for now we zero out the object hash for new files.
+                OriFileInfo *info = diffInfo[dsit->first];
+                TreeEntry te = TreeEntry(info->hash, info->largeHash);
+                info->storeAttr(&te.attrs);
+                if (info->isDir()) {
+                    te.type = TreeEntry::Tree;
+                } else {
+                    if (te.largeHash.isEmpty())
+                        te.type = TreeEntry::Blob;
+                    else
+                        te.type = TreeEntry::LargeBlob;
+                }
+                ASSERT(te.hasBasicAttrs());
+                t1Flat[dsit->first] = te;
+                break;
+            }
+            case OriFileState::Deleted:
+            {
+                t1Flat.erase(dsit->first);
+                break;
+            }
+            case OriFileState::Modified:
+            {
+                // XXX: Need to rewrite the flat tree and merge code, but
+                // for now we zero out the object hash for modified files.
+                t1Flat[dsit->first].hash = ObjectHash();
+                break;
+            }
+            default:
+            {
+                NOT_IMPLEMENTED(false);
+                break;
+            }
+        }
     }
 
     // Create diffs and compute merge
