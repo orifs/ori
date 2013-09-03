@@ -56,7 +56,71 @@ using namespace std::tr1;
 // XXX: Hacky remove dependence
 extern mount_ori_config config;
 
-OriPriv::OriPriv(const std::string &repoPath, const string &origin, Repo *remoteRepo)
+void
+OriFileInfo::loadAttr(const AttrMap &attrs)
+{
+    struct passwd *pw = getpwnam(attrs.getAsStr(ATTR_USERNAME).c_str());
+
+    // XXX: Choose sane defaults
+    ASSERT(pw != NULL);
+
+    if (statInfo.st_mode != S_IFDIR) {
+        bool isSymlink = false;
+
+        if (attrs.has(ATTR_SYMLINK)) {
+            isSymlink = attrs.getAs<bool>(ATTR_SYMLINK);
+        }
+    
+        if (isSymlink) {
+            statInfo.st_mode = S_IFLNK;
+            statInfo.st_nlink = 1;
+        } else {
+            statInfo.st_mode = S_IFREG;
+            statInfo.st_nlink = 1;
+        }
+    }
+
+    statInfo.st_mode |= attrs.getAs<mode_t>(ATTR_PERMS);
+    statInfo.st_uid = pw->pw_uid;
+    statInfo.st_gid = pw->pw_gid;
+    statInfo.st_size = attrs.getAs<size_t>(ATTR_FILESIZE);
+    statInfo.st_blocks = (statInfo.st_size + 511) / 512;
+    statInfo.st_mtime = attrs.getAs<time_t>(ATTR_MTIME);
+    statInfo.st_ctime = attrs.getAs<time_t>(ATTR_CTIME);
+}
+
+void
+OriFileInfo::storeAttr(AttrMap *attrs) const
+{
+    ASSERT(attrs != NULL);
+
+    struct passwd *pw = getpwuid(statInfo.st_uid);
+    struct group *grp = getgrgid(statInfo.st_gid);
+
+    if (pw != NULL)
+        attrs->setAsStr(ATTR_USERNAME, pw->pw_name);
+    else
+        attrs->setAsStr(ATTR_USERNAME, "nobody");
+
+    if (grp != NULL)
+        attrs->setAsStr(ATTR_GROUPNAME, grp->gr_name);
+    else
+        attrs->setAsStr(ATTR_GROUPNAME, "nogroup");
+
+    if (isSymlink())
+        attrs->setAs<bool>(ATTR_SYMLINK, true);
+    else
+        attrs->setAs<bool>(ATTR_SYMLINK, false);
+
+    attrs->setAs<mode_t>(ATTR_PERMS, statInfo.st_mode & 0777);
+    attrs->setAs<size_t>(ATTR_FILESIZE, statInfo.st_size);
+    attrs->setAs<time_t>(ATTR_MTIME, statInfo.st_mtime);
+    attrs->setAs<time_t>(ATTR_CTIME, statInfo.st_ctime);
+}
+
+OriPriv::OriPriv(const std::string &repoPath,
+                 const string &origin,
+                 Repo *remoteRepo)
 {
     repo = new LocalRepo(repoPath);
     nextId = ORIPRIVID_INVALID + 1;
@@ -620,7 +684,6 @@ loadDir:
         for (it = t.begin(); it != t.end(); it++) {
             OriFileInfo *info = new OriFileInfo();
             AttrMap *attrs = &it->second.attrs;
-            struct passwd *pw = getpwnam(attrs->getAsStr(ATTR_USERNAME).c_str());
             bool isSymlink = false;
 
             if (it->second.type == TreeEntry::Tree) {
@@ -629,26 +692,11 @@ loadDir:
                 // XXX: This is hacky but a directory gets the correct nlink 
                 // value once it is opened for the first time.
                 dirInfo->statInfo.st_nlink++;
-            } else {
-                if (attrs->has(ATTR_SYMLINK)) {
-                    isSymlink = attrs->getAs<bool>(ATTR_SYMLINK);
-                }
-
-                if (isSymlink) {
-                    info->statInfo.st_mode = S_IFLNK;
-                    info->statInfo.st_nlink = 1;
-                } else {
-                    info->statInfo.st_mode = S_IFREG;
-                    info->statInfo.st_nlink = 1;
-                }
             }
-            info->statInfo.st_mode |= attrs->getAs<mode_t>(ATTR_PERMS);
-            info->statInfo.st_uid = pw->pw_uid;
-            info->statInfo.st_gid = pw->pw_gid;
-            info->statInfo.st_size = attrs->getAs<size_t>(ATTR_FILESIZE);
-            info->statInfo.st_blocks = (info->statInfo.st_size + 511) / 512;
-            info->statInfo.st_mtime = attrs->getAs<time_t>(ATTR_MTIME);
-            info->statInfo.st_ctime = attrs->getAs<time_t>(ATTR_CTIME);
+            if (attrs->has(ATTR_SYMLINK)) {
+                isSymlink = attrs->getAs<bool>(ATTR_SYMLINK);
+            }
+            info->loadAttr(*attrs);
             info->type = FILETYPE_COMMITTED;
             info->id = generateId();
             info->hash = it->second.hash;
@@ -767,28 +815,7 @@ OriPriv::commitTreeHelper(const string &path)
                 e = TreeEntry(info->hash, info->largeHash);
             }
 
-            struct passwd *pw = getpwuid(info->statInfo.st_uid);
-            struct group *grp = getgrgid(info->statInfo.st_gid);
-
-            if (pw != NULL)
-                e.attrs.setAsStr(ATTR_USERNAME, pw->pw_name);
-            else
-                e.attrs.setAsStr(ATTR_USERNAME, "nobody");
-
-            if (grp != NULL)
-                e.attrs.setAsStr(ATTR_GROUPNAME, grp->gr_name);
-            else
-                e.attrs.setAsStr(ATTR_GROUPNAME, "nogroup");
-
-            if (info->isSymlink())
-                e.attrs.setAs<bool>(ATTR_SYMLINK, true);
-            else
-                e.attrs.setAs<bool>(ATTR_SYMLINK, false);
-
-            e.attrs.setAs<mode_t>(ATTR_PERMS, info->statInfo.st_mode & 0777);
-            e.attrs.setAs<size_t>(ATTR_FILESIZE, info->statInfo.st_size);
-            e.attrs.setAs<time_t>(ATTR_MTIME, info->statInfo.st_mtime);
-            e.attrs.setAs<time_t>(ATTR_CTIME, info->statInfo.st_ctime);
+            info->storeAttr(&e.attrs);
 
             if (info->isDir()) {
                 e.type = TreeEntry::Tree;
@@ -1167,13 +1194,24 @@ OriPriv::merge(ObjectHash hash)
         tc = repo->getTree(cc.getTree());
     }
 
+    // Load flattened trees
     TreeDiff td1, td2;
     Tree::Flat t1Flat = t1.flattened(repo);
     Tree::Flat t2Flat = t2.flattened(repo);
     Tree::Flat tcFlat = tc.flattened(repo);
 
-    // XXX: Apply current changes
+    // Apply current changes to t1Flat
+    map<string, OriFileInfo *> diffInfo;
+    map<string, OriFileState::StateType> diffState;
+    map<string, OriFileState::StateType>::iterator dsit;
 
+    getCheckoutHelper("", &diffInfo, &diffState);
+
+    for (dsit = diffState.begin(); dsit != diffState.end(); dsit++) {
+        // Update tree
+    }
+
+    // Create diffs and compute merge
     td1.diffTwoTrees(t1Flat, tcFlat);
     td2.diffTwoTrees(t2Flat, tcFlat);
 
@@ -1181,6 +1219,7 @@ OriPriv::merge(ObjectHash hash)
     TreeDiff mdiff;
     mdiff.mergeTrees(td1, td2);
 
+    // Recompute the merge relative to the working tree
     TreeDiff wdiff;
     wdiff.mergeChanges(td1, mdiff);
 

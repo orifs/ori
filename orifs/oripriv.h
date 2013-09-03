@@ -76,9 +76,11 @@ public:
         openCount--;
         ASSERT(openCount >= 0);
     }
-    bool isDir() { return (statInfo.st_mode & S_IFDIR) == S_IFDIR; }
-    bool isSymlink() { return (statInfo.st_mode & S_IFLNK) == S_IFLNK; }
-    bool isReg() { return (statInfo.st_mode & S_IFREG) == S_IFREG; }
+    bool isDir() const { return (statInfo.st_mode & S_IFDIR) == S_IFDIR; }
+    bool isSymlink() const { return (statInfo.st_mode & S_IFLNK) == S_IFLNK; }
+    bool isReg() const { return (statInfo.st_mode & S_IFREG) == S_IFREG; }
+    void loadAttr(const AttrMap &attr);
+    void storeAttr(AttrMap *attr) const;
     struct stat statInfo;
     ObjectHash hash;
     ObjectHash largeHash;

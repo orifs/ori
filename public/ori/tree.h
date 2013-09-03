@@ -41,14 +41,16 @@ public:
     AttrMap();
 
     template <typename T>
-    T getAs(const std::string &attrName) {
-        assert(attrs.find(attrName) != attrs.end());
-        assert(attrs[attrName].size() >= sizeof(T));
-        return *(T *)attrs[attrName].data();
+    T getAs(const std::string &attrName) const {
+        _MapType::const_iterator it = attrs.find(attrName);
+        ASSERT(it != attrs.end());
+        ASSERT(it->second.size() >= sizeof(T));
+        return *(T *)it->second.data();
     }
 
-    const std::string &getAsStr(const std::string &attrName) {
-        ASSERT(attrs.find(attrName) != attrs.end());
+    const std::string &getAsStr(const std::string &attrName) const {
+        _MapType::const_iterator it = attrs.find(attrName);
+        ASSERT(it != attrs.end());
         return (*attrs.find(attrName)).second;
     }
 
