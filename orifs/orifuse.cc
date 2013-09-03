@@ -584,19 +584,12 @@ static int
 ori_mkdir(const char *path, mode_t mode)
 {
     OriPriv *priv = GetOriPriv();
-    OriDir *parentDir;
-    OriFileInfo *parentInfo;
-    string parentPath;
 
 #ifdef FSCK_A_LOT
     priv->fsck();
 #endif /* FSCK_A_LOT */
 
     FUSE_LOG("FUSE ori_mkdir(path=\"%s\")", path);
-
-    parentPath = OriFile_Dirname(path);
-    if (parentPath == "")
-        parentPath = "/";
 
     if (strncmp(path,
                 ORI_SNAPSHOT_DIRPATH,
@@ -606,17 +599,11 @@ ori_mkdir(const char *path, mode_t mode)
 
     RWKey::sp lock = priv->nsLock.writeLock();
     try {
-        parentDir = priv->getDir(parentPath);
-        parentInfo = priv->getFileInfo(parentPath);
+        OriFileInfo *info = priv->addDir(path);
+        info->statInfo.st_mode |= mode;
     } catch (SystemException e) {
         return -e.getErrno();
     }
-
-    OriFileInfo *info = priv->addDir(path);
-    info->statInfo.st_mode |= mode;
-
-    parentDir->add(OriFile_Basename(path), info->id);
-    parentInfo->statInfo.st_nlink++;
 
     priv->journal("mkdir", path);
 

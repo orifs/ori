@@ -592,11 +592,34 @@ OriPriv::rename(const string &fromPath, const string &toPath)
 OriFileInfo *
 OriPriv::addDir(const string &path)
 {
-    OriFileInfo *info = new OriFileInfo();
+    OriFileInfo *info;
+    string parentPath;
+    OriDir *parentDir;
+    OriFileInfo *parentInfo;
     time_t now = time(NULL);
+
+    parentPath = OriFile_Dirname(path);
+    if (parentPath == "")
+        parentPath = "/";
+
+    /*
+     * getDir must be called first to load the parent directory's structure 
+     * into the local cache.  The following two lines may throw a 
+     * SystemException if the parent doesn't exist so be careful to not 
+     * allocate memory before this point.
+     */
+    parentDir = getDir(parentPath);
+    parentInfo = getFileInfo(parentPath);
+
+    info = new OriFileInfo();
 
     info->statInfo.st_uid = geteuid();
     info->statInfo.st_gid = getegid();
+    /*
+     * Warning: OriPriv::Merge depends on st_mode == S_IFDIR as it calls 
+     * loadAttrs, which will assume the mode bits are empty except for this 
+     * flag.
+     */
     info->statInfo.st_mode = S_IFDIR;
     info->statInfo.st_nlink = 2;
     info->statInfo.st_size = 512;
@@ -609,6 +632,9 @@ OriPriv::addDir(const string &path)
 
     dirs[info->id] = new OriDir();
     paths[path] = info;
+
+    parentDir->add(OriFile_Basename(path), info->id);
+    parentInfo->statInfo.st_nlink++;
 
     return info;
 }
@@ -1275,16 +1301,38 @@ OriPriv::merge(ObjectHash hash)
 
         if (e.type == TreeDiffEntry::NewFile) {
             DLOG("N       %s", e.filepath.c_str());
-            //repository.copyObject(e.hashes.first, path);
+            OriFileInfo *info = new OriFileInfo();
+            bool isSymlink = false;
+
+            if (e.newAttrs.has(ATTR_SYMLINK)) {
+                isSymlink = e.newAttrs.getAs<bool>(ATTR_SYMLINK);
+            }
+            info->loadAttr(e.newAttrs);
+            info->type = FILETYPE_COMMITTED;
+            info->id = generateId();
+            info->hash = e.hashes.first;
+            info->largeHash = e.hashes.second;
+            if (isSymlink) {
+                ASSERT(info->largeHash.isEmpty());
+                info->link = repo->getPayload(info->hash);
+            }
+
+            OriDir *parentDir = getDir(OriFile_Dirname(e.filepath));
+            parentDir->add(OriFile_Basename(e.filepath), info->id);
+            paths[e.filepath] = info;
         } else if (e.type == TreeDiffEntry::NewDir) {
             DLOG("N       %s", e.filepath.c_str());
-            //mkdir(path.c_str(), 0755);
+            OriFileInfo *info = addDir(e.filepath);
+            info->loadAttr(e.newAttrs);
+            info->statInfo.st_nlink++;
+            info->hash = e.hashes.first;
+            info->largeHash = e.hashes.second;
         } else if (e.type == TreeDiffEntry::DeletedFile) {
             DLOG("D       %s", e.filepath.c_str());
-            //OriFile_Delete(path);
+            unlink(e.filepath);
         } else if (e.type == TreeDiffEntry::DeletedDir) {
             DLOG("D       %s", e.filepath.c_str());
-            //rmdir(path.c_str()); 
+            rmDir(e.filepath); 
         } else if (e.type == TreeDiffEntry::Modified) {
             DLOG("U       %s", e.filepath.c_str());
             //repository.copyObject(e.hashes.first, path);
