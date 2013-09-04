@@ -1332,6 +1332,7 @@ OriPriv::merge(ObjectHash hash)
             info->id = generateId();
             info->hash = e.hashes.first;
             info->largeHash = e.hashes.second;
+            info->type = FILETYPE_DIRTY;
             if (isSymlink) {
                 ASSERT(info->largeHash.isEmpty());
                 info->link = repo->getPayload(info->hash);
@@ -1347,6 +1348,7 @@ OriPriv::merge(ObjectHash hash)
             info->statInfo.st_nlink++;
             info->hash = e.hashes.first;
             info->largeHash = e.hashes.second;
+            info->type = FILETYPE_DIRTY;
         } else if (e.type == TreeDiffEntry::DeletedFile) {
             DLOG("D       %s", e.filepath.c_str());
             unlink(e.filepath);
@@ -1402,6 +1404,10 @@ OriPriv::merge(ObjectHash hash)
             NOT_IMPLEMENTED(false);
         }
     }
+
+    // XXX: Update the hashes for any not loaded directories.
+
+    // XXX: Need to force a snapshot
 
     return "";
 }
