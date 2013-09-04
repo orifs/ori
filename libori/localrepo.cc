@@ -180,7 +180,9 @@ LocalRepoLock::~LocalRepoLock()
 {
     if (lockFile.size() > 0) {
         if (OriFile_Delete(lockFile) < 0) {
-            perror("unlink");
+            char buf[128];
+            strerror_r(errno, buf, 128);
+            LOG("Failed to unlink lock: %s", buf);
         }
     }
 }
@@ -327,10 +329,11 @@ LocalRepo::lock()
         if (errno == EEXIST) {
             ssize_t n = readlink(lfPath.c_str(), pnum_str, 63);
             pnum_str[n] = '\0';
-            fprintf(stderr, "Repository at %s is already locked\n",
-                    rootPath.c_str());
-            fprintf(stderr, "Another instance of ORI (pid %s) may currently be using it\n", pnum_str);
-            OriDebug_PrintBacktrace();
+            SYSERROR("Repository at %s is already locked",
+                     rootPath.c_str());
+            SYSERROR("Another instance of ORI (pid %s) may "
+                     "currently be using it", pnum_str);
+            OriDebug_LogBacktrace();
         } else {
             perror("symlink");
         }

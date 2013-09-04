@@ -31,20 +31,23 @@ int ori_open_log(const std::string &logPath);
 
 #define LEVEL_SYS       0 /* Assert/Panic/Abort/NotImplemented */
 #define LEVEL_ERR       1 /* Error */
-#define LEVEL_MSG       2 /* Stdout */
-#define LEVEL_LOG       3 /* Log */
-#define LEVEL_DBG       4 /* Debug */
-#define LEVEL_VRB       5 /* Verbose */
+#define LEVEL_WRN       2 /* Warning */
+#define LEVEL_MSG       3 /* Stdout */
+#define LEVEL_LOG       4 /* Log */
+#define LEVEL_DBG       5 /* Debug */
+#define LEVEL_VRB       6 /* Verbose */
 
 /*
  * Remove all logging in PERF builds
  */
 #ifdef ORI_PERF
+#define SYSERROR(fmt, ...) ori_log(LEVEL_ERR, fmt "\n", ##__VA_ARGS__)
 #define WARNING(fmt, ...)
 #define MSG(fmt, ...)
 #define LOG(fmt, ...)
 #else
-#define WARNING(fmt, ...) ori_log(LEVEL_ERR, "WARNING: " fmt "\n", ##__VA_ARGS__)
+#define SYSERROR(fmt, ...) ori_log(LEVEL_ERR, fmt "\n", ##__VA_ARGS__)
+#define WARNING(fmt, ...) ori_log(LEVEL_WRN, fmt "\n", ##__VA_ARGS__)
 #define MSG(fmt, ...) ori_log(LEVEL_MSG, fmt "\n", ##__VA_ARGS__)
 #define LOG(fmt, ...) ori_log(LEVEL_LOG, fmt "\n", ##__VA_ARGS__)
 #endif

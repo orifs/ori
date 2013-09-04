@@ -111,6 +111,9 @@ ori_log(int level, const char *fmt, ...)
         case LEVEL_ERR:
             strncat(buf, "ERROR: ", MAX_LOG - off);
             break;
+        case LEVEL_WRN:
+            strncat(buf, "WARNING: ", MAX_LOG - off);
+            break;
         case LEVEL_MSG:
             strncat(buf, "MESSAGE: ", MAX_LOG - off);
             break;
@@ -292,7 +295,7 @@ void OriDebug_LogBacktrace()
     }
     free(names);
 #else
-    fprintf(stderr, "backtrace not support not included in this build\n");
+    LOG("backtrace not support not included in this build\n");
 #endif /* HAVE_EXECINFO */
 }
 
