@@ -1374,6 +1374,70 @@ OriPriv::merge(ObjectHash hash)
             info->loadAttr(e.newAttrs);
             info->type = FILETYPE_DIRTY;
         } else if (e.type == TreeDiffEntry::MergeConflict) {
+            DLOG("X       %s (CONFLICT)", e.filepath.c_str());
+            bool mergeSuccess = false;
+            OriDir *parentDir = getDir(OriFile_Dirname(e.filepath));
+            OriFileInfo *info = getFileInfo(e.filepath);
+
+            ASSERT(info != NULL);
+
+            if (info->path != "") {
+                // XXX: Attempt automerge
+            }
+
+            if (!mergeSuccess) {
+                // Create '*:conflict' file
+                OriFileInfo *conflictInfo = new OriFileInfo();
+                bool isSymlink = false;
+                
+                ASSERT(!e.hashB.first.isEmpty());
+                if (e.newAttrs.has(ATTR_SYMLINK)) {
+                    isSymlink = e.newAttrs.getAs<bool>(ATTR_SYMLINK);
+                }
+                conflictInfo->loadAttr(e.newAttrs);
+                conflictInfo->type = FILETYPE_COMMITTED;
+                conflictInfo->id = generateId();
+                conflictInfo->hash = e.hashB.first;
+                conflictInfo->largeHash = e.hashB.second;
+                conflictInfo->type = FILETYPE_DIRTY;
+                if (isSymlink) {
+                    ASSERT(conflictInfo->largeHash.isEmpty());
+                    conflictInfo->link = repo->getPayload(conflictInfo->hash);
+                }
+
+                parentDir->add(OriFile_Basename(e.filepath) + ":conflict",
+                               conflictInfo->id);
+                paths[e.filepath + ":conflict"] = conflictInfo;
+
+                /*
+                 * Create '*:base' file if it exists.  It may not exist because 
+                 * it is possible that two files were created with the same 
+                 * name.
+                 */
+                if (!e.hashBase.first.isEmpty()) {
+                    OriFileInfo *baseInfo = new OriFileInfo();
+                    isSymlink = false;
+
+                    if (e.newAttrs.has(ATTR_SYMLINK)) {
+                        isSymlink = e.newAttrs.getAs<bool>(ATTR_SYMLINK);
+                    }
+                    baseInfo->loadAttr(e.newAttrs);
+                    baseInfo->type = FILETYPE_COMMITTED;
+                    baseInfo->id = generateId();
+                    baseInfo->hash = e.hashBase.first;
+                    baseInfo->largeHash = e.hashBase.second;
+                    baseInfo->type = FILETYPE_DIRTY;
+                    if (isSymlink) {
+                        ASSERT(baseInfo->largeHash.isEmpty());
+                        baseInfo->link = repo->getPayload(baseInfo->hash);
+                    }
+
+                    parentDir->add(OriFile_Basename(e.filepath) + ":base",
+                                   baseInfo->id);
+                    paths[e.filepath + ":base"] = baseInfo;
+                }
+            }
+
             /*int status;
             Blob pivot, a, b, out;
             string path;
@@ -1410,7 +1474,6 @@ OriPriv::merge(ObjectHash hash)
                 conflictExists = true;
                 // XXX: Allow optional call to external diff tool
             }*/
-            DLOG("X       %s (CONFLICT)", e.filepath.c_str());
         } else if (e.type == TreeDiffEntry::FileDirConflict) {
             DLOG("X       %s (DIR-FILE CONFLICT)", e.filepath.c_str());
             NOT_IMPLEMENTED(false);
