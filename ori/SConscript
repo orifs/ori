@@ -9,6 +9,7 @@ src = [
     "cmd_branch.cc",
     "cmd_branches.cc",
     "cmd_checkout.cc",
+    "cmd_cleanup.cc",
     "cmd_diff.cc",
     "cmd_filelog.cc",
     "cmd_findheads.cc",

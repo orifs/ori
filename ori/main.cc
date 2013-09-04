@@ -66,6 +66,8 @@ int cmd_addkey(int argc, char * const argv[]);
 int cmd_branches(int argc, char * const argv[]);
 int cmd_branch(int argc, char * const argv[]);
 int cmd_checkout(int argc, char * const argv[]);
+void usage_cleanup();
+int cmd_cleanup(int argc, char * const argv[]);
 int cmd_diff(int argc, char * const argv[]);
 int cmd_filelog(int argc, char * const argv[]);
 int cmd_findheads(int argc, char * const argv[]);
@@ -131,6 +133,13 @@ static Cmd commands[] = {
         cmd_checkout,
         NULL,
         CMD_DEBUG | CMD_NEED_FUSE,
+    },
+    {
+        "cleanup",
+        "Cleanup a repository after a FUSE crash (DEBUG)",
+        cmd_cleanup,
+        usage_cleanup,
+        CMD_DEBUG,
     },
     {
         "diff",
