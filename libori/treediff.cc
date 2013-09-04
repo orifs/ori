@@ -629,7 +629,10 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
 
         if (e == NULL &&
             (i2->type == TreeDiffEntry::NewFile ||
-             i2->type == TreeDiffEntry::NewDir)) {
+             i2->type == TreeDiffEntry::NewDir ||
+             i2->type == TreeDiffEntry::DeletedFile || 
+             i2->type == TreeDiffEntry::DeletedDir ||
+             i2->type == TreeDiffEntry::Modified)) {
             append(*i2);
         }
     }
@@ -662,6 +665,75 @@ TreeDiff::mergeChanges(const TreeDiff &d1, const TreeDiff &diff)
     for (; de != diff.entries.end(); de++)
     {
         append(*de);
+    }
+}
+
+/*
+ * This form Applies the current diff to a flat tree
+ */
+void
+TreeDiff::applyTo(Tree::Flat *flat) const
+{
+    vector<TreeDiffEntry>::const_iterator it;
+
+    for (it = entries.begin(); it != entries.end(); it++)
+    {
+        const TreeDiffEntry e = *it;
+
+        switch (e.type)
+        {
+            case TreeDiffEntry::NewFile:
+            {
+                TreeEntry te(e.hashes.first, e.hashes.second);
+                te.attrs.mergeFrom(e.newAttrs);
+                ASSERT(te.hasBasicAttrs());
+                flat->insert(make_pair(e.filepath, te));
+                break;
+            }
+            case TreeDiffEntry::NewDir:
+            {
+                TreeEntry te(e.hashes.first, e.hashes.second);
+                te.type = TreeEntry::Tree;
+                te.attrs.mergeFrom(e.newAttrs);
+                ASSERT(te.hasBasicAttrs());
+                flat->insert(make_pair(e.filepath, te));
+                break;
+            }
+            case TreeDiffEntry::DeletedFile:
+            {
+                flat->erase(e.filepath);
+                break;
+            }
+            case TreeDiffEntry::DeletedDir:
+            {
+                flat->erase(e.filepath);
+                break;
+            }
+            case TreeDiffEntry::Modified:
+            {
+                Tree::Flat::iterator it = flat->find(e.filepath);
+                ASSERT(it != flat->end());
+                TreeEntry te = it->second;
+                te.hash = e.hashes.first;
+                te.largeHash = e.hashes.second;
+                te.attrs.mergeFrom(e.newAttrs);
+                ASSERT(te.hasBasicAttrs());
+                flat->insert(make_pair(e.filepath, te));
+                break;
+            }
+            case TreeDiffEntry::Renamed:
+                NOT_IMPLEMENTED(false);
+                break;
+            case TreeDiffEntry::MergeConflict:
+                NOT_IMPLEMENTED(false);
+                break;
+            case TreeDiffEntry::FileDirConflict:
+                NOT_IMPLEMENTED(false);
+                break;
+            default:
+                NOT_IMPLEMENTED(false);
+                break;
+        }
     }
 }
 
@@ -778,3 +850,54 @@ TreeDiff::_resetLatestEntry(const std::string &filepath)
         }
     }
 }
+
+/*
+ * Dump to log
+ */
+void
+TreeDiff::dump() const
+{
+    vector<TreeDiffEntry>::const_iterator it;
+
+    LOG("***** BEGIN TREEDIFF DUMP *****");
+
+    for (it = entries.begin(); it != entries.end(); it++)
+    {
+        const TreeDiffEntry e = *it;
+
+        switch (e.type)
+        {
+            case TreeDiffEntry::NewFile:
+                LOG("NEWFILE        %s", e.filepath.c_str());
+                break;
+            case TreeDiffEntry::NewDir:
+                LOG("NEWDIR         %s", e.filepath.c_str());
+                break;
+            case TreeDiffEntry::DeletedFile:
+                LOG("RM             %s", e.filepath.c_str());
+                break;
+            case TreeDiffEntry::DeletedDir:
+                LOG("RMDIR          %s", e.filepath.c_str());
+                break;
+            case TreeDiffEntry::Modified:
+                LOG("MODIFIED       %s", e.filepath.c_str());
+                break;
+            case TreeDiffEntry::Renamed:
+                LOG("RENAMED        %s", e.filepath.c_str());
+                break;
+            case TreeDiffEntry::MergeConflict:
+                LOG("MERGECONFLICT  %s", e.filepath.c_str());
+                break;
+            case TreeDiffEntry::FileDirConflict:
+                LOG("FILEDIRCONF    %s", e.filepath.c_str());
+                break;
+            default:
+                LOG("UNKNOWN        %s", e.filepath.c_str());
+                NOT_IMPLEMENTED(false);
+                break;
+        }
+    }
+
+    LOG("***** END TREEDIFF DUMP *****");
+}
+

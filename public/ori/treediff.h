@@ -73,7 +73,9 @@ public:
     void mergeTrees(const TreeDiff &d1, const TreeDiff &d2);
     void mergeChanges(const TreeDiff &d1, const TreeDiff &diff);
 
+    void applyTo(Tree::Flat *flat) const;
     Tree applyTo(Tree::Flat flat, Repo *dest_repo);
+    void dump() const;
 
     std::vector<TreeDiffEntry> entries;
 

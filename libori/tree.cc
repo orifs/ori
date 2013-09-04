@@ -157,7 +157,11 @@ TreeEntry::hasBasicAttrs()
         ATTR_GROUPNAME, ATTR_CTIME, ATTR_MTIME};
     for (size_t i = 0; i < sizeof(names) / sizeof(const char *); i++) {
         //LOG("Checking attr %s", names[i]);
-        if (attrs.attrs.find(names[i]) == attrs.attrs.end()) return false;
+        if (attrs.attrs.find(names[i]) == attrs.attrs.end())
+        {
+            WARNING("Attribute '%s' does not exist", names[i]);
+            return false;
+        }
     }
     return true;
 }

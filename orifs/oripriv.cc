@@ -1269,7 +1269,12 @@ OriPriv::merge(ObjectHash hash)
             {
                 // XXX: Need to rewrite the flat tree and merge code, but
                 // for now we zero out the object hash for modified files.
-                t1Flat[dsit->first].hash = ObjectHash();
+                OriFileInfo *info = diffInfo[dsit->first];
+                TreeEntry te = t1Flat[dsit->first];
+                te.hash = ObjectHash();
+                info->storeAttr(&te.attrs);
+                te.hasBasicAttrs();
+                t1Flat[dsit->first] = te;
                 break;
             }
             default:
@@ -1282,15 +1287,30 @@ OriPriv::merge(ObjectHash hash)
 
     // Create diffs and compute merge
     td1.diffTwoTrees(t1Flat, tcFlat);
+    LOG("Diff from %s to %s", lca.hex().c_str(), p1.hex().c_str());
+    td1.dump();
     td2.diffTwoTrees(t2Flat, tcFlat);
+    LOG("Diff from %s to %s", lca.hex().c_str(), p2.hex().c_str());
+    td2.dump();
 
     // XXX: Need to handle merging file attributes
     TreeDiff mdiff;
     mdiff.mergeTrees(td1, td2);
+    LOG("Merged diffs");
+    mdiff.dump();
 
     // Recompute the merge relative to the working tree
     TreeDiff wdiff;
     wdiff.mergeChanges(td1, mdiff);
+    LOG("Result of MergeChanges");
+    wdiff.dump();
+
+    // Slower way to recompute merge relative to working tree
+    //TreeDiff rdiff;
+    //mdiff.applyTo(&tcFlat);
+    //rdiff.diffTwoTrees(tcFlat, t1Flat);
+    //LOG("Slow recomputed diff");
+    //rdiff.dump();
 
     MergeState state;
     state.setParents(p1, p2);
