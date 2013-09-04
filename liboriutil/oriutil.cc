@@ -198,6 +198,18 @@ Util_IsPathRemote(const string &path) {
     return true;
 }
 
+string
+Util_SystemError(int status)
+{
+    string rval;
+    char buf[512];
+
+    strerror_r(status, buf, 512);
+    rval = buf;
+
+    return rval;
+}
+
 // XXX: Debug Only
 
 int

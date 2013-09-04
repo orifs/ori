@@ -396,8 +396,6 @@ OriPriv::addFile(const string &path)
     map<string, OriFileInfo*>::iterator it = paths.find(path);
     if (it != paths.end()) {
         ASSERT(!it->second->isDir());
-        if (it->second->type == FILETYPE_DIRTY)
-            unlink(it->second->path.c_str());
         it->second->release();
     }
 
@@ -1357,7 +1355,24 @@ OriPriv::merge(ObjectHash hash)
             rmDir(e.filepath); 
         } else if (e.type == TreeDiffEntry::Modified) {
             DLOG("U       %s", e.filepath.c_str());
-            //repository.copyObject(e.hashes.first, path);
+            // Calling getDir ensures that the fileinfo is loaded
+            getDir(OriFile_Dirname(e.filepath));
+            OriFileInfo *info = getFileInfo(e.filepath);
+
+            if (info->path != "") {
+                ASSERT(info->type == FILETYPE_COMMITTED);
+                int status = OriFile_Delete(info->path);
+                if (status < 0) {
+                    WARNING("Failed to unlink temporary file '%s': %s",
+                            info->path.c_str(), Util_SystemError(status).c_str());
+                }
+                info->path = "";
+            }
+
+            info->hash = e.hashes.first;
+            info->largeHash = e.hashes.second;
+            info->loadAttr(e.newAttrs);
+            info->type = FILETYPE_DIRTY;
         } else if (e.type == TreeDiffEntry::MergeConflict) {
             /*int status;
             Blob pivot, a, b, out;

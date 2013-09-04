@@ -35,5 +35,7 @@ int Util_SetBlocking(int fd, bool block);
 std::string Util_NewUUID();
 bool Util_IsPathRemote(const std::string &path);
 
+std::string Util_SystemError(int status);
+
 #endif /* __ORI_ORIUTIL_H__ */
 

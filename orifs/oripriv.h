@@ -17,11 +17,7 @@
 #ifndef __ORIPRIV_H__
 #define __ORIPRIV_H__
 
-class OriFile
-{
-    OriFile() { }
-    ~OriFile() { }
-};
+#include <oriutil/orifile.h>
 
 typedef enum OriFileType
 {
@@ -49,6 +45,10 @@ public:
     ~OriFileInfo() {
         ASSERT(refCount == 0);
         ASSERT(openCount == 0);
+
+        // Delete temporary file
+        if (path != "")
+            OriFile_Delete(path);
     }
     /*
      * Tracks the number of handles to a file if this drops to zero the file 
