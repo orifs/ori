@@ -104,10 +104,11 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
             } else {
                 diffEntry.type = TreeDiffEntry::NewFile;
                 diffEntry.newFilename = "";
-                diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
                 diffEntry.fileBase = "";
                 diffEntry.hashBase = make_pair(EMPTYFILE_HASH, ObjectHash());
             }
+            diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
+            diffEntry.newAttrs = entry.attrs;
 
             append(diffEntry);
         } else {
@@ -122,9 +123,10 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
                 append(diffEntry);
 
                 diffEntry.type = TreeDiffEntry::NewFile;
-                append(diffEntry);
                 diffEntry.newFilename = "";
-                diffEntry.hashes = make_pair(entry2.hash, entry2.largeHash);
+                diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
+                diffEntry.newAttrs = entry.attrs;
+                append(diffEntry);
             } else if (entry.type == TreeEntry::Tree &&
                        entry2.type != TreeEntry::Tree) {
                 // Replaced file with directory
@@ -135,6 +137,9 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
                 append(diffEntry);
 
                 diffEntry.type = TreeDiffEntry::NewDir;
+                diffEntry.newAttrs = entry.attrs;
+                diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
+                diffEntry.newAttrs = entry.attrs;
                 append(diffEntry);
             } else {
                 // Check for mismatch
@@ -152,6 +157,7 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
                     diffEntry.hashes = make_pair(entry.hash, entry.largeHash);
                     diffEntry.fileBase = "";
                     diffEntry.hashBase = make_pair(entry2.hash, entry2.largeHash);
+                    diffEntry.newAttrs = entry.attrs;
 
                     append(diffEntry);
                 }
