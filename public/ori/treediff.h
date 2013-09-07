@@ -47,6 +47,7 @@ struct TreeDiffEntry
     std::string newFilename; // filename of a file containing the new contents
     std::pair<ObjectHash, ObjectHash> hashes;
     AttrMap newAttrs;
+    AttrMap attrsA, attrsB, attrsBase;
 
     // Merge Conflict Fields
     std::string fileA, fileB, fileBase;

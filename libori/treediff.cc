@@ -145,8 +145,8 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
                 // Check for mismatch
                 TreeEntry entry2 = (*it2).second;
 
-                // XXX: This should do the right thing even if for some reason
-                // the file was a small file and became a large file (with the 
+                // This should do the right thing even if for some reason the 
+                // file was a small file and became a large file (with the 
                 // exact same content).  That should never happen though!
                 if (entry.type != TreeEntry::Tree && entry.hash != entry2.hash) {
                     TreeDiffEntry diffEntry;
@@ -158,9 +158,11 @@ TreeDiff::diffTwoTrees(const Tree::Flat &t1, const Tree::Flat &t2)
                     diffEntry.fileBase = "";
                     diffEntry.hashBase = make_pair(entry2.hash, entry2.largeHash);
                     diffEntry.newAttrs = entry.attrs;
+                    diffEntry.attrsBase = entry2.attrs;
 
                     append(diffEntry);
                 }
+                // XXX: Handle attribute only changes
             }
         }
     }
@@ -557,8 +559,10 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
                     newEntry.hashA = e->hashes;
                     newEntry.hashB = e_second->hashes;
                     newEntry.hashBase = e->hashBase;
+                    newEntry.attrsA = e->newAttrs;
+                    newEntry.attrsB = e_second->newAttrs;
 
-                    assert(e->hashBase == e_second->hashBase);
+                    ASSERT(e->hashBase == e_second->hashBase);
 
                     append(newEntry);
                 }
@@ -610,13 +614,15 @@ TreeDiff::mergeTrees(const TreeDiff &d1, const TreeDiff &d2)
                 newEntry.filepath = e->filepath;
                 newEntry.newAttrs = e->newAttrs;
 
-                // XXX: Implement this for workdir diffs
                 newEntry.fileA = "";
                 newEntry.fileB = "";
                 newEntry.fileBase = "";
                 newEntry.hashA = e->hashes;
                 newEntry.hashB = e_second->hashes;
                 newEntry.hashBase = e->hashBase;
+                newEntry.attrsA = e->newAttrs;
+                newEntry.attrsB = e_second->newAttrs;
+                newEntry.attrsBase = e->attrsBase;
 
                 assert(e->hashBase == e_second->hashBase);
 

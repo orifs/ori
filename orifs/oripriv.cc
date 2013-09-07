@@ -421,7 +421,7 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
     handles[handle] = info;
 
     // Open temporary file if necessary
-    if (info->type == FILETYPE_DIRTY) {
+    if (info->type == FILETYPE_DIRTY && info->path != "") {
         if (info->fd != -1) {
             // File is already open just return a new handle
             return make_pair(info, handle);
@@ -432,7 +432,8 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
             throw SystemException(errno);
         }
         info->fd = status;
-    } else if (info->type == FILETYPE_COMMITTED) {
+    } else if (info->type == FILETYPE_COMMITTED ||
+               (info->type == FILETYPE_DIRTY && info->path == "")) {
         ASSERT(!info->hash.isEmpty());
         if (!writing) {
             // Read-only
@@ -480,7 +481,7 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
 size_t
 OriPriv::readFile(OriFileInfo *info, char *buf, size_t size, off_t offset)
 {
-    ASSERT(info->type == FILETYPE_COMMITTED && !info->hash.isEmpty());
+    ASSERT(!info->hash.isEmpty());
 
     ObjectType type = repo->getObjectType(info->hash);
     if (type == ObjectInfo::Blob) {
@@ -1326,7 +1327,6 @@ OriPriv::merge(ObjectHash hash)
                 isSymlink = e.newAttrs.getAs<bool>(ATTR_SYMLINK);
             }
             info->loadAttr(e.newAttrs);
-            info->type = FILETYPE_COMMITTED;
             info->id = generateId();
             info->hash = e.hashes.first;
             info->largeHash = e.hashes.second;
@@ -1394,8 +1394,7 @@ OriPriv::merge(ObjectHash hash)
                 if (e.newAttrs.has(ATTR_SYMLINK)) {
                     isSymlink = e.newAttrs.getAs<bool>(ATTR_SYMLINK);
                 }
-                conflictInfo->loadAttr(e.newAttrs);
-                conflictInfo->type = FILETYPE_COMMITTED;
+                conflictInfo->loadAttr(e.attrsB);
                 conflictInfo->id = generateId();
                 conflictInfo->hash = e.hashB.first;
                 conflictInfo->largeHash = e.hashB.second;
@@ -1421,8 +1420,7 @@ OriPriv::merge(ObjectHash hash)
                     if (e.newAttrs.has(ATTR_SYMLINK)) {
                         isSymlink = e.newAttrs.getAs<bool>(ATTR_SYMLINK);
                     }
-                    baseInfo->loadAttr(e.newAttrs);
-                    baseInfo->type = FILETYPE_COMMITTED;
+                    baseInfo->loadAttr(e.attrsBase);
                     baseInfo->id = generateId();
                     baseInfo->hash = e.hashBase.first;
                     baseInfo->largeHash = e.hashBase.second;
