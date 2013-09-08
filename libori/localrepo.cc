@@ -263,9 +263,10 @@ LocalRepo::open(const string &root)
         throw e;
     }
 
-    // Open Metadata Log
+    // Open Metadata Log and Varlink DB
     try {
         metadata.open(rootPath + ORI_PATH_METADATA); // throws SystemException
+        vars.open(rootPath + ORI_PATH_VARLINK); // throws SystemException
     } catch (exception &e) {
         index.close();
         snapshots.close();

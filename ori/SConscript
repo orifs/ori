@@ -33,6 +33,7 @@ src = [
     "cmd_snapshots.cc",
     "cmd_status.cc",
     "cmd_tip.cc",
+    "cmd_varlink.cc",
     "fuse_cmd.cc",
     "main.cc",
     "server.cc",

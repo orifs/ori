@@ -132,6 +132,30 @@ Util_GetHome()
     return path;
 }
 
+string
+Util_GetOSType()
+{
+    char *ostype;
+
+    ostype = getenv("OSTYPE");
+    if (ostype == NULL)
+        return "unknown";
+
+    return ostype;
+}
+
+string
+Util_GetMachType()
+{
+    char *machtype;
+
+    machtype = getenv("MACHTYPE");
+    if (machtype == NULL)
+        return "unknown";
+
+    return machtype;
+}
+
 int Util_SetBlocking(int fd, bool block) {
     int old_flags = fcntl(fd, F_GETFL);
     if (old_flags < 0) {

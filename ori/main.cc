@@ -97,6 +97,7 @@ int cmd_snapshot(int argc, char * const argv[]);
 int cmd_snapshots(int argc, char * const argv[]);
 int cmd_status(int argc, char * const argv[]);
 int cmd_tip(int argc, char * const argv[]);
+int cmd_varlink(int argc, char * const argv[]);
 
 // Debug Operations
 int cmd_fsck(int argc, char * const argv[]);
@@ -299,6 +300,13 @@ static Cmd commands[] = {
         "tip",
         "Print the latest commit on this branch",
         cmd_tip,
+        NULL,
+        CMD_NEED_FUSE,
+    },
+    {
+        "varlink",
+        "Get, set, list varlink variables",
+        cmd_varlink,
         NULL,
         CMD_NEED_FUSE,
     },

@@ -14,13 +14,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __ORINET_H__
-#define __ORINET_H__
+#ifndef __ORI_VARLINK_H__
+#define __ORI_VARLINK_H__
 
-std::string OriNet_ResolveHost(const std::string &hostname);
-std::vector<std::string> OriNet_GetAddrs();
-std::string OriNet_Hostname();
-std::string OriNet_Domainname();
+class VarLink
+{
+public:
+    VarLink();
+    ~VarLink();
+    void open(const std::string &vardbPath);
+    std::string get(const std::string &var) const;
+    void set(const std::string &var, const std::string &val);
+    std::list<std::string> getVars() const;
+    std::string parse(const std::string &link);
+private:
+    std::string getBlob();
+    void fromBlob(const std::string &blob);
+    void load();
+    void save();
+    std::string vardb;
+    std::map<std::string, std::string> vars;
+};
 
-#endif /* __ORINET_H__ */
+#endif /* __ORI_VARLINK_H__ */
 

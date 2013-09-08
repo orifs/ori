@@ -29,6 +29,7 @@ src = [
     "udsclient.cc",
     "udsrepo.cc",
     "udsserver.cc",
+    "varlink.cc",
 ]
 
 env.StaticLibrary("ori", src)

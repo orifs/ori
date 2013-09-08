@@ -33,6 +33,7 @@ private:
     std::string cmd_pull(strstream &str);
     std::string cmd_checkout(strstream &str);
     std::string cmd_merge(strstream &str);
+    std::string cmd_varlink(strstream &str);
     OriPriv *priv;
 };
 

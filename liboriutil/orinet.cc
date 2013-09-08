@@ -105,3 +105,31 @@ OriNet_GetAddrs()
     return rval;
 }
 
+string
+OriNet_Hostname()
+{
+    int status;
+    char hostname[128];
+
+    status = gethostname(hostname, sizeof(hostname));
+    if (status < -1) {
+        return "unknown";
+    }
+
+    return hostname;
+}
+
+string
+OriNet_Domainname()
+{
+    int status;
+    char domainname[128];
+
+    status = getdomainname(domainname, sizeof(domainname));
+    if (status < -1) {
+        return "unknown";
+    }
+
+    return domainname;
+}
+

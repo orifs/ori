@@ -79,6 +79,8 @@ OriCommand::process(const string &data)
         return cmd_checkout(str);
     if (cmd == "merge")
         return cmd_merge(str);
+    if (cmd == "varlink")
+        return cmd_varlink(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -344,6 +346,61 @@ OriCommand::cmd_merge(strstream &str)
 #endif /* DEBUG */
 
     return resp.str();
+}
+
+string
+OriCommand::cmd_varlink(strstream &str)
+{
+    FUSE_PLOG("Command: varlink");
+
+    string subcmd;
+    strwstream resp;
+    LocalRepo *repo = priv->getRepo();
+
+    // Parse Command
+    str.readPStr(subcmd);
+
+    RWKey::sp lock = priv->nsLock.writeLock();
+    if (subcmd == "list") {
+        list<string> vars = repo->vars.getVars();
+        list<string>::iterator it;
+        strwstream resp;
+
+        // System variables
+        vars.push_front("hostname");
+        vars.push_front("domainname");
+        vars.push_front("osname");
+        vars.push_front("machtype");
+
+        resp.writeUInt32(vars.size());
+        for (it = vars.begin(); it != vars.end(); it++) {
+            resp.writeLPStr(*it);
+            resp.writeLPStr(repo->vars.get(*it));
+        }
+
+        return resp.str();
+    }
+    if (subcmd == "get") {
+        string var;
+        strwstream resp;
+
+        str.readLPStr(var);
+        resp.writeLPStr(repo->vars.get(var));
+
+        return resp.str();
+    }
+    if (subcmd == "set") {
+        string var, val;
+
+        str.readLPStr(var);
+        str.readLPStr(val);
+
+        repo->vars.set(var, val);
+
+        return "";
+    }
+
+    return "Unknown varlink subcommand";
 }
 
 

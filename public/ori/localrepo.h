@@ -33,6 +33,7 @@
 #include "remoterepo.h"
 #include "packfile.h"
 #include "mergestate.h"
+#include "varlink.h"
 
 #define ORI_PATH_DIR "/.ori"
 #define ORI_PATH_VERSION "/version"
@@ -40,6 +41,7 @@
 #define ORI_PATH_INDEX "/index"
 #define ORI_PATH_SNAPSHOTS "/snapshots"
 #define ORI_PATH_METADATA "/metadata"
+#define ORI_PATH_VARLINK "/varlink"
 #define ORI_PATH_DIRSTATE "/dirstate"
 #define ORI_PATH_HEAD "/HEAD"
 #define ORI_PATH_MERGESTATE "/mergestate"
@@ -213,6 +215,9 @@ public:
     // Key Management
     PrivateKey getPrivateKey();
     std::map<std::string, PublicKey> getPublicKeys();
+
+    // Variables
+    VarLink vars;
 
     // Static Operations
     static std::string findRootPath(const std::string &path = "");

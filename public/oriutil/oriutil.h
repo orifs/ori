@@ -30,6 +30,8 @@ bool Util_IsValidName(const std::string &path);
 std::vector<std::string> Util_PathToVector(const std::string &path);
 std::string Util_GetFullname();
 std::string Util_GetHome();
+std::string Util_GetOSType();
+std::string Util_GetMachType();
 int Util_SetBlocking(int fd, bool block);
 
 std::string Util_NewUUID();
