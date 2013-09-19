@@ -292,6 +292,15 @@ OriPriv::getFileInfo(const string &path)
 {
     map<string, OriFileInfo*>::iterator it;
 
+    // Must call getDir to make sure it is loaded
+    if (path != "/") {
+        string parentPath = OriFile_Dirname(path);
+        if (parentPath == "")
+            parentPath = "/";
+
+        getDir(parentPath);
+    }
+
     // Check pending directories
     it = paths.find(path);
     if (it != paths.end()) {
