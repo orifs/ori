@@ -151,6 +151,8 @@ SnapshotIndex::addSnapshot(const string &name, const ObjectHash &commitId)
     indexLine = commitId.hex() + " " + name + "\n";
 
     write(fd, indexLine.data(), indexLine.size());
+
+    snapshots[name] = commitId;
 }
 
 void

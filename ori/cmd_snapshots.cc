@@ -45,7 +45,7 @@ cmd_snapshots(int argc, char * const argv[])
         return 1;
     }
 
-    len = resp.readUInt8();
+    len = resp.readUInt32();
     for (uint32_t i = 0; i < len; i++)
     {
         string name;
