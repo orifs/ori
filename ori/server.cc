@@ -68,9 +68,10 @@ SshServer::open(const string &path)
         // XXX: fall through
     }
 
-    LocalRepo *lrepo = new LocalRepo();
+    LocalRepo *lrepo;
 
     try {
+        lrepo = new LocalRepo();
         lrepo->open(path);
     } catch (std::exception &e) {
         printError(e.what());

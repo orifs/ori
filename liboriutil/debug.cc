@@ -202,7 +202,7 @@ int ori_open_log(const string &logPath) {
     }
 
     logStream.open(logPath.c_str(), fstream::in | fstream::out | fstream::app);
-    if (logStream.fail()) {
+    if (!logStream.is_open()) {
         printf("Could not open logfile: %s\n", logPath.c_str());
         return -1;
     }

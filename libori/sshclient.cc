@@ -198,12 +198,11 @@ bool SshClient::respIsOK() {
  */
 int cmd_sshclient(int argc, char * const argv[]) {
     if (argc < 2) {
-        printf("Usage: ori sshclient [username@]hostname\n");
+        printf("Usage: ori sshclient [username@]hostname:repo\n");
         exit(1);
     }
 
-    std::string remotePath = std::string(argv[1]) +
-        ":/Users/fyhuang/Projects/ori/tr3";
+    std::string remotePath = std::string(argv[1]);
     SshClient client(remotePath);
     if (client.connect() < 0) {
         printf("Error connecting to %s\n", argv[1]);
