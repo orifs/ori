@@ -71,7 +71,10 @@ UDSServer::UDSServer(LocalRepo *repo)
 
 UDSServer::~UDSServer()
 {
+    string fuseSock = repo->getUDSPath();
+
     close(listenFd);
+    unlink(fuseSock.c_str());
 }
 
 void
