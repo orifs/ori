@@ -28,7 +28,7 @@ set args -d -o repo=source_repo,daemon_timeout=5 mtpoint
 EOM
 
 # Initial tests/initialize source repo
-for script in repo_init.sh commit_again.sh; do
+for script in repo_init.sh; do # commit_again.sh; do
     bash -ex $SCRIPTS/$script
     if [ "$?" -ne "0" ] ; then
         echo "Script $script failed!"

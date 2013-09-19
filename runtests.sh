@@ -21,6 +21,7 @@ export TEST_REPO2=$TEMP_DIR/test_repo2
 export TEST_MERGEREPO=$TEMP_DIR/test_merge
 export MTPOINT=$TEMP_DIR/mtpoint
 
+export SOURCE_FS=oritest_source
 export TEST_FS=oritest_fs
 
 export PYTHON="/usr/bin/env python"
@@ -77,7 +78,7 @@ done
 if true; then
     cd $ORIG_DIR
     echo "Deleting directories"
-    rm -rf $SOURCE_REPO
+    $ORI_EXE removefs $SOURCE_FS
     rm -rf $SOURCE_FILES
     rm -rf $TEMP_DIR
 fi
