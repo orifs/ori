@@ -166,6 +166,22 @@ TreeEntry::hasBasicAttrs()
     return true;
 }
 
+void
+TreeEntry::print() const
+{
+    AttrMap::const_iterator it;
+
+    cout << "  Hash: " << hash.hex() << endl;
+    if (type == TreeEntry::LargeBlob)
+        cout << "  Large Hash: " << largeHash.hex() << endl;
+
+    cout << "  Size: " << attrs.getAs<size_t>(ATTR_FILESIZE) << endl;
+    cout << "  User: " << attrs.getAsStr(ATTR_USERNAME) << endl;
+    cout << "  Group: " << attrs.getAsStr(ATTR_GROUPNAME) << endl;
+    // perms and link
+    cout << "  Created: " << attrs.getAs<time_t>(ATTR_CTIME) << endl;
+    cout << "  Modified: " << attrs.getAs<time_t>(ATTR_MTIME) << endl;
+}
 
 /********************************************************************
  *
@@ -419,11 +435,7 @@ Tree::print() const
 		break;
 	}
 
-	cout << "  Hash: " << (*it).second.hash.hex() << endl;
-	if ((*it).second.type == TreeEntry::LargeBlob)
-	    cout << "  Large Hash: " << (*it).second.largeHash.hex() << endl;
-
-	// XXX: AttrMap.print()
+	(*it).second.print();
     }
 }
 

@@ -70,7 +70,6 @@ public:
     void setCreation(mode_t perms);
     void mergeFrom(const AttrMap &other);
 
-
     _MapType attrs;
 
     // Mirrorring std::map functions
@@ -112,6 +111,8 @@ public:
     void extractToFile(const std::string &filename, Repo *src) const;
 
     bool hasBasicAttrs();
+
+    void print() const;
 };
 
 class Tree
