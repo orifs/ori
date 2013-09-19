@@ -8,6 +8,7 @@ export ORIG_DIR=`pwd`
 export ORI_EXE=$ORIG_DIR/build/ori/ori
 export ORI_HTTPD=$ORIG_DIR/build/ori_httpd/ori_httpd
 export ORIFS_EXE=$ORIG_DIR/build/orifs/orifs
+export ORIDBG_EXE=$ORIG_DIR/build/oridbg/oridbg
 export ORI_TESTS=$ORIG_DIR/ori_tests
 
 # On OS X and other systems this is umount
@@ -19,6 +20,8 @@ export SOURCE_REPO=$TEMP_DIR/source_repo
 export TEST_REPO2=$TEMP_DIR/test_repo2
 export TEST_MERGEREPO=$TEMP_DIR/test_merge
 export MTPOINT=$TEMP_DIR/mtpoint
+
+export TEST_FS=oritest_fs
 
 export PYTHON="/usr/bin/env python"
 export SCRIPTS=$ORIG_DIR/scripts

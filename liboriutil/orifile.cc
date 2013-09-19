@@ -103,7 +103,7 @@ OriFile_IsDirectory(const string &path)
         return false;
     }
 
-    if (sb.st_mode & S_IFDIR)
+    if (S_ISDIR(sb.st_mode))
         return true;
     else
         return false;
