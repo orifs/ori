@@ -4,7 +4,6 @@ cd $TEMP_DIR
 $ORI_EXE newfs $TEST_FS
 
 # mount
-mkdir $TEST_FS
 $ORIFS_EXE $TEST_FS
 cd $TEST_FS
 ls > /dev/null

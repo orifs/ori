@@ -23,6 +23,7 @@ export MTPOINT=$TEMP_DIR/mtpoint
 
 export SOURCE_FS=oritest_source
 export TEST_FS=oritest_fs
+export TEST_FS2=oritest_fs2
 
 export PYTHON="/usr/bin/env python"
 export SCRIPTS=$ORIG_DIR/scripts
@@ -39,7 +40,14 @@ if [ -d $TEMP_DIR ]; then
     exit
 fi
 
+if [ -d ~/.ori/$SOURCE_FS.ori ]; then
+    echo "One or more test file systems have not been deleted!"
+    exit
+fi
+
 mkdir $TEMP_DIR
+mkdir $TEMP_DIR/$TEST_FS
+mkdir $TEMP_DIR/$TEST_FS2
 
 $ORIG_DIR/runtests_prep.sh &> $TEMP_DIR/runtests_prep.log
 
