@@ -199,6 +199,10 @@ OriPriv::reset()
     tmpDir = repo->getRootPath() + ORI_PATH_TMP + "fuse";
     journalFile = tmpDir + "/journal";
 
+    // Check if the journal is empty then delete it
+    if (OriFile_Exists(journalFile) && (OriFile_GetSize(journalFile) == 0))
+        OriFile_Delete(journalFile);
+
     // Attempt to delete the temporary directory if it exists
     if (OriFile_Exists(tmpDir) && OriFile_RmDir(tmpDir) != 0) {
         printf("\nAn error has occurred!\n");

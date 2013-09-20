@@ -148,6 +148,7 @@ Object::sp UDSRepo::getObject(const ObjectHash &id)
                 payloads[info.hash] = zipstream(new strstream(payload),
                                                 DECOMPRESS,
                                                 info.payload_size).readAll();
+                break;
             case ObjectInfo::ZIPALGO_LZMA:
             case ObjectInfo::ZIPALGO_UNKNOWN:
                 NOT_IMPLEMENTED(false);
