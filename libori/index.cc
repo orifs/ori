@@ -182,8 +182,10 @@ Index::dump()
     cout << "***** BEGIN REPOSITORY INDEX *****" << endl;
     for (it = index.begin(); it != index.end(); it++)
     {
-        cout << (*it).first.hex() << " packfile: " << (*it).second.packfile <<
-            "," << (*it).second.offset << endl;
+        cout << (*it).first.hex() << " packfile: " <<
+            (*it).second.packfile << "," <<
+            (*it).second.offset << "," <<
+            (*it).second.packed_size << endl;
     }
     cout << "***** END REPOSITORY INDEX *****" << endl;
 }
