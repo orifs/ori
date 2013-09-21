@@ -502,6 +502,8 @@ OriPriv::readFile(OriFileInfo *info, char *buf, size_t size, off_t offset)
         // XXX: Cache
 
         size_t left = payload.size() - offset;
+        if (left > payload.size())
+            left = 0;
         size_t real_read = min(size, left);
 
         memcpy(buf, payload.data() + offset, real_read);
