@@ -1,0 +1,56 @@
+.TH ORISYNC "1" "September 2013" "Ori Project" "Ori Distributed File System"
+.SH NAME
+orisync \- Ori File System Sync Daemon
+.SH SYNOPSIS
+.B orisync
+[\fICOMMAND\fR]
+.SH DESCRIPTION
+orisync is the device discovery and automatic synchronization daemon.  In 
+addition it is used for configuration and management of the orisync daemon.
+To get started run \fBorisync init\fR to configure the orisync cluster key and 
+password.  Running orisync without any arguments will start the daemon 
+process.
+
+.SH CONFIGURATION COMMANDS
+.TP
+\fBinit\fR
+Configure the cluster key and cluster password.
+
+.SH REPOSITORY RELATED COMMANDS
+.TP
+\fBadd FS-NAME\fR
+Register a local repository with orisync.
+.TP
+\fBremove FS-NAME\fR
+Unregister a local repository with orisync.
+.TP
+\fBlist\fR
+List all registered local repositories
+
+.SH HOST RELATED COMMANDS
+.TP
+\fBhostadd HOSTNAME\fR
+Add a static host to synchronize with.
+.TP
+\fBhostremove HOSTNAME\fR
+Remove a statically configured host.
+.TP
+\fBhosts\fR
+List all statically configured hosts.
+
+.SH OTHER COMMANDS
+.TP
+\fBhelp\fR
+Display a list of commands and their purpose.
+
+.SH SUPPORTED COMMANDS
+The file system can be controlled by the command line interface.  Running 
+commands from anywhere inside the mounted file system should allow the command 
+line to detect and communicate with the file system.  Not all commands are 
+supported on a running file system, and some hidden commands for debugging or 
+are not recommended.  Additional commands will be added in future releases.  
+
+.SH "SEE ALSO"
+.BR ori (1),
+.BR orifs (1),
+.BR ori_httpd (1)

@@ -1,0 +1,101 @@
+.TH ORIDBG "1" "September 2013" "Ori Project" "Ori Distributed File System"
+.SH NAME
+oridbg \- Ori File System Debug command line interface
+.SH SYNOPSIS
+.B ori
+\fICOMMAND\fR [\fIARGUMENTS\fR...]
+.SH DESCRIPTION
+This tool provides the command line interface for debugging the Ori distributed 
+file system.  Provides useful tools for accessing, manipulating, and repairing 
+Ori repositories.
+
+.SH DEBUGGING COMMANDS
+This list contains commands that will operate on your local instance of the 
+repository.  These may callout to remote repositories for data if this was an 
+InstaCloned repository.
+.TP
+\fBlog\fR
+Display a log of changes made to the repository.
+.TP
+\fBmerge\fR \fICOMMIT-HASH\fR
+Merges the specified change with the current HEAD.
+.TP
+\fBnewfs\fR \fIFS-NAME\fR
+Create a file system with the given name.
+.TP
+\fBremovefs\fR \fIFS-NAME\fR
+Remove the specified file system.
+.TP
+\fBshow\fR
+Show repository information.
+.TP
+\fBsnapshot\fR [-m \fIMESSAGE\fR] [\fISNAPSHOT-NAME\fR]
+Take a snapshot of the repository.  You may optionally supply a message to be 
+included and a name.
+.TP
+\fBsnapshots\fR
+List all snapshots in this repository.
+.TP
+\fBdumpobj\fR \fIOBJECT-HASH\fR
+Dump the specified object in a human readable format.
+.TP
+\fBtip\fR
+Print the commit hash for the HEAD revision.
+.TP
+\fBfilelog\fR
+Displays a log of relevant commits made to the specified file.
+.TP
+\fBfindheads\fR
+Searches for detached heads that are not referenced by a branch.
+
+.SH RECOVERY COMMANDS
+This section lists a few commands that are for recovery use only.  Do not run 
+these unless it is necessary.  The verify command is useful to all users to 
+check that the repository has not been corrupted.
+.TP
+\fBgc\fR
+Garbage collect any deleted objects that have not been reclaimed.  This will 
+repack the pack files that contain deleted objects.
+.TP
+\fBpurgecommit\fR \fICOMMIT-HASH\fR
+Deletes a commit. Use this command with caution as it's experimental as certain 
+commands may no longer work after.
+.TP
+\fBrebuildindex\fR
+Rebuild the object index.
+.TP
+\fBrebuildrefs\fR
+Rebuild reference counts.
+.TP
+\fBverify\fR
+Verify that the repository is consistent.
+
+.SH KEY MANAGEMENT COMMANDS
+This section provides a list of key management commands that help a maintain a 
+list of trusted keys and set the signing key for commits.  Commits are 
+automatically signed if a private key is set.  The \fBlog\fR command displays 
+whether a signature has been verified in Commit objects.
+.TP
+\fBaddkey\fR \fIKEYFILE\fR
+Add a signing key to the repository.
+.TP
+\fBlistkeys\fR
+List the signing keys available in this repository.
+.TP
+\fBremovekey\fR
+Remove a public key from the repository.
+.TP
+\fBsetkey\fR
+Set the repository private key used for signing commits.
+
+.SH OTHER COMMANDS
+.TP
+\fBhelp\fR
+Display a list of commands and their purpose.
+
+.TP
+.SH "SEE ALSO"
+.BR ori (1),
+.BR orifs (1),
+.BR orisync (1),
+.BR ori_httpd (1)

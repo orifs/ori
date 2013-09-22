@@ -1,45 +1,51 @@
-.TH ORIFS "1" "January 2013" "Ori Project" "Ori Distributed File System"
+.TH ORIFS "1" "September 2013" "Ori Project" "Ori Distributed File System"
 .SH NAME
 orifs \- Ori File System FUSE Driver
 .SH SYNOPSIS
 .B orifs
 [\fIOPTIONS\fR...] \fIMOUNTPOINT\fR
 .SH DESCRIPTION
-orifs is the FUSE driver for the Ori distributed file system.  This method of 
-accessing a repository enables much more functionality and speed for certain 
-use cases over the command line interface.
+orifs is the FUSE driver for the Ori distributed file system.
 
-One of the most useful features of orifs is InstaClone, a mechanism that allows 
-users to instantly access and clone a remote repository.
+Currently, orifs is crash consistent up until the last snapshot. Users should 
+run \fBori snapshot\fR to guarantee data is saved persistently.  When 
+recovering from a crash the tool reports an error message explaining where 
+unsaved data is located and how it may be recovered.  You can destroy the 
+unsaved data by using the \fBori cleanup\fR command.  In future releases this 
+bug will addressed.
 
-Currently, orifs is crash consist up until a commit or snapshot. Users should 
-run \fBori commit\fR or \fBori snapshot\fR to guarantee data is saved 
-persistently.  When recovering from a crash the tool reports an error message 
-explaining where unsaved data is located and how it may be recovered.  In 
-future releases this bug will addressed.
 .SH OPTIONS
 .TP
+\fB\--repo=[\fIFS-NAME\fR]\fR
+Specify the path to the underlying repository.  This parameter is optional and 
+by default orifs will search for a file system with the same name as the mount 
+point.
+.TP
+\fB\--clone=[\fIREMOTEPATH\fR]\fR
+Replicate the file system from the specified repository.
+.TP
 \fB\--shallow\fR
-Used in conjunction with --clone to specify a shallow clone of the remote 
+Used in conjunction with --clone to specify a shallow replica of the remote 
 repository.
 .TP
-\fB\--repo=[\fIPATH\fR]\fR
-Specify the path to the underlying repository.
+\fB\--nocache\fR
+Used in conjunction with --clone to specify a non-caching replica of the remote 
+repository.
 .TP
-\fB\--repo=[\fIPATH\fR] --clone=[\fIREMOTEPATH\fR]\fR
-Create a new InstaCloned repository from the specified repository.
+\fB\--no-threads\fR
+Disable multithreading on FUSE.
 .TP
-\fB\-d\fR
+\fB\--debug\fR
 Enable debugging mode with verbose output.  The file system will run much 
 slower, but is useful for reporting crashes.
+
 .SH SUPPORTED COMMANDS
-The file system can be controlled by the command line interface. Running 
+The file system can be controlled by the command line interface.  Running 
 commands from anywhere inside the mounted file system should allow the command 
-line to detect and communicate with the file system.  Currently only commit, 
-fsck, log, show, status, and tip are supported.  Additional commands will be 
-added in future releases.  For now users will have to operate on the backing 
-repository with the command line for operations including pulling updates and 
-merging.
+line to detect and communicate with the file system.  Not all commands are 
+supported on a running file system, and some hidden commands for debugging or 
+are not recommended.  Additional commands will be added in future releases.  
+
 .SH "SEE ALSO"
 .BR ori (1),
 .BR ori_httpd (1)

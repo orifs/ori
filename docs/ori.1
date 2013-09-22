@@ -1,4 +1,4 @@
-.TH ORI "1" "January 2013" "Ori Project" "Ori Distributed File System"
+.TH ORI "1" "September 2013" "Ori Project" "Ori Distributed File System"
 .SH NAME
 ori \- Ori File System command line interface
 .SH SYNOPSIS
@@ -24,22 +24,11 @@ This list contains commands that will operate on your local instance of the
 repository.  These may callout to remote repositories for data if this was an 
 InstaCloned repository.
 .TP
-\fBbranch\fR [\fIBRANCHNAME\fR]
-Get or set the current branch.  If no other arguments are specified the command 
-will print the current branch, otherwise the branch will be created or updated.
-.TP
-\fBbranches\fR
-List available branches.
-.TP
-\fBcheckout\fR
-Checkout a revision of the repository.
-.TP
-\fBcommit\fR [\fICOMMIT-MESSAGE\fR]
-Commit the latest changes to the repository.
-.TP
-\fBinit\fR [\fIPATH\fR]
-Create a repository in the current directory unless one is specified. If the 
-directory does not exist it will be created.
+\fBcheckout\fR [--force] \fICOMMIT-HASH\fR
+Checkout a revision of the repository.  By default this applies the current 
+modified files onto the specified revision, but for most users the merge 
+command is a safer alternative.  The --force flag is used to discard current 
+changes and checkout the revision specified.
 .TP
 \fBlog\fR
 Display a log of changes made to the repository.
@@ -47,11 +36,18 @@ Display a log of changes made to the repository.
 \fBmerge\fR \fICOMMIT-HASH\fR
 Merges the specified change with the current HEAD.
 .TP
+\fBnewfs\fR \fIFS-NAME\fR
+Create a file system with the given name.
+.TP
+\fBremovefs\fR \fIFS-NAME\fR
+Remove the specified file system.
+.TP
 \fBshow\fR
 Show repository information.
 .TP
-\fBsnapshot\fR \fISNAPSHOT-NAME\fR
-Take a named snapshot of the repository.
+\fBsnapshot\fR [-m \fIMESSAGE\fR] [\fISNAPSHOT-NAME\fR]
+Take a snapshot of the repository.  You may optionally supply a message to be 
+included and a name.
 .TP
 \fBsnapshots\fR
 List all snapshots in this repository.
@@ -69,7 +65,7 @@ repository named \fIorigin\fR is used as the default for certain operations
 that take an optional remote name. At the moment an InstaCloned repository can 
 only be created with \fBorifs\fR.
 .TP
-\fBclone\fR \fISOURCE-PATH\fR
+\fBreplicate\fR [--ondemand] \fISOURCE-PATH\fR
 Clone a remote or local repository into a new directory.
 .TP
 \fBpull\fR [\fIPATH|REMOTE-NAME\fR]
@@ -112,23 +108,23 @@ commands may no longer work after.
 \fBverify\fR
 Verify that the repository is consistent.
 
-.SH KEY MANAGEMENT COMMANDS
-This section provides a list of key management commands that help a repository 
-maintain a list of trusted keys and set the signing key for commits.  Commits 
-are automatically signed if a private key is set.  The \fBlog\fR command 
-displays whether a signature has been verified in Commit objects.
-.TP
-\fBaddkey\fR \fIKEYFILE\fR
-Add a signing key to the repository.
-.TP
-\fBlistkeys\fR
-List the signing keys available in this repository.
-.TP
-\fBremovekey\fR
-Remove a public key from the repository.
-.TP
-\fBsetkey\fR
-Set the repository private key used for signing commits.
+.\" .SH KEY MANAGEMENT COMMANDS
+.\" This section provides a list of key management commands that help a repository 
+.\" maintain a list of trusted keys and set the signing key for commits.  Commits 
+.\" are automatically signed if a private key is set.  The \fBlog\fR command 
+.\" displays whether a signature has been verified in Commit objects.
+.\" .TP
+.\" \fBaddkey\fR \fIKEYFILE\fR
+.\" Add a signing key to the repository.
+.\" .TP
+.\" \fBlistkeys\fR
+.\" List the signing keys available in this repository.
+.\" .TP
+.\" \fBremovekey\fR
+.\" Remove a public key from the repository.
+.\" .TP
+.\" \fBsetkey\fR
+.\" Set the repository private key used for signing commits.
 
 .SH OTHER COMMANDS
 .TP
@@ -138,4 +134,5 @@ Display a list of commands and their purpose.
 .TP
 .SH "SEE ALSO"
 .BR orifs (1),
+.BR orisync (1),
 .BR ori_httpd (1)
