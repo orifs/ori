@@ -6,6 +6,8 @@ $ORI_EXE replicate $TEST_FS $TEST_FS2
 $ORIFS_EXE $TEST_FS
 $ORIFS_EXE $TEST_FS2
 
+sleep 1
+
 cd $TEST_FS
 echo "Hello World" > tesfile.txt
 ori snapshot
