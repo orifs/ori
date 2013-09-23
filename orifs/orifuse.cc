@@ -355,11 +355,11 @@ ori_open(const char *path, struct fuse_file_info *fi)
         return writing ? -EPERM : 0;
     }
 
-    RWKey::sp lock = priv->nsLock.writeLock();
     parentPath = OriFile_Dirname(path);
     if (parentPath == "")
         parentPath = "/";
 
+    RWKey::sp lock = priv->nsLock.writeLock();
     try {
         parentDir = priv->getDir(parentPath);
         info = priv->openFile(path, /*writing*/writing, /*trunc*/trunc);
