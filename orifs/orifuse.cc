@@ -1103,6 +1103,7 @@ main(int argc, char *argv[])
                 break;
             case 't':
                 config.single = 1;
+                break;
             case 'd':
                 config.debug = 1;
                 break;
@@ -1262,6 +1263,8 @@ main(int argc, char *argv[])
 
     strncpy(fuse_mntpt, config.mountPoint.c_str(), 512);
 
+    // disable threading temporarily
+    config.single = 1;
     if (config.single == 1)
     {
         fuse_argv[fuse_argc] = fuse_single;
