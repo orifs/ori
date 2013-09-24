@@ -112,7 +112,7 @@ static Cmd commands[] = {
         "Add a trusted public key to the repository (NS)",
         cmd_addkey,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "branch",
@@ -147,35 +147,35 @@ static Cmd commands[] = {
         "Display a diff of the pending changes (NS)",
         cmd_diff,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "filelog",
         "Display a log of change to the specified file (NS)",
         cmd_filelog,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "findheads",
         "Find lost heads (NS)",
         cmd_findheads,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "gc",
         "Reclaim unused space (NS)",
         cmd_gc,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "graft",
         "Graft a subtree from a repository into the local repository (NS)",
         cmd_graft,
         usage_graft,
-        0, /* 0 to allow aliasing of 'cp' */
+        CMD_DEBUG, /* 0 to allow aliasing of 'cp' */
     },
     {
         "help",
@@ -196,7 +196,7 @@ static Cmd commands[] = {
         "Display a list of trusted public keys (NS)",
         cmd_listkeys,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "log",
@@ -231,14 +231,14 @@ static Cmd commands[] = {
         "Purge snapshot (NS)",
         cmd_purgesnapshot,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "remote",
         "Remote connection management (NS)",
         cmd_remote,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "removefs",
@@ -252,7 +252,7 @@ static Cmd commands[] = {
         "Remove a public key from the repository (NS)",
         cmd_removekey,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "replicate",
@@ -266,7 +266,7 @@ static Cmd commands[] = {
         "Set the repository private key for signing commits (NS)",
         cmd_setkey,
         NULL,
-        0,
+        CMD_DEBUG,
     },
     {
         "show",

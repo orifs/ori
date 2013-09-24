@@ -51,7 +51,7 @@ public:
     const std::string &getAsStr(const std::string &attrName) const {
         _MapType::const_iterator it = attrs.find(attrName);
         ASSERT(it != attrs.end());
-        return (*attrs.find(attrName)).second;
+        return (*it).second;
     }
 
     template <typename T>
