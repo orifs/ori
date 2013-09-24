@@ -656,13 +656,15 @@ LocalRepo::verifyObject(const ObjectHash &objId)
     if (type == ObjectInfo::Null)
         return "Object with Null type!";
 
-    ObjectHash computedHash = OriCrypt_HashString(o->getPayload());
-    if (computedHash != objId) {
-        stringstream ss;
-        ss << "Object hash mismatch! (computed hash "
-           << computedHash.hex()
-           << ")";
-        return ss.str();
+    if (type != ObjectInfo::Purged) {
+        ObjectHash computedHash = OriCrypt_HashString(o->getPayload());
+        if (computedHash != objId) {
+            stringstream ss;
+            ss << "Object hash mismatch! (computed hash "
+               << computedHash.hex()
+               << ")";
+            return ss.str();
+        }
     }
 
     switch(type) {
@@ -691,6 +693,15 @@ LocalRepo::verifyObject(const ObjectHash &objId)
 	}
         case ObjectInfo::LargeBlob:
         {
+            LargeBlob lb(this);
+            lb.fromBlob(o->getPayload());
+            for (map<uint64_t, LBlobEntry>::iterator it = lb.parts.begin();
+                 it != lb.parts.end(); it++)
+            {
+                if (it->second.hash.isEmpty()) {
+                    return "LargeBlob contains an empty hash!";
+                }
+            }
             // XXX: Verify fragments
             // XXX: Verify file hash matches largeObject's file hash
             break;
