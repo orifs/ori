@@ -11,7 +11,8 @@ Installation
 Platforms:
  - Linux 3.0+ (Tested on Arch and Ubuntu)
  - MacOS X 10.6+
- - FreeBSD 8/9
+ - FreeBSD 8+
+ - Some testing on NetBSD
 
 Build Dependencies:
  - scons 2.0+
@@ -51,8 +52,8 @@ Optionally, an installation directory can be specified as follows:
 
 # scons PREFIX=<install directory> install
 
-Unit tests to verify core functionality of the binary can be tested by running 
-the following command in a clean directory.
-
-# ori selftest
+There are multiple unit tests available inside the build directory.  The 
+end-to-end tests are in ongoing development and only about half of them are 
+expected to run reliably.  In a future release the tests will be improved to 
+make it easier to run.
 
