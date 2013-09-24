@@ -61,6 +61,7 @@ int cmd_hostremove(int argc, const char *argv[]);
 int cmd_hosts(int argc, const char *argv[]);
 static int cmd_help(int argc, const char *argv[]);
 // Debug Operations
+static int cmd_foreground(int argc, const char *argv[]);
 
 static Cmd commands[] = {
     {
@@ -119,6 +120,13 @@ static Cmd commands[] = {
         NULL,
         0,
     },
+    {
+        "foreground",
+        "Foreground mode for debugging",
+        cmd_foreground,
+        NULL,
+        CMD_DEBUG,
+    },
     { NULL, NULL, NULL, NULL }
 };
 
@@ -174,6 +182,21 @@ cmd_help(int argc, const char *argv[])
     return 0;
 }
 
+static int
+cmd_foreground(int argc, const char *argv[])
+{
+    string oriHome = Util_GetHome() + "/.ori";
+
+    if (!OriFile_Exists(oriHome))
+        OriFile_MkDir(oriHome);
+
+    // Chdir so that coredumps are placed in ~/.ori
+    chdir(oriHome.c_str());
+
+    ori_open_log(Util_GetHome() + ORISYNC_LOGFILE);
+
+    return start_server();
+}
 
 int
 main(int argc, char *argv[])
@@ -181,6 +204,7 @@ main(int argc, char *argv[])
     int idx;
 
     if (argc == 1) {
+        pid_t pid;
         string oriHome = Util_GetHome() + "/.ori";
 
         if (!OriFile_Exists(oriHome))
@@ -190,6 +214,16 @@ main(int argc, char *argv[])
         chdir(oriHome.c_str());
 
         ori_open_log(Util_GetHome() + ORISYNC_LOGFILE);
+
+        pid = fork();
+        if (pid == -1) {
+            perror("fork");
+            return 1;
+        }
+        if (pid > 0) {
+            printf("OriSync started as pid %d\n", pid);
+            return 0;
+        }
 
         return start_server();
     }

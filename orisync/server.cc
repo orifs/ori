@@ -215,7 +215,7 @@ public:
         ptxt = OriCrypt_Decrypt(ctxt, rc.getKey());
         try {
             kv.fromBlob(ptxt);
-            kv.dump();
+            //kv.dump();
 
             // Prevent replay attacks from leaking information
             uint64_t now = time(NULL);
@@ -270,7 +270,7 @@ public:
             }
             parse(buf, len, &srcAddr);
 
-            dumpHosts();
+            //dumpHosts();
         }
 
         DLOG("Listener exited!");
