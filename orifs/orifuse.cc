@@ -765,7 +765,7 @@ ori_getattr(const char *path, struct stat *stbuf)
     } else if (strcmp(path, ORI_SNAPSHOT_DIRPATH) == 0) {
         stbuf->st_uid = geteuid();
         stbuf->st_gid = getegid();
-        stbuf->st_mode = 0600 | S_IFDIR;
+        stbuf->st_mode = 0755 | S_IFDIR;
         stbuf->st_nlink = 2;
         stbuf->st_size = 512;
         stbuf->st_blksize = 4096;
@@ -787,7 +787,7 @@ ori_getattr(const char *path, struct stat *stbuf)
             c = priv->lookupSnapshot(snapshot);
             stbuf->st_uid = geteuid();
             stbuf->st_gid = getegid();
-            stbuf->st_mode = 0600 | S_IFDIR;
+            stbuf->st_mode = 0755 | S_IFDIR;
             stbuf->st_nlink = 2;
             stbuf->st_size = 512;
             stbuf->st_blksize = 4096;
