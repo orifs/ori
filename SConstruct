@@ -184,7 +184,7 @@ if sys.platform != "win32" and env["CROSSCOMPILE"] == "0":
 # FreeBSD requires libexecinfo
 # Linux and darwin have the header
 # NetBSD and Windows do not
-if sys.platform == "freebsd9" or sys.platform == "freebsd8":
+if sys.platform.startswith("freebsd"):
     env.Append(LIBS = ['execinfo'])
     env.Append(CPPFLAGS = "-DHAVE_EXECINFO")
 elif sys.platform == "linux2" or sys.platform == "darwin":
@@ -253,7 +253,7 @@ if not conf.CheckCXXHeader('boost/date_time/posix_time/posix_time.hpp'):
     print 'Boost posix_time headers are missing!'
     Exit(1)
 
-if sys.platform == "freebsd9" or sys.platform == "freebsd8":
+if sys.platform.startswith("freebsd"):
     if not conf.CheckLib('execinfo'):
         print 'FreeBSD requires libexecinfo to build.'
         Exit(1)
