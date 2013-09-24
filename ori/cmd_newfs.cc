@@ -42,9 +42,9 @@ usage_newfs()
     cout << endl;
     cout << "Create a new repository, this is a bare repository stored" << endl;
     cout << "stored in your home directory under '.ori'." << endl;
-    cout << endl;
-    cout << "Options:" << endl;
-    cout << "    --autosync     Enable autosync" << endl;
+    //cout << endl;
+    //cout << "Options:" << endl;
+    //cout << "    --autosync     Enable autosync" << endl;
 }
 
 /*
