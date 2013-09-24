@@ -145,7 +145,8 @@ else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
 
-with open(".git/HEAD", 'r') as hf:
+try:
+    hf = open(".git/HEAD", 'r')
     head = hf.read()
     if head.startswith("ref: "):
         if head.endswith("\n"):
@@ -155,6 +156,8 @@ with open(".git/HEAD", 'r') as hf:
             if branch.endswith("\n"):
                 branch = branch[0:-1]
             env.Append(CPPFLAGS = [ "-DGIT_VERSION=\\\"" + branch + "\\\""])
+except IOError:
+    pass
 
 if env["VERBOSE"] == "0":
     env["CCCOMSTR"] = "Compiling $SOURCE"
