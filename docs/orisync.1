@@ -11,6 +11,10 @@ To get started run \fBorisync init\fR to configure the orisync cluster key and
 password.  Running orisync without any arguments will start the daemon 
 process.
 
+As a security measure orisync requires the clocks on all your devices to be 
+synchronized.  Announcements containing time skews larger than 5 seconds will 
+be discarded silently.
+
 .SH CONFIGURATION COMMANDS
 .TP
 \fBinit\fR
