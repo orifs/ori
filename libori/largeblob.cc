@@ -268,13 +268,13 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off) const
     }
 
     if (it == parts.end()) {
-        LOG("offset %lu larger than large blob", off);
+        LOG("offset %llu larger than large blob", off);
         return 0;
     }
 
     off_t part_off = off - (*it).first;
     if (part_off >= (*it).second.length) {
-        LOG("offset %lu larger than last blob in LB", off);
+        LOG("offset %llu larger than last blob in LB", off);
         ASSERT(false);
         return 0;
     }

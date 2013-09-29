@@ -138,7 +138,7 @@ OriCommand::cmd_snapshot(strstream &str)
     if (hash.isEmpty())
         FUSE_PLOG("snapshot not taken");
     FUSE_PLOG("snapshot result: %s", hash.hex().c_str());
-    FUSE_PLOG("snapshot elapsed %ldus", sw.getElapsedTime());
+    FUSE_PLOG("snapshot elapsed %lluus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -199,7 +199,7 @@ OriCommand::cmd_status(strstream &str)
 
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
-    FUSE_PLOG("status elapsed %ldus", sw.getElapsedTime());
+    FUSE_PLOG("status elapsed %lluus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -266,7 +266,7 @@ error:
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_PLOG("pull up to: %s", hash.hex().c_str());
-    FUSE_PLOG("pull elapsed %ldus", sw.getElapsedTime());
+    FUSE_PLOG("pull elapsed %lluus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -305,7 +305,7 @@ OriCommand::cmd_checkout(strstream &str)
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_PLOG("checkout up to: %s", hash.hex().c_str());
-    FUSE_PLOG("checkout elapsed %ldus", sw.getElapsedTime());
+    FUSE_PLOG("checkout elapsed %lluus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -342,7 +342,7 @@ OriCommand::cmd_merge(strstream &str)
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_PLOG("merge with: %s", hash.hex().c_str());
-    FUSE_PLOG("merge elapsed %ldus", sw.getElapsedTime());
+    FUSE_PLOG("merge elapsed %lluus", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();

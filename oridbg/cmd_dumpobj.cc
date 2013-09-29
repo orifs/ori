@@ -71,7 +71,7 @@ cmd_dumpobj(int argc, char * const argv[])
             printf("\nChunk Table (%lu chunks):\n", lb.parts.size());
             std::map<uint64_t, LBlobEntry>::iterator it;
             for (it = lb.parts.begin(); it != lb.parts.end(); it++) {
-                printf("%016lx    %s %d\n", (*it).first,
+                printf("%016llx    %s %d\n", (*it).first,
                        (*it).second.hash.hex().c_str(), (*it).second.length);
             }
 
