@@ -381,7 +381,7 @@ KVSerializer::dump() const
             snprintf(buf, sizeof(buf), "%u", getU32(it->first));
             cout << it->first << ": " << buf << endl;
         } else if (type == KVTypeU64) {
-            snprintf(buf, sizeof(buf), "%lu", getU64(it->first));
+            snprintf(buf, sizeof(buf), "%llu", getU64(it->first));
             cout << it->first << ": " << buf << endl;
         } else {
             cout << "Unknown type!" << endl;

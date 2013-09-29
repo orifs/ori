@@ -501,7 +501,7 @@ ori_truncate(const char *path, off_t length)
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
 
-    FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%ld)", path, length);
+    FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%lld)", path, length);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
@@ -538,7 +538,7 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
 
-    FUSE_LOG("FUSE ori_ftruncate(path=\"%s\", length=%ld)", path, length);
+    FUSE_LOG("FUSE ori_ftruncate(path=\"%s\", length=%lld)", path, length);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
@@ -575,7 +575,7 @@ ori_release(const char *path, struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
 
-    FUSE_LOG("FUSE ori_release(path=\"%s\"): fh=%ld", path, fi->fh);
+    FUSE_LOG("FUSE ori_release(path=\"%s\"): fh=%llu", path, fi->fh);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
@@ -682,7 +682,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     priv->fsck();
 #endif /* FSCK_A_LOT */
 
-    FUSE_LOG("FUSE ori_readdir(path=\"%s\", offset=%ld)", path, offset);
+    FUSE_LOG("FUSE ori_readdir(path=\"%s\", offset=%lld)", path, offset);
 
     filler(buf, ".", NULL, 0);
     filler(buf, "..", NULL, 0);
