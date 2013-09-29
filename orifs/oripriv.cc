@@ -433,6 +433,12 @@ OriPriv::openFile(const string &path, bool writing, bool trunc)
     info->retainFd();
     handles[handle] = info;
 
+    // Handle opening directories
+    if (info->isDir()) {
+        // For directories just allow opening/closing
+        return make_pair(info, handle);
+    }
+
     // Open temporary file if necessary
     if (info->type == FILETYPE_DIRTY && info->path != "") {
         if (info->fd != -1) {

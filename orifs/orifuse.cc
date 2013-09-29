@@ -435,6 +435,12 @@ ori_read(const char *path, char *buf, size_t size, off_t offset,
 
     RWKey::sp lock = priv->nsLock.readLock();
     info = priv->getFileInfo(fi->fh);
+
+    // Return an error when reading from a directory
+    if (info->isDir()) {
+        return -EISDIR;
+    }
+
     if (info->fd != -1) {
         // File in temporary directory
         status = pread(info->fd, buf, size, offset);
@@ -469,6 +475,12 @@ ori_write(const char *path, const char *buf, size_t size, off_t offset,
 
     RWKey::sp lock = priv->nsLock.readLock();
     info = priv->getFileInfo(fi->fh);
+
+    // Return an error on a directory write
+    if (info->isDir()) {
+        return -EISDIR;
+    }
+
     info->type = FILETYPE_DIRTY;
     status = pwrite(info->fd, buf, size, offset);
     if (status < 0)
