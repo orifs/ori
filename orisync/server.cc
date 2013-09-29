@@ -172,7 +172,7 @@ public:
         addr.sin_addr.s_addr = htonl(INADDR_ANY);
         addr.sin_port = htons(ORISYNC_UDPPORT);
 
-        status = bind(fd, (struct sockaddr *)&addr, sizeof(addr));
+        status = ::bind(fd, (struct sockaddr *)&addr, sizeof(addr));
         if (status < 0) {
             perror("bind");
             close(fd);

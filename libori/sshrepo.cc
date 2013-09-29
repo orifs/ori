@@ -38,9 +38,7 @@
 #include <ori/sshrepo.h>
 
 using namespace std;
-#ifdef HAVE_CXXTR1
 using namespace std::tr1;
-#endif /* HAVE_CXXTR1 */
 
 /*
  * SshRepo
