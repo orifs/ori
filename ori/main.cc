@@ -52,6 +52,7 @@ UDSRepo repository;
 
 #define CMD_NEED_FUSE           1
 #define CMD_DEBUG               2
+#define CMD_EXPERIMENTAL        4
 
 typedef struct Cmd {
     const char *name;
@@ -109,35 +110,35 @@ static int cmd_version(int argc, char * const argv[]);
 static Cmd commands[] = {
     {
         "addkey",
-        "Add a trusted public key to the repository (NS)",
+        "Add a trusted public key to the repository",
         cmd_addkey,
         NULL,
-        CMD_DEBUG,
+        CMD_EXPERIMENTAL,
     },
     {
         "branch",
-        "Set or print current branch (EXPERIMENTAL) (NS)",
+        "Set or print current branch",
         cmd_branch,
         NULL,
-        CMD_DEBUG,
+        CMD_EXPERIMENTAL,
     },
     {
         "branches",
-        "List all available branches (EXPERIMENTAL) (NS)",
+        "List all available branches",
         cmd_branches,
         NULL,
-        CMD_DEBUG,
+        CMD_EXPERIMENTAL,
     },
     {
         "checkout",
-        "Checkout a revision of the repository (DEBUG)",
+        "Checkout a revision of the repository",
         cmd_checkout,
         NULL,
-        CMD_DEBUG | CMD_NEED_FUSE,
+        CMD_EXPERIMENTAL | CMD_NEED_FUSE,
     },
     {
         "cleanup",
-        "Cleanup a repository after a FUSE crash (DEBUG)",
+        "Cleanup a repository after a FUSE crash",
         cmd_cleanup,
         usage_cleanup,
         CMD_DEBUG,
@@ -193,10 +194,10 @@ static Cmd commands[] = {
     },
     {
         "listkeys",
-        "Display a list of trusted public keys (NS)",
+        "Display a list of trusted public keys",
         cmd_listkeys,
         NULL,
-        CMD_DEBUG,
+        CMD_EXPERIMENTAL,
     },
     {
         "log",
@@ -249,10 +250,10 @@ static Cmd commands[] = {
     },
     {
         "removekey",
-        "Remove a public key from the repository (NS)",
+        "Remove a public key from the repository",
         cmd_removekey,
         NULL,
-        CMD_DEBUG,
+        CMD_EXPERIMENTAL,
     },
     {
         "replicate",
@@ -263,10 +264,10 @@ static Cmd commands[] = {
     },
     {
         "setkey",
-        "Set the repository private key for signing commits (NS)",
+        "Set the repository private key for signing commits",
         cmd_setkey,
         NULL,
-        CMD_DEBUG,
+        CMD_EXPERIMENTAL,
     },
     {
         "show",
@@ -321,7 +322,7 @@ static Cmd commands[] = {
     /* Debugging */
     {
         "fsck",
-        "Check internal state of FUSE file system (DEBUG)",
+        "Check internal state of FUSE file system",
         cmd_fsck,
         NULL,
         CMD_NEED_FUSE | CMD_DEBUG,
@@ -374,12 +375,17 @@ cmd_help(int argc, char * const argv[])
     printf("Available commands:\n");
     for (i = 0; commands[i].name != NULL; i++)
     {
+        const char *flag = "";
 #ifndef DEBUG
-        if (commands[i].flags & CMD_DEBUG)
+        if (commands[i].flags & (CMD_DEBUG | CMD_EXPERIMENTAL))
             continue;
 #endif /* DEBUG */
+        if (commands[i].flags & CMD_DEBUG)
+            flag = " (DEBUG)";
+        if (commands[i].flags & CMD_EXPERIMENTAL)
+            flag = " (EXPERIMENTAL)";
         if (commands[i].desc != NULL)
-            printf("%-15s %s\n", commands[i].name, commands[i].desc);
+            printf("%-15s %s%s\n", commands[i].name, commands[i].desc, flag);
     }
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
