@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,26 +30,45 @@
 #include <iomanip>
 
 #include <ori/peer.h>
-#include <ori/localrepo.h>
+#include <ori/udsrepo.h>
 
 using namespace std;
 
-extern LocalRepo repository;
-    
+extern UDSRepo repository;
+
 int
 cmd_remote(int argc, char * const argv[])
 {
+    string val;
+    strwstream req;
+
+    req.writePStr("remote");
+
     if (argc == 1) {
-	map<string, Peer> peers = repository.getPeers();
-	map<string, Peer>::iterator it;
+        uint32_t num;
+
+        req.writePStr("list");
+
+        strstream resp = repository.callExt("FUSE", req.str());
+        if (resp.ended()) {
+            cout << "remote list failed with an unknown error!" << endl;
+            return 1;
+        }
+
+        num = resp.readUInt32();
 
 	// print peers
 	cout << left << setw(16) << "Name"
 	     << left << setw(64) << "Path" << "\nID" << endl;
-	for (it = peers.begin(); it != peers.end(); it++)
+	for (uint32_t i = 0; i < num; i++)
 	{
-	    Peer &p = (*it).second;
-	    cout << left << setw(16) << (*it).first
+            string name, blob;
+            Peer p = Peer();
+
+            resp.readLPStr(name);
+            resp.readLPStr(blob);
+            p.fromBlob(blob);
+	    cout << left << setw(16) << name
 		 << left << setw(64) << p.getUrl() << "\n" << p.getRepoId() << endl;
 	}
 
@@ -57,12 +76,37 @@ cmd_remote(int argc, char * const argv[])
     }
 
     if (argc == 4 && strcmp(argv[1], "add") == 0) {
-	repository.addPeer(argv[2], argv[3]);
+        req.writePStr("add");
+        req.writeLPStr(argv[2]);
+        req.writeLPStr(argv[3]);
+
+        strstream resp = repository.callExt("FUSE", req.str());
+        if (resp.ended()) {
+            cout << "remote add failed with an unknown error!" << endl;
+            return 1;
+        }
+
+        resp.readLPStr(val);
+        if (val != "")
+            cout << val << endl;
+
 	return 0;
     }
 
     if (argc == 3 && strcmp(argv[1], "del") == 0) {
-	repository.removePeer(argv[2]);
+        req.writePStr("del");
+        req.writeLPStr(argv[2]);
+
+        strstream resp = repository.callExt("FUSE", req.str());
+        if (resp.ended()) {
+            cout << "remote del failed with an unknown error!" << endl;
+            return 1;
+        }
+
+        resp.readLPStr(val);
+        if (val != "")
+            cout << val << endl;
+
 	return 0;
     }
 

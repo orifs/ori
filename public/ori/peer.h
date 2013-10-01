@@ -40,6 +40,8 @@ public:
     Peer();
     explicit Peer(const std::string &peerFile);
     ~Peer();
+    std::string getBlob() const;
+    void fromBlob(const std::string &blob);
     void setUrl(const std::string &url);
     std::string getUrl() const;
     void setRepoId(const std::string &uuid);
@@ -49,8 +51,6 @@ public:
     Repo *getRepo();
 private:
     void save() const;
-    std::string getBlob() const;
-    void fromBlob(const std::string &blob);
     // Persistent state
     bool instaCloning;
     std::string url;

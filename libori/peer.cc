@@ -70,6 +70,40 @@ Peer::~Peer()
 {
 }
 
+string
+Peer::getBlob() const
+{
+    stringstream ss;
+    string blob;
+    
+    blob = "url " + url + "\n";
+    blob += "repoId " + repoId + "\n";
+    if (instaCloning)
+        blob += "instaCloning\n";
+
+    return blob;
+}
+
+void
+Peer::fromBlob(const string &blob)
+{
+    string line;
+    stringstream ss(blob);
+
+    while (getline(ss, line, '\n')) {
+        if (line.substr(0, 4) == "url ") {
+            url = line.substr(4);
+        } else if (line.substr(0, 7) == "repoId ") {
+            repoId = line.substr(7);
+        } else if (line.substr(0, 12) == "instaCloning") {
+            instaCloning = true;
+        } else{
+            printf("Unsupported peer feature!\n");
+            PANIC();
+        }
+    }
+}
+
 void
 Peer::setUrl(const std::string &path)
 {
@@ -153,40 +187,6 @@ Peer::save() const
         string blob = getBlob();
 
         OriFile_WriteFile(blob.data(), blob.size(), peerFile);
-    }
-}
-
-string
-Peer::getBlob() const
-{
-    stringstream ss;
-    string blob;
-    
-    blob = "url " + url + "\n";
-    blob += "repoId " + repoId + "\n";
-    if (instaCloning)
-        blob += "instaCloning\n";
-
-    return blob;
-}
-
-void
-Peer::fromBlob(const string &blob)
-{
-    string line;
-    stringstream ss(blob);
-
-    while (getline(ss, line, '\n')) {
-        if (line.substr(0, 4) == "url ") {
-            url = line.substr(4);
-        } else if (line.substr(0, 7) == "repoId ") {
-            repoId = line.substr(7);
-        } else if (line.substr(0, 12) == "instaCloning") {
-            instaCloning = true;
-        } else{
-            printf("Unsupported peer feature!\n");
-            PANIC();
-        }
     }
 }
 

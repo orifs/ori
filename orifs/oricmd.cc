@@ -81,6 +81,8 @@ OriCommand::process(const string &data)
         return cmd_merge(str);
     if (cmd == "varlink")
         return cmd_varlink(str);
+    if (cmd == "remote")
+        return cmd_remote(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -159,7 +161,7 @@ OriCommand::cmd_snapshots(strstream &str)
         resp.writePStr((*it).first.c_str());
     }
 
-    return resp.str();;
+    return resp.str();
 }
 
 string
@@ -403,4 +405,57 @@ OriCommand::cmd_varlink(strstream &str)
     return "Unknown varlink subcommand";
 }
 
+string
+OriCommand::cmd_remote(strstream &str)
+{
+    FUSE_PLOG("Command: remote");
+
+    string subcmd;
+    strwstream resp;
+    LocalRepo *repo = priv->getRepo();
+
+    // Parse Command
+    str.readPStr(subcmd);
+
+    RWKey::sp lock = priv->nsLock.writeLock();
+    if (subcmd == "list") {
+        map<string, Peer> peers = repo->getPeers();
+        map<string, Peer>::iterator it;
+        strwstream resp;
+
+        // System variables
+        resp.writeUInt32(peers.size());
+        for (it = peers.begin(); it != peers.end(); it++) {
+            resp.writeLPStr(it->first);
+            resp.writeLPStr(it->second.getBlob());
+        }
+
+        return resp.str();
+    }
+    if (subcmd == "add") {
+        string name, url;
+        strwstream resp;
+
+        str.readLPStr(name);
+        str.readLPStr(url);
+
+        repo->addPeer(name, url);
+
+        resp.writeLPStr("");
+        return resp.str();
+    }
+    if (subcmd == "del") {
+        string name;
+        strwstream resp;
+
+        str.readLPStr(name);
+
+        repo->removePeer(name);
+
+        resp.writeLPStr("");
+        return resp.str();
+    }
+
+    return "Unknown remote subcommand";
+}
 

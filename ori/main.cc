@@ -235,10 +235,10 @@ static Cmd commands[] = {
     },
     {
         "remote",
-        "Remote connection management (NS)",
+        "Remote connection management",
         cmd_remote,
         NULL,
-        CMD_DEBUG,
+        CMD_NEED_FUSE,
     },
     {
         "removefs",
