@@ -2067,7 +2067,7 @@ LocalRepo::setBranch(const std::string &name)
     if (e == branches.end()) {
 	string branchFile = rootPath + ORI_PATH_HEADS + name;
 	ObjectHash head = getHead();
-	printf("Creating branch '%s'\n", name.c_str());
+	LOG("Creating branch '%s'", name.c_str());
 
 	OriFile_WriteFile(head.hex(), branchFile);
     }

@@ -20,25 +20,47 @@
 #include <string>
 #include <iostream>
 
-#include <ori/localrepo.h>
+#include <ori/udsrepo.h>
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_branches(int argc, char * const argv[])
 {
-    string currentBranch = repository.getBranch();
-    set<string> branches = repository.listBranches();
-    set<string>::iterator it;
+    uint32_t len;
+    strwstream req;
+    string currentBranch;
 
-    for (it = branches.begin(); it != branches.end(); it++)
+    req.writePStr("branch");
+    req.writePStr("get");
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "branches failed with an unknown error!" << endl;
+        return 1;
+    }
+    resp.readLPStr(currentBranch);
+
+    req = strwstream();
+    req.writePStr("branch");
+    req.writePStr("list");
+    resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cout << "branches failed with an unknown error!" << endl;
+        return 1;
+    }
+
+    len = resp.readUInt32();
+    for (uint32_t i = 0; i < len; i++)
     {
-	if (currentBranch == (*it))
-	    cout << (*it) << "*" << endl;
+        string branch;
+
+        resp.readLPStr(branch);
+	if (currentBranch == branch)
+	    cout << branch << "*" << endl;
 	else 
-	    cout << (*it) << endl;
+	    cout << branch << endl;
     }
 
     return 0;

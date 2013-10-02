@@ -83,6 +83,8 @@ OriCommand::process(const string &data)
         return cmd_varlink(str);
     if (cmd == "remote")
         return cmd_remote(str);
+    if (cmd == "branch")
+        return cmd_branch(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -459,3 +461,43 @@ OriCommand::cmd_remote(strstream &str)
     return "Unknown remote subcommand";
 }
 
+string
+OriCommand::cmd_branch(strstream &str)
+{
+    FUSE_PLOG("Command: branch");
+
+    string subcmd;
+    strwstream resp;
+    LocalRepo *repo = priv->getRepo();
+
+    // Parse Command
+    str.readPStr(subcmd);
+
+    if (subcmd == "get") {
+        resp.writeLPStr(repo->getBranch());
+        return resp.str();
+    }
+    if (subcmd == "set") {
+        string branch;
+        str.readPStr(branch);
+
+        repo->setBranch(branch);
+
+        resp.writeLPStr("");
+
+        return resp.str();
+    }
+    if (subcmd == "list") {
+        set<string> branches = repo->listBranches();
+        set<string>::iterator it;
+
+        resp.writeUInt32(branches.size());
+        for (it = branches.begin(); it != branches.end(); it++) {
+            resp.writeLPStr(*it);
+        }
+
+        return resp.str();
+    }
+
+    return "Unknown remote subcommand";
+}

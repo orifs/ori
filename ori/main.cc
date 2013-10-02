@@ -120,14 +120,14 @@ static Cmd commands[] = {
         "Set or print current branch",
         cmd_branch,
         NULL,
-        CMD_EXPERIMENTAL,
+        CMD_EXPERIMENTAL | CMD_NEED_FUSE,
     },
     {
         "branches",
         "List all available branches",
         cmd_branches,
         NULL,
-        CMD_EXPERIMENTAL,
+        CMD_EXPERIMENTAL | CMD_NEED_FUSE,
     },
     {
         "checkout",

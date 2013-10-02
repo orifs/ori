@@ -26,8 +26,6 @@
 #include <ori/udsclient.h>
 #include <ori/udsrepo.h>
 
-#include "fuse_cmd.h"
-
 using namespace std;
 
 extern UDSRepo repository;
