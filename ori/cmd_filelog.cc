@@ -20,11 +20,11 @@
 #include <iostream>
 #include <iomanip>
 
-#include <ori/localrepo.h>
+#include <ori/udsrepo.h>
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_filelog(int argc, char * const argv[])

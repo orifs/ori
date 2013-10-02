@@ -152,10 +152,10 @@ static Cmd commands[] = {
     },
     {
         "filelog",
-        "Display a log of change to the specified file (NS)",
+        "Display a log of change to the specified file",
         cmd_filelog,
         NULL,
-        CMD_DEBUG,
+        CMD_NEED_FUSE,
     },
     {
         "findheads",

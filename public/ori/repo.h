@@ -84,6 +84,9 @@ public:
     virtual Commit getCommit(const ObjectHash &commitId);
     virtual LargeBlob getLargeBlob(const ObjectHash &objId);
 
+    // Lookup
+    ObjectHash lookup(const Commit &c, const std::string &path);
+
     // Transport
     virtual void transmit(bytewstream *bs, const ObjectHashVec &objs);
     virtual void receive(bytestream *bs);

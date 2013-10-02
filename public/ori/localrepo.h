@@ -179,7 +179,6 @@ public:
     std::set<ObjectHash> getSubtreeObjects(const ObjectHash &treeId);
     std::set<ObjectHash> walkHistory(HistoryCB &cb);
     TreeEntry lookupTreeEntry(const Commit &c, const std::string &path);
-    ObjectHash lookup(const Commit &c, const std::string &path);
     ObjectHash graftSubtree(LocalRepo *r,
                             const std::string &srcPath,
                             const std::string &dstPath);

@@ -239,6 +239,34 @@ Repo::getCommitDag()
     return cDag;
 }
 
+/*
+ * Lookup a path given a Commit and return the object ID.
+ */
+ObjectHash
+Repo::lookup(const Commit &c, const string &path)
+{
+    vector<string> pv = Util_PathToVector(path);
+    ObjectHash objId = c.getTree();
+
+    if (path == "/")
+        return objId;
+
+    if (pv.size() == 0)
+	return ObjectHash();
+
+    for (size_t i = 0; i < pv.size(); i++) {
+	map<string, TreeEntry>::iterator e;
+        Tree t = getTree(objId);
+	e = t.tree.find(pv[i]);
+	if (e == t.tree.end()) {
+	    return ObjectHash();
+	}
+        objId = t.tree[pv[i]].hash;
+    }
+
+    return objId;
+}
+
 void
 Repo::transmit(bytewstream *bs, const ObjectHashVec &objs)
 {
