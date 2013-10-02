@@ -35,6 +35,23 @@ bool OF_HasFuse()
     return OF_ControlPath() != "";
 }
 
+string OF_RootPath()
+{
+    char *cwdbuf = getcwd(NULL, 0);
+    string path = cwdbuf;
+    free(cwdbuf);
+
+    while (path.size() > 0) {
+        string control_path = path + "/" + ORI_CONTROL_FILENAME;
+        if (OriFile_Exists(control_path)) {
+            return path;
+        }
+        path = OriFile_Dirname(path);
+    }
+
+    return "";
+}
+
 string OF_ControlPath()
 {
     char *cwdbuf = getcwd(NULL, 0);

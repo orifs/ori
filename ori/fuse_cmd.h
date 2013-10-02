@@ -20,6 +20,7 @@
 #define ORI_CONTROL_FILENAME ".ori_control"
 
 bool OF_HasFuse();
+std::string OF_RootPath();
 std::string OF_ControlPath();
 std::string OF_RepoPath();
 
