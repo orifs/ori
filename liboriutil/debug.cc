@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <fcntl.h>
+#include <signal.h>
 #endif
 
 #ifdef __MACH__
@@ -191,11 +192,41 @@ void ori_terminate() {
 #endif /* HAVE_EXECINFO */
 }
 
+void ori_sighandler(int signum)
+{
+#ifdef HAVE_EXECINFO
+    const size_t MAX_FRAMES = 128;
+    int num;
+    void *array[MAX_FRAMES];
+    char **names;
+#endif /* HAVE_EXECINFO */
+
+    ori_log(LEVEL_SYS, "Signal Caught: %d\n", signum);
+
+#ifdef HAVE_EXECINFO
+    num = backtrace(array, MAX_FRAMES);
+    names = backtrace_symbols(array, num);
+    ori_log(LEVEL_SYS, "Backtrace:\n");
+    for (int i = 0; i < num; i++) {
+        if (names != NULL)
+            ori_log(LEVEL_SYS, "[%d] %s\n", i, names[i]);
+        else
+            ori_log(LEVEL_SYS, "[%d] [0x%p]\n", i, array[i]);
+    }
+    free(names);
+#else
+    ori_log(LEVEL_SYS, "Backtrace not support not included in this build\n");
+#endif /* HAVE_EXECINFO */
+
+    abort();
+}
+
 int ori_open_log(const string &logPath) {
     if (logPath == "")
         return -1;
 
     set_terminate(ori_terminate);
+    signal(SIGSEGV, ori_sighandler);
 
     if (!OriFile_Exists(logPath)) {
         OriFile_WriteFile("", logPath);
