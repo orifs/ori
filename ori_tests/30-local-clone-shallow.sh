@@ -4,6 +4,8 @@ $ORI_EXE replicate --shallow $SOURCE_FS $TEST_FS
 orifs $SOURCE_FS
 orifs $TEST_FS
 
+sleep 1
+
 cd $TEST_FS
 $PYTHON $SCRIPTS/compare.py "$SOURCE_FS" "$TEST_FS"
 cd ..

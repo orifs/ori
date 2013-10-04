@@ -13,8 +13,8 @@ $UMOUNT $SOURCE_FS
 $UMOUNT $TEST_FS
 
 cd ~/.ori/$TEST_FS.ori
-$ORI_EXE verify
-$ORI_EXE stats
+$ORIDBG_EXE verify
+$ORIDBG_EXE stats
 
 cd $TEMP_DIR
 $ORI_EXE removefs $TEST_FS
