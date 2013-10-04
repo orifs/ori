@@ -36,6 +36,7 @@ private:
     std::string cmd_varlink(strstream &str);
     std::string cmd_remote(strstream &str);
     std::string cmd_branch(strstream &str);
+    std::string cmd_version(strstream &str);
     OriPriv *priv;
 };
 

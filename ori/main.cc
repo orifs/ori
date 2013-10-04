@@ -413,6 +413,47 @@ cmd_version(int argc, char * const argv[])
     return 0;
 }
 
+void
+checkVersion()
+{
+    string version, gitVersion, buildType;
+
+    strwstream req;
+    req.writePStr("version");
+
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+        cerr << "checkVersion failed with an unknown error!" << endl;
+        exit(1);
+    }
+
+    resp.readPStr(version);
+    resp.readPStr(gitVersion);
+    resp.readPStr(buildType);
+
+    if (version != ORI_VERSION_STR) {
+        cerr << "Warning: Version mismatch!" << endl;
+    }
+
+#ifdef GIT_VERSION
+    if (gitVersion != GIT_VERSION) {
+#else
+    if (gitVersion != "") {
+#endif
+        cerr << "Warning: GIT revision mismatch!" << endl;
+    }
+
+#if defined(DEBUG) || defined(ORI_DEBUG)
+    if (buildType != "DEBUG") {
+#elif defined(ORI_PERF)
+    if (buildType != "PERF") {
+#else
+    if (buildType != "RELEASE") {
+#endif
+        cerr << "Warning: Build type mismatch!" << endl;
+    }
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -461,6 +502,8 @@ main(int argc, char *argv[])
             printf("Failed to connect to FUSE: %s\n", e.what());
             exit(1);
         }
+
+        checkVersion();
     }
 
     DLOG("Executing '%s'", argv[1]);

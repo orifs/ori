@@ -34,6 +34,7 @@
 #include <oriutil/stopwatch.h>
 #include <oriutil/rwlock.h>
 #include <oriutil/systemexception.h>
+#include <ori/version.h>
 #include <ori/commit.h>
 #include <ori/localrepo.h>
 
@@ -85,6 +86,8 @@ OriCommand::process(const string &data)
         return cmd_remote(str);
     if (cmd == "branch")
         return cmd_branch(str);
+    if (cmd == "version")
+        return cmd_version(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -501,3 +504,28 @@ OriCommand::cmd_branch(strstream &str)
 
     return "Unknown remote subcommand";
 }
+
+string
+OriCommand::cmd_version(strstream &str)
+{
+    FUSE_PLOG("Command: version");
+
+    strwstream resp;
+
+    resp.writePStr(ORI_VERSION_STR);
+#ifdef GIT_VERSION
+    resp.writePStr(GIT_VERSION);
+#else
+    resp.writePStr("");
+#endif
+#if defined(DEBUG) || defined(ORI_DEBUG)
+    resp.writePStr("DEBUG");
+#elif defined(ORI_PERF)
+    resp.writePStr("PERF");
+#else
+    resp.writePStr("RELEASE");
+#endif
+
+    return resp.str();
+}
+
