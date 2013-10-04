@@ -1,16 +1,25 @@
 cd $TEMP_DIR
-cd $SOURCE_REPO
-$ORI_HTTPD &
+
+$ORI_HTTPD $SOURCE_FS &
+
 sleep 1
 
-$ORI_EXE clone http://127.0.0.1:8080/ $TEST_REPO2
-cd $TEST_REPO2
-$ORI_EXE checkout
-$PYTHON $SCRIPTS/compare.py "$SOURCE_REPO" "$TEST_REPO2"
-$ORI_EXE verify
+$ORI_EXE replicate http://127.0.0.1:8080/ $TEST_FS
+
+$ORIFS_EXE $SOURCE_FS
+$ORIFS_EXE $TEST_FS
+sleep 1
+
+$PYTHON $SCRIPTS/compare.py "$SOURCE_FS" "$TEST_FS"
+
+$UMOUNT $TEST_FS
+$UMOUNT $SOURCE_FS
+
+cd ~/.ori/$TEST_FS.ori
+$ORIDBG_EXE verify
 
 kill %1
 
 cd $TEMP_DIR
-rm -rf $TEST_REPO2
+$ORI_EXE removefs $TEST_FS
 
