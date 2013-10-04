@@ -67,7 +67,7 @@ using namespace std;
 
 void basestream::setErrno(const char *msg) {
     char buf[512];
-    snprintf(buf, 512, "%s: %s (%d)\n", msg, strerror(errno), errno);
+    snprintf(buf, 512, "%s: %s (%d)", msg, strerror(errno), errno);
     last_error.assign(buf);
     last_errnum = errno;
 #if DEBUG

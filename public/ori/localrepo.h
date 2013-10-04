@@ -248,12 +248,11 @@ private:
     LocalRepoLock::sp repoProcessLock;
 
     // Remote Operations
+    Mutex remoteLock;
     bool cacheRemoteObjects;
     Repo *remoteRepo;
     RemoteRepo resumeRepo;
 
-    // Caches
-    LRUCache<ObjectHash, ObjectInfo, 128> _objectInfoCache;
     // Friends
     friend int LocalRepo_PeerHelper(LocalRepo *l, const std::string &path);
 };

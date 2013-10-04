@@ -42,6 +42,7 @@
 #include <oriutil/debug.h>
 #include <oriutil/runtimeexception.h>
 #include <oriutil/systemexception.h>
+#include <oriutil/monitor.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/orifile.h>
 #include <oriutil/oristr.h>
@@ -352,6 +353,8 @@ LocalRepo::lock()
 void
 LocalRepo::setRemote(Repo *r)
 {
+    Monitor lock(remoteLock);
+
     ASSERT(remoteRepo == NULL);
     remoteRepo = r;
     cacheRemoteObjects = true;
@@ -360,18 +363,24 @@ LocalRepo::setRemote(Repo *r)
 void
 LocalRepo::clearRemote()
 {
+    Monitor lock(remoteLock);
+
     remoteRepo = NULL;
 }
 
 void
 LocalRepo::setRemoteFlags(bool cacheLocally)
 {
+    Monitor lock(remoteLock);
+
     cacheRemoteObjects = cacheLocally;
 }
 
 bool
 LocalRepo::hasRemote()
 {
+    Monitor lock(remoteLock);
+
     return (remoteRepo != NULL);
 }
 
@@ -385,6 +394,8 @@ Object::sp LocalRepo::getObject(const ObjectHash &objId)
 
     if (!o) {
         LOG("Object not found: %s", objId.hex().c_str());
+        Monitor lock(remoteLock);
+
         if (remoteRepo != NULL) {
             LOG("Instaclone getting object %s", objId.hex().c_str());
             Object::sp ro = remoteRepo->getObject(objId);
@@ -1457,8 +1468,10 @@ LocalRepo::hasObject(const ObjectHash &objId)
     if (isObjectStored(objId))
         return true;
 
+    Monitor lock(remoteLock);
+
     if (remoteRepo != NULL) {
-	return remoteRepo->hasObject(objId);
+        return remoteRepo->hasObject(objId);
     }
 
     return false;
@@ -1471,11 +1484,15 @@ ObjectInfo
 LocalRepo::getObjectInfo(const ObjectHash &objId)
 {
     if (index.hasObject(objId)) {
-	return index.getInfo(objId);
+        return index.getInfo(objId);
     }
+    
+    Monitor lock(remoteLock);
+
     if (remoteRepo != NULL) {
-	return remoteRepo->getObjectInfo(objId);
+        return remoteRepo->getObjectInfo(objId);
     }
+
     return ObjectInfo();
 }
 
