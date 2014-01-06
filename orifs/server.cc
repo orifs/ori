@@ -41,7 +41,7 @@
 using namespace std;
 
 extern OriPriv *priv;
-static UDSServer *server;
+static UDSServer *server = NULL;
 
 string
 UDSExtensionCB(LocalRepo *repo, const string &data)
