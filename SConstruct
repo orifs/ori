@@ -53,7 +53,8 @@ opts.AddVariables(
     ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY; NONE).",
         "FASTLZ"),
     ("CHUNKING_ALGO", "Chunking algorithm (RK; FIXED).", "RK"),
-    ("PREFIX", "Installation target directory.", "/usr/local/bin/")
+    ("PREFIX", "Installation target directory.", "/usr/local/bin/"),
+    ("DESTDIR", "The root directory to install into. Useful mainly for binary package building", ""),
 )
 
 env = Environment(options = opts,
@@ -375,21 +376,21 @@ if env["BUILD_BINARIES"] == "1":
 
 # Install Targets
 if env["WITH_FUSE"] == "1":
-    env.Install('$PREFIX/bin','build/orifs/orifs')
-env.Install('$PREFIX/bin','build/ori/ori')
-env.Install('$PREFIX/bin','build/oridbg/oridbg')
-env.Install('$PREFIX/bin','build/orisync/orisync')
+    env.Install('$DESTDIR$PREFIX/bin','build/orifs/orifs')
+env.Install('$DESTDIR$PREFIX/bin','build/ori/ori')
+env.Install('$DESTDIR$PREFIX/bin','build/oridbg/oridbg')
+env.Install('$DESTDIR$PREFIX/bin','build/orisync/orisync')
 if env["WITH_LIBS3"] == "1":
-    env.Install('$PREFIX/bin','build/ori/oris3')
+    env.Install('$DESTDIR$PREFIX/bin','build/ori/oris3')
 if env["WITH_HTTPD"] == "1":
-    env.Install('$PREFIX/bin','build/ori_httpd/ori_httpd')
+    env.Install('$DESTDIR$PREFIX/bin','build/ori_httpd/ori_httpd')
 if env["WITH_ORILOCAL"] == "1":
-    env.Install('$PREFIX/bin','build/orilocal/orilocal')
+    env.Install('$DESTDIR$PREFIX/bin','build/orilocal/orilocal')
 
-env.Install('$PREFIX/share/man/man1','docs/ori.1')
-env.Install('$PREFIX/share/man/man1','docs/orifs.1')
-env.Install('$PREFIX/share/man/man1','docs/orisync.1')
-env.Install('$PREFIX/share/man/man1','docs/oridbg.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/ori.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/orifs.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/orisync.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/oridbg.1')
 
-env.Alias('install','$PREFIX')
+env.Alias('install','$DESTDIR$PREFIX')
 
