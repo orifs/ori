@@ -61,7 +61,7 @@ RemoteRepo::connect(const string &url)
             return (sc->connect() == 0);
         }
     } else {
-        UDSClient *udsClient;
+        UDSClient *udsClient = NULL;
         try {
             udsClient = new UDSClient(url);
             int status = udsClient->connect();
