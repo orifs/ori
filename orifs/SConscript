@@ -23,7 +23,7 @@ orifs_env.ParseConfig('pkg-config --libs --cflags libevent')
 orifs_env.ParseConfig('pkg-config --libs --cflags fuse')
 if sys.platform != "darwin":
     libs += ['rt']
-    if env["WITH_MDNS"] == "1":
+    if env["WITH_MDNS"]:
         libs += ['dns_sd']
 if sys.platform == "linux2":
     libs += ['uuid']
