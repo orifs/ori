@@ -35,7 +35,7 @@ src = [
 env.StaticLibrary("ori", src)
 
 # Test Binaries
-if env["BUILD_BINARIES"] == "1":
+if env["BUILD_BINARIES"]:
     env.Program("rkchunker", "rkchunker.cc")
     env.Program("fchunker", "fchunker.cc")
 

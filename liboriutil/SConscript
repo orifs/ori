@@ -27,13 +27,13 @@ if os.name == 'posix':
 else:
     print "Error unsupported operating system!"
 
-if env["WITH_MDNS"] == "1":
+if env["WITH_MDNS"]:
     src.append("zeroconf.cc")
 
 env.StaticLibrary("oriutil", src)
 
 # Test Binaries
-if env["BUILD_BINARIES"] == "1":
+if env["BUILD_BINARIES"]:
     env_testori = env.Clone()
     libs = ["crypto", "stdc++"]
     if sys.platform != "darwin":

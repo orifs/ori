@@ -17,7 +17,7 @@ if sys.platform == "darwin":
     libs += ['resolv']
 else:
     libs += ['rt']
-    if env["WITH_MDNS"] == "1":
+    if env["WITH_MDNS"]:
         libs += ['dns_sd']
 
 if sys.platform == "linux2":

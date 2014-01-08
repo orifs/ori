@@ -30,7 +30,7 @@ libs = [
 
 if sys.platform != "darwin":
     libs += ['rt', 'pthread']
-    if env["WITH_MDNS"] == "1":
+    if env["WITH_MDNS"]:
         libs += ['dns_sd']
 
 if sys.platform == "linux2":

@@ -32,28 +32,27 @@ opts.AddVariables(
     ("CXX", "C++ Compiler"),
     ("AS", "Assembler"),
     ("LINK", "Linker"),
-    ("BUILDTYPE", "Build type (RELEASE, DEBUG, or PERF)", "RELEASE"),
-    ("VERBOSE", "Show full build information (0 or 1)", "0"),
-    ("NUMCPUS", "Number of CPUs to use for build (0 means auto).", "0"),
-    ("WITH_FUSE", "Include FUSE file system (0 or 1).", "1"),
-    ("WITH_HTTPD", "Include HTTPD server (0 or 1).", "0"),
-    ("WITH_ORILOCAL", "Include Ori checkout CLI (0 or 1).", "0"),
-    ("WITH_MDNS", "Include Zeroconf (through DNS-SD) support (0 or 1).", "0"),
-    ("WITH_GPROF", "Include gprof profiling (0 or 1).", "0"),
-    ("WITH_GOOGLEHEAP", "Link to Google Heap Cheker.", "0"),
-    ("WITH_GOOGLEPROF", "Link to Google CPU Profiler.", "0"),
-    ("WITH_TSAN", "Enable Clang Race Detector.", "0"),
-    ("WITH_ASAN", "Enable Clang AddressSanitizer.", "0"),
-    ("WITH_LIBS3", "Include support for Amazon S3 (0 or 1).", "0"),
-    ("BUILD_BINARIES", "Build binaries (0 or 1).", "1"),
-    ("CROSSCOMPILE", "Cross compile (0 or 1).", "0"),
-    ("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon (0 or 1).",
-        "0"),
-    ("HASH_ALGO", "Hash algorithm (SHA256).", "SHA256"),
-    ("COMPRESSION_ALGO", "Compression algorithm (LZMA; FASTLZ; SNAPPY; NONE).",
-        "FASTLZ"),
-    ("CHUNKING_ALGO", "Chunking algorithm (RK; FIXED).", "RK"),
-    ("PREFIX", "Installation target directory.", "/usr/local/bin/")
+    ("NUMCPUS", "Number of CPUs to use for build (0 means auto)", 0, None, int),
+    EnumVariable("BUILDTYPE", "Build type", "RELEASE", ["RELEASE", "DEBUG", "PERF"]),
+    BoolVariable("VERBOSE", "Show full build information", 0),
+    BoolVariable("WITH_FUSE", "Include FUSE file system", 1),
+    BoolVariable("WITH_HTTPD", "Include HTTPD server", 0),
+    BoolVariable("WITH_ORILOCAL", "Include Ori checkout CLI", 0),
+    BoolVariable("WITH_MDNS", "Include Zeroconf (through DNS-SD) support", 0),
+    BoolVariable("WITH_GPROF", "Include gprof profiling", 0),
+    BoolVariable("WITH_GOOGLEHEAP", "Link to Google Heap Cheker", 0),
+    BoolVariable("WITH_GOOGLEPROF", "Link to Google CPU Profiler", 0),
+    BoolVariable("WITH_TSAN", "Enable Clang Race Detector", 0),
+    BoolVariable("WITH_ASAN", "Enable Clang AddressSanitizer", 0),
+    BoolVariable("WITH_LIBS3", "Include support for Amazon S3", 0),
+    BoolVariable("BUILD_BINARIES", "Build binaries", 1),
+    BoolVariable("CROSSCOMPILE", "Cross compile", 0),
+    BoolVariable("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon", 0),
+    EnumVariable("HASH_ALGO", "Hash algorithm", "SHA256", ["SHA256"]),
+    EnumVariable("COMPRESSION_ALGO", "Compression algorithm", "FASTLZ", ["LZMA", "FASTLZ", "SNAPPY", "NONE"]),
+    EnumVariable("CHUNKING_ALGO", "Chunking algorithm", "RK", ["RK", "FIXED"]),
+    PathVariable("PREFIX", "Installation target directory", "/usr/local/bin/", PathVariable.PathAccept),
+    PathVariable("DESTDIR", "The root directory to install into. Useful mainly for binary package building", "", PathVariable.PathAccept),
 )
 
 env = Environment(options = opts,
@@ -81,7 +80,7 @@ if os.environ.has_key('LDFLAGS'):
 
 # Windows Configuration Changes
 if sys.platform == "win32":
-    env["WITH_FUSE"] = "0"
+    env["WITH_FUSE"] = False
     env.Append(CPPFLAGS = ['-DWIN32'])
 
 #env.Append(CPPFLAGS = [ "-Wall", "-Wformat=2", "-Wextra", "-Wwrite-strings",
@@ -119,16 +118,16 @@ else:
     print "Error unsupported chunking algorithm"
     sys.exit(-1)
 
-if env["WITH_MDNS"] != "1":
+if not env["WITH_MDNS"]:
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
 
-if env["WITH_LIBS3"] == "1":
+if env["WITH_LIBS3"]:
     env.Append(CPPFLAGS = [ "-DWITH_LIBS3" ])
 
-if env["USE_FAKES3"] == "1":
+if env["USE_FAKES3"]:
     env.Append(CPPDEFINES = ['USE_FAKES3'])
 
-if env["WITH_GPROF"] == "1":
+if env["WITH_GPROF"]:
     env.Append(CPPFLAGS = [ "-pg" ])
     env.Append(LINKFLAGS = [ "-pg" ])
 
@@ -159,7 +158,7 @@ try:
 except IOError:
     pass
 
-if env["VERBOSE"] == "0":
+if not env["VERBOSE"]:
     env["CCCOMSTR"] = "Compiling $SOURCE"
     env["CXXCOMSTR"] = "Compiling $SOURCE"
     env["SHCCCOMSTR"] = "Compiling $SOURCE"
@@ -169,18 +168,18 @@ if env["VERBOSE"] == "0":
     env["LINKCOMSTR"] = "Linking $TARGET"
 
 def GetNumCPUs(env):
-    if env["NUMCPUS"] != "0":
+    if env["NUMCPUS"] > 0:
         return int(env["NUMCPUS"])
     return 2*multiprocessing.cpu_count()
 
 env.SetOption('num_jobs', GetNumCPUs(env))
 
 # Modify CPPPATH and LIBPATH
-if sys.platform != "darwin" and sys.platform != "win32" and env["CROSSCOMPILE"] == "0":
+if sys.platform != "darwin" and sys.platform != "win32" and not env["CROSSCOMPILE"]:
     env.Append(CPPFLAGS = "-D_FILE_OFFSET_BITS=64")
     env.Append(LIBPATH = [ "/usr/local/lib/event2" ])
 
-if sys.platform != "win32" and env["CROSSCOMPILE"] == "0":
+if sys.platform != "win32" and not env["CROSSCOMPILE"]:
     env.Append(CPPPATH = [ "/usr/local/include" ])
     env.Append(LIBPATH = [ "$LIBPATH", "/usr/local/lib" ])
 
@@ -218,10 +217,10 @@ if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
     CheckFailed()
 
-if (sys.platform == "win32") or env["CROSSCOMPILE"] == "1":
-    env["HAS_PKGCONFIG"] = "0"
+if (sys.platform == "win32") or env["CROSSCOMPILE"]:
+    env["HAS_PKGCONFIG"] = False
 else:
-    env["HAS_PKGCONFIG"] = "1"
+    env["HAS_PKGCONFIG"] = True
     if not conf.CheckPkgConfig():
         print 'pkg-config not found!'
         Exit(1)
@@ -279,12 +278,12 @@ if env["COMPRESSION_ALGO"] == "LZMA":
         print 'Please install liblzma'
         Exit(1)
 
-if env["WITH_FUSE"] == "1":
-    if env["HAS_PKGCONFIG"] == "1" and not conf.CheckPkg('fuse'):
+if env["WITH_FUSE"]:
+    if env["HAS_PKGCONFIG"] and not conf.CheckPkg('fuse'):
         print 'FUSE is not registered in pkg-config'
         Exit(1)
 
-if env["HAS_PKGCONFIG"] == "1":
+if env["HAS_PKGCONFIG"]:
     if not conf.CheckPkg('libevent'):
         print 'libevent is not registered in pkg-config'
         Exit(1)
@@ -294,16 +293,16 @@ if env["HAS_PKGCONFIG"] == "1":
     env.ParseConfig('pkg-config --libs --cflags libevent')
 
 has_event = conf.CheckLibWithHeader('', 'event2/event.h', 'C', 'event_init();')
-if not (has_event or (env["CROSSCOMPILE"] == "1")):
+if not (has_event or (env["CROSSCOMPILE"])):
     print 'Cannot link test binary with libevent 2.0+'
     Exit(1)
 
-if (env["WITH_MDNS"] == "1") and (sys.platform != "darwin"):
+if (env["WITH_MDNS"]) and (sys.platform != "darwin"):
     if not conf.CheckLibWithHeader('dns_sd','dns_sd.h','C'):
 	print 'Please install libdns_sd'
 	Exit(1)
 
-if env["HAS_PKGCONFIG"] == "1":
+if env["HAS_PKGCONFIG"]:
     if not conf.CheckPkg("openssl"):
         print 'openssl is not registered in pkg-config'
         Exit(1)
@@ -327,7 +326,7 @@ if sys.platform != "win32" and sys.platform != "darwin":
     env.Append(LIBS = ["pthread"])
 
 # Optional Components
-if env["WITH_LIBS3"] == "1":
+if env["WITH_LIBS3"]:
     env.Append(CPPPATH = '#libs3-2.0/inc')
     SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
 if env["COMPRESSION_ALGO"] == "SNAPPY":
@@ -340,17 +339,17 @@ if env["COMPRESSION_ALGO"] == "FASTLZ":
     SConscript('libfastlz/SConscript', variant_dir='build/libfastlz')
 
 # Debugging Tools
-if env["WITH_GOOGLEHEAP"] == "1":
+if env["WITH_GOOGLEHEAP"]:
     env.Append(LIBS = ["tcmalloc"])
-if env["WITH_GOOGLEPROF"] == "1":
+if env["WITH_GOOGLEPROF"]:
     env.Append(LIBS = ["profiler"])
-if env["WITH_TSAN"] == "1":
+if env["WITH_TSAN"]:
     env.Append(CPPFLAGS = ["-fsanitize=thread", "-fPIE"])
     env.Append(LINKFLAGS = ["-fsanitize=thread", "-pie"])
-if env["WITH_ASAN"] == "1":
+if env["WITH_ASAN"]:
     env.Append(CPPFLAGS = ["-fsanitize=address"])
     env.Append(LINKFLAGS = ["-fsanitize=address"])
-if env["WITH_TSAN"] == "1" and env["WITH_ASAN"] == "1":
+if env["WITH_TSAN"] and env["WITH_ASAN"]:
     print "Cannot set both WITH_TSAN and WITH_ASAN!"
     sys.exit(-1)
 
@@ -360,36 +359,36 @@ SConscript('libori/SConscript', variant_dir='build/libori')
 SConscript('liboriutil/SConscript', variant_dir='build/liboriutil')
 
 # Ori Utilities
-if env["BUILD_BINARIES"] == "1":
+if env["BUILD_BINARIES"]:
     SConscript('ori/SConscript', variant_dir='build/ori')
     SConscript('oridbg/SConscript', variant_dir='build/oridbg')
     SConscript('orisync/SConscript', variant_dir='build/orisync')
-    if env["WITH_LIBS3"] == "1":
+    if env["WITH_LIBS3"]:
         SConscript('oris3/SConscript', variant_dir='build/oris3')
-    if env["WITH_FUSE"] == "1":
+    if env["WITH_FUSE"]:
         SConscript('orifs/SConscript', variant_dir='build/orifs')
-    if env["WITH_HTTPD"] == "1":
+    if env["WITH_HTTPD"]:
         SConscript('ori_httpd/SConscript', variant_dir='build/ori_httpd')
-    if env["WITH_ORILOCAL"] == "1":
+    if env["WITH_ORILOCAL"]:
         SConscript('orilocal/SConscript', variant_dir='build/orilocal')
 
 # Install Targets
-if env["WITH_FUSE"] == "1":
-    env.Install('$PREFIX/bin','build/orifs/orifs')
-env.Install('$PREFIX/bin','build/ori/ori')
-env.Install('$PREFIX/bin','build/oridbg/oridbg')
-env.Install('$PREFIX/bin','build/orisync/orisync')
-if env["WITH_LIBS3"] == "1":
-    env.Install('$PREFIX/bin','build/ori/oris3')
-if env["WITH_HTTPD"] == "1":
-    env.Install('$PREFIX/bin','build/ori_httpd/ori_httpd')
-if env["WITH_ORILOCAL"] == "1":
-    env.Install('$PREFIX/bin','build/orilocal/orilocal')
+if env["WITH_FUSE"]:
+    env.Install('$DESTDIR$PREFIX/bin','build/orifs/orifs')
+env.Install('$DESTDIR$PREFIX/bin','build/ori/ori')
+env.Install('$DESTDIR$PREFIX/bin','build/oridbg/oridbg')
+env.Install('$DESTDIR$PREFIX/bin','build/orisync/orisync')
+if env["WITH_LIBS3"]:
+    env.Install('$DESTDIR$PREFIX/bin','build/ori/oris3')
+if env["WITH_HTTPD"]:
+    env.Install('$DESTDIR$PREFIX/bin','build/ori_httpd/ori_httpd')
+if env["WITH_ORILOCAL"]:
+    env.Install('$DESTDIR$PREFIX/bin','build/orilocal/orilocal')
 
-env.Install('$PREFIX/share/man/man1','docs/ori.1')
-env.Install('$PREFIX/share/man/man1','docs/orifs.1')
-env.Install('$PREFIX/share/man/man1','docs/orisync.1')
-env.Install('$PREFIX/share/man/man1','docs/oridbg.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/ori.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/orifs.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/orisync.1')
+env.Install('$DESTDIR$PREFIX/share/man/man1','docs/oridbg.1')
 
-env.Alias('install','$PREFIX')
+env.Alias('install','$DESTDIR$PREFIX')
 
