@@ -248,6 +248,7 @@ bytestream *Packfile::getPayload(const IndexEntry &entry)
         case ObjectInfo::ZIPALGO_UNKNOWN:
             NOT_IMPLEMENTED(false);
     }
+    return 0;
 }
 
 bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)

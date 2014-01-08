@@ -101,6 +101,7 @@ VarLink::getVars() const
 string
 VarLink::parse(const string &link)
 {
+    return "";
 }
 
 string
