@@ -24,12 +24,14 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    if (!repository.open()) {
-        printf("Failed to open repository!\n");
+    try {
+        repository.open();
+    } catch (SystemException &e) {
+        printf("Unexpected %s\n", e.what());
         exit(1);
     }
 
-    if (ori_open_log(&repository) < 0) {
+    if (ori_open_log(repository.getLogPath()) < 0) {
         printf("Could not open repository log!\n");
         exit(1);
     }

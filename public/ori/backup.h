@@ -18,6 +18,7 @@
 #define __BACKUP_H__
 
 #include <stdexcept>
+#include <boost/tr1/unordered_map.hpp>
 #include <boost/tr1/memory.hpp>
 
 #include "object.h"

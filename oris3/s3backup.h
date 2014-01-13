@@ -2,7 +2,7 @@
 #define __S3BACKUP_H__
 
 #include <stdexcept>
-#include <tr1/memory>
+#include <boost/tr1/memory.hpp>
 
 #include <ori/object.h>
 #include <ori/backup.h>
