@@ -279,10 +279,10 @@ private:
     int fd;
 };
 
-class Monitor : public Thread
+class RepoMonitor : public Thread
 {
 public:
-    Monitor() : Thread() {
+    RepoMonitor() : Thread() {
     }
     /*
      * Update repository information and return thre repoId, otherwise empty 
@@ -309,6 +309,8 @@ public:
         myInfo.updateRepo(repo.getUUID(), info);
 
         LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
+        
+        repo.close();
 
         return;
     }
@@ -324,7 +326,7 @@ public:
             sleep(ORISYNC_MONINTERVAL);
         }
 
-        DLOG("Monitor exited!");
+        DLOG("RepoMonitor exited!");
     }
 };
 
@@ -397,7 +399,7 @@ public:
 
 Announcer *announcer;
 Listener *listener;
-Monitor *monitor;
+RepoMonitor *repoMonitor;
 Syncer *syncer;
 
 void
@@ -423,7 +425,7 @@ start_server()
     rc = OriSyncConf();
     announcer = new Announcer();
     listener = new Listener();
-    monitor = new Monitor();
+    repoMonitor = new RepoMonitor();
     syncer = new Syncer();
 
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
@@ -432,7 +434,7 @@ start_server()
 
     announcer->start();
     listener->start();
-    monitor->start();
+    repoMonitor->start();
     syncer->start();
 
     struct event_base *base = event_base_new();
@@ -441,8 +443,11 @@ start_server()
 
     evhttp_set_cb(httpd, "/", Httpd_getRoot, NULL);
 
+    // Event loop
     event_base_dispatch(base);
+
     evhttp_free(httpd);
+    event_base_free(base);
 
     // XXX: Wait for worker threads
 
