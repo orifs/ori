@@ -591,6 +591,7 @@ OriPriv::rename(const string &fromPath, const string &toPath)
         NOT_IMPLEMENTED(!info->dirLoaded);
     }
 
+    info->type = FILETYPE_DIRTY;
     paths.erase(fromPath);
     paths[toPath] = info;
 
