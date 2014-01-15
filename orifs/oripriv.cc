@@ -63,6 +63,7 @@ OriFileInfo::loadAttr(const AttrMap &attrs)
 
     if (pw == NULL) {
       pw = getpwuid(getuid());
+      NOT_IMPLEMENTED(pw != NULL);
     }
 
     if (statInfo.st_mode != S_IFDIR) {
