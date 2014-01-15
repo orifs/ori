@@ -61,8 +61,9 @@ OriFileInfo::loadAttr(const AttrMap &attrs)
 {
     struct passwd *pw = getpwnam(attrs.getAsStr(ATTR_USERNAME).c_str());
 
-    // XXX: Choose sane defaults
-    ASSERT(pw != NULL);
+    if (pw == NULL) {
+      pw = getpwuid(getuid());
+    }
 
     if (statInfo.st_mode != S_IFDIR) {
         bool isSymlink = false;
