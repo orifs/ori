@@ -71,8 +71,8 @@ void RKChunker<target, min, max>::chunk(ChunkerCB *cb)
     register uint64_t start = 0;
 
     if (cb->load(&in, &len, &off) == 0) {
-	assert(false);
-	return;
+	    assert(false);
+	    return;
     }
 
     for (off = 0; off < hashLen; off++) {
@@ -83,7 +83,7 @@ fastPath:
     /*
      * Fast-path avoiding the length tests.off
      */
-    for (; off < len - max;) {
+    for (; off + max < len;) {
         for (; off < start + min && off < len; off++)
             hash = (hash - lut[in[off-hashLen]]) * b + in[off];
 
@@ -99,7 +99,7 @@ fastPath:
 
     if (cb->load(&in, &len, &off) == 1) {
         start = off;
-	goto fastPath;
+        goto fastPath;
     }
 
     for (; off < len; off++) {
