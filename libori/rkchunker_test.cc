@@ -80,15 +80,10 @@ public:
     }
     virtual void match(const uint8_t *b, uint32_t l)
     {
-        // Add the fragment into the repository
-        // XXX: Journal for cleanup!
-        //string blob = string((const char *)b, l);
-        //ObjectHash hash = OriCrypt_HashString(blob);
-        //lb->repo->addObject(ObjectInfo::Blob, hash, blob);
+        string blob = string((const char *)b, l);
+        ObjectHash hash = OriCrypt_HashString(blob);
 
-        // Add the fragment to the LargeBlob object.
-        //lb->parts.insert(make_pair(lbOff, LBlobEntry(hash, l)));
-        //printf("%08llx %s\n", lbOff, hash.hex().c_str());
+        printf("%08llx %s\n", lbOff, hash.hex().c_str());
         lbOff += l;
     }
     virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
