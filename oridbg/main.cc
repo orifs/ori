@@ -25,6 +25,8 @@
 #include <sys/param.h>
 #include <sys/types.h>
 
+#include <histedit.h>
+
 #include <string>
 #include <iostream>
 
@@ -97,6 +99,7 @@ int cmd_mdnsserver(int argc, char * const argv[]); // Debug
 int cmd_httpclient(int argc, char * const argv[]); // Debug
 static int cmd_help(int argc, char * const argv[]);
 static int cmd_version(int argc, char * const argv[]);
+static int cmd_interactive(int argc, char * const argv[]);
 
 static Cmd commands[] = {
     {
@@ -339,6 +342,13 @@ static Cmd commands[] = {
         CMD_NEED_REPO,
     },
     {
+        "interactive",
+        "Interactive console",
+        cmd_interactive,
+        NULL,
+        CMD_NEED_REPO,
+    },
+    {
         "version",
         "Show version information",
         cmd_version,
@@ -422,6 +432,70 @@ cmd_version(int argc, char * const argv[])
 #endif
 
     return 0;
+}
+
+static EditLine *el = NULL;
+static History *hist;
+static HistEvent ev;
+static char prompt[512];
+
+static char *
+elprompt(EditLine *el)
+{
+    // XXX Use reponame
+    prompt[0] = '>';
+    prompt[1] = ' ';
+    prompt[2] = 0;
+    return prompt;
+}
+
+static int
+cmd_interactive(int argc, char * const argv[])
+{
+    el = el_init("oridbg", stdin, stdout, stderr);
+    hist = history_init();
+    history(hist, &ev, H_SETSIZE, 100);
+    el_set(el, EL_EDITOR, "emacs");
+    el_set(el, EL_HIST, history, hist);
+    el_set(el, EL_PROMPT, elprompt);
+
+    while (1) {
+        int num;
+        const char *line = el_gets(el, &num);
+        if (line == NULL) {
+            continue;
+        }
+
+        history(hist, &ev, H_ENTER, line);
+
+        // Tokenize
+        int argc = 32;
+        const char **argv;
+        Tokenizer *tok = tok_init(NULL);
+        int status = tok_str(tok, line, &argc, &argv);
+        if (status != 0) {
+            printf("Error parsing line!\n");
+            tok_end(tok);
+            continue;
+        }
+        if (argc < 1) {
+            tok_end(tok);
+            continue;
+        }
+
+        int idx = lookupcmd(argv[0]);
+        if (idx == -1) {
+            printf("Unknown command '%s'\n", argv[0]);
+            tok_end(tok);
+            continue;
+        }
+
+        commands[idx].cmd(argc, (char * const*)argv);
+        tok_end(tok);
+    }
+
+    el_end(el);
+    history_end(hist);
 }
 
 int
