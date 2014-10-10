@@ -33,7 +33,6 @@
 #include <ori/largeblob.h>
 
 using namespace std;
-using namespace std::tr1;
 
 TreeDiffEntry::TreeDiffEntry()
     : type(Noop),

@@ -17,7 +17,7 @@
 #include <cassert>
 #include <stdio.h>
 
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/rwlock.h>
 #include <oriutil/thread.h>

@@ -19,8 +19,8 @@
 
 #include <set>
 #include <deque>
-#include <boost/tr1/memory.hpp>
-#include <boost/tr1/unordered_map.hpp>
+#include <memory>
+#include <unordered_map>
 
 #include <oriutil/objecthash.h>
 #include <oriutil/stream.h>
@@ -47,7 +47,7 @@ class Index;
 class PfTransaction
 {
 public:
-    typedef std::tr1::shared_ptr<PfTransaction> sp;
+    typedef std::shared_ptr<PfTransaction> sp;
 
     PfTransaction(Packfile *pf, Index *idx);
     ~PfTransaction();
@@ -62,7 +62,7 @@ public:
     size_t totalSize;
     bool committed;
 
-    std::tr1::unordered_map<ObjectHash, size_t> hashToIx;
+    std::unordered_map<ObjectHash, size_t> hashToIx;
 
 private:
     Packfile *pf;
@@ -73,7 +73,7 @@ private:
 class Packfile
 {
 public:
-    typedef std::tr1::shared_ptr<Packfile> sp;
+    typedef std::shared_ptr<Packfile> sp;
 
     Packfile(const std::string &filename, packid_t id);
     ~Packfile();
@@ -110,7 +110,7 @@ private:
 class PackfileManager
 {
 public:
-    typedef std::tr1::shared_ptr<PackfileManager> sp;
+    typedef std::shared_ptr<PackfileManager> sp;
 
     PackfileManager(const std::string &rootPath);
     ~PackfileManager();

@@ -22,7 +22,7 @@
 
 #include <utility>
 #include <string>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 class Repo;
 class HttpClient;
@@ -57,9 +57,9 @@ private:
     std::string repoId;
     // Volatile State
     std::string peerFile;
-    std::tr1::shared_ptr<Repo> cachedRepo;
-    std::tr1::shared_ptr<HttpClient> hc;
-    std::tr1::shared_ptr<SshClient> sc;
+    std::shared_ptr<Repo> cachedRepo;
+    std::shared_ptr<HttpClient> hc;
+    std::shared_ptr<SshClient> sc;
 };
 
 #endif /* __PEER_H__ */

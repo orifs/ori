@@ -29,7 +29,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <iostream>
-#include <boost/tr1/unordered_set.hpp>
+#include <unordered_set>
 
 #include "tuneables.h"
 
@@ -401,7 +401,7 @@ Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
     }
 
     // Transmit object infos
-    tr1::unordered_set<ObjectHash> includedHashes;
+    unordered_set<ObjectHash> includedHashes;
     numobjs_t totalObjs = 0;
 
     strwstream infos_ss;

@@ -17,7 +17,7 @@
 #ifndef __LOCALREPO_H__
 #define __LOCALREPO_H__
 
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/lrucache.h>
 #include <oriutil/key.h>
@@ -70,15 +70,15 @@ class LocalRepoLock
 {
     std::string lockFile;
 public:
-    LocalRepoLock(const std::string &filename);
+    explicit LocalRepoLock(const std::string &filename);
     ~LocalRepoLock();
-    typedef std::tr1::shared_ptr<LocalRepoLock> sp;
+    typedef std::shared_ptr<LocalRepoLock> sp;
 };
 
 class LocalRepo : public Repo
 {
 public:
-    LocalRepo(const std::string &root = "");
+    explicit LocalRepo(const std::string &root = "");
     ~LocalRepo();
     void open(const std::string &root = "");
     void close();

@@ -995,7 +995,7 @@ struct MultiPullOp {
 
     // Pull queue
     deque<ObjectHash> toPull;
-    tr1::unordered_set<ObjectHash> toPullSet;
+    unordered_set<ObjectHash> toPullSet;
 
     // Remotes
     std::vector<RemoteRepo::sp> remotes;
@@ -1171,7 +1171,7 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
 void
 LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
 {
-    std::tr1::unordered_set<ObjectHash> includedHashes;
+    unordered_set<ObjectHash> includedHashes;
 
     typedef std::vector<IndexEntry> IndexEntryVec;
     std::map<Packfile::sp, IndexEntryVec> packs;
@@ -1998,8 +1998,8 @@ LocalRepo::graftSubtree(LocalRepo *r,
 	cout << "Grafting " << (*it).hex() << endl;
 
 	// Compute and set parents
-	tr1::unordered_set<ObjectHash> parents = gDag.getParents(*it);
-	tr1::unordered_set<ObjectHash>::iterator p;
+	unordered_set<ObjectHash> parents = gDag.getParents(*it);
+	unordered_set<ObjectHash>::iterator p;
 
 	p = parents.begin();
 	if (parents.size() == 0) {

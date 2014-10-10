@@ -213,6 +213,7 @@ if not conf.CheckCC():
     print 'Your C compiler and/or environment is incorrectly configured.'
     CheckFailed()
 
+env.AppendUnique(CXXFLAGS = ['-std=c++11'])
 if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
     CheckFailed()
@@ -225,23 +226,8 @@ else:
         print 'pkg-config not found!'
         Exit(1)
 
-#
-#env.AppendUnique(CXXFLAGS = ['-std=c++11'])
-#if not conf.CheckCXX():
-#    env['CXXFLAGS'].remove('-std=c++11')
-#
-#env.AppendUnique(CXXFLAGS = ['-std=c++0x'])
-#if not conf.CheckCXX():
-#    env['CXXFLAGS'].remove('-std=c++0x')
-#
-
-if conf.CheckCXXHeader('unordered_map'):
-    env.Append(CPPFLAGS = "-DHAVE_CXX11")
-elif conf.CheckCXXHeader('tr1/unordered_map'):
-    env.Append(CPPFLAGS = "-DHAVE_CXXTR1")
-else:
-    print 'Either C++11, C++0x, or C++ TR1 must be present!'
-    CheckFailed()
+if not conf.CheckCXXHeader('unordered_map'):
+    print 'C++11 libraries appear to be missing'
 
 if not conf.CheckCXXHeader('boost/uuid/uuid.hpp'):
     print 'Boost UUID headers are missing!'

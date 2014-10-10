@@ -39,7 +39,7 @@ class Repo;
 class LargeBlob
 {
 public:
-    LargeBlob(Repo *r);
+    explicit LargeBlob(Repo *r);
     ~LargeBlob();
     void chunkFile(const std::string &path);
     void extractFile(const std::string &path);

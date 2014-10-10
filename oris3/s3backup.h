@@ -2,7 +2,7 @@
 #define __S3BACKUP_H__
 
 #include <stdexcept>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <ori/object.h>
 #include <ori/backup.h>
@@ -30,7 +30,7 @@ private:
     std::string bucketName;
     std::string _hostname;
 
-    std::tr1::shared_ptr<S3BucketContext> ctx;
+    std::shared_ptr<S3BucketContext> ctx;
 };
 
 #endif /* __S3BACKUP_H__ */

@@ -20,9 +20,9 @@
 #include <oriutil/objecthash.h>
 
 typedef int32_t refcount_t;
-typedef std::tr1::unordered_map<ObjectHash, refcount_t> RefcountMap;
-typedef std::tr1::unordered_map<std::string, std::string> ObjMetadata;
-typedef std::tr1::unordered_map<ObjectHash, ObjMetadata> MetadataMap;
+typedef std::unordered_map<ObjectHash, refcount_t> RefcountMap;
+typedef std::unordered_map<std::string, std::string> ObjMetadata;
+typedef std::unordered_map<ObjectHash, ObjMetadata> MetadataMap;
 
 class MetadataLog;
 class MdTransaction
@@ -30,7 +30,7 @@ class MdTransaction
 public:
     MdTransaction(MetadataLog *log);
     ~MdTransaction();
-    typedef std::tr1::shared_ptr<MdTransaction> sp;
+    typedef std::shared_ptr<MdTransaction> sp;
 
     void addRef(const ObjectHash &hash);
     void decRef(const ObjectHash &hash);

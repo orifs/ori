@@ -20,8 +20,8 @@
 #include <set>
 #include <vector>
 #include <string>
-#include <boost/tr1/memory.hpp>
-#include <boost/tr1/unordered_map.hpp>
+#include <memory>
+#include <unordered_map>
 
 #include "repo.h"
 #include "commit.h"
@@ -36,7 +36,7 @@ public:
     TempDir(const std::string &dirpath);
     ~TempDir();
 
-    typedef std::tr1::shared_ptr<TempDir> sp;
+    typedef std::shared_ptr<TempDir> sp;
 
     std::string pathTo(const std::string &file);
     /// Temp files are deleted along with the directory
@@ -60,7 +60,7 @@ public:
 private:
     Index index;
     int objects_fd;
-    std::tr1::unordered_map<ObjectHash, off_t> offsets;
+    std::unordered_map<ObjectHash, off_t> offsets;
 };
 
 class TempObject : public Object
