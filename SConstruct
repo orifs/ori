@@ -44,7 +44,6 @@ opts.AddVariables(
     BoolVariable("WITH_GOOGLEPROF", "Link to Google CPU Profiler", 0),
     BoolVariable("WITH_TSAN", "Enable Clang Race Detector", 0),
     BoolVariable("WITH_ASAN", "Enable Clang AddressSanitizer", 0),
-    BoolVariable("WITH_LIBS3", "Include support for Amazon S3", 0),
     BoolVariable("BUILD_BINARIES", "Build binaries", 1),
     BoolVariable("CROSSCOMPILE", "Cross compile", 0),
     BoolVariable("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon", 0),
@@ -120,12 +119,6 @@ else:
 
 if not env["WITH_MDNS"]:
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
-
-if env["WITH_LIBS3"]:
-    env.Append(CPPFLAGS = [ "-DWITH_LIBS3" ])
-
-if env["USE_FAKES3"]:
-    env.Append(CPPDEFINES = ['USE_FAKES3'])
 
 if env["WITH_GPROF"]:
     env.Append(CPPFLAGS = [ "-pg" ])
@@ -312,9 +305,6 @@ if sys.platform != "win32" and sys.platform != "darwin":
     env.Append(LIBS = ["pthread"])
 
 # Optional Components
-if env["WITH_LIBS3"]:
-    env.Append(CPPPATH = '#libs3-2.0/inc')
-    SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
 if env["COMPRESSION_ALGO"] == "SNAPPY":
     env.Append(CPPPATH = ['#snappy-1.0.5'])
     env.Append(LIBS = ["snappy"], LIBPATH = ['#build/snappy-1.0.5'])
@@ -349,8 +339,6 @@ if env["BUILD_BINARIES"]:
     SConscript('ori/SConscript', variant_dir='build/ori')
     SConscript('oridbg/SConscript', variant_dir='build/oridbg')
     SConscript('orisync/SConscript', variant_dir='build/orisync')
-    if env["WITH_LIBS3"]:
-        SConscript('oris3/SConscript', variant_dir='build/oris3')
     if env["WITH_FUSE"]:
         SConscript('orifs/SConscript', variant_dir='build/orifs')
     if env["WITH_HTTPD"]:
@@ -364,8 +352,6 @@ if env["WITH_FUSE"]:
 env.Install('$DESTDIR$PREFIX/bin','build/ori/ori')
 env.Install('$DESTDIR$PREFIX/bin','build/oridbg/oridbg')
 env.Install('$DESTDIR$PREFIX/bin','build/orisync/orisync')
-if env["WITH_LIBS3"]:
-    env.Install('$DESTDIR$PREFIX/bin','build/ori/oris3')
 if env["WITH_HTTPD"]:
     env.Install('$DESTDIR$PREFIX/bin','build/ori_httpd/ori_httpd')
 if env["WITH_ORILOCAL"]:
