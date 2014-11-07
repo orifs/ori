@@ -770,7 +770,7 @@ LocalRepo::listObjects()
 void
 LocalRepo::sync()
 {
-    bool full = true;
+    bool full = false;
     if (currTransaction.get()) {
         full = currTransaction->full();
         currTransaction->commit();
