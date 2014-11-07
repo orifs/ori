@@ -246,11 +246,10 @@ public:
     }
     void dumpHosts() {
         RWKey::sp key = hostsLock.readLock();
-        map<string, HostInfo *>::iterator it;
 
         cout << "=== Begin Hosts ===" << endl;
-        for (it = hosts.begin(); it != hosts.end(); it++) {
-            cout << it->second->getHost() << endl;
+        for (auto &it : hosts) {
+            cout << it.second->getHost() << endl;
         }
         cout << "==== End Hosts ====" << endl << endl;
     }
@@ -316,11 +315,10 @@ public:
     }
     void run() {
         list<string> repos = rc.getRepos();
-        list<string>::iterator it;
 
         while (!interruptionRequested()) {
-            for (it = repos.begin(); it != repos.end(); it++) {
-                updateRepo(*it);
+            for (auto &it : repos) {
+                updateRepo(it);
             }
 
             sleep(ORISYNC_MONINTERVAL);
@@ -358,36 +356,31 @@ public:
     void checkRepo(HostInfo &infoSnapshot, const std::string &uuid)
     {
         map<string, HostInfo *> hostSnapshot;
-        map<string, HostInfo *>::iterator it;
         RepoInfo localInfo = infoSnapshot.getRepo(uuid);
 
         hostSnapshot = hosts;
 
-        for (it = hostSnapshot.begin(); it != hostSnapshot.end(); it++) {
-            list<string> repos = it->second->listRepos();
-            list<string>::iterator rIt;
+        for (auto &it : hostSnapshot) {
+            list<string> repos = it.second->listRepos();
 
-            for (rIt = repos.begin(); rIt != repos.end(); rIt++) {
-                RepoInfo info = it->second->getRepo(uuid);
+            for (auto &rIt : repos) {
+		// XXX: Fix this!
+                RepoInfo info = it.second->getRepo(uuid);
 
                 if (info.getHead() != localInfo.getHead()) {
-                    pullRepo(infoSnapshot, *(it->second), uuid);
+                    pullRepo(infoSnapshot, *(it.second), uuid);
                 }
             }
         }
     }
     void run() {
         while (!interruptionRequested()) {
-            HostInfo infoSnapshot;
-            list<string> repos;
-            list<string>::iterator it;
+            HostInfo infoSnapshot = myInfo;
+            list<string> repos = infoSnapshot.listRepos();
 
-            infoSnapshot = myInfo;
-            repos = infoSnapshot.listRepos();
-
-            for (it = repos.begin(); it != repos.end(); it++) {
-                LOG("Syncer checking %s", (*it).c_str());
-                checkRepo(infoSnapshot, *it);
+            for (auto &it : repos) {
+                LOG("Syncer checking %s", it.c_str());
+                checkRepo(infoSnapshot, it);
             }
 
             sleep(ORISYNC_SYNCINTERVAL);

@@ -167,15 +167,13 @@ OriSyncConf::getBlob() const
     blob += "machine-id " + machineid + "\n";
 
     blob += "\n# Hosts\n";
-    for (list<string>::const_iterator it = hosts.begin(); it != hosts.end(); it++)
-    {
-        blob += "host " + *it + "\n";
+    for (auto const &it : hosts) {
+        blob += "host " + it + "\n";
     }
 
     blob += "\n# Repositories\n";
-    for (list<string>::const_iterator it = repos.begin(); it != repos.end(); it++)
-    {
-        blob += "repo " + *it + "\n";
+    for (auto const &it : repos) {
+        blob += "repo " + it + "\n";
     }
 
     return blob;
