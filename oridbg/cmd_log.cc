@@ -55,11 +55,10 @@ cmd_log(int argc, char * const argv[])
         cout << "Date:      " << timeStr;
         if (c.hasSignature()) {
             map<string, PublicKey> keys = repository.getPublicKeys();
-            map<string, PublicKey>::iterator it;
 
-            for (it = keys.begin(); it != keys.end(); it++) {
-                if (c.verify(it->second)) {
-                    cout << "Signature: Verified (" << it->first << ")" << endl;
+            for (auto &it : keys) {
+                if (c.verify(it.second)) {
+                    cout << "Signature: Verified (" << it.first << ")" << endl;
                     goto foundKey;
                 }
             }

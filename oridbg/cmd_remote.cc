@@ -41,15 +41,13 @@ cmd_remote(int argc, char * const argv[])
 {
     if (argc == 1) {
 	map<string, Peer> peers = repository.getPeers();
-	map<string, Peer>::iterator it;
 
 	// print peers
 	cout << left << setw(16) << "Name"
 	     << left << setw(64) << "Path" << "\nID" << endl;
-	for (it = peers.begin(); it != peers.end(); it++)
-	{
-	    Peer &p = (*it).second;
-	    cout << left << setw(16) << (*it).first
+	for (auto &it : peers) {
+	    Peer &p = it.second;
+	    cout << left << setw(16) << it.first
 		 << left << setw(64) << p.getUrl() << "\n" << p.getRepoId() << endl;
 	}
 

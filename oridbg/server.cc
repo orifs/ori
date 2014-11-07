@@ -169,10 +169,8 @@ SshServer::cmd_listObjs()
 
     std::set<ObjectInfo> objects = repo->listObjects();
     fs.writeUInt64(objects.size());
-    for (std::set<ObjectInfo>::iterator it = objects.begin();
-            it != objects.end();
-            it++) {
-        fs.writeInfo(*it);
+    for (auto &it = objects) {
+        fs.writeInfo(it);
     }
 }
 
