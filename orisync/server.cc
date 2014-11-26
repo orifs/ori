@@ -220,8 +220,11 @@ public:
             // Prevent replay attacks from leaking information
             uint64_t now = time(NULL);
             uint64_t ts = kv.getU64("time");
-            if (ts > now + ORISYNC_ADVSKEW || ts < now - ORISYNC_ADVSKEW)
+            if (ts > now + ORISYNC_ADVSKEW || ts < now - ORISYNC_ADVSKEW) {
+                WARNING("Host %s time out of sync by %d seconds.", kv.getStr("hostId").c_str(), (int)(ts - now));
+                WARNING("Ignoring host %s", kv.getStr("hostId").c_str());
                 return;
+            }
 
             // Ignore requests from self
             if (kv.getStr("hostId") == rc.getUUID())
