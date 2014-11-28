@@ -119,7 +119,8 @@ void Thread::start()
 
 bool Thread::wait(unsigned long time)
 {
-    // pthread_join
+    if (pthread_join(tid, NULL))
+      return true;
     return false;
 }
 

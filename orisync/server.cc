@@ -433,6 +433,7 @@ start_server()
     repoMonitor->start();
     syncer->start();
 
+    /*
     struct event_base *base = event_base_new();
     struct evhttp *httpd = evhttp_new(base);
     evhttp_bind_socket(httpd, "0.0.0.0", 8051);
@@ -444,8 +445,11 @@ start_server()
 
     evhttp_free(httpd);
     event_base_free(base);
-
+    */
     // XXX: Wait for worker threads
+    MSG("Wating for working threads");
+    announcer->wait();
+    MSG("OriSync quits");
 
     return 0;
 }
