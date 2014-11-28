@@ -311,6 +311,8 @@ public:
         myInfo.updateRepo(repo.getUUID(), info);
 
         LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
+
+        repo.snapshot();
         
         repo.close();
 

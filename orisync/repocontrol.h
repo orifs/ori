@@ -34,6 +34,7 @@ public:
     bool hasCommit(const std::string &objId);
     std::string pull(const std::string &host, const std::string &path);
     std::string push(const std::string &host, const std::string &path);
+    void snapshot();
 private:
     std::string path;
     std::string uuid;
