@@ -122,7 +122,7 @@ RepoControl::pull(const string &host, const string &path)
                     host.c_str(), path.c_str());
             return "";
         }
-        if (pullResp.readUInt8() == 1) {
+        if (pullResp.readUInt8() == 0) {
             string error;
             pullResp.readPStr(error);
             WARNING("Failed to pull from %s:%s: %s",
