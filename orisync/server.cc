@@ -381,8 +381,6 @@ public:
 
         hostSnapshot = hosts;
 
-	// check local info
-
         for (auto &it : hostSnapshot) {
             RepoInfo info = it.second->getRepo(uuid);
 
@@ -394,13 +392,12 @@ public:
     void run() {
         while (!interruptionRequested()) {
             HostInfo infoSnapshot = myInfo;
-            list<RepoInfo> repos = infoSnapshot.listRepos();
-            //this implementation seems to be wrong
+            list<string> repos = infoSnapshot.listRepos();
             list<RepoInfo> allrepos = infoSnapshot.listAllRepos();
 
             for (auto &it : repos) {
-                LOG("Syncer checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
-                checkRepo(infoSnapshot, it.getRepoId());
+                LOG("Syncer checking %s", it.c_str());
+                checkRepo(infoSnapshot, it);
             }
             for (auto &it : allrepos) {
                 LOG("Syncer local checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());

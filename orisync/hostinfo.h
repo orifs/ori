@@ -118,12 +118,12 @@ public:
             }
         }
     }
-    std::list<RepoInfo> listRepos() const {
+    std::list<std::string> listRepos() const {
         std::map<std::string, RepoInfo>::const_iterator it;
-        std::list<RepoInfo> val;
+        std::list<std::string> val;
 
         for (auto const &it : repos) {
-            val.push_back(it.second);
+            val.push_back(it.first);
         }
 
         return val;
