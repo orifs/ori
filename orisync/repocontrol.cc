@@ -122,7 +122,7 @@ RepoControl::pull(const string &host, const string &path)
                     host.c_str(), path.c_str());
             return "";
         }
-        if (pullResp.readUInt8() == 1) {
+        if (pullResp.readUInt8() == 0) {
             string error;
             pullResp.readPStr(error);
             WARNING("Failed to pull from %s:%s: %s",
@@ -179,3 +179,44 @@ RepoControl::push(const string &host, const string &path)
     return "";
 }
 
+void
+RepoControl::snapshot()
+{
+    if (udsRepo) {
+      strwstream req;
+      bool hasMsg = false;
+      bool hasName = false;
+
+      req.writePStr("snapshot");
+      req.writeUInt8(hasMsg ? 1 : 0);
+      req.writeUInt8(hasName ? 1 : 0);
+      /*
+      if (hasMsg)
+        req.writeLPStr(msg);
+      if (hasName)
+        req.writeLPStr(name);
+        */
+
+      strstream resp = udsRepo->callExt("FUSE", req.str());
+      if (resp.ended()) {
+        WARNING("Snapshot failed with an unknown error!");
+        return;
+      }
+
+      switch (resp.readUInt8())
+      {
+        case 0:
+            LOG("RepoControl::snapshot: No changes");
+            return;
+        case 1:
+        {
+            ObjectHash hash;
+            resp.readHash(hash);
+            LOG("RepoControl::snapshot: New changes committed: %s", hash.hex().c_str());
+            return;
+        }
+        default:
+            NOT_IMPLEMENTED(false);
+      }
+    }
+}
