@@ -114,7 +114,7 @@ RepoControl::pull(const string &host, const string &path)
 
         // Pull
         pullReq.writePStr("pull");
-        pullReq.writePStr(host + ":" + path);
+        pullReq.writePStr(host + (host.size() ? ":" : "") + path);
 
         strstream pullResp = udsRepo->callExt("FUSE", pullReq.str());
         if (pullResp.ended()) {
@@ -157,7 +157,7 @@ RepoControl::pull(const string &host, const string &path)
 
     // Handle unmounted repository
     RemoteRepo::sp srcRepo(new RemoteRepo());
-    if (!srcRepo->connect(host + ":" + path)) {
+    if (!srcRepo->connect(host + (host.size() ? ":" : "") + path)) {
         LOG("RepoControl::pull: Failed to connect to source %s", host.c_str());
         return  "";
     }

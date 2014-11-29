@@ -493,6 +493,7 @@ diskstream::diskstream(const std::string &filename)
     fd = open(filename.c_str(), O_RDONLY);
     if (fd < 0) {
         setErrno("open");
+        LOG("open failed: %s", filename.c_str());
         if (USE_EXCEPTIONS)
             throw std::ios_base::failure("Couldn't open file");
         return;

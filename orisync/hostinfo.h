@@ -37,6 +37,7 @@ public:
         numRepos = kv.getU8("numRepos");
 
         repos.clear();
+        allrepos.clear();
 
         for (int i = 0; i < numRepos; i++) {
             char prefix[32];
@@ -48,6 +49,7 @@ public:
             info.getKV(kv, prefix);
 
             repos[info.getRepoId()] = info;
+            allrepos.push_back(info);
         }
     }
     std::string getBlob() const {
@@ -89,22 +91,45 @@ public:
         return repos[repoId];
     }
     void updateRepo(const std::string &repoId, const RepoInfo &info) {
+        RepoInfo info_cpy = info;
         repos[repoId] = info;
+        for (auto it = std::begin(allrepos); it != std::end(allrepos); it++) {
+            if ((info_cpy.getRepoId() == (*it).getRepoId()) &&
+                (info_cpy.getPath() == (*it).getPath())) {
+                LOG("replaced repo %s", (*it).getPath().c_str());
+                it = allrepos.erase(it);
+                allrepos.insert(it, info);
+                return;
+            }
+        }
+        LOG("added repo %s", info_cpy.getPath().c_str());
+        allrepos.push_back(info);
     }
     void removeRepo(const std::string &repoId) {
         std::map<std::string, RepoInfo>::iterator it = repos.find(repoId);
 
         repos.erase(it);
+
+        for(auto iter = std::begin(allrepos); iter != std::end(allrepos);) {
+            if((*iter).getRepoId() == repoId) {
+                iter = allrepos.erase(iter);
+            } else {
+                iter++;
+            }
+        }
     }
-    std::list<std::string> listRepos() const {
+    std::list<RepoInfo> listRepos() const {
         std::map<std::string, RepoInfo>::const_iterator it;
-        std::list<std::string> val;
+        std::list<RepoInfo> val;
 
         for (auto const &it : repos) {
-            val.push_back(it.first);
+            val.push_back(it.second);
         }
 
         return val;
+    }
+    std::list<RepoInfo> listAllRepos() const {
+        return allrepos;
     }
     void setPreferredIp(const std::string &ip) {
         preferredIp = ip;
@@ -118,6 +143,7 @@ private:
     std::string hostId;
     std::string cluster;
     std::map<std::string, RepoInfo> repos;
+    std::list<RepoInfo> allrepos;
 };
 
 #endif /* __HOSTINFO_H__ */

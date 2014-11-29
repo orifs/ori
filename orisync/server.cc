@@ -301,9 +301,15 @@ public:
         RWKey::sp key = infoLock.writeLock();
         if (myInfo.hasRepo(repo.getUUID())) {
             info = myInfo.getRepo(repo.getUUID());
+            if (info.getPath() != path) {
+                info = RepoInfo(repo.getUUID(), repo.getPath());
+            }
         } else {
             info = RepoInfo(repo.getUUID(), repo.getPath());
         }
+        //before my modifcation, when local2 is a replica of local 1, and when we check local2, say local 2 
+        //has a new commit, but local1 hasn't yet. local1's head will be updated here
+        //isn't this a bug??????
         info.updateHead(repo.getHead());
         myInfo.updateRepo(repo.getUUID(), info);
 
@@ -334,6 +340,21 @@ public:
     Syncer() : Thread()
     {
     }
+    void pullRepoLocal(RepoInfo &localRepoA,
+                       RepoInfo &localRepoB)
+    {
+        RepoControl repo = RepoControl(localRepoA.getPath());
+
+        DLOG("Local and Remote heads mismatch on repo %s", localRepoA.getRepoId().c_str());
+
+        repo.open();
+        if (!repo.hasCommit(localRepoB.getHead())) {
+            LOG("Pulling from local repo %s",
+                localRepoB.getPath().c_str());
+            repo.pull("localhost", localRepoB.getPath());
+        }
+        repo.close();
+    }
     void pullRepo(HostInfo &localHost,
                   HostInfo &remoteHost,
                   const std::string &uuid)
@@ -360,28 +381,50 @@ public:
 
         hostSnapshot = hosts;
 
+	// check local info
+
         for (auto &it : hostSnapshot) {
-            list<string> repos = it.second->listRepos();
+            RepoInfo info = it.second->getRepo(uuid);
 
-            for (auto &rIt : repos) {
-		// XXX: Fix this!
-                RepoInfo info = it.second->getRepo(uuid);
-
-                if (info.getHead() != localInfo.getHead()) {
-                    pullRepo(infoSnapshot, *(it.second), uuid);
-                }
+            if (info.getHead() != localInfo.getHead()) {
+                pullRepo(infoSnapshot, *(it.second), uuid);
             }
         }
     }
     void run() {
         while (!interruptionRequested()) {
             HostInfo infoSnapshot = myInfo;
-            list<string> repos = infoSnapshot.listRepos();
+            list<RepoInfo> repos = infoSnapshot.listRepos();
+            //this implementation seems to be wrong
+            list<RepoInfo> allrepos = infoSnapshot.listAllRepos();
 
             for (auto &it : repos) {
-                LOG("Syncer checking %s", it.c_str());
-                checkRepo(infoSnapshot, it);
+                LOG("Syncer checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
+                checkRepo(infoSnapshot, it.getRepoId());
             }
+            for (auto &it : allrepos) {
+                LOG("Syncer local checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
+                //check local repo
+                for (auto &it_cpy : allrepos) {
+                    /*
+                    if ((it.getRepoId() == it_cpy.getRepoId()) &&
+                      (it.getHead() != it_cpy.getHead())) {
+                        pullRepoLocal(it, it_cpy);
+                    } */
+
+                      LOG("local repo check, %s and %s have uuid %s and %s", it.getPath().c_str(),
+                          it_cpy.getPath().c_str(), it.getRepoId().c_str(), it_cpy.getRepoId().c_str());
+                    if (it.getRepoId() == it_cpy.getRepoId()) {
+                      LOG("local repo check, %s and %s have same uuid", it.getPath().c_str(),
+                          it_cpy.getPath().c_str());
+                      if (it.getHead() != it_cpy.getHead()) {
+                          LOG("local repo %s and %s don't have the same head",
+                              it.getPath().c_str(), it_cpy.getPath().c_str());
+                        pullRepoLocal(it, it_cpy);
+                      }
+                    }
+                }
+           }
 
             sleep(ORISYNC_SYNCINTERVAL);
         }
