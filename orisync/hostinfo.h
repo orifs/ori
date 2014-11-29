@@ -92,7 +92,10 @@ public:
     }
     void updateRepo(const std::string &repoId, const RepoInfo &info) {
         RepoInfo info_cpy = info;
-        repos[repoId] = info;
+        //do we want this condition? -Yinglei
+        if (!hasRepo(repoId) || repos[repoId].getPath() == info_cpy.getPath()) {
+            repos[repoId] = info;
+        }
         for (auto it = std::begin(allrepos); it != std::end(allrepos); it++) {
             if ((info_cpy.getRepoId() == (*it).getRepoId()) &&
                 (info_cpy.getPath() == (*it).getPath())) {

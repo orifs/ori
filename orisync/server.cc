@@ -302,12 +302,13 @@ public:
         if (myInfo.hasRepo(repo.getUUID())) {
             info = myInfo.getRepo(repo.getUUID());
             if (info.getPath() != path) {
-                info = RepoInfo(repo.getUUID(), repo.getPath());
+                 info = RepoInfo(repo.getUUID(), repo.getPath());
             }
         } else {
             info = RepoInfo(repo.getUUID(), repo.getPath());
         }
-        //before my modifcation, when local2 is a replica of local 1, and when we check local2, say local 2 
+        //before my change to updateRepo,
+        //when local2 is a replica of local 1, and when we check local2, say local 2 
         //has a new commit, but local1 hasn't yet. local1's head will be updated here
         //isn't this a bug??????
         info.updateHead(repo.getHead());
