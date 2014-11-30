@@ -920,7 +920,7 @@ LocalRepo::pull(Repo *r)
         }
     }
 
-    LocalRepoLock::sp _lock(lock());
+    //LocalRepoLock::sp _lock(lock());
 
     bytestream::ap objs(r->getObjects(toPull));
     receive(objs.get());

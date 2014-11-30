@@ -133,3 +133,8 @@ OriNet_Domainname()
     return domainname;
 }
 
+string
+OriNet_Username()
+{
+    return getlogin();
+}

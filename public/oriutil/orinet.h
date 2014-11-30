@@ -21,6 +21,7 @@ std::string OriNet_ResolveHost(const std::string &hostname);
 std::vector<std::string> OriNet_GetAddrs();
 std::string OriNet_Hostname();
 std::string OriNet_Domainname();
+std::string OriNet_Username();
 
 #endif /* __ORINET_H__ */
 
