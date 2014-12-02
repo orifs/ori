@@ -24,6 +24,7 @@ public:
     HostInfo(const std::string &hostId, const std::string &cluster) {
         this->hostId = hostId;
         this->cluster = cluster;
+        this->status = "OK";
     }
     ~HostInfo() {
     }
@@ -148,12 +149,26 @@ public:
     std::string getUsername() const {
         return username;
     }
+    void setStatus(const std::string &stat) {
+        status = stat;
+    }
+    std::string getStatus() const {
+        return status;
+    }
+    void setTime(const uint64_t &time) {
+        lasttime = time;
+    }
+    uint64_t getTime() const {
+        return lasttime;
+    }
 private:
     std::string preferredIp;
     std::string username;
     std::string host;
     std::string hostId;
     std::string cluster;
+    std::string status;
+    uint64_t lasttime;
     std::map<std::string, RepoInfo> repos;
     std::list<RepoInfo> allrepos;
 };

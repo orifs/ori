@@ -194,6 +194,7 @@ public:
         }
         hosts[hostId]->update(kv);
         hosts[hostId]->setPreferredIp(srcIp);
+        hosts[hostId]->setTime(time(NULL));
     }
     void parse(const char *buf, int len, sockaddr_in *source) {
         string ctxt;
@@ -221,8 +222,10 @@ public:
             uint64_t now = time(NULL);
             uint64_t ts = kv.getU64("time");
             if (ts > now + ORISYNC_ADVSKEW || ts < now - ORISYNC_ADVSKEW) {
-                WARNING("Host %s time out of sync by %d seconds.", kv.getStr("hostId").c_str(), (int)(ts - now));
-                WARNING("Ignoring host %s", kv.getStr("hostId").c_str());
+                string hostId = kv.getStr("hostId");
+                WARNING("Host %s time out of sync by %d seconds.", hostId.c_str(), (int)(ts - now));
+                WARNING("Ignoring host %s", hostId.c_str());
+                hosts[hostId]->setStatus("Time out of sync");
                 return;
             }
 
