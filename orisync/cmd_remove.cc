@@ -25,17 +25,18 @@
 using namespace std;
 
 int
-cmd_remove(int argc, const char *argv[])
+cmd_remove(int argc, const char *argv)
 {
     OriSyncConf rc = OriSyncConf();
 
-    if (argc != 2)
+/*    if (argc != 2)
     {
         cout << "Sepcify a repository to remove" << endl;
         cout << "usage: orisync remove <repository>" << endl;
     }
+*/
 
-    rc.removeRepo(argv[1]);
+    rc.removeRepo(argv);
 
     return 0;
 }

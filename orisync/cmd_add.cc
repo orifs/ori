@@ -26,20 +26,33 @@
 
 using namespace std;
 
-int
-cmd_add(int argc, const char *argv[])
-{
-    OriSyncConf rc = OriSyncConf();
+extern OriSyncConf rc;
+extern RWLock rcLock; 
 
+int
+cmd_add(int mode, const char *argv)
+{
+    //OriSyncConf rc = OriSyncConf();
+
+    //this check need to be resolved 
+    /*
     if (argc != 2)
     {
         cout << "Sepcify a repository to add" << endl;
         cout << "usage: orisync add <repository>" << endl;
     }
+    */
 
     // XXX: verify repo
-
-    rc.addRepo(argv[1]);
+    //
+    if (mode == 0) {
+        OriSyncConf rc = OriSyncConf();
+        rc.addRepo(argv, true);
+    } else {
+        RWKey::sp key = rcLock.writeLock();
+        rc.addRepo(argv, false);
+        LOG("repo added %s", argv);
+    }
 
     return 0;
 }

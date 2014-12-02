@@ -94,11 +94,12 @@ OriSyncConf::getUUID() const
 }
 
 void
-OriSyncConf::addRepo(const string &repoPath)
+OriSyncConf::addRepo(const string &repoPath, bool saveToDisk)
 {
     repos.push_back(repoPath);
 
-    save();
+    if (saveToDisk)
+        save();
 }
 
 void

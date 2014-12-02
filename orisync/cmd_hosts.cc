@@ -25,7 +25,7 @@
 using namespace std;
 
 int
-cmd_hosts(int argc, const char *argv[])
+cmd_hosts(int argc, const char *argv)
 {
     OriSyncConf rc = OriSyncConf();
     list<string> hosts = rc.getHosts();
