@@ -24,15 +24,14 @@
 
 using namespace std;
 
-extern OriSyncConf rc;
-extern RWLock rcLock;
+//extern OriSyncConf rc;
+//extern RWLock rcLock;
 
 int
 cmd_remove(int argc, const char *argv)
 {
-    OriSyncConf rc = OriSyncConf();
-
-    rc.removeRepo(argv);
+        OriSyncConf rc = OriSyncConf();
+        rc.removeRepo(argv);
 
     return 0;
 }
