@@ -25,7 +25,7 @@
 using namespace std;
 
 int
-cmd_list(int argc, const char *argv[])
+cmd_list(int argc, const char *argv)
 {
     OriSyncConf rc = OriSyncConf();
     list<string> repos = rc.getRepos();

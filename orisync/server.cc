@@ -35,6 +35,7 @@
 #include <event2/http_struct.h>
 #include <event2/buffer.h>
 #include <event2/util.h>
+#include <sys/un.h>
 
 #include <oriutil/debug.h>
 #include <oriutil/oristr.h>
@@ -50,6 +51,7 @@
 #include "repoinfo.h"
 #include "hostinfo.h"
 #include "repocontrol.h"
+#include "commands.h"
 
 using namespace std;
 
@@ -64,8 +66,11 @@ using namespace std;
 // Sync interval
 #define ORISYNC_SYNCINTERVAL    5
 
-OriSyncConf rc;
+#define OK 0
+#define ERROR 1
 
+OriSyncConf rc;
+RWLock rcLock;
 HostInfo myInfo;
 RWLock infoLock;
 map<string, HostInfo *> hosts;
@@ -326,9 +331,11 @@ public:
         return;
     }
     void run() {
-        list<string> repos = rc.getRepos();
 
         while (!interruptionRequested()) {
+            RWKey::sp key = rcLock.readLock();
+            list<string> repos = rc.getRepos();
+            key.reset();
             for (auto &it : repos) {
                 updateRepo(it);
             }
@@ -457,6 +464,40 @@ Httpd_getRoot(struct evhttp_request *req, void *arg)
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
 
+void
+call_cmd(int sock)
+{
+    /*
+    int n;
+    char buffer[256];
+    string command;
+
+    bzero(buffer, 256);
+    n = read(sock, buffer, 255);
+    if (n < 0) {
+        perror("ERROR reading from socket");
+        return;
+    }
+    LOG("the received command is: %s", buffer);
+    command = buffer;
+    //parse and execute command
+    */
+    fdstream in(sock, -1);
+    string cmd;
+    string data;
+
+    in.readPStr(cmd);
+    in.readLPStr(data);
+
+    DLOG("callcmd %s", cmd.c_str());
+    fdwstream fs(sock);
+
+    int idx = lookupcmd(cmd.c_str());
+    commands[idx].cmd(1, data.c_str());
+    fs.writeUInt8(OK);
+    //fs.writeLPStr(result);
+}
+
 int
 start_server()
 {
@@ -475,6 +516,48 @@ start_server()
     listener->start();
     repoMonitor->start();
     syncer->start();
+
+    //start uds server
+    int status, sock, client, len;
+    string orisyncSock;
+    socklen_t clilen;
+    struct sockaddr_un serAddr, cliAddr;
+
+    string oriHome = Util_GetHome() + "/.ori";
+    orisyncSock = oriHome + "/orisyncSock";
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0)
+        throw SystemException();
+
+    memset(&serAddr, 0, sizeof(serAddr));
+    serAddr.sun_family = AF_UNIX;
+    strcpy(serAddr.sun_path, orisyncSock.c_str());
+    unlink(orisyncSock.c_str());
+    len = SUN_LEN(&serAddr);
+    status = ::bind(sock, (struct sockaddr *)&serAddr, len);
+    if (status < 0)
+        throw SystemException();
+
+    status = listen(sock, 5);
+    if (status < 0)
+        throw SystemException();
+
+    clilen = sizeof(cliAddr);
+    while (1) {
+        client = accept(sock, (struct sockaddr *)&cliAddr, &clilen);
+        if (client < 0) {
+            perror("accept: ");
+            continue;
+        }
+        LOG("new command received");
+
+        fdstream fs(client, -1);
+        uint8_t respOK = OK;
+        write(client, &respOK, 1);
+        call_cmd(client);
+    }
+
+    close(sock);
 
     /*
     struct event_base *base = event_base_new();

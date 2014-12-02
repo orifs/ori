@@ -18,119 +18,28 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #include <string>
 #include <iostream>
 
 using namespace std;
 
+#include <oriutil/systemexception.h>
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/orifile.h>
 #include <ori/version.h>
 #include <ori/localrepo.h>
+#include <ori/orisyncclient.h>
+
+#include "commands.h"
 
 #define ORISYNC_LOGFILE         "/.ori/orisync.log"
 
-/********************************************************************
- *
- *
- * Command Infrastructure
- *
- *
- ********************************************************************/
 
-#define CMD_DEBUG               1
-
-typedef struct Cmd {
-    const char *name;
-    const char *desc;
-    int (*cmd)(int argc, const char *argv[]);
-    void (*usage)(void);
-    int flags;
-} Cmd;
-
-// General Operations
-int start_server();
-int cmd_init(int argc, const char *argv[]);
-int cmd_add(int argc, const char *argv[]);
-int cmd_remove(int argc, const char *argv[]);
-int cmd_list(int argc, const char *argv[]);
-int cmd_hostadd(int argc, const char *argv[]);
-int cmd_hostremove(int argc, const char *argv[]);
-int cmd_hosts(int argc, const char *argv[]);
-static int cmd_help(int argc, const char *argv[]);
-// Debug Operations
-static int cmd_foreground(int argc, const char *argv[]);
-
-static Cmd commands[] = {
-    {
-        "init",
-        "Interactively configure OriSync",
-        cmd_init,
-        NULL,
-        0,
-    },
-    {
-        "add",
-        "Add a repository to manage",
-        cmd_add,
-        NULL,
-        0,
-    },
-    {
-        "remove",
-        "Remove a repository from OriSync",
-        cmd_remove,
-        NULL,
-        0,
-    },
-    {
-        "list",
-        "List registered repositories",
-        cmd_list,
-        NULL,
-        0,
-    },
-    {
-        "hostadd",
-        "Add static host",
-        cmd_hostadd,
-        NULL,
-        0,
-    },
-    {
-        "hostremove",
-        "Remove static host",
-        cmd_hostremove,
-        NULL,
-        0,
-    },
-    {
-        "hosts",
-        "List static hosts",
-        cmd_hosts,
-        NULL,
-        0,
-    },
-    {
-        "help",
-        "Display the help message",
-        cmd_help,
-        NULL,
-        0,
-    },
-    {
-        "foreground",
-        "Foreground mode for debugging",
-        cmd_foreground,
-        NULL,
-        CMD_DEBUG,
-    },
-    { NULL, NULL, NULL, NULL }
-};
-
-static int
+int
 lookupcmd(const char *cmd)
 {
     int i;
@@ -144,21 +53,21 @@ lookupcmd(const char *cmd)
     return -1;
 }
 
-static int
-cmd_help(int argc, const char *argv[])
+int
+cmd_help(int argc, const char *argv)
 {
     int i = 0;
 
     if (argc >= 2) {
-        i = lookupcmd(argv[1]);
+        i = lookupcmd(argv);
         if (i != -1 && commands[i].usage != NULL) {
             commands[i].usage();
             return 0;
         }
         if (i == -1) {
-            printf("Unknown command '%s'\n", argv[1]);
+            printf("Unknown command '%s'\n", argv);
         } else {
-            printf("No help for command '%s'\n", argv[1]);
+            printf("No help for command '%s'\n", argv);
         }
         return 0;
     }
@@ -182,8 +91,8 @@ cmd_help(int argc, const char *argv[])
     return 0;
 }
 
-static int
-cmd_foreground(int argc, const char *argv[])
+int
+cmd_foreground(int argc, const char *argv)
 {
     string oriHome = Util_GetHome() + "/.ori";
 
@@ -198,14 +107,134 @@ cmd_foreground(int argc, const char *argv[])
     return start_server();
 }
 
+/*
+ * OrisyncClient
+ */
+OrisyncClient::OrisyncClient()
+{
+}
+
+OrisyncClient::OrisyncClient(const string &udsPath)
+    : fd(-1)
+{
+    orisyncPath = udsPath;
+}
+
+OrisyncClient::~OrisyncClient()
+{
+    disconnect();
+}
+
+int OrisyncClient::connect()
+{
+    int status, sock;
+    socklen_t len;
+    struct sockaddr_un remote;
+
+    sock = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock < 0)
+        return -1;
+        //throw SystemException();
+
+    memset(&remote, 0, sizeof(remote));
+    remote.sun_family = AF_UNIX;
+    strcpy(remote.sun_path, orisyncPath.c_str());
+    len = SUN_LEN(&remote);
+    status = ::connect(sock, (struct sockaddr *)&remote, len);
+    if (status < 0)
+        return -1;
+        //throw SystemException();
+
+    fd = sock;
+    streamToChild.reset(new fdwstream(fd));
+
+    // Sync by waiting for message from server
+    if (!respIsOK()) {
+        WARNING("Couldn't connect to UDS server!");
+        return -1;
+    }
+
+    return 0;
+}
+
+void OrisyncClient::disconnect()
+{
+    close(fd);
+
+    fd = -1;
+}
+
+bool OrisyncClient::connected() {
+    return fd != -1;
+}
+
+/*
+void OrisyncClient::sendCommand(const string &command) {
+    ASSERT(connected());
+    streamToChild->writePStr(command);
+}
+*/
+
+void OrisyncClient::sendData(const string &data) {
+    ASSERT(connected());
+    size_t len = data.size();
+    size_t off = 0;
+    while (len > 0) {
+        ssize_t written = write(fd, data.data()+off, len);
+        if (written < 0) {
+            perror("OrisyncClient::sendData write");
+            exit(1);
+        }
+        len -= written;
+        off += written;
+    }
+}
+
+bytestream *OrisyncClient::getStream() {
+    return new fdstream(fd, -1);
+}
+
+bool OrisyncClient::respIsOK() {
+    uint8_t resp = 0;
+    int status = read(fd, &resp, 1);
+    if (status == 1 && resp == 0) return true;
+    else {
+        string errStr;
+        fdstream fs(fd, -1);
+        fs.readPStr(errStr);
+        WARNING("UDS error (%d): %s", (int)resp, errStr.c_str());
+        return false;
+    }
+}
+
+int
+OrisyncClient::callCmd(const string &cmd, const string &data)
+{
+    strwstream ss;
+    ss.writePStr(cmd);
+    ss.writeLPStr(data);
+    sendData(ss.str());
+
+    bool ok = respIsOK();
+    //bytestream::ap bs(getStream());
+    if (ok) {
+        //string result;
+        //bs->readLPStr(result);
+        //return result;
+        return 0;
+    }
+
+    return -1;
+}
+    
 int
 main(int argc, char *argv[])
 {
     int idx;
+    string oriHome = Util_GetHome() + "/.ori";
 
     if (argc == 1) {
         pid_t pid;
-        string oriHome = Util_GetHome() + "/.ori";
 
         if (!OriFile_Exists(oriHome))
             OriFile_MkDir(oriHome);
@@ -235,6 +264,22 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    return commands[idx].cmd(argc-1, (const char **)argv+1);
+    if (commands[idx].argc == 0)
+        return commands[idx].cmd(0, ((const char **)argv+1)[1]);
+
+    if (argc-1 != commands[idx].argc)
+    {
+        cout << commands[idx].msg;
+        cout << argc << endl;
+        cout << commands[idx].argc << endl;
+        return 0;
+    }
+
+    //create new uds client
+    //write to server, seems we can only write string. can use their stream method?
+    OrisyncClient client(oriHome + "/orisyncSock");
+    commands[idx].cmd(0, ((const char**)argv+1)[1]);
+    if (client.connect() == 0)
+        return client.callCmd(commands[idx].name, ((const char **)argv+1)[1]);
 }
 

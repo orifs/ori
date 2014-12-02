@@ -25,7 +25,7 @@
 using namespace std;
 
 int
-cmd_hostadd(int argc, const char *argv[])
+cmd_hostadd(int argc, const char *argv)
 {
     OriSyncConf rc = OriSyncConf();
 
@@ -37,7 +37,7 @@ cmd_hostadd(int argc, const char *argv[])
 
     // XXX: verify hostname
 
-    rc.addHost(argv[1]);
+    rc.addHost(argv);
 
     return 0;
 }

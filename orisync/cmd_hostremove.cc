@@ -25,7 +25,7 @@
 using namespace std;
 
 int
-cmd_hostremove(int argc, const char *argv[])
+cmd_hostremove(int argc, const char *argv)
 {
     OriSyncConf rc = OriSyncConf();
 
@@ -35,7 +35,7 @@ cmd_hostremove(int argc, const char *argv[])
         cout << "usage: orisync hostremove <HOSTNAME>" << endl;
     }
 
-    rc.removeHost(argv[1]);
+    rc.removeHost(argv);
 
     return 0;
 }
