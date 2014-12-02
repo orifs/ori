@@ -380,21 +380,32 @@ public:
 
         repo.open();
         if (!repo.hasCommit(remote.getHead())) {
-            LOG("Pulling from %s:%s",
+            std::string username = remoteHost.getUsername();
+            std::string srcPath = (username.empty()) ? remoteHost.getPreferredIp() : username + '@' + remoteHost.getPreferredIp();
+            LOG("Pulling from %s@%s:%s", username.c_str(),
                 remoteHost.getPreferredIp().c_str(),
                 remote.getPath().c_str());
-            repo.pull(remoteHost.getPreferredIp(), remote.getPath());
+            repo.pull(srcPath, remote.getPath());
         }
         repo.close();
     }
     void checkRepo(HostInfo &infoSnapshot, const std::string &uuid)
     {
         map<string, HostInfo *> hostSnapshot;
+
+        if (!infoSnapshot.hasRepo(uuid)) {
+            DLOG("Local info not found for repo %s", uuid.c_str());
+            return;
+        }
         RepoInfo localInfo = infoSnapshot.getRepo(uuid);
 
         hostSnapshot = hosts;
 
         for (auto &it : hostSnapshot) {
+            if (!it.second->hasRepo(uuid)) {
+                DLOG("Repo %s not found on host %s", uuid.c_str(), it.second->getHost().c_str());
+                continue;
+            }
             RepoInfo info = it.second->getRepo(uuid);
 
             if (info.getHead() != localInfo.getHead()) {
@@ -511,6 +522,8 @@ start_server()
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
     // XXX: Update addresses periodically
     myInfo.setHost(OriStr_Join(OriNet_GetAddrs(), ','));
+    MSG("User name: %s", OriNet_Username().c_str());
+    myInfo.setUsername(OriNet_Username());
 
     announcer->start();
     listener->start();

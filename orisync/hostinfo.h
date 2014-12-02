@@ -33,6 +33,7 @@ public:
         assert(hostId == kv.getStr("hostId"));
         assert(cluster == kv.getStr("cluster"));
 
+        username = kv.getStr("username");
         host = kv.getStr("host");
         numRepos = kv.getU8("numRepos");
 
@@ -57,6 +58,7 @@ public:
         int i = 0;
 
         kv.putU64("time", (uint64_t)time(NULL));
+        kv.putStr("username", username);
         kv.putStr("host", host);
         kv.putStr("hostId", hostId);
         kv.putStr("cluster", cluster);
@@ -140,8 +142,15 @@ public:
     std::string getPreferredIp() const {
         return preferredIp;
     }
+    void setUsername(const std::string &uname) {
+        username = uname;
+    }
+    std::string getUsername() const {
+        return username;
+    }
 private:
     std::string preferredIp;
+    std::string username;
     std::string host;
     std::string hostId;
     std::string cluster;
