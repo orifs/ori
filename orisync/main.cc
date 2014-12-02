@@ -275,8 +275,6 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    //create new uds client
-    //write to server, seems we can only write string. can use their stream method?
     OrisyncClient client(oriHome + "/orisyncSock");
     commands[idx].cmd(0, ((const char**)argv+1)[1]);
     if (client.connect() == 0)
