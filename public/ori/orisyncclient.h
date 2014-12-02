@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Stanford University
+ * Copyright (c) 2012-2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,37 +14,39 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#ifndef __ORISYNCCLIENT_H__
+#define __ORISYNCCLIENT_H__
 
 #include <string>
-#include <iostream>
 
-#include <ori/localrepo.h>
+#include <oriutil/stream.h>
+#include "object.h"
 
-#include "orisyncconf.h"
-
-using namespace std;
-
-extern OriSyncConf rc;
-extern RWLock rcLock; 
-
-int
-cmd_add(int mode, const char *argv)
+class OrisyncClient
 {
-    //OriSyncConf rc = OriSyncConf();
+public:
+    OrisyncClient();
+    OrisyncClient(const std::string &remotePath);
+    ~OrisyncClient();
 
-    // XXX: verify repo
-    //
-    if (mode == 0) {
-        OriSyncConf rc = OriSyncConf();
-        rc.addRepo(argv, true);
-    } else {
-        RWKey::sp key = rcLock.writeLock();
-        rc.addRepo(argv, false);
-        LOG("repo added %s", argv);
-    }
+    int connect();
+    void disconnect();
+    bool connected();
 
-    return 0;
-}
+    // At the moment the protocol is synchronous
+    void sendData(const std::string &data);
+    bytestream *getStream();
 
+    int callCmd(const string &cmd, const string &data);
+
+    bool respIsOK();
+
+private:
+    std::string orisyncPath, remoteRepo;
+
+    int fd;
+    bytewstream::ap streamToChild;
+};
+
+
+#endif /* __ORISYNCCLIENT_H__ */

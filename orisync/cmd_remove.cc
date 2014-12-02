@@ -24,17 +24,13 @@
 
 using namespace std;
 
+extern OriSyncConf rc;
+extern RWLock rcLock;
+
 int
 cmd_remove(int argc, const char *argv)
 {
     OriSyncConf rc = OriSyncConf();
-
-/*    if (argc != 2)
-    {
-        cout << "Sepcify a repository to remove" << endl;
-        cout << "usage: orisync remove <repository>" << endl;
-    }
-*/
 
     rc.removeRepo(argv);
 
