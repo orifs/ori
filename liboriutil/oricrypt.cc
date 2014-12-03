@@ -182,7 +182,7 @@ OriCrypt_Encrypt(const string &plaintext, const string &key)
     EVP_CIPHER_CTX_cleanup(&ctx);
 
     ciphertext.append((const char *)buf, clen+flen);
-    delete buf;
+    delete[] buf;
 
     return ciphertext;
 }
@@ -226,7 +226,7 @@ OriCrypt_Decrypt(const string &ciphertext, const string &key)
     EVP_CIPHER_CTX_cleanup(&ctx);
 
     plaintext.assign((const char *)buf, plen+flen);
-    delete buf;
+    delete[] buf;
 
     return plaintext;
 }
