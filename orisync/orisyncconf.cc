@@ -103,11 +103,12 @@ OriSyncConf::addRepo(const string &repoPath, bool saveToDisk)
 }
 
 void
-OriSyncConf::removeRepo(const string &repoPath)
+OriSyncConf::removeRepo(const string &repoPath, bool saveToDisk)
 {
     repos.remove(repoPath);
 
-    save();
+    if (saveToDisk)
+        save();
 }
 
 list<string>

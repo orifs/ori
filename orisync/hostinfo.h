@@ -123,7 +123,7 @@ public:
                 iter++;
             }
         }
-    }
+    } 
     std::list<std::string> listRepos() const {
         std::map<std::string, RepoInfo>::const_iterator it;
         std::list<std::string> val;
@@ -160,6 +160,9 @@ public:
     }
     uint64_t getTime() const {
         return lasttime;
+    void clearRepos() {
+        repos.clear();
+        allrepos.clear();
     }
 private:
     std::string preferredIp;
