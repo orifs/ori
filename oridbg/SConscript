@@ -53,6 +53,8 @@ if sys.platform != "darwin":
 if sys.platform == "linux2":
     libs += ['uuid', 'resolv']
 
+libs += ['edit']
+
 ori_env.Append(LIBS = libs)
 
 ori_env.Program("oridbg", src)

@@ -22,7 +22,7 @@
 #include <utility>
 #include <string>
 #include <map>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/stream.h>
 #include "object.h"
@@ -31,7 +31,7 @@
 class LocalObject : public Object
 {
 public:
-    typedef std::tr1::shared_ptr<LocalObject> sp;
+    typedef std::shared_ptr<LocalObject> sp;
 
     LocalObject(PfTransaction::sp transaction, size_t ix);
     LocalObject(Packfile::sp packfile, const IndexEntry &entry);

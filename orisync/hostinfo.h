@@ -52,8 +52,7 @@ public:
     }
     std::string getBlob() const {
         KVSerializer kv;
-        int i;
-        std::map<std::string, RepoInfo>::const_iterator it;
+        int i = 0;
 
         kv.putU64("time", (uint64_t)time(NULL));
         kv.putStr("host", host);
@@ -61,12 +60,13 @@ public:
         kv.putStr("cluster", cluster);
         kv.putU8("numRepos", repos.size());
 
-        for (i = 0, it = repos.begin(); it != repos.end(); i++, it++) {
+        for (auto const &it : repos) {
             char prefix[32];
 
             snprintf(prefix, sizeof(prefix), "repo.%d", i);
+	    i++;
 
-            it->second.putKV(kv, prefix);
+            it.second.putKV(kv, prefix);
         }
 
         return kv.getBlob();
@@ -100,8 +100,8 @@ public:
         std::map<std::string, RepoInfo>::const_iterator it;
         std::list<std::string> val;
 
-        for (it = repos.begin(); it != repos.end(); it++) {
-            val.push_back(it->first);
+        for (auto const &it : repos) {
+            val.push_back(it.first);
         }
 
         return val;

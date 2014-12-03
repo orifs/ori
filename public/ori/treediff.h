@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include <boost/tr1/unordered_map.hpp>
+#include <unordered_map>
 
 #include "repo.h"
 #include "tree.h"
@@ -81,7 +81,7 @@ public:
     std::vector<TreeDiffEntry> entries;
 
 private:
-    std::tr1::unordered_map<std::string, size_t> latestEntries;
+    std::unordered_map<std::string, size_t> latestEntries;
     void _resetLatestEntry(const std::string &filepath);
 };
 

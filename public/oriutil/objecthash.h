@@ -53,5 +53,17 @@ private:
 
 std::size_t hash_value(ObjectHash const& key);
 
+namespace std
+{
+    template<>
+    struct hash<ObjectHash>
+    {
+        std::size_t operator()(ObjectHash const& key) const
+        {
+            return hash_value(key);
+        }
+    };
+}
+
 #endif /* __OBJECTHASH_H__ */
 

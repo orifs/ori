@@ -34,13 +34,11 @@ cmd_verify(int argc, char * const argv[])
     int status = 0;
     string error;
     set<ObjectInfo> objects = repository.listObjects();
-    set<ObjectInfo>::iterator it;
 
-    for (it = objects.begin(); it != objects.end(); it++)
-    {
-	error = repository.verifyObject((*it).hash);
+    for (auto &it : objects) {
+	error = repository.verifyObject(it.hash);
 	if (error != "") {
-	    cout << "Object " << (*it).hash.hex() << endl;
+	    cout << "Object " << it.hash.hex() << endl;
 	    cout << error << endl;
 	    status = 1;
 	}

@@ -19,6 +19,7 @@ Build Dependencies:
  - pkg-config
 
 Dependences:
+ - C++11 (Required)
  - openssl (tested with 1.0.1+) (Required)
  - boost headers (tested with 1.48+) (Required)
  - libevent 2.0 (Required)
@@ -27,6 +28,7 @@ Dependences:
  - mDNSResponder (for Multipull Support)
  - libexecinfo (FreeBSD only)
  - libxml2 (S3 Backup)
+ - libedit (oridbg only)
 
 Build flags can be added to 'Local.sc' in the root directory, or through the 
 command line.  The available options can be displayed by typing 'scons --help'.  

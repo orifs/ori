@@ -32,14 +32,10 @@ extern LocalRepo repository;
 int
 cmd_snapshots(int argc, char * const argv[])
 {
-    map<string, ObjectHash> snapshots;
-    map<string, ObjectHash>::iterator it;
+    map<string, ObjectHash> snapshots = repository.listSnapshots();
 
-    snapshots = repository.listSnapshots();
-
-    for (it = snapshots.begin(); it != snapshots.end(); it++)
-    {
-        cout << (*it).first << endl;
+    for (auto &it : snapshots) {
+        cout << it.first << endl;
     }
 
     return 0;

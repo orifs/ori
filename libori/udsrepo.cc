@@ -34,7 +34,6 @@
 #include <ori/udsrepo.h>
 
 using namespace std;
-using namespace std::tr1;
 
 /*
  * UDSRepo

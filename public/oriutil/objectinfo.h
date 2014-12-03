@@ -40,7 +40,7 @@ struct ObjectInfo {
     enum ZipAlgo { ZIPALGO_UNKNOWN, ZIPALGO_NONE, ZIPALGO_FASTLZ, ZIPALGO_LZMA };
 
     ObjectInfo();
-    ObjectInfo(const ObjectHash &hash);
+    explicit ObjectInfo(const ObjectHash &hash);
 
     std::string toString() const;
     void fromString(const std::string &info);

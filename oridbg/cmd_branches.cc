@@ -31,14 +31,12 @@ cmd_branches(int argc, char * const argv[])
 {
     string currentBranch = repository.getBranch();
     set<string> branches = repository.listBranches();
-    set<string>::iterator it;
 
-    for (it = branches.begin(); it != branches.end(); it++)
-    {
-	if (currentBranch == (*it))
-	    cout << (*it) << "*" << endl;
+    for (auto &it : branches) {
+	if (currentBranch == it)
+	    cout << it << "*" << endl;
 	else 
-	    cout << (*it) << endl;
+	    cout << it << endl;
     }
 
     return 0;

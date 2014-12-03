@@ -31,8 +31,8 @@
 #include <string>
 #include <map>
 #include <algorithm>
-#include <boost/tr1/memory.hpp>
-#include <oriutil/oritr1.h>
+#include <memory>
+#include <unordered_map>
 
 #include <oriutil/debug.h>
 #include <oriutil/orifile.h>
@@ -51,7 +51,6 @@
 #include "server.h"
 
 using namespace std;
-using namespace std::tr1;
 
 // XXX: Hacky remove dependence
 extern mount_ori_config config;

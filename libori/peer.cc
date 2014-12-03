@@ -20,7 +20,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
@@ -34,7 +34,6 @@
 #include <ori/peer.h>
 
 using namespace std;
-using namespace std::tr1;
 
 /********************************************************************
  *

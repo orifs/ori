@@ -61,19 +61,16 @@ cmd_filelog(int argc, char * const argv[])
 	revs.push_back(make_pair(lastCommit, lastCommitHash));
     }
 
-    for (list<pair<Commit, ObjectHash> >::iterator it = revs.begin();
-            it != revs.end();
-            it++) {
-	Commit c = (*it).first;
+    for (auto &it : revs) {
+	Commit c = it.first;
 	time_t timeVal = c.getTime();
 	char timeStr[26];
 
 	ctime_r(&timeVal, timeStr);
 
-	cout << "Commit:  " << (*it).second.hex() << endl;
+	cout << "Commit:  " << it.second.hex() << endl;
 	cout << "Parents: " << c.getParents().first.hex() << endl;
 	cout << "Author:  " << c.getUser() << endl;
-	// XXX: print file id?
 	cout << "Date:    " << timeStr << endl;
 	cout << c.getMessage() << endl << endl;
     }

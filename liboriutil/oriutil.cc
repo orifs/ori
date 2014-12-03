@@ -68,15 +68,15 @@ Util_IsValidName(const string &path)
     if (path.size() == 0)
         return false;
 
-    for (it = path.begin(); it != path.end(); it++)
+    for (const char &it : path)
     {
-        if (*it >= 'a' && *it <= 'z')
+        if (it >= 'a' && it <= 'z')
             continue;
-        if (*it >= 'A' && *it <= 'Z')
+        if (it >= 'A' && it <= 'Z')
             continue;
-        if (*it >= '0' && *it <= '9')
+        if (it >= '0' && it <= '9')
             continue;
-        if (*it == '_' || *it == '.')
+        if (it == '_' || it == '.')
             continue;
         return false;
     }

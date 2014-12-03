@@ -26,7 +26,7 @@
 #include <string>
 #include <set>
 #include <iostream>
-#include <boost/tr1/unordered_map.hpp>
+#include <unordered_map>
 
 #include <oriutil/debug.h>
 #include <oriutil/runtimeexception.h>
@@ -37,7 +37,6 @@
 #include <ori/index.h>
 
 using namespace std;
-using namespace std::tr1;
 
 /// Adds a checksum
 #define TOTAL_ENTRYSIZE (IndexEntry::SIZE + 16)

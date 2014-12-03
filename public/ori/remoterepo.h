@@ -18,7 +18,7 @@
 #define __REMOTEREPO_H__
 
 #include <string>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include "repo.h"
 #include "httpclient.h"
@@ -28,7 +28,7 @@
 class RemoteRepo
 {
 public:
-    typedef std::tr1::shared_ptr<RemoteRepo> sp;
+    typedef std::shared_ptr<RemoteRepo> sp;
 
     RemoteRepo();
     ~RemoteRepo();
@@ -42,9 +42,9 @@ public:
     }
 private:
     Repo *r;
-    std::tr1::shared_ptr<HttpClient> hc;
-    std::tr1::shared_ptr<SshClient> sc;
-    std::tr1::shared_ptr<UDSClient> uc;
+    std::shared_ptr<HttpClient> hc;
+    std::shared_ptr<SshClient> sc;
+    std::shared_ptr<UDSClient> uc;
     std::string url;
 };
 
