@@ -13,6 +13,7 @@ src = [
     "cmd_hostadd.cc",
     "cmd_hostremove.cc",
     "cmd_hosts.cc",
+    "cmd_status.cc",
     "main.cc",
     "repocontrol.cc",
     "server.cc",

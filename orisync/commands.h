@@ -31,6 +31,7 @@ int cmd_hostremove(int argc, const char *argv);
 int cmd_hosts(int argc, const char *argv);
 int cmd_help(int argc, const char *argv);
 int cmd_foreground(int argc, const char *argv);
+int cmd_status(int argc, const char *argv);
 int lookupcmd(const char *cmd);
 
 static Cmd commands[] = {
@@ -110,6 +111,15 @@ static Cmd commands[] = {
         "foreground",
         "Foreground mode for debugging",
         cmd_foreground,
+        NULL,
+        CMD_DEBUG,
+        0,
+        "",
+    },
+    {
+        "status",
+        "Show ori cluster status",
+        cmd_status,
         NULL,
         CMD_DEBUG,
         0,
