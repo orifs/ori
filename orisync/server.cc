@@ -336,6 +336,9 @@ public:
             RWKey::sp key = rcLock.readLock();
             list<string> repos = rc.getRepos();
             key.reset();
+            RWKey::sp key1 = rcLock.readLock();
+            myInfo.clearRepos();
+            key1.reset();
             for (auto &it : repos) {
                 updateRepo(it);
             }
@@ -475,39 +478,86 @@ Httpd_getRoot(struct evhttp_request *req, void *arg)
     evhttp_send_reply(req, HTTP_OK, "OK", buf);
 }
 
-void
-call_cmd(int sock)
+class UdsServer : public Thread
 {
-    /*
-    int n;
-    char buffer[256];
-    string command;
+public:
+    UdsServer() : Thread()
+    {
+        int status, sock, len;
+        string orisyncSock;
+        struct sockaddr_un serAddr;
 
-    bzero(buffer, 256);
-    n = read(sock, buffer, 255);
-    if (n < 0) {
-        perror("ERROR reading from socket");
-        return;
+        string oriHome = Util_GetHome() + "/.ori";
+        orisyncSock = oriHome + "/orisyncSock";
+        sock = socket(AF_UNIX, SOCK_STREAM, 0);
+        if (sock < 0)
+            throw SystemException();
+
+        memset(&serAddr, 0, sizeof(serAddr));
+        serAddr.sun_family = AF_UNIX;
+        strcpy(serAddr.sun_path, orisyncSock.c_str());
+        unlink(orisyncSock.c_str());
+        len = SUN_LEN(&serAddr);
+        status = ::bind(sock, (struct sockaddr *)&serAddr, len);
+        if (status < 0)
+            throw SystemException();
+
+        status = listen(sock, 5);
+        if (status < 0)
+            throw SystemException();
+
+        listenFd = sock;
     }
-    LOG("the received command is: %s", buffer);
-    command = buffer;
-    //parse and execute command
-    */
-    fdstream in(sock, -1);
-    string cmd;
-    string data;
+    ~UdsServer()
+    {
+        unlink(orisyncSock.c_str());
+        close(listenFd);
+    }
+    void call_cmd(int sock)
+    {
+        fdstream in(sock, -1);
+        string cmd;
+        string data;
 
-    in.readPStr(cmd);
-    in.readLPStr(data);
+        in.readPStr(cmd);
+        in.readLPStr(data);
 
-    DLOG("callcmd %s", cmd.c_str());
-    fdwstream fs(sock);
+        DLOG("callcmd %s", cmd.c_str());
+        fdwstream fs(sock);
 
-    int idx = lookupcmd(cmd.c_str());
-    commands[idx].cmd(1, data.c_str());
-    fs.writeUInt8(OK);
-    //fs.writeLPStr(result);
-}
+        int idx = lookupcmd(cmd.c_str());
+        commands[idx].cmd(1, data.c_str());
+        fs.writeUInt8(OK);
+    }
+    void run()
+    {   
+        int client;
+        socklen_t clilen;
+        struct sockaddr_un cliAddr;
+
+        clilen = sizeof(cliAddr);
+
+        while (!interruptionRequested()) {
+            client = accept(listenFd, (struct sockaddr *)&cliAddr, &clilen);
+            if (client < 0) {
+                perror("accept: ");
+                continue;
+            }
+            LOG("new command received");
+
+            fdstream fs(client, -1);
+            uint8_t respOK = OK;
+            write(client, &respOK, 1);
+            call_cmd(client);
+            close(client);
+        }
+    }
+private:
+    int listenFd;
+    string orisyncSock;
+};
+
+UdsServer *udsServer;
 
 int
 start_server()
@@ -518,6 +568,7 @@ start_server()
     listener = new Listener();
     repoMonitor = new RepoMonitor();
     syncer = new Syncer();
+    udsServer = new UdsServer();
 
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
     // XXX: Update addresses periodically
@@ -529,48 +580,8 @@ start_server()
     listener->start();
     repoMonitor->start();
     syncer->start();
+    udsServer->start();
 
-    //start uds server
-    int status, sock, client, len;
-    string orisyncSock;
-    socklen_t clilen;
-    struct sockaddr_un serAddr, cliAddr;
-
-    string oriHome = Util_GetHome() + "/.ori";
-    orisyncSock = oriHome + "/orisyncSock";
-    sock = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sock < 0)
-        throw SystemException();
-
-    memset(&serAddr, 0, sizeof(serAddr));
-    serAddr.sun_family = AF_UNIX;
-    strcpy(serAddr.sun_path, orisyncSock.c_str());
-    unlink(orisyncSock.c_str());
-    len = SUN_LEN(&serAddr);
-    status = ::bind(sock, (struct sockaddr *)&serAddr, len);
-    if (status < 0)
-        throw SystemException();
-
-    status = listen(sock, 5);
-    if (status < 0)
-        throw SystemException();
-
-    clilen = sizeof(cliAddr);
-    while (1) {
-        client = accept(sock, (struct sockaddr *)&cliAddr, &clilen);
-        if (client < 0) {
-            perror("accept: ");
-            continue;
-        }
-        LOG("new command received");
-
-        fdstream fs(client, -1);
-        uint8_t respOK = OK;
-        write(client, &respOK, 1);
-        call_cmd(client);
-    }
-
-    close(sock);
 
     /*
     struct event_base *base = event_base_new();

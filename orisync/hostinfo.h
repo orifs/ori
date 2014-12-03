@@ -122,7 +122,7 @@ public:
                 iter++;
             }
         }
-    }
+    } 
     std::list<std::string> listRepos() const {
         std::map<std::string, RepoInfo>::const_iterator it;
         std::list<std::string> val;
@@ -147,6 +147,10 @@ public:
     }
     std::string getUsername() const {
         return username;
+    }
+    void clearRepos() {
+        repos.clear();
+        allrepos.clear();
     }
 private:
     std::string preferredIp;
