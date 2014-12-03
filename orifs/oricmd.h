@@ -37,6 +37,7 @@ private:
     std::string cmd_remote(strstream &str);
     std::string cmd_branch(strstream &str);
     std::string cmd_version(strstream &str);
+    std::string cmd_purgesnapshot(strstream &str);
     OriPriv *priv;
 };
 

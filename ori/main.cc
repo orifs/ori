@@ -232,7 +232,7 @@ static Cmd commands[] = {
         "Purge snapshot (NS)",
         cmd_purgesnapshot,
         NULL,
-        CMD_DEBUG,
+        CMD_NEED_FUSE | CMD_DEBUG,
     },
     {
         "remote",

@@ -88,6 +88,8 @@ OriCommand::process(const string &data)
         return cmd_branch(str);
     if (cmd == "version")
         return cmd_version(str);
+    if (cmd == "purgesnapshot")
+	return cmd_purgesnapshot(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -526,6 +528,33 @@ OriCommand::cmd_version(strstream &str)
     resp.writePStr("RELEASE");
 #endif
 
+    return resp.str();
+}
+
+string
+OriCommand::cmd_purgesnapshot(strstream &str)
+{
+    FUSE_PLOG("Command: purgesnapshot");
+
+    LocalRepo *repo = priv->getRepo();
+    strwstream resp;
+    ObjectHash commitId;
+
+    str.readHash(commitId);
+
+    if (repo->getObjectType(commitId) != ObjectInfo::Commit) {
+	resp.writeUInt8(1);
+	resp.writePStr("Error: Not a snapshot hash.");
+	return resp.str();
+    }
+
+    if (!repo->purgeCommit(commitId)) {
+	resp.writeUInt8(2);
+	resp.writePStr("Error: Failed to purge object.");
+	return resp.str();
+    }
+
+    resp.writeUInt8(0);
     return resp.str();
 }
 
