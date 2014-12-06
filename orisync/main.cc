@@ -134,7 +134,6 @@ int OrisyncClient::connect()
     sock = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sock < 0)
         return -1;
-        //throw SystemException();
 
     memset(&remote, 0, sizeof(remote));
     remote.sun_family = AF_UNIX;
@@ -143,7 +142,6 @@ int OrisyncClient::connect()
     status = ::connect(sock, (struct sockaddr *)&remote, len);
     if (status < 0)
         return -1;
-        //throw SystemException();
 
     fd = sock;
     streamToChild.reset(new fdwstream(fd));
@@ -264,8 +262,13 @@ main(int argc, char *argv[])
         return 1;
     }
 
-    if (commands[idx].argc == 0)
+    OrisyncClient client(oriHome + "/orisyncSock");
+    if (commands[idx].argc == 0) {
+        if (client.connect() == 0) {
+          return client.callCmd(commands[idx].name, "");
+        }
         return commands[idx].cmd(0, ((const char **)argv+1)[1]);
+    }
 
     if (argc-1 != commands[idx].argc)
     {
@@ -275,7 +278,6 @@ main(int argc, char *argv[])
         return 0;
     }
 
-    OrisyncClient client(oriHome + "/orisyncSock");
     commands[idx].cmd(0, ((const char**)argv+1)[1]);
     if (client.connect() == 0)
         return client.callCmd(commands[idx].name, ((const char **)argv+1)[1]);

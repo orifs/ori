@@ -58,16 +58,18 @@ using namespace std;
 // Announcement UDP port
 #define ORISYNC_UDPPORT         8051
 // Advertisement interval
-#define ORISYNC_ADVINTERVAL     5
+#define ORISYNC_ADVINTERVAL     1 //5
 // Reject advertisements with large time skew
 #define ORISYNC_ADVSKEW         5
 // Repository check interval
-#define ORISYNC_MONINTERVAL     10
+#define ORISYNC_MONINTERVAL     1 //10
 // Sync interval
-#define ORISYNC_SYNCINTERVAL    5
+#define ORISYNC_SYNCINTERVAL    1 //5
 
 #define OK 0
 #define ERROR 1
+
+#define TIME_PLOG 0
 
 OriSyncConf rc;
 RWLock rcLock;
@@ -75,72 +77,7 @@ HostInfo myInfo;
 RWLock infoLock;
 map<string, HostInfo *> hosts;
 RWLock hostsLock;
-
-class Announcer : public Thread
-{
-public:
-    Announcer() : Thread() {
-        int status;
-        int broadcast = 1;
-
-        fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (fd < 0) {
-            throw SystemException();
-        }
-
-        status = setsockopt(fd, SOL_SOCKET, SO_BROADCAST,
-                            &broadcast, sizeof(broadcast));
-        if (status < 0) {
-            close(fd);
-            throw SystemException();
-        }
-
-        memset(&dstAddr, 0, sizeof(dstAddr));
-        dstAddr.sin_family = AF_INET;
-        dstAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-        dstAddr.sin_port = htons(ORISYNC_UDPPORT);
-    }
-    ~Announcer() {
-        close(fd);
-    }
-    string generate() {
-        RWKey::sp key = infoLock.readLock();
-        char buf[32];
-        string msg;
-
-        // First 31 bytes of cluster with null
-        memset(buf, 0, 32);
-        strncpy(buf, rc.getCluster().c_str(), 31);
-        msg.assign(buf, 32);
-        msg.append(OriCrypt_Encrypt(myInfo.getBlob(), rc.getKey()));
-
-        return msg;
-    }
-    void run() {
-        while (!interruptionRequested()) {
-            int status;
-            string msg;
-            size_t len;
-
-            msg = generate();
-            len = msg.size();
-
-            status = sendto(fd, msg.c_str(), len, 0,
-                            (struct sockaddr *)&dstAddr,
-                            sizeof(dstAddr));
-            if (status < 0) {
-                perror("sendto");
-            }
-
-            sleep(ORISYNC_ADVINTERVAL);
-        }
-
-        DLOG("Announcer exited!");
-    }
-private:
-    int fd;
-    struct sockaddr_in dstAddr;
-};
+struct timespec listentime;
 
 class Listener : public Thread
 {
@@ -162,7 +99,7 @@ public:
             close(fd);
             throw SystemException();
         }
-#ifdef __APPLE__
+//#ifdef __APPLE__
         status = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT,
                             &reuseaddr, sizeof(reuseaddr));
         if (status < 0) {
@@ -170,7 +107,7 @@ public:
             close(fd);
             throw SystemException();
         }
-#endif /* __APPLE__ */
+//#endif /* __APPLE__ */
 
         memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
@@ -226,8 +163,8 @@ public:
             // Prevent replay attacks from leaking information
             uint64_t now = time(NULL);
             uint64_t ts = kv.getU64("time");
+            string hostId = kv.getStr("hostId");
             if (ts > now + ORISYNC_ADVSKEW || ts < now - ORISYNC_ADVSKEW) {
-                string hostId = kv.getStr("hostId");
                 WARNING("Host %s time out of sync by %d seconds.", hostId.c_str(), (int)(ts - now));
                 WARNING("Ignoring host %s", hostId.c_str());
                 hosts[hostId]->setStatus("Time out of sync");
@@ -235,7 +172,7 @@ public:
             }
 
             // Ignore requests from self
-            if (kv.getStr("hostId") == rc.getUUID())
+            if (hostId == rc.getUUID())
                 return;
 
             // Ignore messages from other clusters
@@ -250,6 +187,7 @@ public:
 
             // Add or update hostinfo
             updateHost(kv, srcip);
+            hosts[hostId]->setStatus("OK");
         } catch(SerializationException e) {
             LOG("Error encountered parsing announcement: %s", e.what());
             return;
@@ -278,6 +216,7 @@ public:
                 perror("recvfrom");
                 continue;
             }
+            if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &listentime);
             parse(buf, len, &srcAddr);
 
             //dumpHosts();
@@ -293,6 +232,56 @@ class RepoMonitor : public Thread
 {
 public:
     RepoMonitor() : Thread() {
+        int status;
+        int broadcast = 1;
+
+        fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (fd < 0) {
+            throw SystemException();
+        }
+
+        status = setsockopt(fd, SOL_SOCKET, SO_BROADCAST,
+                            &broadcast, sizeof(broadcast));
+        if (status < 0) {
+            close(fd);
+            throw SystemException();
+        }
+
+        memset(&dstAddr, 0, sizeof(dstAddr));
+        dstAddr.sin_family = AF_INET;
+        dstAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+        dstAddr.sin_port = htons(ORISYNC_UDPPORT);
+    }
+    ~RepoMonitor() {
+        close(fd);
+    }
+    string generate() {
+        RWKey::sp key = infoLock.readLock();
+        char buf[32];
+        string msg;
+
+        // First 31 bytes of cluster with null
+        memset(buf, 0, 32);
+        strncpy(buf, rc.getCluster().c_str(), 31);
+        msg.assign(buf, 32);
+        msg.append(OriCrypt_Encrypt(myInfo.getBlob(), rc.getKey()));
+
+        return msg;
+    }
+    void announce() {
+        int status;
+        string msg;
+        size_t len;
+
+        msg = generate();
+        len = msg.size();
+
+        status = sendto(fd, msg.c_str(), len, 0,
+                        (struct sockaddr *)&dstAddr,
+                        sizeof(dstAddr));
+        if (status < 0) {
+            perror("sendto");
+        }
     }
     /*
      * Update repository information and return thre repoId, otherwise empty 
@@ -318,6 +307,15 @@ public:
         } else {
             info = RepoInfo(repo.getUUID(), repo.getPath());
         }
+
+        struct timespec ts1, ts2, ts3, ts4;
+        
+        if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts1);
+
+        int ret = repo.snapshot();
+
+        if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts2);
+
         //before my change to updateRepo,
         //when local2 is a replica of local 1, and when we check local2, say local 2 
         //has a new commit, but local1 hasn't yet. local1's head will be updated here
@@ -327,7 +325,17 @@ public:
 
         LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
 
-        repo.snapshot();
+        if (ret == 1) {// Repo has changed
+          if (TIME_PLOG)clock_gettime(CLOCK_REALTIME, &ts3);
+          announce();
+          if (TIME_PLOG) {
+            clock_gettime(CLOCK_REALTIME, &ts4);
+            printf("time1: %ld %ld\n", ts1.tv_sec, ts1.tv_nsec);
+            printf("time2: %ld %ld\n", ts2.tv_sec, ts2.tv_nsec);
+            printf("time3: %ld %ld\n", ts3.tv_sec, ts3.tv_nsec);
+            printf("time4: %ld %ld\n", ts4.tv_sec, ts4.tv_nsec);
+          }
+        }
         
         repo.close();
 
@@ -346,11 +354,16 @@ public:
                 updateRepo(it);
             }
 
+            announce();
             sleep(ORISYNC_MONINTERVAL);
         }
 
+
         DLOG("RepoMonitor exited!");
     }
+private:
+    int fd;
+    struct sockaddr_in dstAddr;
 };
 
 class Syncer : public Thread
@@ -391,7 +404,15 @@ public:
             LOG("Pulling from %s@%s:%s", username.c_str(),
                 remoteHost.getPreferredIp().c_str(),
                 remote.getPath().c_str());
+            struct timespec ts1, ts2;
+            if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts1);
             repo.pull(srcPath, remote.getPath());
+            if (TIME_PLOG) {
+              clock_gettime(CLOCK_REALTIME, &ts2);
+              printf("time5: %ld %ld\n", listentime.tv_sec, listentime.tv_nsec);
+              printf("time6: %ld %ld\n", ts1.tv_sec, ts1.tv_nsec);
+              printf("time7: %ld %ld\n", ts2.tv_sec, ts2.tv_nsec);
+            }
         }
         repo.close();
     }
@@ -460,7 +481,6 @@ public:
     }
 };
 
-Announcer *announcer;
 Listener *listener;
 RepoMonitor *repoMonitor;
 Syncer *syncer;
@@ -567,7 +587,6 @@ start_server()
 {
     MSG("Starting OriSync");
     rc = OriSyncConf();
-    announcer = new Announcer();
     listener = new Listener();
     repoMonitor = new RepoMonitor();
     syncer = new Syncer();
@@ -579,7 +598,6 @@ start_server()
     MSG("User name: %s", OriNet_Username().c_str());
     myInfo.setUsername(OriNet_Username());
 
-    announcer->start();
     listener->start();
     repoMonitor->start();
     syncer->start();
@@ -601,7 +619,7 @@ start_server()
     */
     // XXX: Wait for worker threads
     MSG("Wating for working threads");
-    announcer->wait();
+    repoMonitor->wait();
     MSG("OriSync quits");
 
     return 0;

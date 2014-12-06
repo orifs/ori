@@ -160,6 +160,7 @@ public:
     }
     uint64_t getTime() const {
         return lasttime;
+    }
     void clearRepos() {
         repos.clear();
         allrepos.clear();

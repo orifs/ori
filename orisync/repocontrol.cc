@@ -179,7 +179,7 @@ RepoControl::push(const string &host, const string &path)
     return "";
 }
 
-void
+int
 RepoControl::snapshot()
 {
     if (udsRepo) {
@@ -200,23 +200,24 @@ RepoControl::snapshot()
       strstream resp = udsRepo->callExt("FUSE", req.str());
       if (resp.ended()) {
         WARNING("Snapshot failed with an unknown error!");
-        return;
+        return -1;
       }
 
       switch (resp.readUInt8())
       {
         case 0:
             LOG("RepoControl::snapshot: No changes");
-            return;
+            return 0;
         case 1:
         {
             ObjectHash hash;
             resp.readHash(hash);
             LOG("RepoControl::snapshot: New changes committed: %s", hash.hex().c_str());
-            return;
+            return 1;
         }
         default:
             NOT_IMPLEMENTED(false);
       }
     }
+    return -1;
 }
