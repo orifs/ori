@@ -29,6 +29,10 @@
 #include <vector>
 #include <map>
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
+#include <queue>
 
 #include <event2/event.h>
 #include <event2/http.h>
@@ -78,6 +82,13 @@ RWLock infoLock;
 map<string, HostInfo *> hosts;
 RWLock hostsLock;
 struct timespec listentime;
+struct mrqElem {
+    string uuid;
+    string hostId;
+};
+queue<struct mrqElem> mrq; // Modified Repo Queue
+mutex mrqLock;
+condition_variable mrqCV;
 
 class Listener : public Thread
 {
@@ -124,6 +135,30 @@ public:
     ~Listener() {
         close(fd);
     }
+    void updateMRQ(HostInfo *remote) {
+        list<string> remoteList = remote->listRepos();
+        for (string repoID : remoteList) {
+            // Check if local has the repo
+            if (!myInfo.hasRepo(repoID)) {
+                DLOG("Local info not found for repo %s", repoID.c_str());
+                continue;
+            }
+            // Check if head matches
+            if (myInfo.getRepo(repoID).getHead() == remote->getRepo(repoID).getHead())
+                continue;
+
+            // Enqueue repo for Syncer
+            struct mrqElem repo;
+            repo.uuid = repoID;
+            repo.hostId = remote->getHostId();
+            {
+                lock_guard<mutex> lk(mrqLock);
+                mrq.push(repo);
+            }
+            mrqCV.notify_one();
+        }
+
+    }
     void updateHost(KVSerializer &kv, const string &srcIp) {
         RWKey::sp key = hostsLock.writeLock();
         map<string, HostInfo *>::iterator it;
@@ -137,6 +172,8 @@ public:
         hosts[hostId]->update(kv);
         hosts[hostId]->setPreferredIp(srcIp);
         hosts[hostId]->setTime(time(NULL));
+        hosts[hostId]->setStatus("OK");
+        updateMRQ(hosts[hostId]);
     }
     void parse(const char *buf, int len, sockaddr_in *source) {
         string ctxt;
@@ -187,7 +224,6 @@ public:
 
             // Add or update hostinfo
             updateHost(kv, srcip);
-            hosts[hostId]->setStatus("OK");
         } catch(SerializationException e) {
             LOG("Error encountered parsing announcement: %s", e.what());
             return;
@@ -322,6 +358,7 @@ public:
         //isn't this a bug??????
         info.updateHead(repo.getHead());
         myInfo.updateRepo(repo.getUUID(), info);
+        key.reset();
 
         LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
 
@@ -387,22 +424,41 @@ public:
         }
         repo.close();
     }
-    void pullRepo(HostInfo &localHost,
-                  HostInfo &remoteHost,
-                  const std::string &uuid)
+    void pullRepo(struct mrqElem &mRepo)
     {
-        RepoInfo local = localHost.getRepo(uuid);
-        RepoInfo remote = remoteHost.getRepo(uuid);
+        HostInfo localHost = myInfo;
+        if (!localHost.hasRepo(mRepo.uuid)) {
+            DLOG("Local info not found for repo %s", mRepo.uuid.c_str());
+            return;
+        }
+        RepoInfo local = localHost.getRepo(mRepo.uuid);
         RepoControl repo = RepoControl(local.getPath());
+        RepoInfo remote;
+        string srcPath;
 
-        DLOG("Local and Remote heads mismatch on repo %s", uuid.c_str());
+        {
+            RWKey::sp key = hostsLock.readLock();
+            map<string, HostInfo *>::iterator it;
+            it = hosts.find(mRepo.hostId);
+            if (it == hosts.end()) {
+                DLOG("Host %s not found", mRepo.hostId.c_str());
+                return;
+            }
+            HostInfo *remoteHost = hosts[mRepo.hostId];
+            if (!remoteHost->hasRepo(mRepo.uuid)) {
+                DLOG("Repo %s not found on host %s", mRepo.uuid.c_str(), remoteHost->getHost().c_str());
+                return;
+            }
+            remote = remoteHost->getRepo(mRepo.uuid);
+            string username = remoteHost->getUsername();
+            srcPath = (username.empty()) ? remoteHost->getPreferredIp() : username + '@' + remoteHost->getPreferredIp();
+        }
+
+        DLOG("Local and Remote heads mismatch on repo %s", mRepo.uuid.c_str());
 
         repo.open();
         if (!repo.hasCommit(remote.getHead())) {
-            std::string username = remoteHost.getUsername();
-            std::string srcPath = (username.empty()) ? remoteHost.getPreferredIp() : username + '@' + remoteHost.getPreferredIp();
-            LOG("Pulling from %s@%s:%s", username.c_str(),
-                remoteHost.getPreferredIp().c_str(),
+            LOG("Pulling from %s:%s", srcPath.c_str(),
                 remote.getPath().c_str());
             struct timespec ts1, ts2;
             if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts1);
@@ -416,6 +472,7 @@ public:
         }
         repo.close();
     }
+    /*
     void checkRepo(HostInfo &infoSnapshot, const std::string &uuid)
     {
         map<string, HostInfo *> hostSnapshot;
@@ -440,16 +497,30 @@ public:
             }
         }
     }
+    */
     void run() {
         while (!interruptionRequested()) {
             HostInfo infoSnapshot = myInfo;
             list<string> repos = infoSnapshot.listRepos();
             list<RepoInfo> allrepos = infoSnapshot.listAllRepos();
+            unique_lock<mutex> lk(mrqLock);
 
+            mrqCV.wait_for(lk, chrono::seconds(ORISYNC_SYNCINTERVAL), [](){return !mrq.empty();});
+            while (!mrq.empty()) {
+                struct mrqElem mRepo = mrq.front();
+                mrq.pop();
+                lk.unlock();
+                LOG("Syncer checking %s", mRepo.uuid.c_str());
+                pullRepo(mRepo);
+                lk.lock();
+            }
+            lk.unlock();
+            /*
             for (auto &it : repos) {
                 LOG("Syncer checking %s", it.c_str());
                 checkRepo(infoSnapshot, it);
             }
+            */
             for (auto &it : allrepos) {
                 LOG("Syncer local checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
                 //check local repo
@@ -460,11 +531,11 @@ public:
                         pullRepoLocal(it, it_cpy);
                     } */
 
-                      LOG("local repo check, %s and %s have uuid %s and %s", it.getPath().c_str(),
-                          it_cpy.getPath().c_str(), it.getRepoId().c_str(), it_cpy.getRepoId().c_str());
+                      //LOG("local repo check, %s and %s have uuid %s and %s", it.getPath().c_str(),
+                      //    it_cpy.getPath().c_str(), it.getRepoId().c_str(), it_cpy.getRepoId().c_str());
                     if (it.getRepoId() == it_cpy.getRepoId()) {
-                      LOG("local repo check, %s and %s have same uuid", it.getPath().c_str(),
-                          it_cpy.getPath().c_str());
+                      //LOG("local repo check, %s and %s have same uuid", it.getPath().c_str(),
+                      //    it_cpy.getPath().c_str());
                       if (it.getHead() != it_cpy.getHead()) {
                           LOG("local repo %s and %s don't have the same head",
                               it.getPath().c_str(), it_cpy.getPath().c_str());
@@ -474,7 +545,7 @@ public:
                 }
            }
 
-            sleep(ORISYNC_SYNCINTERVAL);
+            //sleep(ORISYNC_SYNCINTERVAL);
         }
 
         DLOG("Syncer exited!");
