@@ -132,7 +132,7 @@ elif env["BUILDTYPE"] == "PERF":
     env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-DORI_PERF", "-Wall", "-O2"])
     env.Append(LDFLAGS = [ "-g", "-rdynamic" ])
 elif env["BUILDTYPE"] == "RELEASE":
-    env.Append(CPPFLAGS = ["-DNDEBUG", "-DORI_RELEASE", "-Wall", "-O2"])
+    env.Append(CPPFLAGS = ["-DNDEBUG", "-DORI_RELEASE", "-w", "-O2"])
 else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
