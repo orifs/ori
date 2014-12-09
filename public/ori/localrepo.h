@@ -174,6 +174,7 @@ public:
     void decrefTree(const ObjectHash &thash, MdTransaction::sp tr);
     bool purgeCommit(const ObjectHash &commitId);
     void purgeFuseCommits();
+    void gcOrisyncCommit(int64_t time);
 
     // Grafting Operations
     std::set<ObjectHash> getSubtreeObjects(const ObjectHash &treeId);

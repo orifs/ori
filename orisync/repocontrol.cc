@@ -105,6 +105,29 @@ RepoControl::hasCommit(const string &objId)
     return localRepo->hasObject(hash);
 }
 
+int
+RepoControl::checkout(ObjectHash newHead)
+{
+    strwstream checkoutReq;
+    checkoutReq.writePStr("checkout");
+    checkoutReq.writeHash(newHead);
+    checkoutReq.writeUInt8(/* force */0);
+    strstream checkoutResp = udsRepo->callExt("FUSE", checkoutReq.str());
+    if (checkoutResp.ended()) {
+        WARNING("Unknown failure trying to checkout %s",
+                newHead.hex().c_str());
+        return -1;
+    }
+    if (checkoutResp.readUInt8() == 0) {
+        string error;
+        checkoutResp.readPStr(error);
+        WARNING("Failed to checkout %s", error.c_str());
+        return -1;
+    }
+
+    return 0;
+}
+
 string
 RepoControl::pull(const string &host, const string &path)
 {
@@ -132,22 +155,8 @@ RepoControl::pull(const string &host, const string &path)
         pullResp.readHash(newHead);
 
         // Checkout
-        strwstream checkoutReq;
-        checkoutReq.writePStr("checkout");
-        checkoutReq.writeHash(newHead);
-        checkoutReq.writeUInt8(/* force */0);
-        strstream checkoutResp = udsRepo->callExt("FUSE", checkoutReq.str());
-        if (checkoutResp.ended()) {
-            WARNING("Unknown failure trying to checkout %s",
-                    newHead.hex().c_str());
+        if (checkout(newHead) == -1)
             return "";
-        }
-        if (checkoutResp.readUInt8() == 0) {
-            string error;
-            checkoutResp.readPStr(error);
-            WARNING("Failed to checkout %s", error.c_str());
-            return "";
-        }
 
         LOG("RepoControl::pull: Update from %s:%s suceeded",
             host.c_str(), path.c_str());
@@ -184,35 +193,29 @@ RepoControl::snapshot()
 {
     if (udsRepo) {
       strwstream req;
-      bool hasMsg = false;
-      bool hasName = false;
+      string msg = "Orisync automatic snapshot";
 
       req.writePStr("snapshot");
-      req.writeUInt8(hasMsg ? 1 : 0);
-      req.writeUInt8(hasName ? 1 : 0);
-      /*
-      if (hasMsg)
-        req.writeLPStr(msg);
-      if (hasName)
-        req.writeLPStr(name);
-        */
+      req.writeUInt8(1); // hasMsg = true
+      req.writeUInt8(0); // hasName = false
+      
+      req.writeLPStr(msg);
 
       strstream resp = udsRepo->callExt("FUSE", req.str());
       if (resp.ended()) {
-        WARNING("Snapshot failed with an unknown error!");
+        WARNING("RepoControl::snapshot: Snapshot failed with an unknown error!");
         return -1;
       }
 
       switch (resp.readUInt8())
       {
         case 0:
-            LOG("RepoControl::snapshot: No changes");
+            //LOG("RepoControl::snapshot: No changes");
             return 0;
         case 1:
         {
             ObjectHash hash;
             resp.readHash(hash);
-            LOG("RepoControl::snapshot: New changes committed: %s", hash.hex().c_str());
             return 1;
         }
         default:
@@ -220,4 +223,54 @@ RepoControl::snapshot()
       }
     }
     return -1;
+}
+
+/*
+int
+RepoControl::checkoutPrev(time_t time)
+{
+    map<time_t, ObjectHash>::iterator closeSS;
+    closeSS = snapshots.lower_bound(time);
+    if (closeSS == snapshots.end()) {
+        LOG("Repocontrol::checkoutPrev: No snapshot found equal or larger than the given time");
+        return -1;
+    }
+    return checkout(closeSS->second);
+}
+*/
+
+void
+RepoControl::gc(time_t time)
+{
+  if (udsRepo) {
+        // Purge snapshot
+        strwstream req;
+        req.writePStr("purgesnapshot");
+        req.writeUInt8(1); // time based
+        req.writeInt64((int64_t)time);
+
+        strstream resp = udsRepo->callExt("FUSE", req.str());
+        if (resp.ended()) {
+	          LOG("Repocontrol::gc: Garbage collection failed with an unknown error!");
+	          return;
+        }
+
+        switch (resp.readUInt8())
+        {
+	          case 0:
+	          {
+	              DLOG("Repocontrol::gc: Garbage collection succeeded");
+                break;
+	          }
+	          case 1:
+	          {
+	              string msg;
+	              resp.readPStr(msg);
+	              DLOG("%s", msg.c_str());
+                break;
+	          }
+	          default:
+    	          NOT_IMPLEMENTED(false);
+        }
+  }
 }

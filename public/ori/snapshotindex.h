@@ -34,10 +34,15 @@ public:
     void delSnapshot(const std::string &name);
     const ObjectHash &getSnapshot(const std::string &name) const;
     std::map<std::string, ObjectHash> getList();
+    std::map<int64_t, ObjectHash> getOrisyncList();
+    void addOrisyncSnapshot(int64_t time, const ObjectHash &commitId);
+    void delOrisyncSnapshot(int64_t time);
+    int orisyncSnapshotSize();
 private:
     int fd;
     std::string fileName;
     std::map<std::string, ObjectHash> snapshots;
+    std::map<int64_t, ObjectHash> orisyncSnapshots;
 };
 
 #endif /* __SNAPSHOTINDEX_H__ */

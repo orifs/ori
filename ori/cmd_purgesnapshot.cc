@@ -42,6 +42,7 @@ cmd_purgesnapshot(int argc, char * const argv[])
     strwstream req;
 
     req.writePStr("purgesnapshot");
+    req.writeUInt8(0); // Not time based
     req.writeHash(commitId);
 
     strstream resp = repository.callExt("FUSE", req.str());

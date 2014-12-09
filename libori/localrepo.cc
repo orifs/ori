@@ -60,6 +60,8 @@ using namespace std;
 #define ORI_FILE_MASK       0644
 #define ORI_ID_FILE_MASK    0444
 
+#define MIN_ORISYNC_SNAPSHOT 3 // Minimum # of orisync snapshots to keep
+
 int
 LocalRepo_Init(const string &rootPath, bool bareRepo, const string &uuid)
 {
@@ -594,6 +596,9 @@ LocalRepo::addCommit(/* const */ Commit &commit)
     if (commit.getSnapshot() != "") {
 	snapshots.addSnapshot(commit.getSnapshot(), hash);
     }
+    if (commit.getMessage() == "Orisync automatic snapshot") {
+        snapshots.addOrisyncSnapshot((int64_t)commit.getTime(), hash);
+    }
 
     return addBlob(ObjectInfo::Commit, blob);
 }
@@ -912,10 +917,13 @@ LocalRepo::pull(Repo *r)
     vector<Commit> remoteCommits = r->listCommits();
     deque<ObjectHash> toPull;
 
+    deque<Commit> newCommits;
+
     for (size_t i = 0; i < remoteCommits.size(); i++) {
         ObjectHash hash = remoteCommits[i].hash();
         if (!hasObject(hash)) {
             toPull.push_back(hash);
+
             // TODO: partial pull
         }
     }
@@ -949,6 +957,7 @@ LocalRepo::pull(Repo *r)
                 toPull.push_back(c.getTree());
                 newObjs.push_back(c.getTree());
             }
+            newCommits.push_back(c);
         } else if (t == ObjectInfo::Tree) {
             Tree t;
             t.fromBlob(o->getPayload());
@@ -982,6 +991,23 @@ LocalRepo::pull(Repo *r)
             objs.reset(r->getObjects(newObjs));
             receive(objs.get());
         }
+    }
+    while (!newCommits.empty()) {
+        Commit nc = newCommits.front();
+        newCommits.pop_front();
+
+        // Add user snapshots
+        if (nc.getSnapshot() != "") {
+	          snapshots.addSnapshot(nc.getSnapshot(), nc.hash());
+        }
+        // Snapshots pulled from remote are added if they are orisync snapshots
+        if (nc.getMessage() == "Orisync automatic snapshot") {
+            snapshots.addOrisyncSnapshot((int64_t)nc.getTime(), nc.hash());
+        }
+        // Backrefs
+        MdTransaction::sp tr(metadata.begin());
+        addCommitBackrefs(nc, tr);
+        tr->setMeta(nc.hash(), "status", "normal");
     }
 }
 
@@ -1679,6 +1705,9 @@ LocalRepo::purgeCommit(const ObjectHash &commitId)
     tx->setMeta(commitId, "status", "purged");
     tx.reset();
 
+    // Delete snapshot from map and file
+    snapshots.delSnapshot(c.getSnapshot());
+
     return true;
 }
 
@@ -1697,6 +1726,35 @@ LocalRepo::purgeFuseCommits()
             ASSERT(status);
         }
     }
+}
+
+/*
+ * Garbage collect orisync commits
+ */
+void
+LocalRepo::gcOrisyncCommit(int64_t time)
+{
+    map<int64_t, ObjectHash> orisyncSS = snapshots.getOrisyncList();
+    map<int64_t, ObjectHash>::iterator it;
+    if (orisyncSS.size() <= MIN_ORISYNC_SNAPSHOT)
+        return; // We want to keep some recent repos for remote to sync
+
+    for (it = orisyncSS.begin(); it != orisyncSS.end(); ++it) {
+        if (it->first > time) {
+            return;
+        }
+        
+        // Purge snapshot
+        if (!purgeCommit(it->second)) {
+            continue;
+        }
+
+        snapshots.delOrisyncSnapshot(it->first);
+        if (snapshots.orisyncSnapshotSize() <= MIN_ORISYNC_SNAPSHOT) {
+            return;
+        }
+    }
+
 }
 
 /*

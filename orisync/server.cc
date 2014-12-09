@@ -69,6 +69,10 @@ using namespace std;
 #define ORISYNC_MONINTERVAL     1 //10
 // Sync interval
 #define ORISYNC_SYNCINTERVAL    1 //5
+// GC interval
+#define ORISYNC_GCINTERVAL      10 // seconds for now
+// Purge time
+#define ORISYNC_PURGETIME       30 // seconds for now; How old will the repo be purged?
 
 #define OK 0
 #define ERROR 1
@@ -360,7 +364,7 @@ public:
         myInfo.updateRepo(repo.getUUID(), info);
         key.reset();
 
-        LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
+        //LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
 
         if (ret == 1) {// Repo has changed
           if (TIME_PLOG)clock_gettime(CLOCK_REALTIME, &ts3);
@@ -384,7 +388,7 @@ public:
             RWKey::sp key = rcLock.readLock();
             list<string> repos = rc.getRepos();
             key.reset();
-            RWKey::sp key1 = rcLock.readLock();
+            RWKey::sp key1 = infoLock.writeLock();
             myInfo.clearRepos();
             key1.reset();
             for (auto &it : repos) {
@@ -458,6 +462,7 @@ public:
 
         repo.open();
         if (!repo.hasCommit(remote.getHead())) {
+            // TODO: Once garbage collect is on, we can no longer rely on this. If remote has an repo that's too out of date. We might not contain the commit. Need to also check if the remote head time < now - gcinterval
             LOG("Pulling from %s:%s", srcPath.c_str(),
                 remote.getPath().c_str());
             struct timespec ts1, ts2;
@@ -522,7 +527,7 @@ public:
             }
             */
             for (auto &it : allrepos) {
-                LOG("Syncer local checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
+                //LOG("Syncer local checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
                 //check local repo
                 for (auto &it_cpy : allrepos) {
                     /*
@@ -551,10 +556,6 @@ public:
         DLOG("Syncer exited!");
     }
 };
-
-Listener *listener;
-RepoMonitor *repoMonitor;
-Syncer *syncer;
 
 void
 Httpd_getRoot(struct evhttp_request *req, void *arg)
@@ -651,7 +652,38 @@ private:
     string orisyncSock;
 };
 
+class GCer : public Thread
+{
+public:
+    GCer() : Thread()
+    {
+    }
+    void run() {
+        while (!interruptionRequested()) {
+            sleep(ORISYNC_GCINTERVAL);
+            RWKey::sp key = rcLock.readLock();
+            list<string> repos = rc.getRepos();
+            key.reset();
+            for (auto &it : repos) {
+                RepoControl repo = RepoControl(it);
+                try {
+                    repo.open();
+                } catch (SystemException &e) {
+                    WARNING("Failed to open repository %s: %s", it.c_str(), e.what());
+                    continue;
+                }
+                repo.gc(time(NULL) - ORISYNC_PURGETIME);
+            }
+        }
+        DLOG("GCer exited!");
+    }
+};
+
+Listener *listener;
+RepoMonitor *repoMonitor;
+Syncer *syncer;
 UdsServer *udsServer;
+GCer *gcer;
 
 int
 start_server()
@@ -662,6 +694,7 @@ start_server()
     repoMonitor = new RepoMonitor();
     syncer = new Syncer();
     udsServer = new UdsServer();
+    gcer = new GCer();
 
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
     // XXX: Update addresses periodically
@@ -672,6 +705,8 @@ start_server()
     listener->start();
     repoMonitor->start();
     syncer->start();
+    DLOG("ready to start gc");
+    gcer->start();
     udsServer->start();
 
 

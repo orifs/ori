@@ -538,8 +538,17 @@ OriCommand::cmd_purgesnapshot(strstream &str)
 
     LocalRepo *repo = priv->getRepo();
     strwstream resp;
-    ObjectHash commitId;
+    uint8_t timeBased;
 
+    timeBased = str.readUInt8();
+    if (timeBased) {
+        int64_t time = str.readInt64();
+        repo->gcOrisyncCommit(time);
+        resp.writeUInt8(0);
+        return resp.str();
+    }
+
+    ObjectHash commitId;
     str.readHash(commitId);
 
     if (repo->getObjectType(commitId) != ObjectInfo::Commit) {
