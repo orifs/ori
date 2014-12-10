@@ -103,7 +103,7 @@ public:
         for (auto it = std::begin(allrepos); it != std::end(allrepos); it++) {
             if ((info_cpy.getRepoId() == (*it).getRepoId()) &&
                 (info_cpy.getPath() == (*it).getPath())) {
-                LOG("replaced repo %s", (*it).getPath().c_str());
+                //LOG("replaced repo %s", (*it).getPath().c_str());
                 it = allrepos.erase(it);
                 allrepos.insert(it, info);
                 return;

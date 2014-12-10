@@ -98,6 +98,12 @@ public:
     bool hasPeer(std::string p) {
         return (peers.find(p) != peers.end());
     }
+    void setSStime() {
+        lastSnapShot = time(NULL);
+    }
+    time_t getSStime() {
+        return lastSnapShot;
+    }
 private:
     std::string repoId;
     std::string head;
@@ -105,6 +111,7 @@ private:
     uint8_t mounted;
     std::set<std::string> peers;
     bool remote;
+    time_t lastSnapShot;
 };
 
 #endif /* __REPOINFO_H__ */

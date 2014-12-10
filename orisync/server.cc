@@ -67,6 +67,8 @@ using namespace std;
 #define ORISYNC_ADVSKEW         5
 // Repository check interval
 #define ORISYNC_MONINTERVAL     1 //10
+// Repository snapshot interval in slow mode
+#define ORISYNC_SLOWSSINTERVAL 30
 // Sync interval
 #define ORISYNC_SYNCINTERVAL    1 //5
 // Watchdog interval
@@ -178,6 +180,7 @@ public:
             {
                 lock_guard<mutex> lk(mrqLock);
                 mrq.push(repo);
+                DLOG("New MRQ elem pushed");
             }
             mrqCV.notify_one();
         }
@@ -376,11 +379,19 @@ public:
         
         if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts1);
 
-        if (repo.isMounted()) 
-            ret = repo.snapshot();
+        if (repo.isMounted()) {
+            if (!info.hasRemote()) {
+                // Take snapshot with longer interval
+                if (info.getSStime() > time(NULL) - ORISYNC_SLOWSSINTERVAL)
+                    goto skipss;
 
+            }
+            ret = repo.snapshot();
+            info.setSStime();
+        }
         if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts2);
 
+skipss:
         //before my change to updateRepo,
         //when local2 is a replica of local 1, and when we check local2, say local 2 
         //has a new commit, but local1 hasn't yet. local1's head will be updated here
@@ -504,44 +515,16 @@ public:
         }
         repo.close();
     }
-    /*
-    void checkRepo(HostInfo &infoSnapshot, const std::string &uuid)
-    {
-        map<string, HostInfo *> hostSnapshot;
-
-        if (!infoSnapshot.hasRepo(uuid)) {
-            DLOG("Local info not found for repo %s", uuid.c_str());
-            return;
-        }
-        RepoInfo localInfo = infoSnapshot.getRepo(uuid);
-
-        hostSnapshot = hosts;
-
-        for (auto &it : hostSnapshot) {
-            if (!it.second->hasRepo(uuid)) {
-                DLOG("Repo %s not found on host %s", uuid.c_str(), it.second->getHost().c_str());
-                continue;
-            }
-            RepoInfo info = it.second->getRepo(uuid);
-
-            if (info.getHead() != localInfo.getHead()) {
-                pullRepo(infoSnapshot, *(it.second), uuid);
-            }
-        }
-    }
-    */
     void run() {
         while (!interruptionRequested()) {
-            HostInfo infoSnapshot = myInfo;
-            list<string> repos = infoSnapshot.listRepos();
-            list<RepoInfo> allrepos = infoSnapshot.listAllRepos();
-
             unique_lock<mutex> lk(mrqLock);
-            mrqCV.wait_for(lk, chrono::seconds(ORISYNC_SYNCINTERVAL), [](){return true;});
-            if (!interruptionRequested()) {
+            mrqCV.wait_for(lk, chrono::seconds(ORISYNC_SYNCINTERVAL));
+            if (interruptionRequested()) {
                 lk.unlock();
                 break;
             }
+            //list<string> repos = infoSnapshot.listRepos();
+
             while (!mrq.empty()) {
                 struct mrqElem mRepo = mrq.front();
                 mrq.pop();
@@ -557,6 +540,8 @@ public:
                 checkRepo(infoSnapshot, it);
             }
             */
+            HostInfo infoSnapshot = myInfo;
+            list<RepoInfo> allrepos = infoSnapshot.listAllRepos();
             for (auto &it : allrepos) {
                 //LOG("Syncer local checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
                 //check local repo
@@ -580,6 +565,7 @@ public:
                     }
                 }
            }
+           DLOG("Syncer done checking");
             //sleep(ORISYNC_SYNCINTERVAL);
         }
 
@@ -739,6 +725,7 @@ public:
                     continue;
                 }
                 repo.gc(time(NULL) - ORISYNC_PURGETIME);
+                repo.close();
             }
             lastGC = time(NULL);
           }
