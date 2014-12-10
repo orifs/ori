@@ -29,8 +29,6 @@
 #include "repoinfo.h"
 #include "hostinfo.h"
 
-// Timeout to detect host down
-#define HOST_TIMEOUT            10
 
 using namespace std;
 extern map<string, HostInfo *> hosts;
@@ -43,14 +41,6 @@ cmd_status(int argc, const char *argv)
 
     cout << left << setw(32) << "HOST" << "STATUS" << endl;
     for (auto &it : hosts) {
-        if ((it.second->getTime() + HOST_TIMEOUT < time(NULL)) && (it.second->getStatus() == "OK")) {
-            time_t time = it.second->getTime();
-            char timeStr[26];
-            ctime_r(&time, timeStr);
-            string down("Down. Last connected ");
-            string lasttime(timeStr);
-            it.second->setStatus((down + lasttime));
-        }
         cout << left << setw(32) << it.second->getHost() << it.second->getStatus() << endl;
     }
 

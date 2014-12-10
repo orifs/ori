@@ -17,13 +17,24 @@
 #ifndef __REPOINFO_H__
 #define __REPOINFO_H__
 
+#include <set>
+
 class RepoInfo {
 public:
     RepoInfo() {
     }
+    /*
     RepoInfo(const std::string &repoId, const std::string &path) {
         this->repoId = repoId;
         this->path = path;
+        hasRemote = false;
+    }
+    */
+    RepoInfo(const std::string &repoId, const std::string &path, bool mounted) {
+        this->repoId = repoId;
+        this->path = path;
+        this->mounted = mounted;
+        remote = false;
     }
     ~RepoInfo() {
     }
@@ -43,16 +54,36 @@ public:
         repoId = kv.getStr(prefix + ".id");
         head = kv.getStr(prefix + ".head");
         path = kv.getStr(prefix + ".path");
+        mounted = kv.getU8(prefix + ".mount");
     }
     void putKV(KVSerializer &kv, const std::string &prefix) const {
         kv.putStr(prefix + ".id", repoId);
         kv.putStr(prefix + ".head", head);
         kv.putStr(prefix + ".path", path);
+        kv.putU8(prefix + ".mount", mounted);
+    }
+    bool isMounted() {
+        return mounted;
+    }
+    void insertPeer(const std::string &peer) {
+        peers.insert(peer);
+        remote = true;
+    }
+    void removePeer(const std::string &peer) {
+        peers.erase(peer);
+        if (peers.empty())
+            remote = false;
+    }
+    bool hasRemote() {
+        return remote;
     }
 private:
     std::string repoId;
     std::string head;
     std::string path;
+    uint8_t mounted;
+    std::set<std::string> peers;
+    bool remote;
 };
 
 #endif /* __REPOINFO_H__ */

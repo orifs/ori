@@ -274,3 +274,11 @@ RepoControl::gc(time_t time)
         }
   }
 }
+
+bool
+RepoControl::isMounted()
+{
+    if (udsRepo)
+        return true;
+    return false;
+}

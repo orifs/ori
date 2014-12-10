@@ -38,6 +38,7 @@ public:
     std::string push(const std::string &host, const std::string &path);
     int snapshot();
     void gc(time_t time);
+    bool isMounted();
 private:
     std::string path;
     std::string uuid;

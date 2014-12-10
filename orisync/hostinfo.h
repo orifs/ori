@@ -58,7 +58,7 @@ public:
         KVSerializer kv;
         int i = 0;
 
-        kv.putU64("time", (uint64_t)time(NULL));
+        kv.putU64("time", (int64_t)time(NULL));
         kv.putStr("username", username);
         kv.putStr("host", host);
         kv.putStr("hostId", hostId);
@@ -108,7 +108,7 @@ public:
                 return;
             }
         }
-        LOG("added repo %s", info_cpy.getPath().c_str());
+        //LOG("added repo %s", info_cpy.getPath().c_str());
         allrepos.push_back(info);
     }
     void removeRepo(const std::string &repoId) {
@@ -124,6 +124,15 @@ public:
             }
         }
     } 
+    void removePath(const std::string &path) {
+        std::map<std::string, RepoInfo>::const_iterator it;
+        for (auto &it : repos) {
+            if (it.second.getPath() == path) {
+                repos.erase(it.first);
+                return;
+            }
+        }
+    }
     std::list<std::string> listRepos() const {
         std::map<std::string, RepoInfo>::const_iterator it;
         std::list<std::string> val;
@@ -155,10 +164,10 @@ public:
     std::string getStatus() const {
         return status;
     }
-    void setTime(const uint64_t &time) {
+    void setTime(const int64_t &time) {
         lasttime = time;
     }
-    uint64_t getTime() const {
+    int64_t getTime() const {
         return lasttime;
     }
     void clearRepos() {
@@ -172,7 +181,7 @@ private:
     std::string hostId;
     std::string cluster;
     std::string status;
-    uint64_t lasttime;
+    int64_t lasttime;
     std::map<std::string, RepoInfo> repos;
     std::list<RepoInfo> allrepos;
 };

@@ -69,10 +69,14 @@ using namespace std;
 #define ORISYNC_MONINTERVAL     1 //10
 // Sync interval
 #define ORISYNC_SYNCINTERVAL    1 //5
-// GC interval
-#define ORISYNC_GCINTERVAL      10 // seconds for now
+// Watchdog interval
+#define ORISYNC_WDINTERVAL      10 // seconds for now
+// Garbage collection interval
+#define ORISYNC_GCINTERVAL       30 // seconds for now; How often do we run garbage collection
 // Purge time
-#define ORISYNC_PURGETIME       30 // seconds for now; How old will the repo be purged?
+#define ORISYNC_PURGETIME      30 // seconds for now; How old will the repo be purged?
+// Timeout to detect host down
+#define HOST_TIMEOUT            10
 
 #define OK 0
 #define ERROR 1
@@ -147,6 +151,14 @@ public:
                 DLOG("Local info not found for repo %s", repoID.c_str());
                 continue;
             }
+
+            // Update peer information
+            if (remote->getRepo(repoID).isMounted()) {
+                myInfo.getRepo(repoID).insertPeer(remote->getHostId());
+            } else {
+                myInfo.getRepo(repoID).removePeer(remote->getHostId());
+            }
+
             // Check if head matches
             if (myInfo.getRepo(repoID).getHead() == remote->getRepo(repoID).getHead())
                 continue;
@@ -330,6 +342,7 @@ public:
     void updateRepo(const string &path) {
         RepoControl repo = RepoControl(path);
         RepoInfo info;
+        int ret = 0;;
 
         try {
             repo.open();
@@ -342,17 +355,18 @@ public:
         if (myInfo.hasRepo(repo.getUUID())) {
             info = myInfo.getRepo(repo.getUUID());
             if (info.getPath() != path) {
-                 info = RepoInfo(repo.getUUID(), repo.getPath());
+                 info = RepoInfo(repo.getUUID(), repo.getPath(), repo.isMounted());
             }
         } else {
-            info = RepoInfo(repo.getUUID(), repo.getPath());
+            info = RepoInfo(repo.getUUID(), repo.getPath(), repo.isMounted());
         }
 
         struct timespec ts1, ts2, ts3, ts4;
         
         if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts1);
 
-        int ret = repo.snapshot();
+        if (repo.isMounted()) 
+            ret = repo.snapshot();
 
         if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts2);
 
@@ -388,9 +402,11 @@ public:
             RWKey::sp key = rcLock.readLock();
             list<string> repos = rc.getRepos();
             key.reset();
+            /*
             RWKey::sp key1 = infoLock.writeLock();
             myInfo.clearRepos();
             key1.reset();
+            */
             for (auto &it : repos) {
                 updateRepo(it);
             }
@@ -622,6 +638,11 @@ public:
 
         int idx = lookupcmd(cmd.c_str());
         commands[idx].cmd(1, data.c_str());
+        // Some special handling for remove
+        if (cmd == "remove") {
+            myInfo.removePath(data);
+        }
+
         fs.writeUInt8(OK);
     }
     void run()
@@ -652,18 +673,47 @@ private:
     string orisyncSock;
 };
 
-class GCer : public Thread
+class Watchdog : public Thread
 {
 public:
-    GCer() : Thread()
+    Watchdog() : Thread()
     {
     }
     void run() {
+        time_t lastGC = time(NULL);
+        string down("Down. Last connected ");
+        char timeStr[26];
+
         while (!interruptionRequested()) {
-            sleep(ORISYNC_GCINTERVAL);
-            RWKey::sp key = rcLock.readLock();
-            list<string> repos = rc.getRepos();
-            key.reset();
+          sleep(ORISYNC_WDINTERVAL);
+          // check if hosts are still alive
+          RWKey::sp key = hostsLock.readLock();
+          for (auto &it : hosts) {
+              if (it.second->getTime() + HOST_TIMEOUT < time(NULL)) {
+                  // Consider as host down
+                  // TODO: should need a per host lock for update
+                  int64_t time = it.second->getTime();
+                  ctime_r(&time, timeStr);
+                  string lasttime(timeStr);
+                  it.second->setStatus((down + lasttime));
+                  for (auto &repoID : myInfo.listRepos()) {
+                      // Lock order: hostsLock->infoLock. We can collect and batch remove peer later to avoid grabbbing two locks here.
+                      RWKey::sp key2 = infoLock.readLock();
+                      list<string> repos = myInfo.listRepos();
+                      myInfo.getRepo(repoID).removePeer(it.first);
+                      key2.reset();
+
+                  }
+              }
+          }
+          key.reset();
+
+
+          if (lastGC + ORISYNC_GCINTERVAL > time(NULL)) {
+            // time to do garbage collection
+            RWKey::sp key2 = infoLock.readLock();
+            list<string> repos = myInfo.listRepos();
+            key2.reset();
             for (auto &it : repos) {
                 RepoControl repo = RepoControl(it);
                 try {
@@ -674,8 +724,10 @@ public:
                 }
                 repo.gc(time(NULL) - ORISYNC_PURGETIME);
             }
+            lastGC = time(NULL);
+          }
         }
-        DLOG("GCer exited!");
+        DLOG("Watchdog exited!");
     }
 };
 
@@ -683,7 +735,7 @@ Listener *listener;
 RepoMonitor *repoMonitor;
 Syncer *syncer;
 UdsServer *udsServer;
-GCer *gcer;
+Watchdog *watchdog;
 
 int
 start_server()
@@ -694,7 +746,7 @@ start_server()
     repoMonitor = new RepoMonitor();
     syncer = new Syncer();
     udsServer = new UdsServer();
-    gcer = new GCer();
+    watchdog = new Watchdog();
 
     myInfo = HostInfo(rc.getUUID(), rc.getCluster());
     // XXX: Update addresses periodically
@@ -705,8 +757,7 @@ start_server()
     listener->start();
     repoMonitor->start();
     syncer->start();
-    DLOG("ready to start gc");
-    gcer->start();
+    watchdog->start();
     udsServer->start();
 
 
