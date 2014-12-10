@@ -14,6 +14,7 @@ src = [
     "cmd_hostremove.cc",
     "cmd_hosts.cc",
     "cmd_status.cc",
+    "cmd_exit.cc",
     "main.cc",
     "repocontrol.cc",
     "server.cc",

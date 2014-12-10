@@ -34,14 +34,18 @@ using namespace std;
 extern map<string, HostInfo *> hosts;
 
 int
-cmd_status(int argc, const char *argv)
+cmd_status(int mode, const char *argv)
 {
   
     string stat;
 
-    cout << left << setw(32) << "HOST" << "STATUS" << endl;
-    for (auto &it : hosts) {
+    if (mode == 0) {
+        cout << "Orisync is off" << endl;
+    } else {
+      cout << left << setw(32) << "HOST" << "STATUS" << endl;
+      for (auto &it : hosts) {
         cout << left << setw(32) << it.second->getHost() << it.second->getStatus() << endl;
+      }
     }
 
     return 0;

@@ -25,6 +25,7 @@ public:
         this->hostId = hostId;
         this->cluster = cluster;
         this->status = "OK";
+        this->down = false;
     }
     ~HostInfo() {
     }
@@ -143,6 +144,26 @@ public:
 
         return val;
     }
+    std::list<std::string> listPaths() {
+        std::map<std::string, RepoInfo>::iterator it;
+        std::list<std::string> val;
+
+        for (auto &it : repos) {
+            val.push_back(it.second.getPath());
+        }
+
+        return val;
+    }
+    std::list<RepoInfo> listRepoInfo() {
+        std::map<std::string, RepoInfo>::const_iterator it;
+        std::list<RepoInfo> val;
+
+        for (auto const &it : repos) {
+            val.push_back(it.second);
+        }
+
+        return val;
+    }
     std::list<RepoInfo> listAllRepos() const {
         return allrepos;
     }
@@ -170,10 +191,23 @@ public:
     int64_t getTime() const {
         return lasttime;
     }
+    void setDown(bool down) {
+        this->down = down;
+    }
+    bool isDown() {
+        return down;
+    }
     void clearRepos() {
         repos.clear();
         allrepos.clear();
     }
+    void insertRepoPeer(const std::string &repoID, const std::string &peer) {
+        repos[repoID].insertPeer(peer);
+    }
+    void removeRepoPeer(const std::string &repoID, const std::string &peer) {
+        repos[repoID].removePeer(peer);
+    }
+
 private:
     std::string preferredIp;
     std::string username;
@@ -182,6 +216,7 @@ private:
     std::string cluster;
     std::string status;
     int64_t lasttime;
+    bool down;
     std::map<std::string, RepoInfo> repos;
     std::list<RepoInfo> allrepos;
 };

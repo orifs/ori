@@ -25,14 +25,15 @@ int start_server();
 int cmd_init(int argc, const char *argv);
 int cmd_add(int argc, const char *argv);
 int cmd_remove(int argc, const char *argv);
-int cmd_list(int argc, const char *argv);
+int cmd_list(int mode, const char *argv);
 int cmd_hostadd(int argc, const char *argv);
 int cmd_hostremove(int argc, const char *argv);
 int cmd_hosts(int argc, const char *argv);
 int cmd_help(int argc, const char *argv);
 int cmd_foreground(int argc, const char *argv);
-int cmd_status(int argc, const char *argv);
+int cmd_status(int mode, const char *argv);
 int lookupcmd(const char *cmd);
+int cmd_exit(int mode, const char *argv);
 
 static Cmd commands[] = {
     {
@@ -120,6 +121,15 @@ static Cmd commands[] = {
         "status",
         "Show ori cluster status",
         cmd_status,
+        NULL,
+        CMD_DEBUG,
+        0,
+        "",
+    },
+    {
+        "exit",
+        "Quit orisync",
+        cmd_exit,
         NULL,
         CMD_DEBUG,
         0,

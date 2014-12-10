@@ -97,6 +97,8 @@ struct mrqElem {
 queue<struct mrqElem> mrq; // Modified Repo Queue
 mutex mrqLock;
 condition_variable mrqCV;
+mutex exitLock;
+condition_variable exitCV;
 
 class Listener : public Thread
 {
@@ -143,8 +145,14 @@ public:
     ~Listener() {
         close(fd);
     }
-    void updateMRQ(HostInfo *remote) {
+    void updateRepoinfo(HostInfo *remote) {
         list<string> remoteList = remote->listRepos();
+        // Check if any repo has been removed from remote
+        for (RepoInfo rInfo : myInfo.listRepoInfo()) {
+            if (rInfo.hasPeer(remote->getHost()) && (!remote->hasRepo(rInfo.getRepoId()))) {
+                myInfo.removeRepoPeer(rInfo.getRepoId(), remote->getHost());
+            }
+        }
         for (string repoID : remoteList) {
             // Check if local has the repo
             if (!myInfo.hasRepo(repoID)) {
@@ -154,9 +162,9 @@ public:
 
             // Update peer information
             if (remote->getRepo(repoID).isMounted()) {
-                myInfo.getRepo(repoID).insertPeer(remote->getHostId());
+                myInfo.insertRepoPeer(repoID, remote->getHost());
             } else {
-                myInfo.getRepo(repoID).removePeer(remote->getHostId());
+                myInfo.removeRepoPeer(repoID, remote->getHost());
             }
 
             // Check if head matches
@@ -189,7 +197,8 @@ public:
         hosts[hostId]->setPreferredIp(srcIp);
         hosts[hostId]->setTime(time(NULL));
         hosts[hostId]->setStatus("OK");
-        updateMRQ(hosts[hostId]);
+        hosts[hostId]->setDown(false);
+        updateRepoinfo(hosts[hostId]);
     }
     void parse(const char *buf, int len, sockaddr_in *source) {
         string ctxt;
@@ -221,6 +230,7 @@ public:
                 WARNING("Host %s time out of sync by %d seconds.", hostId.c_str(), (int)(ts - now));
                 WARNING("Ignoring host %s", hostId.c_str());
                 hosts[hostId]->setStatus("Time out of sync");
+                hosts[hostId]->setDown(false);
                 return;
             }
 
@@ -357,6 +367,7 @@ public:
             if (info.getPath() != path) {
                  info = RepoInfo(repo.getUUID(), repo.getPath(), repo.isMounted());
             }
+            info.setMounted(repo.isMounted());
         } else {
             info = RepoInfo(repo.getUUID(), repo.getPath(), repo.isMounted());
         }
@@ -524,9 +535,13 @@ public:
             HostInfo infoSnapshot = myInfo;
             list<string> repos = infoSnapshot.listRepos();
             list<RepoInfo> allrepos = infoSnapshot.listAllRepos();
-            unique_lock<mutex> lk(mrqLock);
 
-            mrqCV.wait_for(lk, chrono::seconds(ORISYNC_SYNCINTERVAL), [](){return !mrq.empty();});
+            unique_lock<mutex> lk(mrqLock);
+            mrqCV.wait_for(lk, chrono::seconds(ORISYNC_SYNCINTERVAL), [](){return true;});
+            if (!interruptionRequested()) {
+                lk.unlock();
+                break;
+            }
             while (!mrq.empty()) {
                 struct mrqElem mRepo = mrq.front();
                 mrq.pop();
@@ -565,7 +580,6 @@ public:
                     }
                 }
            }
-
             //sleep(ORISYNC_SYNCINTERVAL);
         }
 
@@ -689,18 +703,20 @@ public:
           // check if hosts are still alive
           RWKey::sp key = hostsLock.readLock();
           for (auto &it : hosts) {
-              if (it.second->getTime() + HOST_TIMEOUT < time(NULL)) {
+              if ((!it.second->isDown()) && (it.second->getTime() + HOST_TIMEOUT < time(NULL))) {
+                  it.second->setDown(true);
                   // Consider as host down
                   // TODO: should need a per host lock for update
                   int64_t time = it.second->getTime();
                   ctime_r(&time, timeStr);
                   string lasttime(timeStr);
+                  lasttime.erase(lasttime.size() - 1);
                   it.second->setStatus((down + lasttime));
                   for (auto &repoID : myInfo.listRepos()) {
                       // Lock order: hostsLock->infoLock. We can collect and batch remove peer later to avoid grabbbing two locks here.
                       RWKey::sp key2 = infoLock.readLock();
                       list<string> repos = myInfo.listRepos();
-                      myInfo.getRepo(repoID).removePeer(it.first);
+                      myInfo.removeRepoPeer(repoID, it.second->getHost());
                       key2.reset();
 
                   }
@@ -712,7 +728,7 @@ public:
           if (lastGC + ORISYNC_GCINTERVAL > time(NULL)) {
             // time to do garbage collection
             RWKey::sp key2 = infoLock.readLock();
-            list<string> repos = myInfo.listRepos();
+            list<string> repos = myInfo.listPaths();
             key2.reset();
             for (auto &it : repos) {
                 RepoControl repo = RepoControl(it);
@@ -775,8 +791,19 @@ start_server()
     event_base_free(base);
     */
     // XXX: Wait for worker threads
-    MSG("Wating for working threads");
-    repoMonitor->wait();
+    unique_lock<mutex> lk(exitLock);
+    exitCV.wait(lk);
+
+    udsServer->interrupt();
+    watchdog->interrupt();
+    syncer->interrupt();
+    repoMonitor->interrupt();
+    listener->interrupt();
+
+    // Wait for syncer to quit
+    mrqCV.notify_one();
+    syncer->wait();
+
     MSG("OriSync quits");
 
     return 0;

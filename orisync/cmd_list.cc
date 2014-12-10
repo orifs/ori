@@ -19,20 +19,37 @@
 
 #include <string>
 #include <iostream>
+#include <iomanip>
+#include <map>
+
+#include <oriutil/debug.h>
+#include <oriutil/kvserializer.h>
 
 #include "orisyncconf.h"
+#include "repoinfo.h"
+#include "hostinfo.h"
 
 using namespace std;
 
-int
-cmd_list(int argc, const char *argv)
-{
-    OriSyncConf rc = OriSyncConf();
-    list<string> repos = rc.getRepos();
+extern HostInfo myInfo;
 
-    cout << "Registered Repositories:" << endl;
-    for (auto &it : repos) {
-        cout << it << endl;
+int
+cmd_list(int mode, const char *argv)
+{
+    if (mode == 0) {
+        OriSyncConf rc = OriSyncConf();
+        list<string> repos = rc.getRepos();
+
+        cout << "Registered Repositories:" << endl;
+        for (auto &it : repos) {
+            cout << it << endl;
+        }
+    } else {
+        cout << left << setw(32) << "Repo" << setw(32) << "Mounted" << setw(32) << "Peers" << endl;
+        list<RepoInfo> repoInfo = myInfo.listRepoInfo();
+        for (auto &it : repoInfo) {
+          cout << left << setw(32) << it.getPath() << setw(32) << (it.isMounted() ? "true" : "false") << setw(32) << it.listPeers() << endl;
+        }
     }
 
     return 0;

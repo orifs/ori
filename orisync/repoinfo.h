@@ -65,6 +65,9 @@ public:
     bool isMounted() {
         return mounted;
     }
+    void setMounted(bool mounted) {
+        this->mounted = mounted;
+    }
     void insertPeer(const std::string &peer) {
         peers.insert(peer);
         remote = true;
@@ -76,6 +79,24 @@ public:
     }
     bool hasRemote() {
         return remote;
+    }
+    std::string listPeers() {
+        std::string rval = "";
+        if (peers.empty())
+            return rval;
+
+        for (std::string p : peers) {
+            if (rval == "") {
+                rval = p;
+            } else {
+                rval += " ";
+                rval += p;
+            }
+        }
+        return rval;
+    }
+    bool hasPeer(std::string p) {
+        return (peers.find(p) != peers.end());
     }
 private:
     std::string repoId;
