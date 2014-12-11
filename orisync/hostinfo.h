@@ -17,6 +17,9 @@
 #ifndef __HOSTINFO_H__
 #define __HOSTINFO_H__
 
+#include <memory>
+#include <oriutil/rwlock.h>
+
 class HostInfo {
 public:
     HostInfo() {
@@ -202,11 +205,26 @@ public:
         allrepos.clear();
     }
     void insertRepoPeer(const std::string &repoID, const std::string &peer) {
+        if (!hasRepo(repoID)) return;
+        // Need to grab the hostLock.readLock
+        RWKey::sp key = repos[repoID].repoLock.writeLock();
         repos[repoID].insertPeer(peer);
+        key.reset();
     }
     void removeRepoPeer(const std::string &repoID, const std::string &peer) {
+        // Need to grab the hostLock.readLock
+        if (!hasRepo(repoID)) return;
+        RWKey::sp key = repos[repoID].repoLock.writeLock();
         repos[repoID].removePeer(peer);
+        key.reset();
     }
+    RWLock *getHostLock() {
+        return &hostLock;
+    }
+    RWLock *getRepoLock(const std::string &repoID) {
+        return repos[repoID].getRepoLock();
+    }
+    RWLock hostLock;
 
 private:
     std::string preferredIp;

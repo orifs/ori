@@ -18,6 +18,8 @@
 #define __REPOINFO_H__
 
 #include <set>
+#include <memory>
+#include <oriutil/rwlock.h>
 
 class RepoInfo {
 public:
@@ -69,10 +71,12 @@ public:
         this->mounted = mounted;
     }
     void insertPeer(const std::string &peer) {
+        // Need to grab repoLock.writelock
         peers.insert(peer);
         remote = true;
     }
     void removePeer(const std::string &peer) {
+        // Need to grab repoLock.writelock
         peers.erase(peer);
         if (peers.empty())
             remote = false;
@@ -104,6 +108,10 @@ public:
     time_t getSStime() {
         return lastSnapShot;
     }
+    RWLock *getRepoLock() {
+        return &repoLock;
+    }
+    RWLock repoLock;
 private:
     std::string repoId;
     std::string head;

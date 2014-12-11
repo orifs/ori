@@ -74,9 +74,9 @@ using namespace std;
 // Watchdog interval
 #define ORISYNC_WDINTERVAL      10 // seconds for now
 // Garbage collection interval
-#define ORISYNC_GCINTERVAL       30 // seconds for now; How often do we run garbage collection
+#define ORISYNC_GCINTERVAL       3600 // seconds for now; How often do we run garbage collection
 // Purge time
-#define ORISYNC_PURGETIME      30 // seconds for now; How old will the repo be purged?
+#define ORISYNC_PURGETIME      36000 // seconds for now; How old will the repo be purged?
 // Timeout to detect host down
 #define HOST_TIMEOUT            10
 
@@ -88,7 +88,7 @@ using namespace std;
 OriSyncConf rc;
 RWLock rcLock;
 HostInfo myInfo;
-RWLock infoLock;
+//RWLock infoLock;
 map<string, HostInfo *> hosts;
 RWLock hostsLock;
 struct timespec listentime;
@@ -122,7 +122,7 @@ public:
             close(fd);
             throw SystemException();
         }
-//#ifdef __APPLE__
+#ifdef __APPLE__
         status = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT,
                             &reuseaddr, sizeof(reuseaddr));
         if (status < 0) {
@@ -130,7 +130,7 @@ public:
             close(fd);
             throw SystemException();
         }
-//#endif /* __APPLE__ */
+#endif /* __APPLE__ */
 
         memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
@@ -148,9 +148,13 @@ public:
         close(fd);
     }
     void updateRepoinfo(HostInfo *remote) {
+        RWKey::sp rhostKey = remote->hostLock.readLock();
         list<string> remoteList = remote->listRepos();
         // Check if any repo has been removed from remote
-        for (RepoInfo rInfo : myInfo.listRepoInfo()) {
+        //RWKey::sp key = infoLock.readLock();
+        RWKey::sp key = myInfo.hostLock.readLock();
+        list<RepoInfo> repoList = myInfo.listRepoInfo();
+        for (RepoInfo rInfo : repoList) {
             if (rInfo.hasPeer(remote->getHost()) && (!remote->hasRepo(rInfo.getRepoId()))) {
                 myInfo.removeRepoPeer(rInfo.getRepoId(), remote->getHost());
             }
@@ -184,7 +188,8 @@ public:
             }
             mrqCV.notify_one();
         }
-
+        key.reset();
+        rhostKey.reset();
     }
     void updateHost(KVSerializer &kv, const string &srcIp) {
         RWKey::sp key = hostsLock.writeLock();
@@ -196,12 +201,16 @@ public:
         if (it == hosts.end()) {
             hosts[hostId] = new HostInfo(hostId, kv.getStr("cluster"));
         }
-        hosts[hostId]->update(kv);
-        hosts[hostId]->setPreferredIp(srcIp);
-        hosts[hostId]->setTime(time(NULL));
-        hosts[hostId]->setStatus("OK");
-        hosts[hostId]->setDown(false);
-        updateRepoinfo(hosts[hostId]);
+        HostInfo *rhost = hosts[hostId];
+        key.reset();
+        RWKey::sp key2 = rhost->hostLock.writeLock();
+        rhost->update(kv);
+        rhost->setPreferredIp(srcIp);
+        rhost->setTime(time(NULL));
+        rhost->setStatus("OK");
+        rhost->setDown(false);
+        key2.reset();
+        updateRepoinfo(rhost);
     }
     void parse(const char *buf, int len, sockaddr_in *source) {
         string ctxt;
@@ -232,8 +241,20 @@ public:
             if (ts > now + ORISYNC_ADVSKEW || ts < now - ORISYNC_ADVSKEW) {
                 WARNING("Host %s time out of sync by %d seconds.", hostId.c_str(), (int)(ts - now));
                 WARNING("Ignoring host %s", hostId.c_str());
-                hosts[hostId]->setStatus("Time out of sync");
-                hosts[hostId]->setDown(false);
+                RWKey::sp key = hostsLock.readLock();
+                map<string, HostInfo *>::iterator it;
+                it = hosts.find(hostId);
+                if (it == hosts.end()) {
+                    key.reset();
+                    return;
+                }
+                HostInfo *rhost = hosts[hostId];
+                key.reset();
+
+                RWKey::sp key2 = rhost->hostLock.writeLock();
+                rhost->setStatus("Time out of sync");
+                rhost->setDown(false);
+                key2.reset();
                 return;
             }
 
@@ -321,7 +342,8 @@ public:
         close(fd);
     }
     string generate() {
-        RWKey::sp key = infoLock.readLock();
+        //RWKey::sp key = infoLock.readLock();
+        RWKey::sp key = myInfo.hostLock.readLock();
         char buf[32];
         string msg;
 
@@ -353,6 +375,7 @@ public:
      * string.
      */
     void updateRepo(const string &path) {
+        RWKey::sp key = myInfo.hostLock.writeLock();
         RepoControl repo = RepoControl(path);
         RepoInfo info;
         int ret = 0;;
@@ -364,7 +387,7 @@ public:
             return;
         }
 
-        RWKey::sp key = infoLock.writeLock();
+        //RWKey::sp key = infoLock.writeLock();
         if (myInfo.hasRepo(repo.getUUID())) {
             info = myInfo.getRepo(repo.getUUID());
             if (info.getPath() != path) {
@@ -386,8 +409,10 @@ public:
                     goto skipss;
 
             }
+            RWKey::sp repoKey = myInfo.getRepoLock(repo.getUUID())->writeLock();
             ret = repo.snapshot();
             info.setSStime();
+            repoKey.reset();
         }
         if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts2);
 
@@ -424,11 +449,6 @@ skipss:
             RWKey::sp key = rcLock.readLock();
             list<string> repos = rc.getRepos();
             key.reset();
-            /*
-            RWKey::sp key1 = infoLock.writeLock();
-            myInfo.clearRepos();
-            key1.reset();
-            */
             for (auto &it : repos) {
                 updateRepo(it);
             }
@@ -454,25 +474,43 @@ public:
     void pullRepoLocal(RepoInfo &localRepoA,
                        RepoInfo &localRepoB)
     {
+        RWKey::sp key = myInfo.hostLock.writeLock();
         RepoControl repo = RepoControl(localRepoA.getPath());
 
         DLOG("Local and Remote heads mismatch on repo %s", localRepoA.getRepoId().c_str());
 
-        repo.open();
-        if (!repo.hasCommit(localRepoB.getHead())) {
+        try {
+            repo.open();
+        } catch (SystemException &e) {
+            WARNING("Failed to open repository %s: %s", localRepoA.getPath().c_str(), e.what());
+            return;
+        }
+        bool hasCommit;
+        try {
+          hasCommit = repo.hasCommit(localRepoB.getHead());
+        } catch (SystemException &e) {
+            WARNING("%s", e.what());
+            repo.close();
+            return;
+        }
+        if (!hasCommit) {
             LOG("Pulling from local repo %s",
                 localRepoB.getPath().c_str());
+            RWKey::sp repoKey = myInfo.getRepoLock(localRepoA.getRepoId())->writeLock();
             repo.pull("localhost", localRepoB.getPath());
+            repoKey.reset();
         }
         repo.close();
     }
     void pullRepo(struct mrqElem &mRepo)
     {
+        RWKey::sp key = myInfo.hostLock.writeLock();
         HostInfo localHost = myInfo;
         if (!localHost.hasRepo(mRepo.uuid)) {
             DLOG("Local info not found for repo %s", mRepo.uuid.c_str());
             return;
         }
+        RWKey::sp repoKey = myInfo.getRepoLock(mRepo.uuid)->writeLock();
         RepoInfo local = localHost.getRepo(mRepo.uuid);
         RepoControl repo = RepoControl(local.getPath());
         RepoInfo remote;
@@ -498,8 +536,21 @@ public:
 
         DLOG("Local and Remote heads mismatch on repo %s", mRepo.uuid.c_str());
 
-        repo.open();
-        if (!repo.hasCommit(remote.getHead())) {
+        try {
+            repo.open();
+        } catch (SystemException &e) {
+            WARNING("Failed to open repository %s: %s", local.getPath().c_str(), e.what());
+            return;
+        }
+        bool hasCommit;
+        try {
+          hasCommit = repo.hasCommit(remote.getHead());
+        } catch (SystemException &e) {
+            WARNING("%s", e.what());
+            repo.close();
+            return;
+        }
+        if (!hasCommit) {
             // TODO: Once garbage collect is on, we can no longer rely on this. If remote has an repo that's too out of date. We might not contain the commit. Need to also check if the remote head time < now - gcinterval
             LOG("Pulling from %s:%s", srcPath.c_str(),
                 remote.getPath().c_str());
@@ -513,6 +564,8 @@ public:
               printf("time7: %ld %ld\n", ts2.tv_sec, ts2.tv_nsec);
             }
         }
+        key.reset();
+        repoKey.reset();
         repo.close();
     }
     void run() {
@@ -523,7 +576,6 @@ public:
                 lk.unlock();
                 break;
             }
-            //list<string> repos = infoSnapshot.listRepos();
 
             while (!mrq.empty()) {
                 struct mrqElem mRepo = mrq.front();
@@ -534,24 +586,13 @@ public:
                 lk.lock();
             }
             lk.unlock();
-            /*
-            for (auto &it : repos) {
-                LOG("Syncer checking %s", it.c_str());
-                checkRepo(infoSnapshot, it);
-            }
-            */
+
             HostInfo infoSnapshot = myInfo;
             list<RepoInfo> allrepos = infoSnapshot.listAllRepos();
             for (auto &it : allrepos) {
                 //LOG("Syncer local checking %s, %s", it.getRepoId().c_str(), it.getPath().c_str());
                 //check local repo
                 for (auto &it_cpy : allrepos) {
-                    /*
-                    if ((it.getRepoId() == it_cpy.getRepoId()) &&
-                      (it.getHead() != it_cpy.getHead())) {
-                        pullRepoLocal(it, it_cpy);
-                    } */
-
                       //LOG("local repo check, %s and %s have uuid %s and %s", it.getPath().c_str(),
                       //    it_cpy.getPath().c_str(), it.getRepoId().c_str(), it_cpy.getRepoId().c_str());
                     if (it.getRepoId() == it_cpy.getRepoId()) {
@@ -565,8 +606,6 @@ public:
                     }
                 }
            }
-           DLOG("Syncer done checking");
-            //sleep(ORISYNC_SYNCINTERVAL);
         }
 
         DLOG("Syncer exited!");
@@ -690,6 +729,7 @@ public:
           RWKey::sp key = hostsLock.readLock();
           for (auto &it : hosts) {
               if ((!it.second->isDown()) && (it.second->getTime() + HOST_TIMEOUT < time(NULL))) {
+                  RWKey::sp hostLock = it.second->hostLock.writeLock();
                   it.second->setDown(true);
                   // Consider as host down
                   // TODO: should need a per host lock for update
@@ -700,12 +740,13 @@ public:
                   it.second->setStatus((down + lasttime));
                   for (auto &repoID : myInfo.listRepos()) {
                       // Lock order: hostsLock->infoLock. We can collect and batch remove peer later to avoid grabbbing two locks here.
-                      RWKey::sp key2 = infoLock.readLock();
+                      RWKey::sp key2 = myInfo.hostLock.readLock();
                       list<string> repos = myInfo.listRepos();
                       myInfo.removeRepoPeer(repoID, it.second->getHost());
                       key2.reset();
 
                   }
+                  hostLock.reset();
               }
           }
           key.reset();
@@ -713,9 +754,9 @@ public:
 
           if (lastGC + ORISYNC_GCINTERVAL > time(NULL)) {
             // time to do garbage collection
-            RWKey::sp key2 = infoLock.readLock();
+            //RWKey::sp key2 = infoLock.readLock();
+            RWKey::sp key2 = myInfo.hostLock.readLock();
             list<string> repos = myInfo.listPaths();
-            key2.reset();
             for (auto &it : repos) {
                 RepoControl repo = RepoControl(it);
                 try {
@@ -724,9 +765,12 @@ public:
                     WARNING("Failed to open repository %s: %s", it.c_str(), e.what());
                     continue;
                 }
+                RWKey::sp repoKey = myInfo.getRepoLock(repo.getUUID())->writeLock();
                 repo.gc(time(NULL) - ORISYNC_PURGETIME);
+                repoKey.reset();
                 repo.close();
             }
+            key2.reset();
             lastGC = time(NULL);
           }
         }
