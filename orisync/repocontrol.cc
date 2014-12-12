@@ -50,15 +50,17 @@ RepoControl::open()
         WARNING("%s", e.what());
     }
 
-    try {
+    if (!udsRepo) {
+     try {
       localRepo = new LocalRepo();
       localRepo->open(path);
-    } catch (exception e) {
+     } catch (exception e) {
         if (localRepo)
             delete localRepo;
         localRepo = NULL;
         WARNING("%s", e.what());
         throw SystemException();
+     }
     }
 
 

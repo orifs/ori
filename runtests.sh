@@ -4,6 +4,13 @@
 # Use file runtests_config.sh to selectively run tests
 # TODO: nothing works if CWD has spaces in path
 
+# Check argument
+if [ $1 ]; then
+  export TEST_CASE=$1
+else
+  export TEST_CASE=*.sh
+fi
+
 export ORIG_DIR=`pwd`
 export ORI_EXE=$ORIG_DIR/build/ori/ori
 export ORI_HTTPD=$ORIG_DIR/build/ori_httpd/ori_httpd
@@ -58,7 +65,7 @@ echo "runtests.sh test results" > $TEST_RESULTS
 date >> $TEST_RESULTS
 echo >> $TEST_RESULTS
 
-for t in `find $ORI_TESTS -name '*.sh' | sort`; do
+for t in `find $ORI_TESTS -name $TEST_CASE | sort`; do
     # TODO: turn off tests
     TEST_NAME=`basename $t .sh`
     UPPERNAME=`echo $TEST_NAME | tr '[a-z]-' '[A-Z]_'`

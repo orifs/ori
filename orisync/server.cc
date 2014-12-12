@@ -83,6 +83,7 @@ using namespace std;
 #define OK 0
 #define ERROR 1
 
+// Turn on time measurement of sync performance
 #define TIME_PLOG 0
 
 OriSyncConf rc;
@@ -177,6 +178,7 @@ public:
             if (myInfo.getRepo(repoID).getHead() == remote->getRepo(repoID).getHead())
                 continue;
 
+            if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &listentime);
             // Enqueue repo for Syncer
             struct mrqElem repo;
             repo.uuid = repoID;
@@ -302,7 +304,6 @@ public:
                 perror("recvfrom");
                 continue;
             }
-            if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &listentime);
             parse(buf, len, &srcAddr);
 
             //dumpHosts();
