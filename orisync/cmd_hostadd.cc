@@ -22,23 +22,35 @@
 
 #include "orisyncconf.h"
 
+#include <ori/localrepo.h>
+
 using namespace std;
 
+extern OriSyncConf rc;
+extern RWLock rcLock; 
+
 int
-cmd_hostadd(int argc, const char *argv)
+cmd_hostadd(int mode, const char *argv)
 {
+  if (mode == 0) {
     OriSyncConf rc = OriSyncConf();
 
+    /*
     if (argc != 2)
     {
         cout << "Sepcify a host to add" << endl;
         cout << "usage: orisync hostadd <HOSTNAME>" << endl;
     }
+    */
 
     // XXX: verify hostname
 
     rc.addHost(argv);
+  } else {
+    RWKey::sp key = rcLock.writeLock();
+    rc.addHost(argv);
+  }
 
-    return 0;
+  return 0;
 }
 

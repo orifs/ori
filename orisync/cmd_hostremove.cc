@@ -22,21 +22,33 @@
 
 #include "orisyncconf.h"
 
+#include <ori/localrepo.h>
+
 using namespace std;
 
+extern OriSyncConf rc;
+extern RWLock rcLock; 
+
 int
-cmd_hostremove(int argc, const char *argv)
+cmd_hostremove(int mode, const char *argv)
 {
+  if (mode == 0) {
     OriSyncConf rc = OriSyncConf();
 
+    /*
     if (argc != 2)
     {
         cout << "Sepcify a static host to remove" << endl;
         cout << "usage: orisync hostremove <HOSTNAME>" << endl;
     }
+    */
 
     rc.removeHost(argv);
+  } else {
+    RWKey::sp key = rcLock.writeLock();
+    rc.removeHost(argv);
+  }
 
-    return 0;
+  return 0;
 }
 
