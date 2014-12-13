@@ -396,6 +396,7 @@ public:
             }
             info.setMounted(repo.isMounted());
         } else {
+            DLOG("New repo added: %s", repo.getPath().c_str());
             info = RepoInfo(repo.getUUID(), repo.getPath(), repo.isMounted());
         }
 

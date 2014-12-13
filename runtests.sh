@@ -4,18 +4,22 @@
 # Use file runtests_config.sh to selectively run tests
 # TODO: nothing works if CWD has spaces in path
 
-# Check argument
+# Check arguments
 if [ $1 ]; then
   export TEST_CASE=$1
 else
   export TEST_CASE=*.sh
 fi
 
+export REMOTEHOST=$2
+export LOCALHOST=$3
+
 export ORIG_DIR=`pwd`
 export ORI_EXE=$ORIG_DIR/build/ori/ori
 export ORI_HTTPD=$ORIG_DIR/build/ori_httpd/ori_httpd
 export ORIFS_EXE=$ORIG_DIR/build/orifs/orifs
 export ORIDBG_EXE=$ORIG_DIR/build/oridbg/oridbg
+export ORISYNC_EXE=$ORIG_DIR/build/orisync/orisync
 export ORI_TESTS=$ORIG_DIR/ori_tests
 
 # On OS X and other systems this is umount
@@ -95,5 +99,5 @@ if true; then
     echo "Deleting directories"
     $ORI_EXE removefs $SOURCE_FS
     rm -rf $SOURCE_FILES
-    rm -rf $TEMP_DIR
+rm -rf $TEMP_DIR
 fi

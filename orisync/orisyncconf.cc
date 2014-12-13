@@ -98,7 +98,7 @@ OriSyncConf::addRepo(const string &repoPath, bool saveToDisk)
 {
     repos.push_back(repoPath);
 
-    if (saveToDisk)
+    //if (saveToDisk)
         save();
 }
 
@@ -107,7 +107,7 @@ OriSyncConf::removeRepo(const string &repoPath, bool saveToDisk)
 {
     repos.remove(repoPath);
 
-    if (saveToDisk)
+    //if (saveToDisk)
         save();
 }
 
