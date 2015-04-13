@@ -441,7 +441,7 @@ size_t strstream::sizeHint() const
  */
 
 fdstream::fdstream(int fd, off_t offset, size_t length)
-    : fd(fd), offset(offset), length(length), left(length)
+    : fd(fd), length(length), left(length)
 {
     if (offset >= 0 && lseek(fd, offset, SEEK_SET) != offset) {
         setErrno("lseek");
