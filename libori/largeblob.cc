@@ -310,12 +310,9 @@ LargeBlob::getBlob()
     size_t num = parts.size();
     ss.writeUInt64(num);
 
-    for (map<uint64_t, LBlobEntry>::iterator it = parts.begin();
-            it != parts.end();
-            it++)
-    {
-        ss.writeHash((*it).second.hash);
-        ss.writeUInt16((*it).second.length);
+    for (auto &it : parts) {
+        ss.writeHash(it.second.hash);
+        ss.writeUInt16(it.second.length);
     }
 
     return ss.str();
@@ -345,10 +342,8 @@ size_t
 LargeBlob::totalSize() const
 {
     size_t total = 0;
-    for (map<uint64_t, LBlobEntry>::const_iterator it = parts.begin();
-            it != parts.end(); it++)
-    {
-        total += (*it).second.length;
+    for (auto const &it : parts) {
+        total += it.second.length;
     }
 
     return total;

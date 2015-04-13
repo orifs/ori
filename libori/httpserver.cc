@@ -72,7 +72,7 @@ HTTPServerReqHandlerCB(struct evhttp_request *req, void *arg)
 }
 
 HTTPServer::HTTPServer(LocalRepo &repository, uint16_t port)
-    : repo(repository), port(port), httpd(NULL), base(NULL)
+    : repo(repository), httpd(NULL), base(NULL)
 {
     base = event_base_new();
     event_set_log_callback(HTTPServerLogCB);
@@ -99,6 +99,12 @@ HTTPServer::start(bool mDNSEnable)
 #endif
 
     event_base_dispatch(base);
+}
+
+void
+HTTPServer::stop()
+{
+    event_base_loopexit(base, NULL);
 }
 
 void

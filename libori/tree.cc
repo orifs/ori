@@ -92,10 +92,8 @@ void AttrMap::setCreation(mode_t perms)
 
 void AttrMap::mergeFrom(const AttrMap &other)
 {
-    for (const_iterator it = other.begin();
-            it != other.end();
-            it++) {
-        attrs[(*it).first] = (*it).second;
+    for (auto const &it : other) {
+        attrs[it.first] = it.second;
     }
 }
 
@@ -207,11 +205,8 @@ Tree::getBlob() const
     size_t size = tree.size();
     ss.writeUInt64(size);
 
-    for (map<string, TreeEntry>::const_iterator it = tree.begin();
-            it != tree.end();
-            it++) {
-
-        const TreeEntry &te = (*it).second;
+    for (auto const &it : tree) {
+        const TreeEntry &te = it.second;
         if (te.type == TreeEntry::Tree) {
             ss.write("tree", 4);
         } else if (te.type == TreeEntry::Blob) {
@@ -225,15 +220,13 @@ Tree::getBlob() const
         ss.writeHash(te.hash);
         if (te.type == TreeEntry::LargeBlob)
             ss.writeHash(te.largeHash);
-        ss.writePStr((*it).first);
+        ss.writePStr(it.first);
         
         size_t asize = te.attrs.attrs.size();
         ss.writeUInt32(asize);
-        for (AttrMap::const_iterator ait = te.attrs.attrs.begin();
-                ait != te.attrs.attrs.end();
-                ait++) {
-            ss.writePStr((*ait).first);
-            ss.writePStr((*ait).second);
+        for (auto const &ait : te.attrs.attrs) {
+            ss.writePStr(ait.first);
+            ss.writePStr(ait.second);
         }
     }
 
@@ -296,15 +289,13 @@ _recFlatten(
         Repo *r
         )
 {
-    for (Tree::Flat::const_iterator it = t->tree.begin();
-            it != t->tree.end();
-            it++) {
-        const TreeEntry &te = (*it).second;
-        rval->insert(make_pair(prefix + (*it).first, te));
+    for (auto const &it : t->tree) {
+        const TreeEntry &te = it.second;
+        rval->insert(make_pair(prefix + it.first, te));
         if (te.type == TreeEntry::Tree) {
             // Recurse further
             Tree subtree = r->getTree(te.hash);
-            _recFlatten(prefix + (*it).first + "/",
+            _recFlatten(prefix + it.first + "/",
                     &subtree, rval, r);
         }
     }
@@ -345,22 +336,20 @@ Tree
 Tree::unflatten(const Flat &flat, Repo *r)
 {
     map<string, Tree> trees;
-    for (Flat::const_iterator it = flat.begin();
-            it != flat.end();
-            it++) {
-        const TreeEntry &te = (*it).second;
+    for (auto const &it : flat) {
+        const TreeEntry &te = it.second;
         if (te.type == TreeEntry::Tree) {
-            if (trees.find((*it).first) == trees.end()) {
-                trees[(*it).first] = Tree();
+            if (trees.find(it.first) == trees.end()) {
+                trees[it.first] = Tree();
             }
         }
         else if (te.type == TreeEntry::Blob ||
                 te.type == TreeEntry::LargeBlob) {
-            string treename = OriFile_Dirname((*it).first);
+            string treename = OriFile_Dirname(it.first);
             if (trees.find(treename) == trees.end()) {
                 trees[treename] = Tree();
             }
-            string basename = OriFile_Basename((*it).first);
+            string basename = OriFile_Basename(it.first);
             trees[treename].tree[basename] = te;
         }
         else {
@@ -370,10 +359,8 @@ Tree::unflatten(const Flat &flat, Repo *r)
 
     // Get the tree hashes, update parents, add to Repo
     vector<string> tree_names;
-    for (map<string, Tree>::const_iterator it = trees.begin();
-            it != trees.end();
-            it++) {
-        tree_names.push_back((*it).first);
+    for (auto const &it : trees) {
+        tree_names.push_back(it.first);
     }
     // Update leaf trees (no child directories) first
     std::sort(tree_names.begin(), tree_names.end(), _tree_gt);
@@ -413,10 +400,10 @@ Tree::print() const
 {
     map<string, TreeEntry>::const_iterator it;
 
-    for (it = tree.begin(); it != tree.end(); it++)
+    for (auto &it : tree)
     {
-	cout << "Path: " << (*it).first << endl;
-	switch ((*it).second.type)
+	cout << "Path: " << it.first << endl;
+	switch (it.second.type)
 	{
 	    case TreeEntry::Null:
 		cout << "  Type: Null" << endl;
@@ -435,7 +422,7 @@ Tree::print() const
 		break;
 	}
 
-	(*it).second.print();
+	it.second.print();
     }
 }
 
