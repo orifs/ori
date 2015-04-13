@@ -14,9 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
 #include <cstdlib>
+#include <ctime>
 
 #include <unistd.h>
 #include <errno.h>
@@ -60,25 +61,25 @@
 using namespace std;
 
 // Announcement UDP port
-#define ORISYNC_UDPPORT         8051
+#define ORISYNC_UDPPORT		8051
 // Advertisement interval
-#define ORISYNC_ADVINTERVAL     1 //5
+#define ORISYNC_ADVINTERVAL	1 //5
 // Reject advertisements with large time skew
-#define ORISYNC_ADVSKEW         5
+#define ORISYNC_ADVSKEW		5
 // Repository check interval
-#define ORISYNC_MONINTERVAL     1 //10
+#define ORISYNC_MONINTERVAL	1 //10
 // Repository snapshot interval in slow mode
-#define ORISYNC_SLOWSSINTERVAL 30
+#define ORISYNC_SLOWSSINTERVAL	30
 // Sync interval
-#define ORISYNC_SYNCINTERVAL    1 //5
+#define ORISYNC_SYNCINTERVAL	1 //5
 // Watchdog interval
-#define ORISYNC_WDINTERVAL      10 // seconds for now
+#define ORISYNC_WDINTERVAL	10 // seconds for now
 // Garbage collection interval
-#define ORISYNC_GCINTERVAL       3600 // seconds for now; How often do we run garbage collection
+#define ORISYNC_GCINTERVAL	3600 // seconds for now; How often do we run garbage collection
 // Purge time
-#define ORISYNC_PURGETIME      36000 // seconds for now; How old will the repo be purged?
+#define ORISYNC_PURGETIME	36000 // seconds for now; How old will the repo be purged?
 // Timeout to detect host down
-#define HOST_TIMEOUT            10
+#define HOST_TIMEOUT		10
 
 #define OK 0
 #define ERROR 1
@@ -92,7 +93,6 @@ HostInfo myInfo;
 //RWLock infoLock;
 map<string, HostInfo *> hosts;
 RWLock hostsLock;
-struct timespec listentime;
 struct mrqElem {
     string uuid;
     string hostId;
@@ -178,8 +178,7 @@ public:
             if (myInfo.getRepo(repoID).getHead() == remote->getRepo(repoID).getHead())
                 continue;
 
-            if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &listentime);
-            // Enqueue repo for Syncer
+	    // Enqueue repo for Syncer
             struct mrqElem repo;
             repo.uuid = repoID;
             repo.hostId = remote->getHostId();
@@ -400,10 +399,6 @@ public:
             info = RepoInfo(repo.getUUID(), repo.getPath(), repo.isMounted());
         }
 
-        struct timespec ts1, ts2, ts3, ts4;
-        
-        if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts1);
-
         if (repo.isMounted()) {
             if (!info.hasRemote()) {
                 // Take snapshot with longer interval
@@ -416,7 +411,6 @@ public:
             info.setSStime();
             repoKey.reset();
         }
-        if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts2);
 
 skipss:
         //before my change to updateRepo,
@@ -430,15 +424,7 @@ skipss:
         //LOG("Checked %s: %s %s", path.c_str(), repo.getHead().c_str(), repo.getUUID().c_str());
 
         if (ret == 1) {// Repo has changed
-          if (TIME_PLOG)clock_gettime(CLOCK_REALTIME, &ts3);
           announce();
-          if (TIME_PLOG) {
-            clock_gettime(CLOCK_REALTIME, &ts4);
-            printf("time1: %ld %ld\n", ts1.tv_sec, ts1.tv_nsec);
-            printf("time2: %ld %ld\n", ts2.tv_sec, ts2.tv_nsec);
-            printf("time3: %ld %ld\n", ts3.tv_sec, ts3.tv_nsec);
-            printf("time4: %ld %ld\n", ts4.tv_sec, ts4.tv_nsec);
-          }
         }
         
         repo.close();
@@ -556,15 +542,7 @@ public:
             // TODO: Once garbage collect is on, we can no longer rely on this. If remote has an repo that's too out of date. We might not contain the commit. Need to also check if the remote head time < now - gcinterval
             LOG("Pulling from %s:%s", srcPath.c_str(),
                 remote.getPath().c_str());
-            struct timespec ts1, ts2;
-            if (TIME_PLOG) clock_gettime(CLOCK_REALTIME, &ts1);
             repo.pull(srcPath, remote.getPath());
-            if (TIME_PLOG) {
-              clock_gettime(CLOCK_REALTIME, &ts2);
-              printf("time5: %ld %ld\n", listentime.tv_sec, listentime.tv_nsec);
-              printf("time6: %ld %ld\n", ts1.tv_sec, ts1.tv_nsec);
-              printf("time7: %ld %ld\n", ts2.tv_sec, ts2.tv_nsec);
-            }
         }
         key.reset();
         repoKey.reset();
@@ -735,7 +713,7 @@ public:
                   it.second->setDown(true);
                   // Consider as host down
                   // TODO: should need a per host lock for update
-                  int64_t time = it.second->getTime();
+                  time_t time = it.second->getTime();
                   ctime_r(&time, timeStr);
                   string lasttime(timeStr);
                   lasttime.erase(lasttime.size() - 1);
