@@ -83,12 +83,12 @@ public:
         string blob = string((const char *)b, l);
         ObjectHash hash = OriCrypt_HashString(blob);
 
-        printf("%08llx %s\n", lbOff, hash.hex().c_str());
+        printf("%08" PRIx64 " %s\n", lbOff, hash.hex().c_str());
         lbOff += l;
     }
     virtual int load(uint8_t **b, uint64_t *l, uint64_t *o)
     {
-        printf("buf = %p, l = %08llxx, o = %08llx\n", *b,*l, *o);
+        printf("buf = %p, l = %08" PRIx64 "x, o = %08" PRIx64 "\n", *b,*l, *o);
 
         if (*b == NULL)
             *b = buf;

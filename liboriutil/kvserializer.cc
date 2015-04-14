@@ -14,7 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
+#include <cstdint>
+#include <cinttypes>
 
 #include <iostream>
 #include <string>
@@ -381,7 +382,7 @@ KVSerializer::dump() const
             snprintf(buf, sizeof(buf), "%u", getU32(it.first));
             cout << it.first << ": " << buf << endl;
         } else if (type == KVTypeU64) {
-            snprintf(buf, sizeof(buf), "%llu", getU64(it.first));
+            snprintf(buf, sizeof(buf), "%" PRIu64, getU64(it.first));
             cout << it.first << ": " << buf << endl;
         } else {
             cout << "Unknown type!" << endl;

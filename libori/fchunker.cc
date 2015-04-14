@@ -14,10 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cinttypes>
 
 #include <time.h>
 #include <sys/time.h>
@@ -106,7 +107,7 @@ int main(int argc, char *argv[])
     float tDiff = end.tv_sec - start.tv_sec;
     tDiff += (float)(end.tv_usec - start.tv_usec) / 10000000.0;
 
-    printf("Chunks %llu, Avg Chunk %llu\n", cb.chunks, cb.chunkLen / cb.chunks);
+    printf("Chunks %" PRIu64 ", Avg Chunk %" PRIu64 "\n", cb.chunks, cb.chunkLen / cb.chunks);
     printf("Time %3.3f, Speed %3.2fMB/s\n", tDiff, 1024.0 / tDiff);
 
     assert(cb.chunks == TEST_LEN / CHUNK_LEN);

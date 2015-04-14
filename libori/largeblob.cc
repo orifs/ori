@@ -14,11 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-
+#include <cstdio>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <cinttypes>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -268,13 +268,13 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off) const
     }
 
     if (it == parts.end()) {
-        LOG("offset %llu larger than large blob", off);
+        LOG("offset %" PRIu64 " larger than large blob", off);
         return 0;
     }
 
     off_t part_off = off - (*it).first;
     if (part_off >= (*it).second.length) {
-        LOG("offset %llu larger than last blob in LB", off);
+        LOG("offset %" PRIu64 " larger than last blob in LB", off);
         ASSERT(false);
         return 0;
     }

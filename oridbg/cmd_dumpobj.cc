@@ -14,8 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
+#include <cinttypes>
 
 #include <string>
 #include <iostream>
@@ -71,7 +72,7 @@ cmd_dumpobj(int argc, char * const argv[])
             printf("\nChunk Table (%lu chunks):\n", lb.parts.size());
             std::map<uint64_t, LBlobEntry>::iterator it;
             for (auto &it : lb.parts) {
-                printf("%016llx    %s %d\n", it.first,
+                printf("%016" PRIx64 "    %s %d\n", it.first,
                        it.second.hash.hex().c_str(), it.second.length);
             }
 
