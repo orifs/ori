@@ -186,8 +186,6 @@ elif sys.platform == "linux2" or sys.platform == "darwin":
     env.Append(CPPFLAGS = "-DHAVE_EXECINFO")
 
 if sys.platform == "win32":
-    env.Append(LIBPATH=['#../boost_1_53_0\stage\lib'],
-               CPPPATH=['#../boost_1_53_0'])
     env.Append(LIBPATH=['#../libevent-2.0.21-stable'],
                CPPPATH=['#../libevent-2.0.21-stable\include'])
 
@@ -221,18 +219,6 @@ else:
 
 if not conf.CheckCXXHeader('unordered_map'):
     print 'C++11 libraries appear to be missing'
-
-if not conf.CheckCXXHeader('boost/uuid/uuid.hpp'):
-    print 'Boost UUID headers are missing!'
-    Exit(1)
-
-if not conf.CheckCXXHeader('boost/bind.hpp'):
-    print 'Boost bind headers are missing!'
-    Exit(1)
-
-if not conf.CheckCXXHeader('boost/date_time/posix_time/posix_time.hpp'):
-    print 'Boost posix_time headers are missing!'
-    Exit(1)
 
 if sys.platform.startswith("freebsd"):
     if not conf.CheckLib('execinfo'):

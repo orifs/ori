@@ -21,7 +21,6 @@ Build Dependencies:
 Dependences:
  - C++11 (Required)
  - openssl (tested with 1.0.1+) (Required)
- - boost headers (tested with 1.48+) (Required)
  - libevent 2.0 (Required)
  - FUSE (API Version 26+)
  - liblzma (for LZMA compression)

@@ -18,11 +18,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fcntl.h>
 
 #include <unistd.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <errno.h>
 
 #include <string>
@@ -33,8 +33,7 @@
 #include <sstream>
 #include <iomanip>
 #include <iostream>
-
-#include <boost/bind.hpp>
+#include <functional>
 
 #include <ori/version.h>
 #include <oriutil/debug.h>
@@ -1083,8 +1082,8 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
 #ifndef WITHOUT_MDNS 
     struct event *mdns_event = MDNS_Browse(evbase);
     event_add(mdns_event, NULL);
-    MDNS_RegisterBrowseCallback(boost::bind(&MultiPullOp::addCandidate,
-                &mpo, _1));
+    MDNS_RegisterBrowseCallback(std::bind(&MultiPullOp::addCandidate,
+                &mpo, std::placeholders::_1));
 #endif
 
     mpo.remotes.push_back(defaultRemote);
