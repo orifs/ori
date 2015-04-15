@@ -90,3 +90,9 @@ Stopwatch::getElapsedTime()
     }
 }
 
+uint64_t
+Stopwatch::getElapsedMS()
+{
+    return getElapsedTime() / 1000;
+}
+

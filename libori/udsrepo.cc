@@ -25,10 +25,9 @@
 #include <deque>
 #include <vector>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/stopwatch.h>
 #include <ori/packfile.h>
 #include <ori/udsclient.h>
 #include <ori/udsrepo.h>
@@ -98,8 +97,9 @@ ObjectHash UDSRepo::getHead()
 int
 UDSRepo::distance()
 {
-    boost::posix_time::ptime t_begin =
-        boost::posix_time::microsec_clock::local_time();
+    Stopwatch sw;
+
+    sw.start();
 
     // Send hello command
     client->sendCommand("hello");
@@ -109,9 +109,9 @@ UDSRepo::distance()
     std::string version;
     bs->readPStr(version);
     
-    boost::posix_time::ptime t_end =
-        boost::posix_time::microsec_clock::local_time();
-    return (t_end - t_begin).total_milliseconds();
+    sw.stop();
+
+    return sw.getElapsedMS();
 }
 
 Object::sp UDSRepo::getObject(const ObjectHash &id)

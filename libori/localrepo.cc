@@ -34,8 +34,6 @@
 #include <iomanip>
 #include <iostream>
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include <boost/bind.hpp>
 
 #include <ori/version.h>

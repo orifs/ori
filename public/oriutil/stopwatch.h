@@ -26,6 +26,7 @@ public:
     void stop();
     void reset();
     uint64_t getElapsedTime();
+    uint64_t getElapsedMS();
 private:
     uint64_t startTime;
     uint64_t elapsedTime;
