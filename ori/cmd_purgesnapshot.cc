@@ -33,7 +33,7 @@ int
 cmd_purgesnapshot(int argc, char * const argv[])
 {
     if (argc != 2) {
-	cout << "Error: Incorrect number of arguements." << endl;
+	cout << "Error: Incorrect number of arguments." << endl;
 	cout << "ori purgesnapshot <COMMITID>" << endl;
 	return 1;
     }

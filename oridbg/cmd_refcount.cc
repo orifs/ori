@@ -45,7 +45,7 @@ cmd_refcount(int argc, char * const argv[])
         ObjectHash hash = ObjectHash::fromHex(argv[1]);
         cout << hash.hex() << " " << md.getRefCount(hash) << endl;
     } else {
-        cout << "Invalid number of arguements." << endl;
+        cout << "Invalid number of arguments." << endl;
         cout << "ori refcount [OBJID]" << endl;
     }
 
