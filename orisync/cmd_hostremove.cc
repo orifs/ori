@@ -38,7 +38,7 @@ cmd_hostremove(int mode, const char *argv)
     /*
     if (argc != 2)
     {
-        cout << "Sepcify a static host to remove" << endl;
+        cout << "Specify a static host to remove" << endl;
         cout << "usage: orisync hostremove <HOSTNAME>" << endl;
     }
     */

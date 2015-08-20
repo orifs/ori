@@ -41,7 +41,7 @@ cmd_addkey(int argc, char * const argv[])
 
     if (argc != 2)
     {
-	cout << "Sepcify someone's public key to add." << endl;
+	cout << "Specify someone's public key to add." << endl;
 	cout << "usage: ori addkey <public_key>" << endl;
     }
 

@@ -24,10 +24,10 @@ This list contains commands that will operate on your local instance of the
 repository.  These may callout to remote repositories for data if this was an 
 InstaCloned repository.
 .TP
-\fBcheckout\fR [--force] \fICOMMIT-HASH\fR
+\fBcheckout\fR [\-\-force] \fICOMMIT-HASH\fR
 Checkout a revision of the repository.  By default this applies the current 
 modified files onto the specified revision, but for most users the merge 
-command is a safer alternative.  The --force flag is used to discard current 
+command is a safer alternative.  The \-\-force flag is used to discard current 
 changes and checkout the revision specified.
 .TP
 \fBlog\fR
@@ -45,7 +45,7 @@ Remove the specified file system.
 \fBshow\fR
 Show repository information.
 .TP
-\fBsnapshot\fR [-m \fIMESSAGE\fR] [\fISNAPSHOT-NAME\fR]
+\fBsnapshot\fR [\-m \fIMESSAGE\fR] [\fISNAPSHOT-NAME\fR]
 Take a snapshot of the repository.  You may optionally supply a message to be 
 included and a name.
 .TP
@@ -65,7 +65,7 @@ repository named \fIorigin\fR is used as the default for certain operations
 that take an optional remote name. At the moment an InstaCloned repository can 
 only be created with \fBorifs\fR.
 .TP
-\fBreplicate\fR [--ondemand] \fISOURCE-PATH\fR
+\fBreplicate\fR [\-\-ondemand] \fISOURCE-PATH\fR
 Clone a remote or local repository into a new directory.
 .TP
 \fBpull\fR [\fIPATH|REMOTE-NAME\fR]

@@ -38,7 +38,7 @@ cmd_hostadd(int mode, const char *argv)
     /*
     if (argc != 2)
     {
-        cout << "Sepcify a host to add" << endl;
+        cout << "Specify a host to add" << endl;
         cout << "usage: orisync hostadd <HOSTNAME>" << endl;
     }
     */

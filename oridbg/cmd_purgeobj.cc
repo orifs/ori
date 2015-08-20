@@ -30,7 +30,7 @@ int
 cmd_purgeobj(int argc, char * const argv[])
 {
     if (argc != 2) {
-	cout << "Error: Incorrect number of arguements." << endl;
+	cout << "Error: Incorrect number of arguments." << endl;
 	cout << "ori purgeobj <OBJID>" << endl;
 	return 1;
     }

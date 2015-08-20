@@ -3,7 +3,7 @@ cd $TEMP_DIR
 # Initialize source repository
 $ORI_EXE newfs $SOURCE_FS
 mkdir $SOURCE_FS
-orifs $SOURCE_FS
+$ORIFS_EXE $SOURCE_FS
 
 cp -R $SOURCE_FILES/* $SOURCE_FS/
 

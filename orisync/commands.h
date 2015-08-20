@@ -61,7 +61,7 @@ static Cmd commands[] = {
         NULL,
         0,
         2,
-        "Sepcify a repository to remove\nusage: orisync remove <repository>\n",
+        "Specify a repository to remove\nusage: orisync remove <repository>\n",
     },
     {
         "list",
@@ -79,7 +79,7 @@ static Cmd commands[] = {
         NULL,
         0,
         2,
-        "Sepcify a host to add\nusage: orisync hostadd <HOSTNAME>\n",
+        "Specify a host to add\nusage: orisync hostadd <HOSTNAME>\n",
     },
     {
         "hostremove",
@@ -88,7 +88,7 @@ static Cmd commands[] = {
         NULL,
         0,
         2,
-        "Sepcify a static host to remove\nusage: orisync hostremove <HOSTNAME>\n",
+        "Specify a static host to remove\nusage: orisync hostremove <HOSTNAME>\n",
     },
     {
         "hosts",
