@@ -28,10 +28,12 @@ def CheckPkgMinVersion(context, name, version):
 opts = Variables('Local.sc')
 
 opts.AddVariables(
-    ("CC", "C Compiler"),
-    ("CXX", "C++ Compiler"),
-    ("AS", "Assembler"),
-    ("LINK", "Linker"),
+    ("CC", "C Compiler", "cc"),
+    ("CXX", "C++ Compiler", "c++"),
+    ("AS", "Assembler", "as"),
+    ("LINK", "Linker"), # SCons usually runs $CC or $CXX
+    ("AR", "Archiver", "ar"),
+    ("RANLIB", "Archiver Indexer", "ranlib"),
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto)", 0, None, int),
     EnumVariable("BUILDTYPE", "Build type", "RELEASE", ["RELEASE", "DEBUG", "PERF"]),
     BoolVariable("VERBOSE", "Show full build information", 0),

@@ -17,8 +17,11 @@
 #ifndef __STREAM_H__
 #define __STREAM_H__
 
-#include <iostream>
 #include <cassert>
+
+#include <sys/types.h>
+
+#include <iostream>
 #include <vector>
 #include <string>
 #include <memory>

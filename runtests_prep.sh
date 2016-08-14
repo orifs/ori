@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Make directory of files
 # Largest file: (2**16)KB == 64 MB
