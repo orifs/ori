@@ -52,7 +52,7 @@ opts.AddVariables(
     EnumVariable("HASH_ALGO", "Hash algorithm", "SHA256", ["SHA256"]),
     EnumVariable("COMPRESSION_ALGO", "Compression algorithm", "FASTLZ", ["LZMA", "FASTLZ", "SNAPPY", "NONE"]),
     EnumVariable("CHUNKING_ALGO", "Chunking algorithm", "RK", ["RK", "FIXED"]),
-    PathVariable("PREFIX", "Installation target directory", "/usr/local/bin/", PathVariable.PathAccept),
+    PathVariable("PREFIX", "Installation target directory", "/usr/local", PathVariable.PathAccept),
     PathVariable("DESTDIR", "The root directory to install into. Useful mainly for binary package building", "", PathVariable.PathAccept),
 )
 
