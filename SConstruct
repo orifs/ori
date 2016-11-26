@@ -48,7 +48,6 @@ opts.AddVariables(
     BoolVariable("WITH_ASAN", "Enable Clang AddressSanitizer", 0),
     BoolVariable("BUILD_BINARIES", "Build binaries", 1),
     BoolVariable("CROSSCOMPILE", "Cross compile", 0),
-    BoolVariable("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon", 0),
     EnumVariable("HASH_ALGO", "Hash algorithm", "SHA256", ["SHA256"]),
     EnumVariable("COMPRESSION_ALGO", "Compression algorithm", "FASTLZ", ["LZMA", "FASTLZ", "SNAPPY", "NONE"]),
     EnumVariable("CHUNKING_ALGO", "Chunking algorithm", "RK", ["RK", "FIXED"]),

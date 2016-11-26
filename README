@@ -26,7 +26,6 @@ Dependences:
  - liblzma (for LZMA compression)
  - mDNSResponder (for Multipull Support)
  - libexecinfo (FreeBSD only)
- - libxml2 (S3 Backup)
  - libedit (oridbg only)
 
 Build flags can be added to 'Local.sc' in the root directory, or through the 
