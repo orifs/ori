@@ -131,14 +131,16 @@ PublicKey::verify(const string &blob,
                   const string &digest) const
 {
     int err;
-    EVP_MD_CTX ctx;
+    EVP_MD_CTX *ctx;
 
     assert(x509 != NULL && key != NULL);
 
-    EVP_VerifyInit(&ctx, EVP_sha256());
-    EVP_VerifyUpdate(&ctx, blob.data(), blob.size());
-    err = EVP_VerifyFinal(&ctx, (const unsigned char *)digest.data(),
+    ctx = EVP_MD_CTX_create();
+    EVP_VerifyInit(ctx, EVP_sha256());
+    EVP_VerifyUpdate(ctx, blob.data(), blob.size());
+    err = EVP_VerifyFinal(ctx, (const unsigned char *)digest.data(),
                           digest.length(), key);
+    EVP_MD_CTX_destroy(ctx);
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
@@ -185,11 +187,13 @@ PrivateKey::sign(const string &blob) const
     int err;
     unsigned int sigLen = SIGBUF_LEN;
     char sigBuf[SIGBUF_LEN];
-    EVP_MD_CTX ctx;
+    EVP_MD_CTX* ctx;
 
-    EVP_SignInit(&ctx, EVP_sha256());
-    EVP_SignUpdate(&ctx, blob.data(), blob.size());
-    err = EVP_SignFinal(&ctx, (unsigned char *)sigBuf, &sigLen, key);
+    ctx = EVP_MD_CTX_create();
+    EVP_SignInit(ctx, EVP_sha256());
+    EVP_SignUpdate(ctx, blob.data(), blob.size());
+    err = EVP_SignFinal(ctx, (unsigned char *)sigBuf, &sigLen, key);
+    EVP_MD_CTX_destroy(ctx);
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
