@@ -38,13 +38,11 @@ cmd_listkeys(int argc, char * const argv[])
     }
 
     map<string, PublicKey> keys = repository.getPublicKeys();
-    map<string, PublicKey>::iterator it;
 
     cout << left << setw(35) << "E-mail" << "Fingerprint" << endl;
-    for (it = keys.begin(); it != keys.end(); it++)
-    {
-	cout << left << setw(35) << (*it).second.getEmail()
-	     << (*it).first << endl;
+    for (auto &it : keys) {
+	cout << left << setw(35) << it.second.getEmail()
+	     << it.first << endl;
     }
 
     return 0;

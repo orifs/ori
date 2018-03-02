@@ -14,39 +14,39 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
+#ifndef __ORISYNCCLIENT_H__
+#define __ORISYNCCLIENT_H__
 
 #include <string>
-#include <iostream>
-#include <iomanip>
 
-#include <ori/localrepo.h>
+#include <oriutil/stream.h>
+#include "object.h"
 
-using namespace std;
-
-extern LocalRepo repository;
-
-int
-cmd_purgesnapshot(int argc, char * const argv[])
+class OrisyncClient
 {
-    if (argc != 2) {
-	cout << "Error: Incorrect number of arguments." << endl;
-	cout << "ori purgesnapshot <COMMITID>" << endl;
-	return 1;
-    }
+public:
+    OrisyncClient();
+    OrisyncClient(const std::string &remotePath);
+    ~OrisyncClient();
 
-    ObjectHash commitId = ObjectHash::fromHex(argv[1]);
+    int connect();
+    void disconnect();
+    bool connected();
 
-    if (repository.getObjectType(commitId) != ObjectInfo::Commit) {
-	cout << "Error: You can only purge an commit." << endl;
-	return 1;
-    }
+    // At the moment the protocol is synchronous
+    void sendData(const std::string &data);
+    bytestream *getStream();
 
-    if (!repository.purgeCommit(commitId)) {
-	cout << "Error: Failed to purge object." << endl;
-	return 1;
-    }
+    int callCmd(const string &cmd, const string &data);
 
-    return 0;
-}
+    bool respIsOK();
 
+private:
+    std::string orisyncPath, remoteRepo;
+
+    int fd;
+    bytewstream::ap streamToChild;
+};
+
+
+#endif /* __ORISYNCCLIENT_H__ */

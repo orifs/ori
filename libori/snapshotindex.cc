@@ -37,6 +37,7 @@
 
 using namespace std;
 
+
 SnapshotIndex::SnapshotIndex()
 {
     fd = -1;
@@ -77,13 +78,18 @@ SnapshotIndex::open(const string &indexFile)
     stringstream ss(blob);
 
     while (getline(ss, line, '\n')) {
-	ObjectHash hash;
-        string name;
+      	ObjectHash hash;
+        string data;
 
         hash = ObjectHash::fromHex(line.substr(0, 64));
-        name = line.substr(65);
+        data = line.substr(65);
+        size_t found = data.find("Orisync snapshot");
+        if (found != string::npos) {
+            // This is an orisync snapshot
+            orisyncSnapshots[(int64_t)stoll(data.substr(0, found -1))] = hash;
+        }
 
-        snapshots[name] = hash;
+        snapshots[data] = hash;
     }
     ::close(fd);
 
@@ -113,6 +119,7 @@ SnapshotIndex::rewrite()
     int fdNew, tmpFd;
     string newIndex = fileName + ".tmp";
     map<string, ObjectHash>::iterator it;
+    map<int64_t, ObjectHash>::iterator it2;
 
     fdNew = ::open(newIndex.c_str(), O_RDWR | O_CREAT,
                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -129,6 +136,17 @@ SnapshotIndex::rewrite()
         string indexLine;
 
         indexLine = (*it).second.hex() + " " + (*it).first + "\n";
+
+        status = write(fdNew, indexLine.data(), indexLine.size());
+        ASSERT(status == (int)indexLine.size());
+    }
+
+    for (it2 = orisyncSnapshots.begin(); it2 != orisyncSnapshots.end(); it2++)
+    {
+        int status;
+        string indexLine;
+
+        indexLine = (*it2).second.hex() + " " + to_string((*it2).first) + " Orisync snapshot\n";
 
         status = write(fdNew, indexLine.data(), indexLine.size());
         ASSERT(status == (int)indexLine.size());
@@ -159,6 +177,7 @@ void
 SnapshotIndex::delSnapshot(const std::string &name)
 {
     // delete in map
+    snapshots.erase(name);
 
     rewrite();
 }
@@ -178,3 +197,36 @@ SnapshotIndex::getList()
     return snapshots;
 }
 
+map<int64_t, ObjectHash>
+SnapshotIndex::getOrisyncList()
+{
+    return orisyncSnapshots;
+}
+
+void
+SnapshotIndex::addOrisyncSnapshot(int64_t time, const ObjectHash &commitId)
+{
+    string indexLine;
+
+    ASSERT(!commitId.isEmpty());
+
+    indexLine = commitId.hex() + " " + to_string(time) + " Orisync snapshot\n";
+
+    write(fd, indexLine.data(), indexLine.size());
+
+    orisyncSnapshots[time] = commitId;
+}
+
+void
+SnapshotIndex::delOrisyncSnapshot(int64_t time)
+{
+    orisyncSnapshots.erase(time);
+
+    rewrite();
+}
+
+int
+SnapshotIndex::orisyncSnapshotSize()
+{
+    return orisyncSnapshots.size();
+}

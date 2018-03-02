@@ -25,7 +25,7 @@
 #include <map>
 #include <list>
 #include <exception>
-#include "oritr1.h"
+#include <unordered_set>
 
 #include "debug.h"
 
@@ -50,17 +50,17 @@ public:
     {
 	return v;
     }
-    std::tr1::unordered_set<_Key> listParents()
+    std::unordered_set<_Key> listParents()
     {
 	return parents;
     }
-    std::tr1::unordered_set<_Key> listChildren()
+    std::unordered_set<_Key> listChildren()
     {
 	return children;
     }
     void dump()
     {
-	typename std::tr1::unordered_set<_Key>::iterator it;
+	typename std::unordered_set<_Key>::iterator it;
 	for (it = parents.begin(); it != parents.end(); it++) {
 	    std::cout << (*it).hex() << " <- " << k.hex() << std::endl;
 	}
@@ -70,8 +70,8 @@ private:
     friend class DAG <_Key, _Val>;
     _Key k;
     _Val v;
-    typename std::tr1::unordered_set<_Key> parents;
-    typename std::tr1::unordered_set<_Key> children;
+    typename std::unordered_set<_Key> parents;
+    typename std::unordered_set<_Key> children;
 };
 
 template <class _Key, class _Val_Old, class _Val_New>
@@ -126,9 +126,9 @@ public:
 
 	ASSERT(n != nodeMap.end());
 
-	std::tr1::unordered_set<_Key> parents = (*n).listParents();
-	std::tr1::unordered_set<_Key> children = (*n).listChildren();
-	typename std::tr1::unordered_set<_Key>::iterator i;
+	std::unordered_set<_Key> parents = (*n).listParents();
+	std::unordered_set<_Key> children = (*n).listChildren();
+	typename std::unordered_set<_Key>::iterator i;
 
 	// Break edges to parents
 	for (i = parents.begin(); i != parents.end(); i++)
@@ -156,8 +156,8 @@ public:
 
 	ASSERT(n != nodeMap.end());
 
-	std::tr1::unordered_set<_Key> children = (*n).listChildren();
-	typename std::tr1::unordered_set<_Key>::iterator i;
+	std::unordered_set<_Key> children = (*n).listChildren();
+	typename std::unordered_set<_Key>::iterator i;
 
 	NOT_IMPLEMENTED(false);
     }
@@ -177,7 +177,7 @@ public:
     /*
      * Get a node's parents
      */
-    std::tr1::unordered_set<_Key> getParents(_Key k)
+    std::unordered_set<_Key> getParents(_Key k)
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it = nodeMap.find(k);
 
@@ -220,10 +220,10 @@ public:
     {
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it1;
 	typename std::map<_Key, DAGNode<_Key, _Val> >::iterator it2;
-	typename std::tr1::unordered_set<_Key> p1p, p2p;
-	typename std::tr1::unordered_set<_Key> new_p1p, new_p2p;
-	typename std::tr1::unordered_set<_Key> next_p1p, next_p2p;
-	typename std::tr1::unordered_set<_Key>::iterator it;
+	typename std::unordered_set<_Key> p1p, p2p;
+	typename std::unordered_set<_Key> new_p1p, new_p2p;
+	typename std::unordered_set<_Key> next_p1p, next_p2p;
+	typename std::unordered_set<_Key>::iterator it;
 
 	/*
 	 * Step 1: Add next set of nodes in p1 & p2 to unordered_set and paths to
@@ -259,7 +259,7 @@ public:
 	     * nodes stored in p1p and p2p.
 	     */
 	    for (it = new_p1p.begin(); it != new_p1p.end(); it++) {
-		typename std::tr1::unordered_set<_Key>::iterator k;
+		typename std::unordered_set<_Key>::iterator k;
 		k = p2p.find(*it);
 		if (k != p2p.end()) {
 		    return *k;
@@ -269,7 +269,7 @@ public:
 		p1p.insert(*it);
 	    }
 	    for (it = new_p2p.begin(); it != new_p2p.end(); it++) {
-		typename std::tr1::unordered_set<_Key>::iterator k;
+		typename std::unordered_set<_Key>::iterator k;
 		k = p1p.find(*it);
 		if (k != p1p.end()) {
 		    return *k;
@@ -285,7 +285,7 @@ public:
 	    for (it = new_p1p.begin(); it != new_p1p.end(); it++) {
 		it1 = nodeMap.find(*it);
 		if (it1 != nodeMap.end()) {
-		    typename std::tr1::unordered_set<_Key>::iterator k;
+		    typename std::unordered_set<_Key>::iterator k;
 		    for (k = it1->second.parents.begin();
 			 k != it1->second.parents.end();
 			 k++)
@@ -297,7 +297,7 @@ public:
 	    for (it = new_p2p.begin(); it != new_p2p.end(); it++) {
 		it2 = nodeMap.find(*it);
 		if (it2 != nodeMap.end()) {
-		    typename std::tr1::unordered_set<_Key>::iterator k;
+		    typename std::unordered_set<_Key>::iterator k;
 		    for (k = it2->second.parents.begin();
 			 k != it2->second.parents.end();
 			 k++)
@@ -328,7 +328,7 @@ public:
     }
     // XXX: THIS DOES NOT PRODUCE THE RIGHT ORDERING
     std::list<_Key> getBottomUp(_Key tip) {
-	std::tr1::unordered_set<_Key> s = std::tr1::unordered_set<_Key>();
+	std::unordered_set<_Key> s = std::unordered_set<_Key>();
 	std::list<_Key> v = std::list<_Key>();
 	std::list<_Key> q = std::list<_Key>();
 	std::list<_Key> nextQ = std::list<_Key>();
@@ -342,14 +342,14 @@ public:
 		 it != q.end();
 		 it++)
 	    {
-		typename std::tr1::unordered_set<_Key>::iterator p;
+		typename std::unordered_set<_Key>::iterator p;
 		p = s.find(*it);
 		if (p == s.end()) {
 		    v.push_front(*it);
 		    s.insert(*it);
 
-		    std::tr1::unordered_set<_Key> parents;
-		    typename std::tr1::unordered_set<_Key>::iterator jt;
+		    std::unordered_set<_Key> parents;
+		    typename std::unordered_set<_Key>::iterator jt;
 
 		    parents = nodeMap[*it].listParents();
 

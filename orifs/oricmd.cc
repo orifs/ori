@@ -14,20 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-
-#include <errno.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
+#include <cinttypes>
 
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include <string>
 #include <map>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
@@ -88,6 +88,8 @@ OriCommand::process(const string &data)
         return cmd_branch(str);
     if (cmd == "version")
         return cmd_version(str);
+    if (cmd == "purgesnapshot")
+	return cmd_purgesnapshot(str);
 
     // Makes debugging easier when a bad request comes in
     return "UNSUPPORTED REQUEST";
@@ -145,7 +147,7 @@ OriCommand::cmd_snapshot(strstream &str)
     if (hash.isEmpty())
         FUSE_PLOG("snapshot not taken");
     FUSE_PLOG("snapshot result: %s", hash.hex().c_str());
-    FUSE_PLOG("snapshot elapsed %lluus", sw.getElapsedTime());
+    FUSE_PLOG("snapshot elapsed %" PRIu64 "us", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -206,7 +208,7 @@ OriCommand::cmd_status(strstream &str)
 
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
-    FUSE_PLOG("status elapsed %lluus", sw.getElapsedTime());
+    FUSE_PLOG("status elapsed %" PRIu64 "us", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -273,7 +275,7 @@ error:
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_PLOG("pull up to: %s", hash.hex().c_str());
-    FUSE_PLOG("pull elapsed %lluus", sw.getElapsedTime());
+    FUSE_PLOG("pull elapsed %" PRIu64 "us", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -312,7 +314,7 @@ OriCommand::cmd_checkout(strstream &str)
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_PLOG("checkout up to: %s", hash.hex().c_str());
-    FUSE_PLOG("checkout elapsed %lluus", sw.getElapsedTime());
+    FUSE_PLOG("checkout elapsed %" PRIu64 "us", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -349,7 +351,7 @@ OriCommand::cmd_merge(strstream &str)
 #if defined(DEBUG) || defined(ORI_PERF)
     sw.stop();
     FUSE_PLOG("merge with: %s", hash.hex().c_str());
-    FUSE_PLOG("merge elapsed %lluus", sw.getElapsedTime());
+    FUSE_PLOG("merge elapsed %" PRIu64 "us", sw.getElapsedTime());
 #endif /* DEBUG */
 
     return resp.str();
@@ -526,6 +528,42 @@ OriCommand::cmd_version(strstream &str)
     resp.writePStr("RELEASE");
 #endif
 
+    return resp.str();
+}
+
+string
+OriCommand::cmd_purgesnapshot(strstream &str)
+{
+    FUSE_PLOG("Command: purgesnapshot");
+
+    LocalRepo *repo = priv->getRepo();
+    strwstream resp;
+    uint8_t timeBased;
+
+    timeBased = str.readUInt8();
+    if (timeBased) {
+        int64_t time = str.readInt64();
+        repo->gcOrisyncCommit(time);
+        resp.writeUInt8(0);
+        return resp.str();
+    }
+
+    ObjectHash commitId;
+    str.readHash(commitId);
+
+    if (repo->getObjectType(commitId) != ObjectInfo::Commit) {
+	resp.writeUInt8(1);
+	resp.writePStr("Error: Not a snapshot hash.");
+	return resp.str();
+    }
+
+    if (!repo->purgeCommit(commitId)) {
+	resp.writeUInt8(2);
+	resp.writePStr("Error: Failed to purge object.");
+	return resp.str();
+    }
+
+    resp.writeUInt8(0);
     return resp.str();
 }
 

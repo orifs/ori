@@ -14,11 +14,39 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __ORITR1_H__
-#define __ORITR1_H__
+#include <stdint.h>
+#include <stdio.h>
 
-#include <boost/tr1/unordered_map.hpp>
-#include <boost/tr1/unordered_set.hpp>
+#include <string>
+#include <iostream>
+#include <iomanip>
+#include <map>
 
-#endif /* __ORITR1_H__ */
+#include <oriutil/debug.h>
+#include <oriutil/kvserializer.h>
 
+#include "orisyncconf.h"
+#include "repoinfo.h"
+#include "hostinfo.h"
+
+
+using namespace std;
+extern map<string, HostInfo *> hosts;
+
+int
+cmd_status(int mode, const char *argv)
+{
+  
+    string stat;
+
+    if (mode == 0) {
+        cout << "Orisync is off" << endl;
+    } else {
+      cout << left << setw(32) << "HOST" << "STATUS" << endl;
+      for (auto &it : hosts) {
+        cout << left << setw(32) << it.second->getHost() << it.second->getStatus() << endl;
+      }
+    }
+
+    return 0;
+}

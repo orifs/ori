@@ -17,8 +17,11 @@
 #ifndef __STREAM_H__
 #define __STREAM_H__
 
-#include <iostream>
 #include <cassert>
+
+#include <sys/types.h>
+
+#include <iostream>
 #include <vector>
 #include <string>
 #include <memory>
@@ -112,7 +115,6 @@ private:
 class fdstream : public bytestream
 {
 public:
-    /// @param offset can be -1 to disable seeking
     fdstream(int fd, off_t offset, size_t length=(size_t)-1);
     bool ended();
     size_t read(uint8_t *, size_t);
@@ -120,7 +122,6 @@ public:
 
 private:
     int fd;
-    off_t offset;
     size_t length;
     size_t left;
 };

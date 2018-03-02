@@ -41,7 +41,7 @@ cmd_setkey(int argc, char * const argv[])
 
     if (argc != 2)
     {
-	cout << "Sepcify the path to your private key." << endl;
+	cout << "Specify the path to your private key." << endl;
 	cout << "usage: ori setkey <private_key>" << endl;
     }
 

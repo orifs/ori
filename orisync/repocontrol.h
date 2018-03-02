@@ -17,6 +17,8 @@
 #ifndef __REPOCONTROL_H__
 #define __REPOCONTROL_H__
 
+#include <map>
+
 #include <ori/repo.h>
 #include <ori/localrepo.h>
 #include <ori/udsclient.h>
@@ -34,12 +36,16 @@ public:
     bool hasCommit(const std::string &objId);
     std::string pull(const std::string &host, const std::string &path);
     std::string push(const std::string &host, const std::string &path);
+    int snapshot();
+    void gc(time_t time);
+    bool isMounted();
 private:
     std::string path;
     std::string uuid;
     UDSClient *udsClient;
     UDSRepo *udsRepo;
     LocalRepo *localRepo;
+    int checkout(ObjectHash newHead);
 };
 
 #endif /* __REPOCONTROL_H__ */

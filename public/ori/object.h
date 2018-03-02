@@ -22,14 +22,14 @@
 #include <utility>
 #include <string>
 #include <map>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/stream.h>
 #include <oriutil/objectinfo.h>
 
 class Object {
 public:
-    typedef std::tr1::shared_ptr<Object> sp;
+    typedef std::shared_ptr<Object> sp;
 
     Object() {}
     Object(const ObjectInfo &info) : info(info) {}

@@ -41,7 +41,7 @@
 
 class RWLock;
 struct RWKey {
-    typedef std::tr1::shared_ptr<RWKey> sp;
+    typedef std::shared_ptr<RWKey> sp;
     virtual ~RWKey() { };
 };
 struct ReaderKey : public RWKey {

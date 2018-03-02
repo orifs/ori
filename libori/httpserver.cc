@@ -102,6 +102,12 @@ HTTPServer::start(bool mDNSEnable)
 }
 
 void
+HTTPServer::stop()
+{
+    event_base_loopexit(base, NULL);
+}
+
+void
 HTTPServer::entry(struct evhttp_request *req)
 {
     string url = evhttp_request_get_uri(req);

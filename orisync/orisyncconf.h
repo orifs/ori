@@ -33,8 +33,8 @@ public:
     std::string getCluster() const;
     std::string getKey() const;
     std::string getUUID() const;
-    void addRepo(const std::string &repoPath);
-    void removeRepo(const std::string &repoPath);
+    void addRepo(const std::string &repoPath, bool saveToDisk);
+    void removeRepo(const std::string &repoPath, bool saveToDisk);
     std::list<std::string> getRepos() const;
     void addHost(const std::string &host);
     void removeHost(const std::string &host);

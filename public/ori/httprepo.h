@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include <boost/tr1/unordered_set.hpp>
+#include <unordered_set>
 
 #include "repo.h"
 
@@ -56,7 +56,7 @@ private:
 
     std::map<ObjectHash, std::string> payloads;
 
-    std::tr1::unordered_set<ObjectHash> *containedObjs;
+    std::unordered_set<ObjectHash> *containedObjs;
 };
 
 class HttpObject : public Object

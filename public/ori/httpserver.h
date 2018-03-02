@@ -30,6 +30,7 @@ public:
     HTTPServer(LocalRepo &repository, uint16_t port);
     ~HTTPServer();
     void start(bool mDNSEnable);
+    void stop();
 protected:
     void entry(struct evhttp_request *req);
 private:

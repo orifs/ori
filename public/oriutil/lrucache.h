@@ -22,7 +22,7 @@
 #include <list>
 #include <utility>
 #include <stdexcept>
-#include "oritr1.h"
+#include <unordered_map>
 
 #include "debug.h"
 #include "rwlock.h"
@@ -32,7 +32,7 @@ class LRUCache
 {
 public:
     typedef std::list<K> lru_list;
-    typedef std::tr1::unordered_map<K,
+    typedef std::unordered_map<K,
             std::pair<V, typename lru_list::iterator> > lru_cache;
     LRUCache()
         : numItems(0)

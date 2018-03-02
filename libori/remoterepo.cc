@@ -19,7 +19,7 @@
 #include <sys/types.h>
 
 #include <string>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/oriutil.h>
 #include <oriutil/systemexception.h>
@@ -34,7 +34,6 @@
 #include <ori/remoterepo.h>
 
 using namespace std;
-using namespace std::tr1;
 
 RemoteRepo::RemoteRepo()
     : r(NULL)

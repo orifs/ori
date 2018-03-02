@@ -21,7 +21,7 @@
 
 #include <string>
 #include <set>
-#include <boost/tr1/unordered_map.hpp>
+#include <unordered_map>
 
 #include "object.h"
 #include "packfile.h"
@@ -44,7 +44,7 @@ public:
 private:
     int fd;
     std::string fileName;
-    std::tr1::unordered_map<ObjectHash, IndexEntry> index;
+    std::unordered_map<ObjectHash, IndexEntry> index;
 
     void _writeEntry(const IndexEntry &e);
 };

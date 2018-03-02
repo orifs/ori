@@ -50,21 +50,19 @@ int
 cmd_list(int argc, char * const argv[])
 {
     set<string> repos = RepoStore_GetRepos();
-    set<string>::iterator it;
 
     cout << left << setw(32) << "Name" << "File System ID" << endl;
-    for (it = repos.begin(); it != repos.end(); it++)
-    {
+    for (auto &it : repos) {
         string path, id;
 
-        path = RepoStore_GetRepoPath(*it) + ORI_PATH_UUID;
+        path = RepoStore_GetRepoPath(it) + ORI_PATH_UUID;
         try {
             id = OriFile_ReadFile(path);
         } catch (exception &e) {
             id = "*Corrupt or Uninitialized*";
         }
         
-        cout << left << setw(32) << *it << id << endl;
+        cout << left << setw(32) << it << id << endl;
     }
 
     return 0;

@@ -14,11 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-
+#include <cstdio>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
+#include <cinttypes>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -268,13 +268,13 @@ LargeBlob::read(uint8_t *buf, size_t s, off_t off) const
     }
 
     if (it == parts.end()) {
-        LOG("offset %llu larger than large blob", off);
+        LOG("offset %" PRIu64 " larger than large blob", off);
         return 0;
     }
 
     off_t part_off = off - (*it).first;
     if (part_off >= (*it).second.length) {
-        LOG("offset %llu larger than last blob in LB", off);
+        LOG("offset %" PRIu64 " larger than last blob in LB", off);
         ASSERT(false);
         return 0;
     }
@@ -310,12 +310,9 @@ LargeBlob::getBlob()
     size_t num = parts.size();
     ss.writeUInt64(num);
 
-    for (map<uint64_t, LBlobEntry>::iterator it = parts.begin();
-            it != parts.end();
-            it++)
-    {
-        ss.writeHash((*it).second.hash);
-        ss.writeUInt16((*it).second.length);
+    for (auto &it : parts) {
+        ss.writeHash(it.second.hash);
+        ss.writeUInt16(it.second.length);
     }
 
     return ss.str();
@@ -345,10 +342,8 @@ size_t
 LargeBlob::totalSize() const
 {
     size_t total = 0;
-    for (map<uint64_t, LBlobEntry>::const_iterator it = parts.begin();
-            it != parts.end(); it++)
-    {
-        total += (*it).second.length;
+    for (auto const &it : parts) {
+        total += it.second.length;
     }
 
     return total;

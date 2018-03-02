@@ -29,16 +29,14 @@
 #include <deque>
 #include <vector>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/stopwatch.h>
 #include <ori/packfile.h>
 #include <ori/sshclient.h>
 #include <ori/sshrepo.h>
 
 using namespace std;
-using namespace std::tr1;
 
 /*
  * SshRepo
@@ -85,8 +83,9 @@ ObjectHash SshRepo::getHead()
 int
 SshRepo::distance()
 {
-    boost::posix_time::ptime t_begin =
-        boost::posix_time::microsec_clock::local_time();
+    Stopwatch sw;
+
+    sw.start();
 
     // Send hello command
     client->sendCommand("hello");
@@ -96,9 +95,9 @@ SshRepo::distance()
     std::string version;
     bs->readPStr(version);
     
-    boost::posix_time::ptime t_end =
-        boost::posix_time::microsec_clock::local_time();
-    return (t_end - t_begin).total_milliseconds();
+    sw.stop();
+
+    return sw.getElapsedMS();
 }
 
 Object::sp SshRepo::getObject(const ObjectHash &id)

@@ -47,10 +47,22 @@ RepoControl::open()
         if (udsRepo)
             delete udsRepo;
         udsRepo = NULL;
+        WARNING("%s", e.what());
     }
 
-    localRepo = new LocalRepo();
-    localRepo->open(path);
+    if (!udsRepo) {
+     try {
+      localRepo = new LocalRepo();
+      localRepo->open(path);
+     } catch (exception e) {
+        if (localRepo)
+            delete localRepo;
+        localRepo = NULL;
+        WARNING("%s", e.what());
+        throw SystemException();
+     }
+    }
+
 
     if (udsRepo)
         uuid = udsRepo->getUUID();
@@ -91,63 +103,91 @@ RepoControl::getUUID()
 string
 RepoControl::getHead()
 {
-    if (udsRepo)
-        return udsRepo->getHead().hex();
+    if (udsRepo) {
+        try {
+            return udsRepo->getHead().hex();
+        } catch (SystemException e) {
+            WARNING("%s", e.what());
+            return "";
+        }
+    }
     return localRepo->getHead().hex();
 }
 
 bool
 RepoControl::hasCommit(const string &objId)
 {
+    // Caller needs to catch exceptions
     ObjectHash hash = ObjectHash::fromHex(objId);
     if (udsRepo)
         return udsRepo->hasObject(hash);
     return localRepo->hasObject(hash);
 }
 
+int
+RepoControl::checkout(ObjectHash newHead)
+{
+    strwstream checkoutReq;
+    checkoutReq.writePStr("checkout");
+    checkoutReq.writeHash(newHead);
+    checkoutReq.writeUInt8(/* force */0);
+    try {
+      strstream checkoutResp = udsRepo->callExt("FUSE", checkoutReq.str());
+      if (checkoutResp.ended()) {
+        WARNING("Unknown failure trying to checkout %s",
+                newHead.hex().c_str());
+        return -1;
+      }
+      if (checkoutResp.readUInt8() == 0) {
+        string error;
+        checkoutResp.readPStr(error);
+        WARNING("Failed to checkout %s", error.c_str());
+        return -1;
+      }
+    } catch (SystemException e) {
+        WARNING("%s", e.what());
+        return -1;
+    }
+
+    return 0;
+}
+
 string
 RepoControl::pull(const string &host, const string &path)
 {
     if (udsRepo) {
+        // Do a snapshot first
+        snapshot();
+
         strwstream pullReq;
         ObjectHash newHead;
 
         // Pull
         pullReq.writePStr("pull");
-        pullReq.writePStr(host + ":" + path);
+        pullReq.writePStr(host + (host.size() ? ":" : "") + path);
 
-        strstream pullResp = udsRepo->callExt("FUSE", pullReq.str());
-        if (pullResp.ended()) {
+        try {
+          strstream pullResp = udsRepo->callExt("FUSE", pullReq.str());
+          if (pullResp.ended()) {
             WARNING("Unknown failure trying to pull from %s:%s",
                     host.c_str(), path.c_str());
             return "";
-        }
-        if (pullResp.readUInt8() == 1) {
+          }
+          if (pullResp.readUInt8() == 0) {
             string error;
             pullResp.readPStr(error);
             WARNING("Failed to pull from %s:%s: %s",
                     host.c_str(), path.c_str(), error.c_str());
             return "";
+          }
+          pullResp.readHash(newHead);
+        } catch (SystemException e) {
+          WARNING("%s", e.what());
+          return "";
         }
-        pullResp.readHash(newHead);
-
         // Checkout
-        strwstream checkoutReq;
-        checkoutReq.writePStr("checkout");
-        checkoutReq.writeHash(newHead);
-        checkoutReq.writeUInt8(/* force */0);
-        strstream checkoutResp = udsRepo->callExt("FUSE", checkoutReq.str());
-        if (checkoutResp.ended()) {
-            WARNING("Unknown failure trying to checkout %s",
-                    newHead.hex().c_str());
+        if (checkout(newHead) == -1)
             return "";
-        }
-        if (checkoutResp.readUInt8() == 0) {
-            string error;
-            checkoutResp.readPStr(error);
-            WARNING("Failed to checkout %s", error.c_str());
-            return "";
-        }
 
         LOG("RepoControl::pull: Update from %s:%s suceeded",
             host.c_str(), path.c_str());
@@ -157,7 +197,7 @@ RepoControl::pull(const string &host, const string &path)
 
     // Handle unmounted repository
     RemoteRepo::sp srcRepo(new RemoteRepo());
-    if (!srcRepo->connect(host + ":" + path)) {
+    if (!srcRepo->connect(host + (host.size() ? ":" : "") + path)) {
         LOG("RepoControl::pull: Failed to connect to source %s", host.c_str());
         return  "";
     }
@@ -179,3 +219,107 @@ RepoControl::push(const string &host, const string &path)
     return "";
 }
 
+int
+RepoControl::snapshot()
+{
+    if (udsRepo) {
+      strwstream req;
+      string msg = "Orisync automatic snapshot";
+
+      req.writePStr("snapshot");
+      req.writeUInt8(1); // hasMsg = true
+      req.writeUInt8(0); // hasName = false
+      
+      req.writeLPStr(msg);
+
+      try {
+        strstream resp = udsRepo->callExt("FUSE", req.str());
+        if (resp.ended()) {
+        WARNING("RepoControl::snapshot: Snapshot failed with an unknown error!");
+        return -1;
+        }
+
+        switch (resp.readUInt8())
+        {
+          case 0:
+            //LOG("RepoControl::snapshot: No changes");
+            return 0;
+          case 1:
+          {
+            ObjectHash hash;
+            resp.readHash(hash);
+            return 1;
+          }
+          default:
+            NOT_IMPLEMENTED(false);
+        }
+      } catch (SystemException e) {
+        WARNING("%s", e.what());
+        return -1;
+      }
+    }
+    return -1;
+}
+
+/*
+int
+RepoControl::checkoutPrev(time_t time)
+{
+    map<time_t, ObjectHash>::iterator closeSS;
+    closeSS = snapshots.lower_bound(time);
+    if (closeSS == snapshots.end()) {
+        LOG("Repocontrol::checkoutPrev: No snapshot found equal or larger than the given time");
+        return -1;
+    }
+    return checkout(closeSS->second);
+}
+*/
+
+void
+RepoControl::gc(time_t time)
+{
+  if (udsRepo) {
+        // Purge snapshot
+        strwstream req;
+        req.writePStr("purgesnapshot");
+        req.writeUInt8(1); // time based
+        req.writeInt64((int64_t)time);
+
+        try {
+          strstream resp = udsRepo->callExt("FUSE", req.str());
+          if (resp.ended()) {
+	          LOG("Repocontrol::gc: Garbage collection failed with an unknown error!");
+	          return;
+          }
+
+          switch (resp.readUInt8())
+          {
+	          case 0:
+	          {
+	              DLOG("Repocontrol::gc: Garbage collection succeeded");
+                break;
+	          }
+	          case 1:
+	          {
+	              string msg;
+	              resp.readPStr(msg);
+	              DLOG("%s", msg.c_str());
+                break;
+	          }
+	          default:
+    	          NOT_IMPLEMENTED(false);
+          }
+        } catch (SystemException e) {
+          WARNING("%s", e.what());
+          return;
+        }
+  }
+}
+
+bool
+RepoControl::isMounted()
+{
+    if (udsRepo)
+        return true;
+    return false;
+}

@@ -42,7 +42,7 @@ generateKey()
 }
 
 int
-cmd_init(int argc, const char *argv[])
+cmd_init(int argc, const char *argv)
 {
     bool isFirst = false;
     string val;

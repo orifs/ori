@@ -33,9 +33,9 @@ void MDNS_Register(uint16_t port_num);
  */
 struct event *MDNS_Browse(struct event_base *evbase);
 
-#include <boost/function.hpp>
+#include <functional>
 //typedef void (*BrowseCallback)(const OriPeer &peer);
-typedef boost::function<void (const OriPeer &peer)> BrowseCallback;
+typedef std::function<void (const OriPeer &peer)> BrowseCallback;
 void MDNS_RegisterBrowseCallback(BrowseCallback cb);
 std::vector<OriPeer> MDNS_GetPeers();
 

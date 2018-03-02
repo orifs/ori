@@ -441,7 +441,7 @@ size_t strstream::sizeHint() const
  */
 
 fdstream::fdstream(int fd, off_t offset, size_t length)
-    : fd(fd), offset(offset), length(length), left(length)
+    : fd(fd), length(length), left(length)
 {
     if (offset >= 0 && lseek(fd, offset, SEEK_SET) != offset) {
         setErrno("lseek");
@@ -493,6 +493,7 @@ diskstream::diskstream(const std::string &filename)
     fd = open(filename.c_str(), O_RDONLY);
     if (fd < 0) {
         setErrno("open");
+        LOG("open failed: %s", filename.c_str());
         if (USE_EXCEPTIONS)
             throw std::ios_base::failure("Couldn't open file");
         return;

@@ -155,7 +155,7 @@ OriCrypt_Encrypt(const string &plaintext, const string &key)
     unsigned char keyData[32];
     unsigned char ivData[32];
     unsigned char *buf;
-    EVP_CIPHER_CTX ctx;
+    EVP_CIPHER_CTX *ctx;
     string ciphertext;
 
     // Generate random salt and prepend it
@@ -173,16 +173,16 @@ OriCrypt_Encrypt(const string &plaintext, const string &key)
     clen = plaintext.size() + AES_BLOCK_SIZE;
     buf = new unsigned char[clen];
 
-    EVP_CIPHER_CTX_init(&ctx);
-    EVP_EncryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, keyData, ivData);
-    EVP_EncryptUpdate(&ctx, buf, &clen,
+    ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, keyData, ivData);
+    EVP_EncryptUpdate(ctx, buf, &clen,
                       (const unsigned char *)plaintext.data(),
                       plaintext.size());
-    EVP_EncryptFinal_ex(&ctx, buf+clen, &flen);
-    EVP_CIPHER_CTX_cleanup(&ctx);
+    EVP_EncryptFinal_ex(ctx, buf+clen, &flen);
+    EVP_CIPHER_CTX_free(ctx);
 
     ciphertext.append((const char *)buf, clen+flen);
-    delete buf;
+    delete[] buf;
 
     return ciphertext;
 }
@@ -199,7 +199,7 @@ OriCrypt_Decrypt(const string &ciphertext, const string &key)
     unsigned char keyData[32];
     unsigned char ivData[32];
     unsigned char *buf;
-    EVP_CIPHER_CTX ctx;
+    EVP_CIPHER_CTX *ctx;
     string plaintext;
 
     if (ciphertext.size() <= PKCS5_SALT_LEN)
@@ -217,16 +217,16 @@ OriCrypt_Decrypt(const string &ciphertext, const string &key)
     plen = ciphertext.size() + AES_BLOCK_SIZE;
     buf = new unsigned char[plen];
 
-    EVP_CIPHER_CTX_init(&ctx);
-    EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, keyData, ivData);
-    EVP_DecryptUpdate(&ctx, buf, &plen,
+    ctx = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, keyData, ivData);
+    EVP_DecryptUpdate(ctx, buf, &plen,
                       (const unsigned char *)ciphertext.data() + PKCS5_SALT_LEN,
                       ciphertext.size() - PKCS5_SALT_LEN);
-    EVP_DecryptFinal_ex(&ctx, buf+plen, &flen);
-    EVP_CIPHER_CTX_cleanup(&ctx);
+    EVP_DecryptFinal_ex(ctx, buf+plen, &flen);
+    EVP_CIPHER_CTX_free(ctx);
 
     plaintext.assign((const char *)buf, plen+flen);
-    delete buf;
+    delete[] buf;
 
     return plaintext;
 }

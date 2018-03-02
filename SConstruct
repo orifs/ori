@@ -28,10 +28,12 @@ def CheckPkgMinVersion(context, name, version):
 opts = Variables('Local.sc')
 
 opts.AddVariables(
-    ("CC", "C Compiler"),
-    ("CXX", "C++ Compiler"),
-    ("AS", "Assembler"),
-    ("LINK", "Linker"),
+    ("CC", "C Compiler", "cc"),
+    ("CXX", "C++ Compiler", "c++"),
+    ("AS", "Assembler", "as"),
+    ("LINK", "Linker"), # SCons usually runs $CC or $CXX
+    ("AR", "Archiver", "ar"),
+    ("RANLIB", "Archiver Indexer", "ranlib"),
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto)", 0, None, int),
     EnumVariable("BUILDTYPE", "Build type", "RELEASE", ["RELEASE", "DEBUG", "PERF"]),
     BoolVariable("VERBOSE", "Show full build information", 0),
@@ -44,14 +46,12 @@ opts.AddVariables(
     BoolVariable("WITH_GOOGLEPROF", "Link to Google CPU Profiler", 0),
     BoolVariable("WITH_TSAN", "Enable Clang Race Detector", 0),
     BoolVariable("WITH_ASAN", "Enable Clang AddressSanitizer", 0),
-    BoolVariable("WITH_LIBS3", "Include support for Amazon S3", 0),
     BoolVariable("BUILD_BINARIES", "Build binaries", 1),
     BoolVariable("CROSSCOMPILE", "Cross compile", 0),
-    BoolVariable("USE_FAKES3", "Send S3 requests to fakes3 instead of Amazon", 0),
     EnumVariable("HASH_ALGO", "Hash algorithm", "SHA256", ["SHA256"]),
     EnumVariable("COMPRESSION_ALGO", "Compression algorithm", "FASTLZ", ["LZMA", "FASTLZ", "SNAPPY", "NONE"]),
     EnumVariable("CHUNKING_ALGO", "Chunking algorithm", "RK", ["RK", "FIXED"]),
-    PathVariable("PREFIX", "Installation target directory", "/usr/local/bin/", PathVariable.PathAccept),
+    PathVariable("PREFIX", "Installation target directory", "/usr/local", PathVariable.PathAccept),
     PathVariable("DESTDIR", "The root directory to install into. Useful mainly for binary package building", "", PathVariable.PathAccept),
 )
 
@@ -121,12 +121,6 @@ else:
 if not env["WITH_MDNS"]:
     env.Append(CPPFLAGS = [ "-DWITHOUT_MDNS" ])
 
-if env["WITH_LIBS3"]:
-    env.Append(CPPFLAGS = [ "-DWITH_LIBS3" ])
-
-if env["USE_FAKES3"]:
-    env.Append(CPPDEFINES = ['USE_FAKES3'])
-
 if env["WITH_GPROF"]:
     env.Append(CPPFLAGS = [ "-pg" ])
     env.Append(LINKFLAGS = [ "-pg" ])
@@ -139,7 +133,7 @@ elif env["BUILDTYPE"] == "PERF":
     env.Append(CPPFLAGS = [ "-g", "-DNDEBUG", "-DORI_PERF", "-Wall", "-O2"])
     env.Append(LDFLAGS = [ "-g", "-rdynamic" ])
 elif env["BUILDTYPE"] == "RELEASE":
-    env.Append(CPPFLAGS = ["-DNDEBUG", "-DORI_RELEASE", "-Wall", "-O2"])
+    env.Append(CPPFLAGS = ["-DNDEBUG", "-DORI_RELEASE", "-w", "-O2"])
 else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
@@ -193,8 +187,6 @@ elif sys.platform == "linux2" or sys.platform == "darwin":
     env.Append(CPPFLAGS = "-DHAVE_EXECINFO")
 
 if sys.platform == "win32":
-    env.Append(LIBPATH=['#../boost_1_53_0\stage\lib'],
-               CPPPATH=['#../boost_1_53_0'])
     env.Append(LIBPATH=['#../libevent-2.0.21-stable'],
                CPPPATH=['#../libevent-2.0.21-stable\include'])
 
@@ -213,6 +205,7 @@ if not conf.CheckCC():
     print 'Your C compiler and/or environment is incorrectly configured.'
     CheckFailed()
 
+env.AppendUnique(CXXFLAGS = ['-std=c++11'])
 if not conf.CheckCXX():
     print 'Your C++ compiler and/or environment is incorrectly configured.'
     CheckFailed()
@@ -225,35 +218,8 @@ else:
         print 'pkg-config not found!'
         Exit(1)
 
-#
-#env.AppendUnique(CXXFLAGS = ['-std=c++11'])
-#if not conf.CheckCXX():
-#    env['CXXFLAGS'].remove('-std=c++11')
-#
-#env.AppendUnique(CXXFLAGS = ['-std=c++0x'])
-#if not conf.CheckCXX():
-#    env['CXXFLAGS'].remove('-std=c++0x')
-#
-
-if conf.CheckCXXHeader('unordered_map'):
-    env.Append(CPPFLAGS = "-DHAVE_CXX11")
-elif conf.CheckCXXHeader('tr1/unordered_map'):
-    env.Append(CPPFLAGS = "-DHAVE_CXXTR1")
-else:
-    print 'Either C++11, C++0x, or C++ TR1 must be present!'
-    CheckFailed()
-
-if not conf.CheckCXXHeader('boost/uuid/uuid.hpp'):
-    print 'Boost UUID headers are missing!'
-    Exit(1)
-
-if not conf.CheckCXXHeader('boost/bind.hpp'):
-    print 'Boost bind headers are missing!'
-    Exit(1)
-
-if not conf.CheckCXXHeader('boost/date_time/posix_time/posix_time.hpp'):
-    print 'Boost posix_time headers are missing!'
-    Exit(1)
+if not conf.CheckCXXHeader('unordered_map'):
+    print 'C++11 libraries appear to be missing'
 
 if sys.platform.startswith("freebsd"):
     if not conf.CheckLib('execinfo'):
@@ -326,9 +292,6 @@ if sys.platform != "win32" and sys.platform != "darwin":
     env.Append(LIBS = ["pthread"])
 
 # Optional Components
-if env["WITH_LIBS3"]:
-    env.Append(CPPPATH = '#libs3-2.0/inc')
-    SConscript('libs3-2.0/SConscript', variant_dir='build/libs3-2.0')
 if env["COMPRESSION_ALGO"] == "SNAPPY":
     env.Append(CPPPATH = ['#snappy-1.0.5'])
     env.Append(LIBS = ["snappy"], LIBPATH = ['#build/snappy-1.0.5'])
@@ -363,8 +326,6 @@ if env["BUILD_BINARIES"]:
     SConscript('ori/SConscript', variant_dir='build/ori')
     SConscript('oridbg/SConscript', variant_dir='build/oridbg')
     SConscript('orisync/SConscript', variant_dir='build/orisync')
-    if env["WITH_LIBS3"]:
-        SConscript('oris3/SConscript', variant_dir='build/oris3')
     if env["WITH_FUSE"]:
         SConscript('orifs/SConscript', variant_dir='build/orifs')
     if env["WITH_HTTPD"]:
@@ -378,8 +339,6 @@ if env["WITH_FUSE"]:
 env.Install('$DESTDIR$PREFIX/bin','build/ori/ori')
 env.Install('$DESTDIR$PREFIX/bin','build/oridbg/oridbg')
 env.Install('$DESTDIR$PREFIX/bin','build/orisync/orisync')
-if env["WITH_LIBS3"]:
-    env.Install('$DESTDIR$PREFIX/bin','build/ori/oris3')
 if env["WITH_HTTPD"]:
     env.Install('$DESTDIR$PREFIX/bin','build/ori_httpd/ori_httpd')
 if env["WITH_ORILOCAL"]:

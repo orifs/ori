@@ -31,12 +31,10 @@ int
 cmd_listobj(int argc, char * const argv[])
 {
     set<ObjectInfo> objects = repository.listObjects();
-    set<ObjectInfo>::iterator it;
 
-    for (it = objects.begin(); it != objects.end(); it++)
-    {
+    for (auto &it : objects) {
         const char *type;
-        switch ((*it).type)
+        switch (it.type)
         {
             case ObjectInfo::Commit:
                 type = "Commit";
@@ -54,10 +52,10 @@ cmd_listobj(int argc, char * const argv[])
                 type = "Purged";
                 break;
             default:
-                cout << "Unknown object type (id " << (*it).hash.hex() << ")!" << endl;
+                cout << "Unknown object type (id " << it.hash.hex() << ")!" << endl;
                 PANIC();
         }
-        cout << (*it).hash.hex() << " # " << type << endl;
+        cout << it.hash.hex() << " # " << type << endl;
     }
 
     return 0;

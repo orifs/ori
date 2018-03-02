@@ -122,13 +122,11 @@ UDSServer::remove(UDSSession *session)
 void
 UDSServer::shutdown()
 {
-    set<UDSSession *>::iterator it;
-
     ::shutdown(listenFd, SHUT_RDWR);
 
     sessionLock.lock();
-    for (it = sessions.begin(); it != sessions.end(); it++) {
-        (*it)->forceExit();
+    for (auto &it : sessions) {
+        it->forceExit();
     }
     sessionLock.unlock();
 
@@ -153,12 +151,10 @@ UDSServer::shutdown()
 set<string>
 UDSServer::listExt()
 {
-    map<string, UDSExtCB>::iterator it;
     set<string> exts;
 
-    for (it = extensions.begin(); it != extensions.end(); it++)
-    {
-        exts.insert(it->first);
+    for (auto &it : extensions) {
+        exts.insert(it.first);
     }
 
     return exts;
@@ -167,7 +163,7 @@ UDSServer::listExt()
 bool
 UDSServer::hasExt(const string &ext)
 {
-    map<string, UDSExtCB>::iterator it = extensions.find(ext);
+    auto it = extensions.find(ext);
 
     return it != extensions.end();
 }
@@ -297,10 +293,8 @@ void UDSSession::cmd_listObjs()
 
     std::set<ObjectInfo> objects = repo->listObjects();
     fs.writeUInt64(objects.size());
-    for (std::set<ObjectInfo>::iterator it = objects.begin();
-            it != objects.end();
-            it++) {
-        fs.writeInfo(*it);
+    for (auto &it : objects) {
+        fs.writeInfo(it);
     }
 }
 
@@ -387,14 +381,13 @@ void UDSSession::cmd_getVersion()
 void UDSSession::cmd_listExt()
 {
     set<string> exts = uds->listExt();
-    set<string>::iterator it;
     DLOG("listExt");
     fdwstream fs(fd);
 
     fs.writeUInt8(OK);
     fs.writeUInt8(exts.size());
-    for (it = exts.begin(); it != exts.end(); it++) {
-        fs.writePStr(*it);
+    for (auto &it : exts) {
+        fs.writePStr(it);
     }
 }
 

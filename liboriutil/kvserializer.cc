@@ -14,7 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdint.h>
+#include <cstdint>
+#include <cinttypes>
 
 #include <iostream>
 #include <string>
@@ -332,25 +333,25 @@ KVSerializer::getBlob() const
 
     blob = KVSERIALIZER_VERSIONSTR;
 
-    for (it = table.begin(); it != table.end(); it++)
+    for (auto &it : table)
     {
         string entry;
         uint8_t lenH, lenL;
 
         // length must be less than size
-        NOT_IMPLEMENTED(it->first.length() <= 0x0000FFFF);
-        lenH = it->first.length() >> 8;
-        lenL = it->first.length() & 0x00FF;
+        NOT_IMPLEMENTED(it.first.length() <= 0x0000FFFF);
+        lenH = it.first.length() >> 8;
+        lenL = it.first.length() & 0x00FF;
         entry = lenH;
         entry += lenL;
-        entry += it->first;
+        entry += it.first;
 
-        NOT_IMPLEMENTED(it->second.length() <= 0x0000FFFF);
-        lenH = it->second.length() >> 8;
-        lenL = it->second.length() & 0x00FF;
+        NOT_IMPLEMENTED(it.second.length() <= 0x0000FFFF);
+        lenH = it.second.length() >> 8;
+        lenL = it.second.length() & 0x00FF;
         entry += lenH;
         entry += lenL;
-        entry += it->second;
+        entry += it.second;
 
         blob += entry;
     }
@@ -364,25 +365,25 @@ KVSerializer::dump() const
     map<string, string>::const_iterator it;
 
     cout << "KVSerializer Dump:" << endl;
-    for (it = table.begin(); it != table.end(); it++)
+    for (auto &it : table)
     {
-        KVType type = getType(it->first);
+        KVType type = getType(it.first);
         char buf[32];
 
         if (type == KVTypeString) {
-            cout << it->first << ": " << getStr(it->first) << endl;
+            cout << it.first << ": " << getStr(it.first) << endl;
         } else if (type == KVTypeU8) {
-            snprintf(buf, sizeof(buf), "%u", getU8(it->first));
-            cout << it->first << ": " << buf << endl;
+            snprintf(buf, sizeof(buf), "%u", getU8(it.first));
+            cout << it.first << ": " << buf << endl;
         } else if (type == KVTypeU16) {
-            snprintf(buf, sizeof(buf), "%u", getU16(it->first));
-            cout << it->first << ": " << buf << endl;
+            snprintf(buf, sizeof(buf), "%u", getU16(it.first));
+            cout << it.first << ": " << buf << endl;
         } else if (type == KVTypeU32) {
-            snprintf(buf, sizeof(buf), "%u", getU32(it->first));
-            cout << it->first << ": " << buf << endl;
+            snprintf(buf, sizeof(buf), "%u", getU32(it.first));
+            cout << it.first << ": " << buf << endl;
         } else if (type == KVTypeU64) {
-            snprintf(buf, sizeof(buf), "%llu", getU64(it->first));
-            cout << it->first << ": " << buf << endl;
+            snprintf(buf, sizeof(buf), "%" PRIu64, getU64(it.first));
+            cout << it.first << ": " << buf << endl;
         } else {
             cout << "Unknown type!" << endl;
         }

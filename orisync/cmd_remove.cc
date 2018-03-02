@@ -20,22 +20,26 @@
 #include <string>
 #include <iostream>
 
+#include <ori/localrepo.h>
+
 #include "orisyncconf.h"
 
 using namespace std;
 
+extern OriSyncConf rc;
+extern RWLock rcLock;
+
 int
-cmd_remove(int argc, const char *argv[])
+cmd_remove(int mode, const char *argv)
 {
-    OriSyncConf rc = OriSyncConf();
-
-    if (argc != 2)
-    {
-        cout << "Sepcify a repository to remove" << endl;
-        cout << "usage: orisync remove <repository>" << endl;
+    if (mode == 0) {
+        OriSyncConf rc = OriSyncConf();
+        rc.removeRepo(argv, true);
+    } else {
+        RWKey::sp key = rcLock.writeLock();
+        rc.removeRepo(argv, false);
+        LOG("removed repo %s", argv);
     }
-
-    rc.removeRepo(argv[1]);
 
     return 0;
 }

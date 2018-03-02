@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Stanford University
+ * Copyright (c) 2013 Stanford University
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,38 +15,30 @@
  */
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include <string>
 #include <iostream>
-#include <iomanip>
+#include <mutex>
+#include <condition_variable>
 
-#include <ori/localrepo.h>
+#include "orisyncconf.h"
+
 
 using namespace std;
 
-extern LocalRepo repository;
+extern condition_variable exitCV;
+extern mutex exitLock;
 
 int
-cmd_purgesnapshot(int argc, char * const argv[])
+cmd_exit(int mode, const char *argv)
 {
-    if (argc != 2) {
-	cout << "Error: Incorrect number of arguments." << endl;
-	cout << "ori purgesnapshot <COMMITID>" << endl;
-	return 1;
-    }
-
-    ObjectHash commitId = ObjectHash::fromHex(argv[1]);
-
-    if (repository.getObjectType(commitId) != ObjectInfo::Commit) {
-	cout << "Error: You can only purge an commit." << endl;
-	return 1;
-    }
-
-    if (!repository.purgeCommit(commitId)) {
-	cout << "Error: Failed to purge object." << endl;
-	return 1;
+    if (mode == 0) {
+        cout << "Orisync is not running." << endl;
+    } else {
+      lock_guard<mutex> lk(exitLock);
+      exitCV.notify_one();
     }
 
     return 0;
 }
-

@@ -54,7 +54,7 @@ private:
 
     std::map<ObjectHash, std::string> payloads;
 
-    std::tr1::unordered_set<ObjectHash> *containedObjs;
+    std::unordered_set<ObjectHash> *containedObjs;
 };
 
 class SshObject : public Object

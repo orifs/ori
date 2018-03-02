@@ -17,7 +17,7 @@
 #include <assert.h>
 
 #include <iostream>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/debug.h>
 #include <oriutil/lrucache.h>

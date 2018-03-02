@@ -38,16 +38,14 @@ cmd_refcount(int argc, char * const argv[])
         cout << left << setw(64) << "Object" << " Count" << endl;
 
         set<ObjectInfo> objs = repository.listObjects();
-        for (set<ObjectInfo>::iterator it = objs.begin();
-                it != objs.end();
-                it++) {
-            cout << (*it).hash.hex() << " " << md.getRefCount((*it).hash) << endl;
+        for (auto &it : objs) {
+            cout << it.hash.hex() << " " << md.getRefCount(it.hash) << endl;
         }
     } else if (argc == 2) {
         ObjectHash hash = ObjectHash::fromHex(argv[1]);
         cout << hash.hex() << " " << md.getRefCount(hash) << endl;
     } else {
-        cout << "Invalid number of arguements." << endl;
+        cout << "Invalid number of arguments." << endl;
         cout << "ori refcount [OBJID]" << endl;
     }
 

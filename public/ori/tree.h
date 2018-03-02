@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <sys/types.h>
+
 #include <string>
 #include <map>
 #include <vector>

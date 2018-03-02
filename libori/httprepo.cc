@@ -30,10 +30,9 @@
 
 #include <openssl/sha.h>
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
+#include <oriutil/stopwatch.h>
 #include <ori/object.h>
 #include <ori/httpclient.h>
 #include <ori/httprepo.h>
@@ -92,15 +91,16 @@ HttpRepo::getHead()
 int
 HttpRepo::distance()
 {
-    boost::posix_time::ptime t_begin =
-        boost::posix_time::microsec_clock::local_time();
+    Stopwatch sw;
+
+    sw.start();
 
     std::string uuid = getUUID();
     assert(uuid != "");
+
+    sw.stop();
     
-    boost::posix_time::ptime t_end =
-        boost::posix_time::microsec_clock::local_time();
-    return (t_end - t_begin).total_milliseconds();
+    return sw.getElapsedMS();
 }
 
 Object::sp

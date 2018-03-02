@@ -44,10 +44,8 @@ cmd_stats(int argc, char * const argv[])
 
     set<ObjectInfo> objs = repository.listObjects();
 
-    for (set<ObjectInfo>::iterator it = objs.begin(); it != objs.end(); it++) {
-        ObjectType type = (*it).type;
-
-        switch (type) {
+    for (auto &it : objs) {
+        switch (it.type) {
         case ObjectInfo::Commit:
         {
             commits++;
@@ -61,7 +59,7 @@ cmd_stats(int argc, char * const argv[])
         case ObjectInfo::Blob:
         {
             blobs++;
-            refcount_t refcount = repository.getMetadata().getRefCount((*it).hash);
+            refcount_t refcount = repository.getMetadata().getRefCount(it.hash);
             if (refcount == 0) {
                 danglingBlobs++;
             } else {

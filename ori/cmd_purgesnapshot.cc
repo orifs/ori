@@ -20,31 +20,53 @@
 #include <iostream>
 #include <iomanip>
 
-#include <ori/localrepo.h>
+#include <ori/udsclient.h>
+#include <ori/udsrepo.h>
+#include <ori/remoterepo.h>
+#include <ori/treediff.h>
 
 using namespace std;
 
-extern LocalRepo repository;
+extern UDSRepo repository;
 
 int
 cmd_purgesnapshot(int argc, char * const argv[])
 {
     if (argc != 2) {
-	cout << "Error: Incorrect number of arguements." << endl;
+	cout << "Error: Incorrect number of arguments." << endl;
 	cout << "ori purgesnapshot <COMMITID>" << endl;
 	return 1;
     }
 
     ObjectHash commitId = ObjectHash::fromHex(argv[1]);
+    strwstream req;
 
-    if (repository.getObjectType(commitId) != ObjectInfo::Commit) {
-	cout << "Error: You can only purge an commit." << endl;
+    req.writePStr("purgesnapshot");
+    req.writeUInt8(0); // Not time based
+    req.writeHash(commitId);
+
+    strstream resp = repository.callExt("FUSE", req.str());
+    if (resp.ended()) {
+	cout << "purgesnapshot failed with an unknown error!" << endl;
 	return 1;
     }
 
-    if (!repository.purgeCommit(commitId)) {
-	cout << "Error: Failed to purge object." << endl;
-	return 1;
+    switch (resp.readUInt8())
+    {
+	case 0:
+	{
+	    cout << "Snapshot purged" << endl;
+	    return 0;
+	}
+	case 1:
+	case 2:
+	{
+	    string msg;
+	    resp.readPStr(msg);
+	    cout << msg << endl;
+	}
+	default:
+	    NOT_IMPLEMENTED(false);
     }
 
     return 0;

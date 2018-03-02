@@ -25,8 +25,8 @@
 
 #include <string>
 #include <iostream>
-#include <boost/tr1/memory.hpp>
-#include <boost/tr1/unordered_map.hpp>
+#include <memory>
+#include <unordered_map>
 
 #include <oriutil/debug.h>
 #include <oriutil/orifile.h>

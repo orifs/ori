@@ -77,11 +77,10 @@ VarLink::set(const string &var, const string &val)
 list<string>
 VarLink::getVars() const
 {
-    map<string, string>::const_iterator it;
     list<string> rval;
 
-    for (it = vars.begin(); it != vars.end(); it++) {
-        rval.push_back(it->first);
+    for (auto const &it : vars) {
+        rval.push_back(it.first);
     }
 
     return rval;
@@ -108,13 +107,12 @@ string
 VarLink::getBlob()
 {
     strwstream str;
-    map<string, string>::const_iterator it;
 
     str.enableTypes();
     str.writeUInt32(vars.size());
-    for (it = vars.begin(); it != vars.end(); it++) {
-        str.writeLPStr(it->first);
-        str.writeLPStr(it->second);
+    for (auto const &it : vars) {
+        str.writeLPStr(it.first);
+        str.writeLPStr(it.second);
     }
 
     return str.str();

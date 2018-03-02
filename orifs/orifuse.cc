@@ -14,9 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cinttypes>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -35,7 +36,7 @@
 
 #include <string>
 #include <map>
-#include <boost/tr1/memory.hpp>
+#include <memory>
 
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
@@ -501,7 +502,7 @@ ori_truncate(const char *path, off_t length)
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
 
-    FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%lld)", path, length);
+    FUSE_LOG("FUSE ori_truncate(path=\"%s\", length=%" PRId64 ")", path, length);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
@@ -538,7 +539,7 @@ ori_ftruncate(const char *path, off_t length, struct fuse_file_info *fi)
     OriPriv *priv = GetOriPriv();
     OriFileInfo *info;
 
-    FUSE_LOG("FUSE ori_ftruncate(path=\"%s\", length=%lld)", path, length);
+    FUSE_LOG("FUSE ori_ftruncate(path=\"%s\", length=%" PRId64 ")", path, length);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return -EACCES;
@@ -575,7 +576,7 @@ ori_release(const char *path, struct fuse_file_info *fi)
 {
     OriPriv *priv = GetOriPriv();
 
-    FUSE_LOG("FUSE ori_release(path=\"%s\"): fh=%llu", path, fi->fh);
+    FUSE_LOG("FUSE ori_release(path=\"%s\"): fh=%" PRIu64, path, fi->fh);
 
     if (strcmp(path, ORI_CONTROL_FILEPATH) == 0) {
         return 0;
@@ -682,7 +683,7 @@ ori_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     priv->fsck();
 #endif /* FSCK_A_LOT */
 
-    FUSE_LOG("FUSE ori_readdir(path=\"%s\", offset=%lld)", path, offset);
+    FUSE_LOG("FUSE ori_readdir(path=\"%s\", offset=%" PRId64 ")", path, offset);
 
     filler(buf, ".", NULL, 0);
     filler(buf, "..", NULL, 0);

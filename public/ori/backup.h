@@ -18,8 +18,8 @@
 #define __BACKUP_H__
 
 #include <stdexcept>
-#include <boost/tr1/unordered_map.hpp>
-#include <boost/tr1/memory.hpp>
+#include <unordered_map>
+#include <memory>
 
 #include "object.h"
 
@@ -54,7 +54,7 @@ private:
 
 class BackupService {
 public:
-    typedef std::tr1::shared_ptr<BackupService> sp;
+    typedef std::shared_ptr<BackupService> sp;
 
     // Is cached for the lifetime of a BackupService
     bool hasKey(const std::string &key) {
@@ -91,7 +91,7 @@ public:
     }
 
 protected:
-    typedef std::tr1::unordered_map<std::string, bool> HasKeyCache;
+    typedef std::unordered_map<std::string, bool> HasKeyCache;
     HasKeyCache hasKeyCache;
 };
 

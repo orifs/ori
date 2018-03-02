@@ -94,19 +94,21 @@ OriSyncConf::getUUID() const
 }
 
 void
-OriSyncConf::addRepo(const string &repoPath)
+OriSyncConf::addRepo(const string &repoPath, bool saveToDisk)
 {
     repos.push_back(repoPath);
 
-    save();
+    //if (saveToDisk)
+        save();
 }
 
 void
-OriSyncConf::removeRepo(const string &repoPath)
+OriSyncConf::removeRepo(const string &repoPath, bool saveToDisk)
 {
     repos.remove(repoPath);
 
-    save();
+    //if (saveToDisk)
+        save();
 }
 
 list<string>
@@ -167,15 +169,13 @@ OriSyncConf::getBlob() const
     blob += "machine-id " + machineid + "\n";
 
     blob += "\n# Hosts\n";
-    for (list<string>::const_iterator it = hosts.begin(); it != hosts.end(); it++)
-    {
-        blob += "host " + *it + "\n";
+    for (auto const &it : hosts) {
+        blob += "host " + it + "\n";
     }
 
     blob += "\n# Repositories\n";
-    for (list<string>::const_iterator it = repos.begin(); it != repos.end(); it++)
-    {
-        blob += "repo " + *it + "\n";
+    for (auto const &it : repos) {
+        blob += "repo " + it + "\n";
     }
 
     return blob;
