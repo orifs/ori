@@ -60,6 +60,8 @@
 
 using namespace std;
 
+// Multicast Address
+#define ORISYNC_MCADDR		"224.0.0.77"
 // Announcement UDP port
 #define ORISYNC_UDPPORT		8051
 // Advertisement interval
@@ -135,12 +137,21 @@ public:
 
         memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+        addr.sin_addr.s_addr = inet_addr(ORISYNC_MCADDR);
         addr.sin_port = htons(ORISYNC_UDPPORT);
 
         status = ::bind(fd, (struct sockaddr *)&addr, sizeof(addr));
         if (status < 0) {
             perror("bind");
+            close(fd);
+            throw SystemException();
+        }
+
+        struct ip_mreq mreq;
+        mreq.imr_multiaddr.s_addr = inet_addr(ORISYNC_MCADDR);
+        mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+        if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
+            perror("setsockopt");
             close(fd);
             throw SystemException();
         }
@@ -335,7 +346,7 @@ public:
 
         memset(&dstAddr, 0, sizeof(dstAddr));
         dstAddr.sin_family = AF_INET;
-        dstAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+        dstAddr.sin_addr.s_addr = inet_addr(ORISYNC_MCADDR);
         dstAddr.sin_port = htons(ORISYNC_UDPPORT);
     }
     ~RepoMonitor() {
