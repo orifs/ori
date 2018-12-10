@@ -131,23 +131,29 @@ PublicKey::verify(const string &blob,
                   const string &digest) const
 {
     int err;
-    EVP_MD_CTX ctx;
+    EVP_MD_CTX * ctx = EVP_MD_CTX_new();
+    if (!ctx) {
+      throw exception();
+      return false;
+    }
 
     assert(x509 != NULL && key != NULL);
 
-    EVP_VerifyInit(&ctx, EVP_sha256());
-    EVP_VerifyUpdate(&ctx, blob.data(), blob.size());
-    err = EVP_VerifyFinal(&ctx, (const unsigned char *)digest.data(),
+    EVP_VerifyInit(ctx, EVP_sha256());
+    EVP_VerifyUpdate(ctx, blob.data(), blob.size());
+    err = EVP_VerifyFinal(ctx, (const unsigned char *)digest.data(),
                           digest.length(), key);
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
+        EVP_MD_CTX_free(ctx);
         throw exception();
         return false;
     }
 
     // Prepend 8-byte public key digest
 
+    EVP_MD_CTX_free(ctx);
     return true;
 }
 
@@ -185,19 +191,24 @@ PrivateKey::sign(const string &blob) const
     int err;
     unsigned int sigLen = SIGBUF_LEN;
     char sigBuf[SIGBUF_LEN];
-    EVP_MD_CTX ctx;
+    EVP_MD_CTX * ctx = EVP_MD_CTX_new();
+    if (!ctx) {
+      throw exception();
+    }
 
-    EVP_SignInit(&ctx, EVP_sha256());
-    EVP_SignUpdate(&ctx, blob.data(), blob.size());
-    err = EVP_SignFinal(&ctx, (unsigned char *)sigBuf, &sigLen, key);
+    EVP_SignInit(ctx, EVP_sha256());
+    EVP_SignUpdate(ctx, blob.data(), blob.size());
+    err = EVP_SignFinal(ctx, (unsigned char *)sigBuf, &sigLen, key);
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
+        EVP_MD_CTX_free(ctx);
         throw exception();
     }
 
     // XXX: Prepend 8-byte public key digest
 
+    EVP_MD_CTX_free(ctx);
     return string().assign(sigBuf, sigLen);
 }
 
