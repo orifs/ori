@@ -65,6 +65,9 @@ using namespace std;
 #define ORI_SNAPSHOT_DIRNAME ".snapshot"
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
+#define OPT_KEY_REPO_PARAM  0
+#define OPT_KEY_CLONE_PARAM 1
+
 mount_ori_config config;
 RemoteRepo remoteRepo;
 OriPriv *priv;
@@ -1036,26 +1039,134 @@ ori_setup_ori_oper()
 }
 
 void
-usage()
+version()
 {
     printf("Ori Distributed Personal File System (%s) - FUSE Driver\n",
             ORI_VERSION_STR);
-    printf("Usage: orifs [OPTIONS] [MOUNT POINT]\n\n");
-    printf("Options:\n");
-    printf("    --repo=[REPOSITORY PATH]        Repository path (required)\n");
-    printf("    --clone=[REMOTE PATH]           Clone remote repository\n");
-    printf("    --shallow                       Force caching shallow clone\n");
-    printf("    --nocache                       Force no caching clone\n");
-    printf("    --journal-none                  Disable recovery journal\n");
-    printf("    --journal-async                 Asynchronous recovery journal\n");
-    printf("    --journal-sync                  Synchronous recovery journal\n");
-    printf("    --no-threads                    Disable threading (DEBUG)\n");
-    printf("    --debug                         Enable FUSE debug mode (DEBUG)\n");
-    printf("    --help                          Print this message\n");
+}
+
+void
+usage()
+{
+    version();
+    printf("Usage: orifs [REPOSITORY] [MOUNT POINT] [-o OPTIONS] [--help]\n\n");
+    printf("The repository may be a fully qualified repository path, or a\n");
+    printf("local repository name.\n");
+    printf("\nOri mount options:\n");
+    printf("    -o clone=[REMOTE PATH]          Clone remote repository\n");
+    printf("    -o shallow                      Force caching shallow clone.\n");
+    printf("    -o [no_]cache                   Force (no) caching clone\n");
+    printf("    -o journal=[none,async,sync]    Disable recovery journal,\n");
+    printf("                                    or use a synchronous or\n");
+    printf("                                    asynchronous journal.\n");
+    printf("\nOther mount options will be passed on to FUSE; see below.\n");
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
-    printf("Website: http://ori.scs.stanford.edu/\n");
+    printf("Website: http://ori.scs.stanford.edu/\n\n");
 }
+
+
+const fuse_opt option_spec[] = {
+  // Respond to standard options
+  { "--help", offsetof(struct mount_ori_config, show_help), 1 },
+  { "-h", offsetof(struct mount_ori_config, show_help), 1 },
+
+  { "--version", offsetof(struct mount_ori_config, show_version), 1 },
+  { "-V", offsetof(struct mount_ori_config, show_version), 1 },
+
+
+  // File system options
+  { "shallow", offsetof(struct mount_ori_config, shallow), 1 },
+  { "deep", offsetof(struct mount_ori_config, shallow), 0 },
+
+  { "cache", offsetof(struct mount_ori_config, nocache), 0 },
+  { "no_cache", offsetof(struct mount_ori_config, nocache), 1 },
+
+  { "journal=none", offsetof(struct mount_ori_config, journal), 1 },
+  { "no_journal", offsetof(struct mount_ori_config, journal), 1 },
+  { "journal=async", offsetof(struct mount_ori_config, journal), 2 },
+  { "journal=sync", offsetof(struct mount_ori_config, journal), 3 },
+
+  { "-s", offsetof(struct mount_ori_config, single), 1 },
+
+  { "-d", offsetof(struct mount_ori_config, debug), 1 },
+  { "debug", offsetof(struct mount_ori_config, debug), 1 },
+  { "no_debug", offsetof(struct mount_ori_config, debug), 0 },
+
+  { "clone=", -1U, OPT_KEY_CLONE_PARAM },
+
+  FUSE_OPT_END
+};
+
+int set_opt_helper(void * data, char const * arg, int key, struct fuse_args *out)
+{
+  // Not recognized, so let FUSE handle it
+  if (key == FUSE_OPT_KEY_OPT) {
+    return 1;
+  }
+
+  // Just for clean code, don't depend on global - we have the options passed
+  // in.
+  mount_ori_config * cbopts = static_cast<mount_ori_config *>(data);
+
+  // Non-option argument
+  if (key == FUSE_OPT_KEY_NONOPT) {
+    switch (cbopts->argcount) {
+      case 0:
+        // First argument must be the repository. We'll remember this, but
+        // discard it from the args.
+        cbopts->repoPath = arg;
+        ++(cbopts->argcount);
+        return 0;
+
+      case 1:
+        // The second argument must be the mount point. We'll remember it,
+        // but preserve it for FUSE.
+        cbopts->mountPoint = arg;
+        ++(cbopts->argcount);
+        return 1;
+
+      default:
+        // Any future arguments are errors.
+        fprintf(stderr, "Internal error: too many arguments: %s\n", arg);
+        return -1;
+    }
+  }
+
+  switch (key) {
+    case OPT_KEY_REPO_PARAM:
+      {
+        std::string repo = arg;
+        if (repo.substr(0, 5) != "repo=") {
+          fprintf(stderr, "Internal error: repo option does not start with 'repo=': %s\n", arg);
+          return -1;
+        }
+        cbopts->repoPath = repo.substr(5);
+      }
+      break;
+
+    case OPT_KEY_CLONE_PARAM:
+      {
+        std::string clone = arg;
+        if (clone.substr(0, 6) != "clone=") {
+          fprintf(stderr, "Internal error: clone option does not start with 'clone=': %s\n", arg);
+          return -1;
+        }
+        cbopts->clonePath = clone.substr(5);
+      }
+      break;
+
+    default:
+      // We don't know it, error out.
+      fprintf(stderr, "Internal error: unrecognized option: %s\n", arg);
+      return -1;
+  }
+
+  // Discard from args, it's handled
+  return 0;
+}
+
+
 
 int
 main(int argc, char *argv[])
@@ -1065,85 +1176,52 @@ main(int argc, char *argv[])
 
     ori_setup_ori_oper();
 
-    config.shallow = 0;
-    config.nocache = 0;
-    config.journal = 0;
-    config.single = 0;
-    config.debug = 0;
-    config.repoPath = "";
-    config.clonePath = "";
-    config.mountPoint = "";
+    fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
-    struct option longopts[] = {
-        { "repo",           required_argument,  NULL,   'r' },
-        { "clone",          required_argument,  NULL,   'c' },
-        { "shallow",        no_argument,        NULL,   's' },
-        { "nocache",        no_argument,        NULL,   'n' },
-        { "journal-none",   no_argument,        NULL,   'x' },
-        { "journal-async",  no_argument,        NULL,   'y' },
-        { "journal-sync",   no_argument,        NULL,   'z' },
-        { "no-threads",     no_argument,        NULL,   't' },
-        { "debug",          no_argument,        NULL,   'd' },
-        { "fuselog",        no_argument,        NULL,   'l' },
-        { "help",           no_argument,        NULL,   'h' },
-        { NULL,             0,                  NULL,   0   }
-    };
-
-    while ((ch = getopt_long(argc, argv, "r:c:snxyzdh", longopts, NULL)) != -1)
-    {
-        switch (ch) {
-            case 'r':
-                config.repoPath = optarg;
-                break;
-            case 'c':
-                config.clonePath = optarg;
-                createReplica = true;
-                break;
-            case 's':
-                config.shallow = 1;
-                break;
-            case 'n':
-                config.nocache = 1;
-                break;
-            case 'x':
-                config.journal = 1;
-                break;
-            case 'y':
-                config.journal = 2;
-                break;
-            case 'z':
-                config.journal = 3;
-                break;
-            case 't':
-                config.single = 1;
-                break;
-            case 'd':
-                config.debug = 1;
-                break;
-            case 'l':
-                ori_fuse_log_enable();
-                break;
-            case 'h':
-                usage();
-                exit(0);
-            default:
-                printf("Unknown option!\n");
-                exit(1);
-        }
-    }
-    argc -= optind;
-    argv += optind;
-
-    if (argc != 1) {
-        usage();
-        return 1;
-    }
-    if (argc > 1) {
-        printf("Too many arguments!\n");
-        return 1;
+    int ret = fuse_opt_parse(&args, &config, option_spec, set_opt_helper);
+    if (ret == -1) {
+      usage();
+      assert(fuse_opt_add_arg(&args, "--help") == 0);
+      args.argv[0][0] = '\0';
     }
 
-    config.mountPoint = argv[0];
+    // Handle generic options
+    if (config.show_help) {
+      usage();
+      ret = fuse_opt_add_arg(&args, "--help");
+      assert(ret == 0);
+      args.argv[0][0] = '\0';
+    } else if (config.show_version) {
+      version();
+      ret = fuse_opt_add_arg(&args, "--version");
+      assert(ret == 0);
+      args.argv[0][0] = '\0';
+    }
+
+    // Pass on FUSE options that might have been consumed.
+    if (config.debug) {
+      ret = fuse_opt_add_arg(&args, "-d");
+      assert(ret == 0);
+      ori_fuse_log_enable();
+    }
+    if (config.single) {
+      ret = fuse_opt_add_arg(&args, "-s");
+      assert(ret == 0);
+    }
+
+    // If we have a clone path, we need to create a replica.
+
+    // If we have a clone path, we need to create a replica.
+    if (config.clonePath.length() > 0) {
+      createReplica = true;
+    }
+
+    // If we want to show version or help, it's best to do this fast.
+    if (config.show_version || config.show_help) {
+          int ret = fuse_main(args.argc, args.argv, &ori_oper, NULL);
+      fuse_opt_free_args(&args);
+      return ret;
+    }
 
     /*
      * If there is no repo path, then check if the repository name is the 
@@ -1163,6 +1241,7 @@ main(int argc, char *argv[])
     config.repoPath = RepoStore_FindRepo(config.repoPath);
     if (config.repoPath != "" && !OriFile_Exists(config.repoPath)) {
         printf("Specify the repository name or repository path!\n");
+        fuse_opt_free_args(&args);
         exit(1);
     }
 
@@ -1184,18 +1263,21 @@ main(int argc, char *argv[])
     if (!OriFile_Exists(config.repoPath) && !createReplica) {
         printf("Repository does not exist! You must create one with ");
         printf("'ori init', or you may\nreplicate one from another host!\n");
+        fuse_opt_free_args(&args);
         return 1;
     }
 
     if (createReplica) {
         if (OriFile_Exists(config.repoPath)) {
             printf("Cannot replicate onto an existing file system!\n");
+            fuse_opt_free_args(&args);
             return 1;
         }
 
         int status = OriFile_MkDir(config.repoPath);
         if (status < 0) {
             printf("Failed to destination repository directory!\n");
+            fuse_opt_free_args(&args);
             return 1;
         }
 
@@ -1205,12 +1287,14 @@ main(int argc, char *argv[])
         if (!remoteRepo.connect(config.clonePath)) {
             printf("Failed to connect to remote repository: %s\n",
                    config.clonePath.c_str());
+            fuse_opt_free_args(&args);
             return 1;
         }
 
         if (LocalRepo_Init(config.repoPath, /* bareRepo */true,
                            remoteRepo->getUUID()) != 0) {
             printf("Repository does not exist and failed to create one.\n");
+            fuse_opt_free_args(&args);
             return 1;
         }
 
@@ -1229,6 +1313,7 @@ main(int argc, char *argv[])
             repo.close();
         } catch (SystemException &e) {
             FUSE_LOG("Unexpected %s", e.what());
+            fuse_opt_free_args(&args);
             throw e;
         }
     }
@@ -1247,6 +1332,7 @@ main(int argc, char *argv[])
         }
     } catch (SystemException e) {
         FUSE_LOG("Unexpected %s", e.what());
+        fuse_opt_free_args(&args);
         throw e;
     }
 
@@ -1261,43 +1347,18 @@ main(int argc, char *argv[])
         NOT_IMPLEMENTED(false);
     }
 
-    char fuse_cmd[] = "orifs";
-    char fuse_single[] = "-s";
-    char fuse_debug[] = "-d";
-    char fuse_mntpt[512];
-    int fuse_argc = 1;
-    char *fuse_argv[4] = { fuse_cmd };
-
     if (config.debug == 1) {
         cout << "Repo Path:     " << config.repoPath << endl;
         cout << "Clone Path:    " << config.clonePath << endl;
         cout << "Mount Point:   " << config.mountPoint << endl;
     }
 
-    strncpy(fuse_mntpt, config.mountPoint.c_str(), 512);
-
-    // disable threading temporarily
-    config.single = 1;
-    if (config.single == 1)
-    {
-        fuse_argv[fuse_argc] = fuse_single;
-        fuse_argc++;
-    }
-
-    if (config.debug == 1)
-    {
-        fuse_argv[fuse_argc] = fuse_debug;
-        fuse_argc++;
-    }
-
-    fuse_argv[fuse_argc] = fuse_mntpt;
-    fuse_argc++;
-
-    int status = fuse_main(fuse_argc, fuse_argv, &ori_oper, NULL);
+    int status = fuse_main(args.argc, args.argv, &ori_oper, NULL);
     if (status != 0) {
         priv->cleanup();
     }
 
+    fuse_opt_free_args(&args);
     return status;
 }
 
