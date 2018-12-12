@@ -1053,12 +1053,15 @@ usage()
     printf("The repository may be a fully qualified repository path, or a\n");
     printf("local repository name.\n");
     printf("\nOri mount options:\n");
-    printf("    -o clone=[REMOTE PATH]          Clone remote repository\n");
-    printf("    -o shallow                      Force caching shallow clone.\n");
-    printf("    -o [no_]cache                   Force (no) caching clone\n");
+    printf("    -o clone=[REMOTE PATH]          Clone remote repository into\n");
+    printf("                                    the local repository path.\n");
+    printf("    -o cache=[none,shallow,deep]    Disable caching of clone, or\n");
+    printf("                                    force shallow caching. Default\n");
+    printf("                                    is 'deep'.\n");
     printf("    -o journal=[none,async,sync]    Disable recovery journal,\n");
     printf("                                    or use a synchronous or\n");
-    printf("                                    asynchronous journal.\n");
+    printf("                                    asynchronous journal. Default\n");
+    printf("                                    is 'async'.\n");
     printf("\nOther mount options will be passed on to FUSE; see below.\n");
 
     printf("\nPlease report bugs to orifs-devel@stanford.edu\n");
@@ -1074,18 +1077,16 @@ const fuse_opt option_spec[] = {
   { "--version", offsetof(struct mount_ori_config, show_version), 1 },
   { "-V", offsetof(struct mount_ori_config, show_version), 1 },
 
-
   // File system options
-  { "shallow", offsetof(struct mount_ori_config, shallow), 1 },
-  { "deep", offsetof(struct mount_ori_config, shallow), 0 },
+  { "cache=none", offsetof(struct mount_ori_config, cache), (int) OriCacheMode::None },
+  { "no_cache", offsetof(struct mount_ori_config, cache), (int) OriCacheMode::None },
+  { "cache=shallow", offsetof(struct mount_ori_config, cache), (int) OriCacheMode::Shallow },
+  { "cache=deep", offsetof(struct mount_ori_config, cache), (int) OriCacheMode::Deep },
 
-  { "cache", offsetof(struct mount_ori_config, nocache), 0 },
-  { "no_cache", offsetof(struct mount_ori_config, nocache), 1 },
-
-  { "journal=none", offsetof(struct mount_ori_config, journal), 1 },
-  { "no_journal", offsetof(struct mount_ori_config, journal), 1 },
-  { "journal=async", offsetof(struct mount_ori_config, journal), 2 },
-  { "journal=sync", offsetof(struct mount_ori_config, journal), 3 },
+  { "journal=none", offsetof(struct mount_ori_config, journal), (int) OriJournalMode::NoJournal },
+  { "no_journal", offsetof(struct mount_ori_config, journal), (int) OriJournalMode::NoJournal },
+  { "journal=async", offsetof(struct mount_ori_config, journal), (int) OriJournalMode::AsyncJournal },
+  { "journal=sync", offsetof(struct mount_ori_config, journal), (int) OriJournalMode::SyncJournal },
 
   { "-s", offsetof(struct mount_ori_config, single), 1 },
 
@@ -1302,7 +1303,7 @@ main(int argc, char *argv[])
     }
     config.repoPath = OriFile_RealPath(config.repoPath);
 
-    if (config.shallow == 0 && createReplica) {
+    if (config.cache == OriCacheMode::Deep && createReplica) {
         try {
             LocalRepo repo;
 
@@ -1319,7 +1320,7 @@ main(int argc, char *argv[])
     }
 
     try {
-        if (config.shallow == 1 && createReplica) {
+        if (config.cache == OriCacheMode::Shallow && createReplica) {
             string originPath = config.clonePath;
 
             if (!Util_IsPathRemote(originPath)) {
@@ -1336,16 +1337,9 @@ main(int argc, char *argv[])
         throw e;
     }
 
-    if (config.journal == 1) {
-        priv->setJournalMode(OriJournalMode::NoJournal);
-    } else if (config.journal == 2 || config.journal == 0) {
-        // XXX: default
-        priv->setJournalMode(OriJournalMode::AsyncJournal);
-    } else if (config.journal == 3) {
-        priv->setJournalMode(OriJournalMode::SyncJournal);
-    } else {
-        NOT_IMPLEMENTED(false);
-    }
+    // Cast is safe enough in C++, if code explicitly sets and tests for
+    // enum values - which it does.
+    priv->setJournalMode(static_cast<OriJournalMode::JournalMode>(config.journal));
 
     if (config.debug == 1) {
         cout << "Repo Path:     " << config.repoPath << endl;

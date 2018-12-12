@@ -28,8 +28,7 @@ struct mount_ori_config {
     int show_version;
 
     // Used by orifs
-    int shallow;
-    int nocache;
+    int cache;
     int journal;
     int single;
     int debug;
@@ -41,9 +40,8 @@ struct mount_ori_config {
       : argcount(0)
       , show_help(0)
       , show_version(0)
-      , shallow(0)
-      , nocache(0)
-      , journal(0)
+      , cache(OriCacheMode::Deep)
+      , journal(OriJournalMode::AsyncJournal)
       , single(0)
       , debug(0)
       , repoPath()
