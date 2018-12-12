@@ -3,7 +3,7 @@
 orifs \- Ori File System FUSE Driver
 .SH SYNOPSIS
 .B orifs
-[\fIOPTIONS\fR...] \fIMOUNTPOINT\fR
+-o [\fIOPTIONS\fR...] \fIREPOSITORY\fR \fIMOUNTPOINT\fR
 .SH DESCRIPTION
 orifs is the FUSE driver for the Ori distributed file system.
 
@@ -14,30 +14,23 @@ unsaved data is located and how it may be recovered.  You can destroy the
 unsaved data by using the \fBori cleanup\fR command.  In future releases this 
 bug will addressed.
 
-.SH OPTIONS
+.SH MOUNT OPTIONS
+All the mount options for FUSE apply. In addition, the following options may
+be specfied.
+
 .TP
-\fB\-\-repo=[\fIFS-NAME\fR]\fR
-Specify the path to the underlying repository.  This parameter is optional and 
-by default orifs will search for a file system with the same name as the mount 
-point.
-.TP
-\fB\-\-clone=[\fIREMOTEPATH\fR]\fR
+\fBclone=[\fIREMOTEPATH\fR]\fR
 Replicate the file system from the specified repository.
 .TP
-\fB\-\-shallow\fR
-Used in conjunction with \-\-clone to specify a shallow replica of the remote 
-repository.
+\fBcache=[\fInone\fR,\fIshallow\fR,\fIdeep\fR]\fR
+Used in conjunction with \fBclone\fR to specify how the replica should be cached.
+Specifying "\fInone\fR" disables caching. The default is "\fIdeep\fR", but
+you can also create a "\fIshallow\fR" replica of the remote repository.
 .TP
-\fB\-\-nocache\fR
-Used in conjunction with \-\-clone to specify a non-caching replica of the remote 
-repository.
-.TP
-\fB\-\-no-threads\fR
-Disable multithreading on FUSE.
-.TP
-\fB\-\-debug\fR
-Enable debugging mode with verbose output.  The file system will run much 
-slower, but is useful for reporting crashes.
+\fBjournal=[\fInone\fR,\fIasync\fR,\fIsync\fR]\fR
+Set the journal mode for the file system. The default is to use asynchronous
+journalling ("\fIasync\fR"), but you can also force synchronous journalling
+("\fIsync\fR") or disable it entirely ("\fInone\fR").
 
 .SH SUPPORTED COMMANDS
 The file system can be controlled by the command line interface.  Running 
@@ -48,4 +41,5 @@ are not recommended.  Additional commands will be added in future releases.
 
 .SH "SEE ALSO"
 .BR ori (1),
-.BR ori_httpd (1)
+.BR ori_httpd (1),
+.BR fuse (8)
