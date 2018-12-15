@@ -65,8 +65,7 @@ using namespace std;
 #define ORI_SNAPSHOT_DIRNAME ".snapshot"
 #define ORI_SNAPSHOT_DIRPATH "/" ORI_SNAPSHOT_DIRNAME
 
-#define OPT_KEY_REPO_PARAM  0
-#define OPT_KEY_CLONE_PARAM 1
+#define OPT_KEY_CLONE_PARAM 0
 
 mount_ori_config config;
 RemoteRepo remoteRepo;
@@ -1135,17 +1134,6 @@ int set_opt_helper(void * data, char const * arg, int key, struct fuse_args *out
   }
 
   switch (key) {
-    case OPT_KEY_REPO_PARAM:
-      {
-        std::string repo = arg;
-        if (repo.substr(0, 5) != "repo=") {
-          fprintf(stderr, "Internal error: repo option does not start with 'repo=': %s\n", arg);
-          return -1;
-        }
-        cbopts->repoPath = repo.substr(5);
-      }
-      break;
-
     case OPT_KEY_CLONE_PARAM:
       {
         std::string clone = arg;
