@@ -4,7 +4,7 @@ cd $TEMP_DIR
 $ORI_EXE newfs $TEST_FS
 
 # mount
-$ORIFS_EXE $TEST_FS
+$ORIFS_EXE $TEST_FS $TEST_FS
 
 sleep 1
 

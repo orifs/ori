@@ -13,10 +13,7 @@ export ORI_HTTPD=$ORIG_DIR/build/ori_httpd/ori_httpd
 export ORIFS_EXE=$ORIG_DIR/build/orifs/orifs
 export ORIDBG_EXE=$ORIG_DIR/build/oridbg/oridbg
 export ORISYNC_EXE=$ORIG_DIR/build/orisync/orisync
-export ORI_TESTS=$ORIG_DIR/ori_tests
-
-# On OS X and other systems this is umount
-export UMOUNT="fusermount -u"
+export ORI_TESTS=$ORIG_DIR/tests
 
 export TEMP_DIR=$ORIG_DIR/tempdir
 export SOURCE_FILES=$TEMP_DIR/files
@@ -32,6 +29,20 @@ export TEST_FS2=oritest_fs2
 export PYTHON="/usr/bin/env python"
 export SCRIPTS=$ORIG_DIR/scripts
 export TEST_RESULTS=$ORIG_DIR/ori_test_results.txt
+
+# FreeBSD and Mac OS X use umount while Linux has fusermount -u
+if [[ `uname` == "Linux" ]]; then
+    export UMOUNT="fusermount -u"
+else
+    export UMOUNT="umount"
+fi
+
+# TODO: Fix tests that haven't been updated to new UI
+HTTP_CLONE="no"
+HTTP_PULL="no"
+MERGE="no"
+MOUNT_WRITE="no"
+MOUNT_WRITE_PYTHON_MT="no"
 
 if [ -f $ORIG_DIR/runtests_config.sh ]; then
     . $ORIG_DIR/runtests_config.sh

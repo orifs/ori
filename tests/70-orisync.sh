@@ -1,7 +1,7 @@
 cd $TEMP_DIR
 
 # create source fs
-$ORIFS_EXE $SOURCE_FS
+$ORIFS_EXE $SOURCE_FS $SOURCE_FS
 cd $SOURCE_FS
 
 # orisync initial configuration

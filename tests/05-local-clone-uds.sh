@@ -1,13 +1,13 @@
 cd $TEMP_DIR
 
 # Mount first to use SSH over UDS socket
-$ORIFS_EXE $SOURCE_FS
+$ORIFS_EXE $SOURCE_FS $SOURCE_FS
 
 sleep 1
 
 $ORI_EXE replicate $SOURCE_FS $TEST_FS
 
-$ORIFS_EXE $TEST_FS
+$ORIFS_EXE $TEST_FS $TEST_FS
 
 sleep 1
 

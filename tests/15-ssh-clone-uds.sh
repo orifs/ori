@@ -1,11 +1,11 @@
 cd $TEMP_DIR
 
 # Mount first to use SSH over UDS socket
-$ORIFS_EXE $SOURCE_FS
+$ORIFS_EXE $SOURCE_FS $SOURCE_FS
 
 $ORI_EXE replicate localhost:$SOURCE_FS $TEST_FS
 
-$ORIFS_EXE $TEST_FS
+$ORIFS_EXE $TEST_FS $TEST_FS
 
 $PYTHON $SCRIPTS/compare.py "$SOURCE_FS" "$TEST_FS"
 

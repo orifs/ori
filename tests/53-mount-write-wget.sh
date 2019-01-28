@@ -4,7 +4,7 @@ PKG_URL="http://ftp.gnu.org/gnu/wget/$PKG_TARBALL"
 
 # Download, extract, and compile source code
 $ORI_EXE newfs $TEST_FS
-$ORIFS_EXE $TEST_FS
+$ORIFS_EXE $TEST_FS $TEST_FS
 
 sleep 1
 

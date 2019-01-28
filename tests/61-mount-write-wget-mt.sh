@@ -1,10 +1,10 @@
-PKG_NAME="zlib-1.2.8"
+PKG_NAME="wget-1.14"
 PKG_TARBALL="$PKG_NAME.tar.gz"
-PKG_URL="http://zlib.net/$PKG_TARBALL"
+PKG_URL="http://ftp.gnu.org/gnu/wget/$PKG_TARBALL"
 
 # Download, extract, and compile source code
 $ORI_EXE newfs $TEST_FS
-$ORIFS_EXE $TEST_FS
+$ORIFS_EXE $TEST_FS $TEST_FS
 
 sleep 1
 
@@ -17,8 +17,8 @@ tar xvf "$PKG_TARBALL"
 # Compile
 cd $PKG_NAME
 
-./configure
-make
+./configure --without-ssl
+make -j8
 
 # Cleanup
 cd $TEMP_DIR
