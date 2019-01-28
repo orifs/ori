@@ -20,14 +20,35 @@
 #include <string>
 
 struct mount_ori_config {
-    int shallow;
-    int nocache;
+    // Non-option argument counter
+    int argcount;
+
+    // CLI only
+    int show_help;
+    int show_version;
+
+    // Used by orifs
+    int cache;
     int journal;
     int single;
     int debug;
     std::string repoPath;
     std::string clonePath;
     std::string mountPoint;
+
+    mount_ori_config()
+      : argcount(0)
+      , show_help(0)
+      , show_version(0)
+      , cache(OriCacheMode::Deep)
+      , journal(OriJournalMode::AsyncJournal)
+      , single(0)
+      , debug(0)
+      , repoPath()
+      , clonePath()
+      , mountPoint()
+    {
+    }
 };
 
 #endif /* __ORIOPT_H__ */

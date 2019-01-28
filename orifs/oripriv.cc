@@ -141,7 +141,7 @@ OriPriv::OriPriv(const std::string &repoPath,
         ASSERT(origin != "");
         repo->addPeer("origin", origin);
         repo->setInstaClone("origin", true);
-        if (config.nocache == 1) {
+        if (config.cache == OriCacheMode::None) {
             repo->setRemoteFlags(false);
         }
         repo->setRemote(remoteRepo);

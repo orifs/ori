@@ -138,11 +138,22 @@ class OriJournalMode
 {
 public:
     enum JournalMode {
-        NoJournal,
-        AsyncJournal,
-        SyncJournal,
+        NoJournal    = 0,
+        AsyncJournal = 1,
+        SyncJournal  = 2,
     };
 };
+
+class OriCacheMode
+{
+public:
+    enum CacheMode {
+        None    = 0,
+        Deep    = 1,
+        Shallow = 2,
+    };
+};
+
 
 class OriPriv
 {
