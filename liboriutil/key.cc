@@ -131,9 +131,9 @@ PublicKey::verify(const string &blob,
                   const string &digest) const
 {
     int err;
-    EVP_MD_CTX * ctx = EVP_MD_CTX_new();
+    EVP_MD_CTX * ctx = new EVP_MD_CTX(); // XXX: openssl 1.1+ EVP_MD_CTX_new();
     if (!ctx) {
-      throw exception();
+      throw system_error(ENOMEM, std::generic_category(), "Could not allocate EVP_MD_CTX");
       return false;
     }
 
@@ -146,14 +146,14 @@ PublicKey::verify(const string &blob,
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_free(ctx);
+        delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
         throw exception();
         return false;
     }
 
     // Prepend 8-byte public key digest
 
-    EVP_MD_CTX_free(ctx);
+    delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
     return true;
 }
 
@@ -191,9 +191,9 @@ PrivateKey::sign(const string &blob) const
     int err;
     unsigned int sigLen = SIGBUF_LEN;
     char sigBuf[SIGBUF_LEN];
-    EVP_MD_CTX * ctx = EVP_MD_CTX_new();
+    EVP_MD_CTX * ctx = new EVP_MD_CTX(); // XXX: openssl 1.1+ EVP_MD_CTX_new();
     if (!ctx) {
-      throw exception();
+      throw system_error(ENOMEM, std::generic_category(), "Could not allocate EVP_MD_CTX");
     }
 
     EVP_SignInit(ctx, EVP_sha256());
@@ -202,13 +202,13 @@ PrivateKey::sign(const string &blob) const
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
-        EVP_MD_CTX_free(ctx);
+        delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
         throw exception();
     }
 
     // XXX: Prepend 8-byte public key digest
 
-    EVP_MD_CTX_free(ctx);
+    delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
     return string().assign(sigBuf, sigLen);
 }
 
