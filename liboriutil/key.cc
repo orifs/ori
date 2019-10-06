@@ -38,6 +38,26 @@
 #error "SHA256 not supported!"
 #endif
 
+#if defined(OPENSSL_VERSION_MINOR)
+    #if OPENSSL_VERSION_MINOR < 1
+        #define OPENSSL_MD_NEW() (new EVP_MD_CTX())
+        #define OPENSSL_MD_DEL(ctx) (delete ctx)
+    #else
+        #define OPENSSL_MD_NEW() (EVP_MD_CTX_new())
+        #define OPENSSL_MD_DEL(ctx) (EVP_MD_CTX_free(ctx))
+    #endif
+#elif defined(OPENSSL_VERSION_NUMBER)
+    #if OPENSSL_VERSION_NUMBER < 0x1010000fL
+        #define OPENSSL_MD_NEW() (new EVP_MD_CTX())
+        #define OPENSSL_MD_DEL(ctx) (delete ctx)
+    #else
+        #define OPENSSL_MD_NEW() (EVP_MD_CTX_new())
+        #define OPENSSL_MD_DEL(ctx) (EVP_MD_CTX_free(ctx))
+    #endif
+#else
+    #error "No OPENSSL_VERSION_MINOR defined!"
+#endif
+
 #include <oriutil/key.h>
 
 using namespace std;
@@ -131,7 +151,7 @@ PublicKey::verify(const string &blob,
                   const string &digest) const
 {
     int err;
-    EVP_MD_CTX * ctx = new EVP_MD_CTX(); // XXX: openssl 1.1+ EVP_MD_CTX_new();
+    EVP_MD_CTX * ctx = OPENSSL_MD_NEW();
     if (!ctx) {
       throw system_error(ENOMEM, std::generic_category(), "Could not allocate EVP_MD_CTX");
       return false;
@@ -146,14 +166,14 @@ PublicKey::verify(const string &blob,
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
-        delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
+        OPENSSL_MD_DEL(ctx);
         throw exception();
         return false;
     }
 
     // Prepend 8-byte public key digest
 
-    delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
+    OPENSSL_MD_DEL(ctx);
     return true;
 }
 
@@ -191,7 +211,7 @@ PrivateKey::sign(const string &blob) const
     int err;
     unsigned int sigLen = SIGBUF_LEN;
     char sigBuf[SIGBUF_LEN];
-    EVP_MD_CTX * ctx = new EVP_MD_CTX(); // XXX: openssl 1.1+ EVP_MD_CTX_new();
+    EVP_MD_CTX * ctx = OPENSSL_MD_NEW();
     if (!ctx) {
       throw system_error(ENOMEM, std::generic_category(), "Could not allocate EVP_MD_CTX");
     }
@@ -202,13 +222,13 @@ PrivateKey::sign(const string &blob) const
     if (err != 1)
     {
         ERR_print_errors_fp(stderr);
-        delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
+        OPENSSL_MD_DEL(ctx);
         throw exception();
     }
 
     // XXX: Prepend 8-byte public key digest
 
-    delete ctx; // XXX: openssl 1.1+ EVP_MD_CTX_free(ctx);
+    OPENSSL_MD_DEL(ctx);
     return string().assign(sigBuf, sigLen);
 }
 
