@@ -28,6 +28,7 @@
 #include <oriutil/debug.h>
 #include <oriutil/oriutil.h>
 #include <oriutil/stopwatch.h>
+#include <oriutil/runtimeexception.h>
 #include <ori/packfile.h>
 #include <ori/udsclient.h>
 #include <ori/udsrepo.h>
@@ -122,7 +123,9 @@ Object::sp UDSRepo::getObject(const ObjectHash &id)
     if (bs.get()) {
         ASSERT(sizeof(numobjs_t) == sizeof(uint32_t));
         numobjs_t num = bs->readUInt32();
-        ASSERT(num == 1);
+        if (num != 1) {
+            throw RuntimeException(ORIEC_BSCORRUPT, "Object bytestream invalid");
+        }
 
         std::string info_str(ObjectInfo::SIZE, '\0');
         bs->readExact((uint8_t*)&info_str[0], ObjectInfo::SIZE);
@@ -135,7 +138,9 @@ Object::sp UDSRepo::getObject(const ObjectHash &id)
 
         ASSERT(sizeof(numobjs_t) == sizeof(uint32_t));
         num = bs->readUInt32();
-        ASSERT(num == 0);
+        if (num != 0) {
+            throw RuntimeException(ORIEC_BSCORRUPT, "Object bytestream invalid");
+        }
 
         switch (info.getAlgo()) {
             case ObjectInfo::ZIPALGO_NONE:
@@ -262,8 +267,22 @@ std::vector<Commit> UDSRepo::listCommits()
 void
 UDSRepo::transmit(bytewstream *out, const ObjectHashVec &objs)
 {
+    DLOG("uds transmit");
     numobjs_t num;
-    bytestream *in = getObjects(objs);
+    bytestream *in;
+    try {
+        in = getObjects(objs);
+    } catch (RuntimeException& e) {
+        if (e.getCode() == ORIEC_INDEXNOTFOUND) {
+            DLOG("failed to find objects, ending stream...");
+        } else {
+            DLOG("Exception: %s", e.what());
+        }
+        out->writeUInt32(0);
+        return;
+    } catch (...) {
+        DLOG("unexpected exception in transmit");
+    }
     vector<size_t> objSizes;
     string data;
 
@@ -292,11 +311,9 @@ UDSRepo::transmit(bytewstream *out, const ObjectHashVec &objs)
             in->readExact((uint8_t *)&data[0], objSize);
             out->write((uint8_t *)&data[0], objSize);
         }
-
         num = in->readUInt32();
         out->writeUInt32(num);
     }
-
     return;
 }
 

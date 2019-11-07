@@ -23,6 +23,7 @@
 
 #include <ori/udsclient.h>
 #include <ori/udsrepo.h>
+#include <oriutil/runtimeexception.h>
 
 #include "fuse_cmd.h"
 
@@ -36,13 +37,29 @@ cmd_log(int argc, char * const argv[])
     ObjectHash commit;
     if (argc >= 2) {
         commit = ObjectHash::fromHex(argv[1]);
-    }
-    else {
+    } else {
         commit = repository.getHead();
     }
 
     while (commit != EMPTY_COMMIT) {
-        Commit c = repository.getCommit(commit);
+        Commit c;
+        try {
+            c = repository.getCommit(commit);
+        } catch (std::ios_base::failure e) {
+            cout << "Error: could not read commit " << commit.hex() << endl;
+            break;
+        } catch (RuntimeException& e) {
+            if (e.getCode() == ORIEC_BSCORRUPT) {
+                cout << "Error: could not read commit " << commit.hex() << endl;
+            } else {
+                DLOG("Exception: %s", e.what());
+            }
+            break;
+        } catch (...) {
+            DLOG("Unexpected exception trying to get commit");
+            break;
+        }
+
         pair<ObjectHash, ObjectHash> p = c.getParents();
         time_t timeVal = c.getTime();
         char timeStr[26];

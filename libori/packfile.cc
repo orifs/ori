@@ -267,8 +267,7 @@ bool Packfile::purge(const set<ObjectHash> &hset, Index *idx)
         numobjs_t num;
         try {
             num = fs.readUInt32();
-        }
-        catch (ios_base::failure &e) {
+        } catch (ios_base::failure &e) {
             break;
         }
 
@@ -360,6 +359,7 @@ _offsetCmp(const IndexEntry &ie1, const IndexEntry &ie2)
 void
 Packfile::transmit(bytewstream *bs, vector<IndexEntry> objects)
 {
+    DLOG("packfile transmit");
     // Find contiguous blocks
     sort(objects.begin(), objects.end(), _offsetCmp);
     map<offset_t, offset_t> blocks;

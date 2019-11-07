@@ -203,9 +203,7 @@ int bytestream::readPStr(std::string &out)
         bool success = readExact((uint8_t*)&out[0], len);
         if (!success) return 0;
         return len;
-    }
-    catch (std::ios_base::failure &e)
-    {
+    } catch (std::ios_base::failure &e) {
         return 0;
     }
 }

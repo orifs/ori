@@ -245,9 +245,7 @@ LocalRepo::open(const string &root)
             WARNING("LocalRepo::open: Unsupported file system version!");
             throw RuntimeException(ORIEC_UNSUPPORTEDVERSION, "Unsuppported file system version!");
         }
-    }
-    catch (std::ios_base::failure &e)
-    {
+    } catch (std::ios_base::failure &e) {
         WARNING("LocalRepo::open: %s", e.what());
         throw SystemException();
     }
@@ -1194,30 +1192,41 @@ LocalRepo::multiPull(RemoteRepo::sp defaultRemote)
 void
 LocalRepo::transmit(bytewstream *bs, const ObjectHashVec &objs)
 {
+    DLOG("local transmit");
     unordered_set<ObjectHash> includedHashes;
 
     typedef std::vector<IndexEntry> IndexEntryVec;
     std::map<Packfile::sp, IndexEntryVec> packs;
-    for (size_t i = 0; i < objs.size(); i++) {
-        if (includedHashes.find(objs[i]) == includedHashes.end()) {
-            const IndexEntry &ie = index.getEntry(objs[i]);
-            Packfile::sp pf = packfiles->getPackfile(ie.packfile);
-            packs[pf].push_back(ie);
-            includedHashes.insert(objs[i]);
-        } else {
-            DLOG("duplicate object in LocalRepo::transmit");
+
+    try {
+        for (size_t i = 0; i < objs.size(); i++) {
+            if (includedHashes.find(objs[i]) == includedHashes.end()) {
+                const IndexEntry &ie = index.getEntry(objs[i]);
+                Packfile::sp pf = packfiles->getPackfile(ie.packfile);
+                packs[pf].push_back(ie);
+                includedHashes.insert(objs[i]);
+            } else {
+                DLOG("duplicate object in LocalRepo::transmit");
+            }
         }
-    }
 
-    for (std::map<Packfile::sp, IndexEntryVec>::iterator it = packs.begin();
-            it != packs.end();
-            it++) {
-        const Packfile::sp &pf = (*it).first;
-        //fprintf(stderr, "Transmitting %lu objects from %p\n",
-        //        (*it).second.size(), pf.get());
-        pf->transmit(bs, (*it).second);
+        for (std::map<Packfile::sp, IndexEntryVec>::iterator it = packs.begin();
+                it != packs.end();
+                it++) {
+            const Packfile::sp &pf = (*it).first;
+            //fprintf(stderr, "Transmitting %lu objects from %p\n",
+            //        (*it).second.size(), pf.get());
+            pf->transmit(bs, (*it).second);
+        }
+    } catch (RuntimeException& e) {
+        if (e.getCode() == ORIEC_INDEXNOTFOUND) {
+            DLOG("failed to find objects, ending stream...");
+        } else {
+            DLOG("Exception: %s", e.what());
+        }
+    } catch (...)  {
+        DLOG("unexpected exception in transmit");
     }
-
     /* Write (numobjs_t)0 */
     bs->writeUInt32(0);
 }

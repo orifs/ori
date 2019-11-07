@@ -204,7 +204,7 @@ SshServer::cmd_readObjs()
         objs.push_back(hash);
         DLOG("readObjs: %d of %d - %s", i + 1, numObjs, hash.hex().c_str());
     }
-
+    
     fdwstream fs(STDOUT_FILENO);
     fs.writeUInt8(OK);
     repo->transmit(&fs, objs);

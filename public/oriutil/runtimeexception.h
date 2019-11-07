@@ -31,6 +31,8 @@ enum OriErrorCode {
     ORIEC_UNSUPPORTEDVERSION,
     ORIEC_INDEXDIRTY,
     ORIEC_INDEXCORRUPT,
+    ORIEC_INDEXNOTFOUND,
+    ORIEC_BSCORRUPT
 };
 
 class RuntimeException : public std::exception

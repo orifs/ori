@@ -1216,6 +1216,7 @@ main(int argc, char *argv[])
      * If there is no repo path, then check if the repository name is the 
      * mountpoint name.  Otherwise we will generate it form the clone path.
      */
+
     if (config.repoPath == "" && !createReplica) {
         config.repoPath = OriFile_Basename(config.mountPoint);
     }

@@ -327,7 +327,8 @@ void UDSSession::cmd_readObjs()
         objs.push_back(hash);
         DLOG("readObjs: %d of %d - %s", i + 1, numObjs, hash.hex().c_str());
     }
-
+    
+    DLOG("uds readObjs");
     fdwstream fs(fd);
     fs.writeUInt8(OK);
     repo->transmit(&fs, objs);

@@ -527,6 +527,7 @@ main(int argc, char *argv[])
             has_repo = true;
         } catch (std::exception &e) {
             // Fall through
+            cerr << e.what() << endl;
         }
     }
 

@@ -208,7 +208,10 @@ const IndexEntry &
 Index::getEntry(const ObjectHash &objId) const
 {
     unordered_map<ObjectHash, IndexEntry>::const_iterator it = index.find(objId);
-    ASSERT(it != index.end());
+    if (it == index.end()) {
+        WARNING("Could not find the object!");
+        throw RuntimeException(ORIEC_INDEXNOTFOUND, "Index not found");
+    }
 
     return (*it).second;
 }
