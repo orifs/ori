@@ -238,7 +238,7 @@ Tree::fromBlob(const string &blob)
 {
     strstream ss(blob);
     ss.enableTypes();
-    size_t num_entries = ss.readUInt64();
+    size_t num_entries = (blob == "") ? 0 : ss.readUInt64();
     
     for (size_t i = 0; i < num_entries; i++) {
         TreeEntry entry;
